@@ -1,24 +1,25 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, pagination, icon %}
 {% set workflow_nav = 'users' %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-benutzer.css') }}">{% endblock %}
 {% block title %}Zugriffsverlauf · Benutzer & Zugriff{% endblock %}
-{% block page_header %}{% call page_header('Zugriffsverlauf', 'Benutzer & Zugriff') %}
+{% block page_header %}{% call page_header('Benutzer & Zugriff', 'Zugriffsverlauf') %}
 <a class="btn" href="{{ url_for('admin.local_users_list') }}">{{ icon('arrow-left') }}Zurück zur Kontenliste</a>
 <nav class="btn-list" aria-label="Kontoverlauf"><a class="btn" href="{{ url_for('admin.local_user_events') }}">{{ icon('history') }}Kontoereignisse</a></nav>
 {% endcall %}{% endblock %}
 {% block content %}
-<form method="get" class="row g-2 align-items-end mb-3" aria-label="Zugriffsverlauf filtern">
-  <div class="col-12 col-md-4"><label class="form-label" for="access-provider">Zugang</label>
+<form method="get" class="admin-filter-bar" aria-label="Zugriffsverlauf filtern" data-dirty-tracking="off">
+  <div><label class="form-label" for="access-provider">Zugang</label>
     <select class="form-select" id="access-provider" name="provider"><option value="all">Alle Zugänge</option>
     {% for value,label in providers.items() %}<option value="{{ value }}"{% if provider == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
   </div>
-  <div class="col-12 col-md-5"><label class="form-label" for="access-action">Ereignis</label>
+  <div><label class="form-label" for="access-action">Ereignis</label>
     <select class="form-select" id="access-action" name="action"><option value="all">Alle Ereignisse</option>
     {% for value,label in actions.items() %}<option value="{{ value }}"{% if action == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
   </div>
-  <div class="col-12 col-md-3"><div class="btn-list"><button class="btn btn-primary" type="submit">{{ icon('search') }}Filtern</button><a class="btn btn-icon" href="{{ url_for('admin.access_history') }}" aria-label="Filter zurücksetzen" title="Filter zurücksetzen">{{ icon('refresh') }}</a></div></div>
+  <div class="btn-list"><button class="btn btn-primary" type="submit">{{ icon('search') }}Filtern</button>{% if provider != 'all' or action != 'all' or page > 1 %}<a class="btn btn-icon" href="{{ url_for('admin.access_history') }}" aria-label="Filter zurücksetzen" title="Filter zurücksetzen">{{ icon('refresh') }}</a>{% endif %}</div>
 </form>
-<section class="card" aria-labelledby="access-events-title">
+<section class="card admin-users-history" aria-labelledby="access-events-title">
   <h2 class="visually-hidden" id="access-events-title">Zugriffsereignisse</h2>
   {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table table-mobile-lg">
     <thead><tr><th>Zeitpunkt</th><th>Verifiziertes Konto</th><th>Zugang</th><th>Ereignis</th></tr></thead>

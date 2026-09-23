@@ -1,0 +1,47 @@
+/* WP19: existing tokens and native forms, scoped to account views. */
+.dishboard-admin .admin-users-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--app-space-1);
+  align-items: center;
+}
+.dishboard-admin .admin-users-row > * { min-width: 0; }
+.dishboard-admin .admin-users-lock { grid-column: 1 / -1; }
+.dishboard-admin .admin-filter-bar > div { max-width: 100%; }
+.dishboard-admin .admin-users-history td { overflow-wrap: anywhere; }
+.dishboard-admin :is(#roles-action, #password-action, #state-action, #create-local-user) > summary {
+  min-height: var(--app-space-12);
+}
+.dishboard-admin .admin-statusbar-item {
+  padding: var(--app-space-2) var(--app-space-3);
+}
+.dishboard-admin .admin-statusbar-value { margin: 0; }
+@media (min-width: 1024px) {
+  .dishboard-admin .admin-users-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: var(--app-space-2);
+  }
+}
+@media (max-width: 991.98px) {
+  .dishboard-admin .admin-users-history .table-mobile-lg tr {
+    padding: var(--app-space-2) var(--app-space-3);
+  }
+  .dishboard-admin .admin-users-history .table-mobile-lg td {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 0 var(--app-space-2);
+    padding: var(--app-space-1) 0 !important; /* Tabler's mobile cells use !important. */
+    text-align: start;
+    min-height: 0;
+  }
+  .dishboard-admin .admin-users-history .table-mobile-lg td::before {
+    grid-column: 1;
+    margin: 0;
+    padding: 0;
+    width: auto;
+    min-width: 0;
+  }
+  .dishboard-admin .admin-users-history .table-mobile-lg td > div {
+    grid-column: 2;
+  }
+}

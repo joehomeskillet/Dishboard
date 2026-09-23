@@ -85,7 +85,7 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         before = snapshot(database_engine)
         assert client.get(old_pdf_url).data == original_pdf.data
         page.locator('details[data-template-versions] summary').click()
-        page.get_by_role('link', name='Version 1 ansehen', exact=True).click()
+        page.get_by_role('link', name='Version 1 öffnen', exact=True).click()
         expect(page.get_by_role('heading', name='PDF-Vorschau · Version 1', exact=True)).to_be_visible()
         page.get_by_role('link', name='Alle Vorlagen', exact=True).click()
         page.locator(f'[aria-controls="output-{family}"]').click()

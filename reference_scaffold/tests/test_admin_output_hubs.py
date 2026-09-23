@@ -100,18 +100,24 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         links = MainLinks(html).links
         screen_links = [link for link in links if link.startswith(('/admin/screens/', '/admin/vorlagen/screens/'))]
         assert len(set(screen_links)) == (2 if path == '/admin/screens' else 6)
+        if path == '/admin/vorlagen':
+            # Assignment is per family, not per photo/text preview card.
+            assert len(screen_links) == 6
         links = [link for link in links if link not in screen_links]
         if path == '/admin/vorlagen':
-            # No horizontal area tabs; #output-* (2) + both families' print/public/content
-            # links (10/16) + master-data cards (3) [+ admin recipe/drucklayout/details (6)];
-            # admin also repeats each Vorlageneditor href once outside and inside «Frühere Versionen»
-            expected_links = 22 if role == 'Cafeteria.Admin' else 15
-            expected_unique_links = 20 if role == 'Cafeteria.Admin' else 15
+            # WP28: week status anchor (1), area tabs (2), print/public/content (10),
+            # dish templates/recipes/master data/cookbooks (4), admin editors/previews (5).
+            # The header owns the cafeteria PDF action; status and overflow add no duplicates.
+            expected_links = 22 if role == 'Cafeteria.Admin' else 17
+            expected_unique_links = expected_links
+            assert {link for link in links if link.startswith('#')} == {
+                '#output-week', '#output-cafeteria', '#output-patienten',
+            }
+            template_links = [link for link in links if link.startswith('/admin/vorlagen/')]
+            assert len(template_links) == (5 if role == 'Cafeteria.Admin' else 0)
             assert '/admin/gerichtvorlagen' in links
             assert '/admin/rezepte' in links
             assert html.count('>Rezept drucken</a>') == 1
-            expected_links += 2
-            expected_unique_links += 1
             assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
         else:
             # Ten public destinations; module tabs and two area anchors are gone.
@@ -178,9 +184,13 @@ def test_draft_read_only_role_gets_working_recipe_print_entry(
 
     assert response.status_code == 200
     assert response.get_data(as_text=True).count('>Rezept drucken</a>') == 1
-    assert links.count('/admin/rezepte') == 2
+    # One recipe-print entry, with no duplicate in the optional content links.
+    assert links.count('/admin/rezepte') == 1
     assert client.get('/admin/rezepte').status_code == 200
-    assert not any(link.startswith('/admin/vorlagen/rezepte') for link in links)
+    assert not any(
+        link.startswith('/admin/vorlagen/') and not link.startswith('/admin/vorlagen/screens/')
+        for link in links
+    )
 
 
 def test_hubs_reject_missing_roles_and_stale_authorization(hub_app, database_engine, monkeypatch):  # noqa: F811
@@ -231,6 +241,20 @@ def test_selected_week_only_changes_saved_week_destinations(hub_app, database_en
 def test_hubs_responsive_keyboard_and_native_week_selection(
     hub_app, database_engine, browser, width, javascript, tmp_path: Path,  # noqa: F811
 ):
+    def check_controls(controls):
+        # Native :focus-visible requires keyboard modality after opening details by click.
+        page.keyboard.press('Tab')
+        for control in controls:
+            control.scroll_into_view_if_needed()
+            box = control.bounding_box()
+            assert box is not None and box['height'] >= 48
+            control.focus()
+            expect(control).to_be_focused()
+            assert control.evaluate(
+                "el => { const s = getComputedStyle(el); return s.boxShadow !== 'none' || "
+                "(s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0); }"
+            )
+
     client, _ = _login(hub_app, database_engine, ['Cafeteria.Admin'])
     server = make_server('127.0.0.1', 0, hub_app)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -259,27 +283,23 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
                 else:
                     controls = []
                     controls.extend(page.locator('main form :is(.btn, .form-control)').all())
-                    controls.extend(page.locator('main .row-cards .btn, main .screens-grid .btn').all())
+                    controls.extend(page.locator(
+                        'main .print-related-grid .btn, main .screens-grid .btn, '
+                        'main .page-header .btn, main .admin-statusbar a'
+                    ).all())
+                    more_options = page.locator('main details.admin-compact-details').last
+                    more_options.locator('summary').click()
+                    controls.extend(more_options.locator('.btn').all())
                     families = ('cafeteria', 'patienten') if javascript else ('cafeteria',)
                     for family in families:
                         if javascript:
                             page.locator(f'[aria-controls="output-{family}"]').click()
-                        pane = page.locator('.tab-pane.active') if javascript else page.locator('#output-cafeteria')
-                        pane.locator('details summary').filter(has_text='Frühere Versionen').click()
-                        controls.extend(pane.locator('.output-print-section .btn').all())
-                        controls.extend(pane.locator('.output-layouts-section > .btn-list .btn').all())
-                        controls.extend(pane.locator('.output-content-links .btn').all())
-                        controls.extend(pane.locator('details .btn').all())
-                for control in controls:
-                    control.scroll_into_view_if_needed()
-                    box = control.bounding_box()
-                    assert box is not None and box['height'] >= 48
-                    control.focus()
-                    expect(control).to_be_focused()
-                    assert control.evaluate(
-                        "el => { const s = getComputedStyle(el); return s.boxShadow !== 'none' || "
-                        "(s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0); }"
-                    )
+                        pane = page.locator(f'#output-{family}')
+                        for summary in pane.locator('details summary').all():
+                            summary.click()
+                        # Check each family's controls while that tab is still active.
+                        check_controls(pane.locator('.btn').all())
+                check_controls(controls)
                 page.screenshot(path=str(tmp_path / f'{title}-{width}-js-{javascript}.png'), full_page=True)
             page.get_by_label('Woche ab Montag').fill('2026-09-07')
             page.get_by_role('button', name='Woche anzeigen', exact=True).click()

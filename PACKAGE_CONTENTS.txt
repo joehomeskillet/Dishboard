@@ -796,10 +796,13 @@ reference_scaffold/cafeteria/static/admin-menu-collection.css
 reference_scaffold/cafeteria/static/admin-menu-editor.css
 reference_scaffold/cafeteria/static/admin-preview.css
 reference_scaffold/cafeteria/static/admin-screens.css
+reference_scaffold/cafeteria/static/admin-settings-benutzer.css
 reference_scaffold/cafeteria/static/admin-settings-bereiche.css
 reference_scaffold/cafeteria/static/admin-settings-darstellung.css
+reference_scaffold/cafeteria/static/admin-settings-import.css
 reference_scaffold/cafeteria/static/admin-settings-schnittstellen.css
 reference_scaffold/cafeteria/static/admin-tabler.css
+reference_scaffold/cafeteria/static/admin-vorlagen-druck.css
 reference_scaffold/cafeteria/static/admin-vorschau-bildschirme.css
 reference_scaffold/cafeteria/static/admin-week-tabler.css
 reference_scaffold/cafeteria/static/admin-wochenplan-kern.css

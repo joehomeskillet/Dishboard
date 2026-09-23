@@ -1484,6 +1484,37 @@ gespeicherte Woche und veröffentlichten Plan. Vorschauinhalt und Signage-Ausgab
 bleiben unverändert. Modulprüfungen erfassen 360/768/1024/1440 px, Karten-/Seitenhöhe,
 geschlossene Vorschauen, Feldreihenfolge, No-JS, Tastatur und echten 200-%-Zoom.
 
+##### Modul Vorlagen & Druck (2026-09-20)
+
+Die Übersicht «Vorlagen» folgt M01/M14/M23/M25: Titel entspricht dem bestehenden
+Seitentitel der Katalogtests; die Beschreibung nennt Druckvorlagen für gespeicherte
+Wochen und Rezeptrevisionen. Genau eine Primäraktion im `main` öffnet das PDF der
+gewählten Cafeteria-Woche. Bereichs-PDFs, veröffentlichter Plan und Editorlinks
+bleiben sekundär. Die Statusbar nutzt vorhandene Katalogwerte: Woche aus `week`,
+aktive Druckvorlage je Bereich aus `catalogs.*.active.name` (`success` nur für den
+aktivierten Stand), Rezeptvorlage aus `catalogs.rezepte.active.name`. Anker führen
+zur Wochenauswahl bzw. zum Bereichstab. IDs, Revisionsnummern und `row_version`
+gehören nicht in die Statusbar.
+
+Die früheren grossen Bereichskarten sind ersetzt am 2026-09-20 durch eine Filterzeile
+(Woche), Bereichstabs mit `active` und `aria-current="true"`, eine kompakte
+Aktiven-Zeile und nativ geschlossene «Frühere Versionen». Listenzeilen bleiben
+`li[data-template-id]` mit Name, einzeiligem Stand, Statusbadge und beschrifteter
+Zeilenaktion «Vorlageneditor öffnen». Rezept- und Gerichtvorlagen stehen in zwei
+Spalten ab 1024 px. Screen-Vorlagen sind kompakte Zeilen; Zutaten/Rezepte/Kochbücher
+liegen unter «Weitere Optionen».
+
+Der Editor trägt denselben Seitentitel. Statusbar: Bereich aus dem Profil, Aktiv/
+Nicht aktiv/Archiviert aus `document`/`template.archived` (`success` nur wenn die
+angezeigte Revision aktiv ist), Woche aus `week` bzw. Rezepttitel. Speichern ist
+die einzige Primäraktion; Aktivieren, Kopieren und Archivieren bleiben nachrangig.
+Archivieren behält die native Pflicht-Checkbox ausserhalb des POST-Formulars
+(`form="archive-form"`, ohne Feldnamen). Versteckte Felder `_csrf`, `version`,
+`revision`, `action` bleiben direkt im Formular. Layoutfelder bleiben vollständig
+im DOM und byte-gleich im POST. Modul-CSS: `admin-vorlagen-druck.css`. Nachweis:
+`test_print_template_browser.py`, `test_print_template_archive_browser.py`,
+`test_print_template_layout_forms.py` (360/768/1024/1440, No-JS, Tastatur).
+
 #### M15 — Einstellungen: kompakte Zusammenfassung, Bearbeitung bei Bedarf
 
 Generisches Muster für vorhandene Einstellungen; keine neuen Einstelloptionen daraus ableiten.
@@ -1624,6 +1655,12 @@ Strukturmuster für den bestehenden Importablauf. Vorschau und Import nur in der
 **Pflicht:** Genau eine klare Dateiauswahl und eindeutiger Bezug zwischen Ergebnis und geprüfter Datei. Keine alten Prüfungsergebnisse nach Dateiaustausch als aktuell darstellen. Bestehende Importhindernisse verständlich erklären.
 
 **Schutz:** Keine neue automatische Importfunktion, kein Wegklicken fachlicher Fehler und kein neuer Fortschrittsdienst. Rohdaten, Tokens oder interne Fehlerdetails nicht in normale Meldungen kopieren. Produktionsimporte sind keine zulässigen UI-Tests.
+
+##### Modul Einstellungen – Daten importieren (2026-09-20)
+
+Datenimport folgt M01/M17/M25. Seitentitel `Daten importieren` (Navigationspunkt), ein Satz Kontext, Statusbar aus vorhandenen Prüfergebnissen. Leer: `Prüfung` = `Offen` mit Ziel `#csv-upload`. Nach Vorschau: Bereich aus `result.profile` als Cafeteria/Patientenplan, Woche aus `result.week_start` (`KW n · ab TT.MM.JJJJ`), Prüfung `Bereit` (success) oder `Fehlerhaft` (danger, Ziel `#file-error`), `Zeilen` aus `result.rows`, `Warnungen` nur bei `result.warnings` (Ziel `#csv-warnings`). Keine Importrevision, keine internen Profilcodes (`staff_guest`/`patient`) als sichtbarer Text.
+
+Genau eine `.btn-primary` im `main`: «Vorschau prüfen» ohne gültiges Ergebnis, «Geprüfte Datei importieren» danach im Seitenkopf über `form="csv-import"`. Eine zweite Datei prüfen bleibt sekundär. Dateiformat und Spaltenköpfe stehen in `disclosure_section` «Weitere Optionen», offen bei Inhalt oder Fehler. Die Bereichswahl im M17-ASCII ist Komposition; das Profil kommt aus der CSV, kein neues Auswahlfeld. Rezeptimport bleibt unter Rezepte. Feldnamen `_csrf`, `file`, `import_token` und POST-Ziele `/import-preview` sowie `/import` bleiben byte-gleich. Modul-CSS nur in `admin-settings-import.css`. Nachweis: `tests/test_admin_csv_preview_ui.py` (eigener Playwright-Start, 360/768/1024/1440, No-JS, Tastatur, Statusbar, Überlauf), `tests/test_admin_csv_import.py`, `tests/test_csv_validation_followup.py`.
 
 #### M18 — Benutzer und ähnliche Verwaltungslisten
 
@@ -1930,6 +1967,30 @@ No-JS-Submit bleiben byte-gleich; die Speichern-Schaltfläche liegt im Kopf und
 gehört über das native `form`-Attribut zum selben Formular. Nachweise:
 `tests/test_ui_korrektur_branding_browser.py` (eigener Playwright-Start, 360/768/1024/1440,
 No-JS, Tastatur, Statusbar, Überlauf), `tests/test_branding_browser.py`.
+
+##### Modul Einstellungen – Benutzer & Zugriff (2026-09-20)
+
+Benutzer & Zugriff nutzt M01/M22/M23/M25. Die Anlage unter der Kontenliste ist
+ersetzt am 2026-09-20 durch eine Primäraktion «Anlegen» zur vorhandenen Anlageansicht;
+leere Listen bieten dieselbe Aktion neutral an. Rollen, Passwort und Kontostatus
+bleiben getrennte native Formulare mit unveränderter Bestätigung, CSRF und CAS.
+«Bearbeiten» öffnet die Rollen als einzige Primäraktion im Detail; bei einem
+Rollenfehler wird «Speichern» hervorgehoben. Passwortentzug und Deaktivierung
+bleiben klar destruktiv. Anmeldedaten und Auditlinks liegen unter
+«Weitere Optionen», Fehler öffnen weiterhin die betroffene Aktionsgruppe.
+
+Die Detail-Statusbar zeigt ausschliesslich `account.disabled_at`, die Rollen aus
+`account.roles`/`role_labels` und die zeitlich geprüfte Sperre aus `locked_until`
+und `now`. Liste und Anlage zeigen nur bei fehlender Schreibverfügbarkeit den
+Warnstatus «Nur lesen» aus `can_mutate`. Ereignislisten behaupten keinen Sitzungs- oder Abmeldestatus und
+erhalten keine dekorativen Zähler. Die Filter verwenden die gemeinsame
+`admin-filter-bar` ohne Suchfeld: Die bestehenden Routen erlauben keine Suche.
+Kontenzeilen nutzen ab 1024 px drei Spalten, Ereignistabellen mobil beschriftete
+Listen. Modul-CSS: `admin-settings-benutzer.css`; zentrale Tokens bleiben erhalten.
+
+Nachweise: `tests/test_ui_korrektur_users_browser.py` mit eigenem Playwright-Start,
+360/768/1024/1440 px, No-JS, Tastatur/Fokus, Statusbar, Dichtemessungen und nativen
+POST-Verträgen; unveränderte DB-/AuthZ-/CAS-Gates für Konten und Zugriffsereignisse.
 
 #### M26 — Wochenplan Cafeteria — kompakte Wochenplanung
 

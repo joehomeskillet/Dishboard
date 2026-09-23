@@ -1,4 +1,5 @@
 <!doctype html>
+{% from 'admin/_macros.html' import empty_state %}
 {% from 'ui/_semantic.html' import icon_label, icon_button %}
 <html lang="{{ ui_locale }}">
 <head>
@@ -8,13 +9,18 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
-  {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">{% endblock %}
+  {% block page_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin-vorlagen-druck.css') }}">
+  {% endblock %}
 </head>
 <body class="admin-body dishboard-admin">
-<main class="container-fluid py-4">
+<main class="container-fluid py-4 print-template-unavailable">
   <h1>{{ t('ui.print_unavailable.label') }}</h1>
   <div class="alert alert-warning" role="alert">{{ icon_label('ui.request_failed') }}</div>
+  {% call empty_state('error', t('ui.print_unavailable.label'), t('ui.request_failed.label')) %}
   {{ icon_button('ui.templates_back', href=url_for('admin.vorlagen')) }}
+  {% endcall %}
 </main>
 </body>
 </html>

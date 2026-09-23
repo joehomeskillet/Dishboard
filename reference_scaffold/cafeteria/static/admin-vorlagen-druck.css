@@ -1,0 +1,92 @@
+/* Compact print-template hub and editor. Tokens only; 48 px targets. */
+.dishboard-admin:has(.output-week-form) .page,
+.dishboard-admin:has(.print-template-editor) .page,
+.dishboard-admin .page-body .container-xl:has(.output-week-form),
+.dishboard-admin .page-body .container-xl:has(.print-template-editor) {
+  overflow-x: hidden;
+  min-width: 0;
+  max-width: 100%;
+}
+.output-week-form,
+.output-area-tabs,
+.output-area-panels,
+.output-area-panels .card,
+.print-related-grid,
+.print-screens-grid,
+.screens-grid {
+  max-width: 100%;
+  min-width: 0;
+}
+.output-week-form .form-control { min-width: 0; max-width: 100%; }
+.output-week-form .form-hint { margin-top: var(--app-space-1); }
+.output-area-tabs {
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow-x: hidden;
+}
+.output-area-tabs .nav-link { min-height: var(--app-space-12); }
+.output-print-actions,
+.output-print-actions.btn-list,
+.print-tpl-row,
+.print-screen-row,
+.print-version-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-2);
+  min-width: 0;
+  max-width: 100%;
+}
+.output-current-template { min-width: 0; }
+.output-current-template .print-tpl-name,
+.print-tpl-row .print-tpl-name {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.print-tpl-row {
+  padding-block: var(--app-space-2);
+  border-bottom: 1px solid var(--app-border);
+}
+.print-tpl-row:last-child { border-bottom: 0; }
+.print-tpl-meta { color: var(--app-text-muted); min-width: 0; overflow-wrap: anywhere; }
+.print-tpl-row .btn-list,
+.print-version-row .btn-list { margin-inline-start: auto; }
+.print-related-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--app-space-3);
+}
+.print-related-card .card-body { padding: var(--app-space-3); }
+.print-screen-row {
+  padding: var(--app-space-3);
+}
+.print-screen-row .card-title {
+  flex: 1 1 12rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.print-template-editor .admin-form-footer { padding: var(--app-space-2) var(--app-space-3); }
+.print-template-editor summary,
+.output-layouts-section summary,
+.print-screen-row .btn,
+.print-tpl-row .btn {
+  min-height: var(--app-space-12);
+}
+.print-version-row { padding-block: var(--app-space-2); }
+.print-template-unavailable .empty { padding: var(--app-space-4); }
+@media (min-width: 1024px) {
+  .print-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .print-screens-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--app-space-3);
+  }
+}
+@media (max-width: 767.98px) {
+  .print-tpl-row .btn-list,
+  .print-version-row .btn-list,
+  .print-screen-row .btn-list { margin-inline-start: 0; flex-basis: 100%; }
+  .output-print-actions { flex-direction: column; align-items: stretch; }
+  .output-print-actions .btn { width: 100%; }
+}
