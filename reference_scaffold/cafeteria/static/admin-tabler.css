@@ -497,6 +497,32 @@
 .dishboard-admin :is(.form-hint, small, .small) { font-size: calc(var(--app-font-size-small) * var(--app-font-scale)); }
 .dishboard-admin .form-hint { color: var(--app-text-muted); }
 .dishboard-admin .table { --tblr-table-color: var(--app-text); --tblr-table-border-color: var(--app-border); }
+/* R34: shared version of the existing lager/bestellung data-label pattern.
+   56px is the desktop standard, not a content clip: wrapping/zoom may grow rows. */
+.dishboard-admin table.admin-table--stack { width: 100%; }
+.dishboard-admin .admin-table--stack tbody tr { height: var(--app-table-row-height); }
+.dishboard-admin .admin-table--stack :is(th, td) {
+  padding: 0 var(--app-space-3); vertical-align: middle; overflow-wrap: anywhere;
+}
+@media (max-width: 767.98px) {
+  .dishboard-admin table.admin-table--stack,
+  .dishboard-admin .admin-table--stack :is(caption, tbody) { display: block; }
+  .dishboard-admin .admin-table--stack thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
+  }
+  .dishboard-admin .admin-table--stack tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr); height: auto;
+    gap: var(--app-space-2); padding: var(--app-space-2) 0;
+    border-bottom: 1px solid var(--app-border);
+  }
+  .dishboard-admin .admin-table--stack tbody :is(th, td) {
+    display: block; width: auto; min-width: 0; padding: 0; border: 0; white-space: normal;
+  }
+  .dishboard-admin .admin-table--stack [data-label]::before {
+    content: attr(data-label); display: block;
+    color: var(--app-text-muted); font-weight: 600;
+  }
+}
 .dishboard-admin :is(.admin-main, .display-preview)[data-density="compact"] { --app-card-inset: var(--app-space-6); }
 .dishboard-admin :is(.admin-main, .display-preview)[data-density="comfortable"] { --app-card-inset: var(--app-space-8); }
 .dishboard-admin .admin-main > :is(header, .page-body),

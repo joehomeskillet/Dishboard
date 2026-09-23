@@ -148,6 +148,31 @@ def test_polish_field_grid_targets_and_adjacent_error(width, columns):
     _run_polish_check(markup, verify, width, javascript=False)
 
 
+@pytest.mark.parametrize('width', [360, 390, 767, 768, 1440])
+def test_polish_stack_table_reflows_without_losing_labels(width, tmp_path):
+    markup = '''<table class="table admin-table--stack">
+        <caption>Bestand</caption><thead><tr><th scope="col">Name</th><th scope="col">Aktion</th></tr></thead>
+        <tbody><tr><td data-label="Name">Reis</td><td data-label="Aktion"><button class="btn">Öffnen</button></td></tr>
+        <tr><td data-label="Name">EinLangerUngetrennterNameMitVielenZeichenFürDenMobilenUmbruch</td>
+        <td data-label="Aktion"><a class="btn" href="#detail">Details</a></td></tr></tbody></table>'''
+
+    def verify(page):
+        table = page.locator('table')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        assert table.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+        expect(page.get_by_role('button', name='Öffnen')).to_be_visible()
+        if width < 768:
+            expect(table.locator('tbody tr').first).to_have_css('display', 'grid')
+            expect(table.locator('td').first).to_have_css('display', 'block')
+            assert table.locator('td').first.evaluate('el => getComputedStyle(el, "::before").content') == '"Name"'
+        else:
+            expect(table).to_have_css('display', 'table')
+            assert table.locator('tbody tr').first.bounding_box()['height'] <= 56
+        page.screenshot(path=str(tmp_path / f'polish-table-{width}.png'), full_page=True)
+
+    _run_polish_check(markup, verify, width, javascript=False)
+
+
 def _page(shared_site, javascript=True, width=390, query=''):
     chromium, origin, cookie = shared_site
     context = chromium.new_context(java_script_enabled=javascript, viewport={'width': width, 'height': 900},
