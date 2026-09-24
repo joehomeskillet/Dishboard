@@ -87,7 +87,9 @@
                     'incomplete': 'Unvollständig',
                     'empty': 'Noch keine Menüs erfasst'
                   } %}
-                  <span class="badge admin-status--{{ week_status_variant }}" title="{{ status_descriptions.get(row.status, '') }}">{{ icon(week_status_icon) }}<span>{{ week_status_label }}</span></span>
+                  <span class="badge admin-status--{{ week_status_variant }}">{{ icon(week_status_icon) }}<span>{{ week_status_label }}</span></span>
+                  {# Publication state explanations stay visible (polish rule: no safety/publication hints in tooltips). #}
+                  <p class="text-secondary small mb-0">{{ status_descriptions.get(row.status, '') }}</p>
                   {% if row.workflow_state == 'archived' %}<div class="mt-1"><span class="badge admin-status--neutral">{{ icon('archive') }}<span>Archiviert</span></span></div>{% endif %}
                 </td>
                 <td data-label="Aktionen">
