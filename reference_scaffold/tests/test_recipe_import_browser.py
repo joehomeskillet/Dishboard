@@ -143,6 +143,8 @@ def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, 
         page.screenshot(path=str(confirm_shot), full_page=True)
         page.get_by_role('button', name='Importstapel übernehmen').click()
         expect(page.get_by_role('heading', name='Übernommene Rezepte')).to_be_visible()
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        expect(page.locator('main .btn-primary')).to_have_text('Zu den Rezepten')
         expect(page.locator('.admin-statusbar')).to_contain_text('Übernommen')
         expect(page.get_by_role('link', name='Bearbeiten', exact=True)).to_be_visible()
         targets(page)
@@ -315,3 +317,45 @@ def test_recipe_import_density_missing_viewports(
         summary.click()
         expect(details).not_to_have_attribute('open', '')
         page.screenshot(path=str(evidence / f'recipe-closed-{width}-js-{javascript}.png'), full_page=True)
+
+
+@pytest.mark.parametrize('javascript', [False, True])
+def test_discard_requires_explicit_native_confirmation(b3, master_server, browser, javascript):  # noqa: F811
+    from urllib.parse import parse_qs
+
+    _, _, client, _ = b3
+    path = create(client)
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': 360, 'height': 900},
+                             java_script_enabled=javascript) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        _open(page, base, path)
+        form = page.locator(f'form[action="{path}"]')
+        table = page.locator('table.admin-table--stack')
+        expect(table).to_have_count(1)
+        assert table.locator('tbody tr').first.evaluate('e => getComputedStyle(e).display') == 'grid'
+        assert table.locator('thead th:not([scope="col"]), tbody td:not([data-label])').count() == 0
+        original = form.evaluate('f => [...new FormData(f)]')
+        confirm = page.get_by_role('button', name='Verwerfen bestätigen', exact=True)
+        expect(confirm).not_to_be_visible()
+        page.locator('.admin-compact-actions > summary').focus()
+        page.keyboard.press('Enter')
+        page.get_by_text('Stapel verwerfen', exact=True).focus()
+        page.keyboard.press('Enter')
+        expect(confirm).to_be_visible()
+        expect(page.locator('#discard-consequence')).to_contain_text('vorhandene Rezepte bleiben unverändert')
+        assert 'btn-danger' in confirm.get_attribute('class').split()
+        assert form.evaluate('f => [...new FormData(f)]') == original
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        confirm.focus()
+        with page.expect_request(lambda request: request.method == 'POST') as request:
+            page.keyboard.press('Enter')
+        sent = parse_qs(request.value.post_data, keep_blank_values=True)
+        assert sent['action'] == ['cancel']
+        for key, value in original:
+            assert value in sent[key]
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        expect(page.locator('main .btn-primary')).to_have_text('Zu den Rezepten')
+        expect(page.locator('.admin-statusbar')).to_contain_text('Verworfen')
+        expect(page.get_by_role('button', name='Verwerfen bestätigen', exact=True)).to_have_count(0)

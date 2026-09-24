@@ -1,27 +1,29 @@
 <!doctype html>
-{% from 'admin/_macros.html' import page_header %}
+{% from 'admin/_macros.html' import page_header, hint %}
 <html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rezeptaktion nicht möglich</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
-</head><body class="dishboard-admin"><main class="container-fluid py-5">
+<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='recipe-admin.css') }}">
+</head><body class="dishboard-admin"><main class="container-fluid py-3">
 {{ page_header(t('navigation.recipes.label'), 'Rezeptaktion nicht möglich', status_items=[{'label': t('actions.save.label'), 'value': t('status.error.label'), 'variant': 'danger'}]) }}
 <div class="alert alert-danger error-region" role="alert" id="recipe-error" tabindex="-1"{% if focus_index is none %} autofocus{% endif %}>{{ message }}</div>
+{% if submitted %}<p>Sie können Ihre Eingaben kopieren. Neu laden verwirft diesen Formularstand; gespeichert wird hier nichts.</p>{% endif %}
+<a class="btn btn-primary mb-3" href="{{ '/auth/local' if status == 401 else reload_url }}">{{ 'Erneut anmelden' if status == 401 else 'Aktuellen Stand bewusst neu laden' }}</a>
 {% if submitted %}
-<div class="card"><div class="card-body"><h2 class="card-title">Ursprüngliche Eingaben</h2>
-<p>Sie können Ihre Eingaben kopieren. Neu laden verwirft diesen Formularstand; gespeichert wird hier nichts.</p>
+<div class="card"><div class="card-body"><div class="d-flex align-items-center gap-2"><h2 class="card-title">Ursprüngliche Eingaben</h2>{{ hint('Zum Kopieren ein Feld fokussieren und dessen Inhalt auswählen. Die Felder sind schreibgeschützt.', 'copy-hint') }}</div>
 {% set names = {'title': 'Titel', 'description': 'Beschreibung', 'servings': 'Ausbeute/Menge', 'servings_unit_code': 'Ausbeuteeinheit', 'prep_minutes': 'Vorbereitung in Minuten', 'cook_minutes': 'Kochzeit in Minuten', 'ingredient_text': 'Zutat', 'quantity': 'Menge', 'unit_code': 'Einheit', 'line_public_id': 'Zutatenzeile · ursprüngliche Referenz', 'food_public_id': 'Zutat · ursprüngliche Referenz', 'group_label': 'Gruppe', 'note': 'Notiz', 'instruction': 'Zubereitung', 'duration_minutes': 'Dauer in Minuten', 'image_sha256': 'Schrittbild · ursprünglicher Hash', 'sha256': 'Bildhash', 'caption': 'Bildunterschrift', 'source_url': 'Bildquelle', 'source_license': 'Bildlizenz', 'fetched_at': 'Abrufzeit', 'source_kind': 'Herkunftsart', 'source_reference': 'Quellenbeleg', 'tag_public_ids': 'Kennzeichnung', 'recipe_public_ids': 'Rezept · ursprüngliche Referenz', 'name': 'Name', 'kind': 'Herkunftsart', 'reference': 'Quellenbeleg', 'url': 'Quellenadresse', 'row_version': 'Ursprüngliche Version'} %}
-<section aria-label="Ursprüngliche Eingaben" aria-describedby="recipe-error">
+<section aria-label="Ursprüngliche Eingaben" aria-describedby="recipe-error" class="admin-option-grid recipe-recovery">
 {% for name, value in submitted %}
 <input type="hidden" name="{{ name }}" value="{{ value }}">
 {% if name not in ['_csrf', '_form_context', 'row_action', 'row_index', 'row_kind'] %}
-<div class="mb-3"><label class="form-label" for="original-{{ loop.index }}">{{ names.get(name.split('.')[-1], name) }}{% if '.' in name %} · {{ name }}{% endif %}</label>
+<div><label class="form-label" for="original-{{ loop.index }}">{{ names.get(name.split('.')[-1], name) }}{% if '.' in name %} · {{ name }}{% endif %}</label>
 {% if value in display_values %}<p class="form-hint">{{ display_values[value] }}</p>{% endif %}
-<textarea class="form-control" id="original-{{ loop.index }}" rows="3" readonly{% if name == error_field %} aria-invalid="true" aria-describedby="recipe-error"{% endif %}{% if loop.index == focus_index %} autofocus{% endif %}>{{ '\n' }}{{ value }}</textarea></div>
+<textarea class="form-control" id="original-{{ loop.index }}" rows="{{ 3 if '\n' in value or value|length > 100 else 1 }}" readonly{% if name == error_field %} aria-invalid="true" aria-describedby="recipe-error"{% endif %}{% if loop.index == focus_index %} autofocus{% endif %}>{{ '\n' }}{{ value }}</textarea></div>
 {% endif %}
 {% endfor %}
 </section></div></div>
 {% endif %}
-<a class="btn btn-primary mt-3" href="{{ '/auth/local' if status == 401 else reload_url }}">{{ 'Erneut anmelden' if status == 401 else 'Aktuellen Stand bewusst neu laden' }}</a>
 </main></body></html>

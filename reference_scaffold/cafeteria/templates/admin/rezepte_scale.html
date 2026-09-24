@@ -1,10 +1,10 @@
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, hint %}
 {% from 'ui/_semantic.html' import icon_label %}
 {% macro amount_form(calculated, action, error=none, target_value=none, converts_units=false, mode=none) %}
 {% if error %}<div class="alert alert-danger error-region" id="yield-error" role="alert">{{ error }}</div>{% endif %}
-<form method="get" action="{{ action }}" class="row g-3 align-items-end mb-3">
+<form method="get" action="{{ action }}" class="row g-3 align-items-end mb-3" data-loading>
 {% if mode %}<input type="hidden" name="mode" value="{{ mode }}">{% endif %}
-<div class="col-12 col-sm-6 col-lg-4"><label class="form-label" for="target-yield">Zielmenge · {{ calculated.unit }}</label><input class="form-control{% if error %} is-invalid{% endif %}" type="text" inputmode="decimal" id="target-yield" name="yield" value="{{ target_value if target_value is not none else calculated.target }}" required aria-describedby="{{ 'yield-error' if error else 'yield-hint' }}"{% if error %} aria-invalid="true" autofocus{% endif %}><div class="form-hint" id="yield-hint">Positiv, Dezimalpunkt; gleiche Einheit wie die gespeicherte Ausbeute.</div></div>
+<div class="col-12 col-sm-6 col-lg-4"><div class="d-flex align-items-center gap-2"><label class="form-label" for="target-yield">Zielmenge · {{ calculated.unit }}</label>{{ hint('Positiv, Dezimalpunkt; gleiche Einheit wie die gespeicherte Ausbeute.', 'yield-hint') }}</div><input class="form-control{% if error %} is-invalid{% endif %}" type="text" inputmode="decimal" id="target-yield" name="yield" value="{{ target_value if target_value is not none else calculated.target }}" required aria-describedby="{{ 'yield-error' if error else 'yield-hint' }}"{% if error %} aria-invalid="true" autofocus{% endif %}></div>
 <div class="col-12 col-sm-auto"><button class="btn btn-primary" type="submit">Mengen berechnen</button></div>
 </form>
 <p>Ausbeute/Menge im Original: <strong>{{ calculated.source }} {{ calculated.unit }}</strong>. Ziel: <strong>{{ calculated.target }} {{ calculated.unit }}</strong>.</p>
@@ -12,8 +12,8 @@
 {% endmacro %}
 {% macro ingredients(calculated) %}
 <section class="card mb-3"><div class="card-header"><h2 class="card-title">Zutaten und Mengen</h2></div>
-<table class="table table-vcenter card-table table-mobile-lg"><thead><tr><th>Zutat</th><th>Original</th><th>Berechnet</th><th>Einheit</th></tr></thead><tbody>
-{% for row in calculated.rows %}<tr><td class="text-break" data-label="Zutat">{% if row.ingredient.group_label %}<strong>{{ row.ingredient.group_label }}</strong><br>{% endif %}{{ row.ingredient.ingredient_text }}{% if row.ingredient.note %}<br>{{ row.ingredient.note }}{% endif %}</td><td class="text-break" data-label="Original">{{ row.original if row.original is not none else 'Ohne Mengenangabe' }}</td><td class="text-break" data-label="Berechnet">{{ row.scaled if row.scaled is not none else 'Ohne Mengenangabe' }}</td><td data-label="Einheit">{{ row.unit or '—' }}</td></tr>{% else %}<tr><td colspan="4">Keine Zutaten gespeichert.</td></tr>{% endfor %}
+<table class="table table-vcenter card-table admin-table--stack"><thead><tr><th scope="col">Zutat</th><th scope="col">Original</th><th scope="col">Berechnet</th><th scope="col">Einheit</th></tr></thead><tbody>
+{% for row in calculated.rows %}<tr><td class="text-break" data-label="Zutat">{% if row.ingredient.group_label %}<strong>{{ row.ingredient.group_label }}</strong><br>{% endif %}{{ row.ingredient.ingredient_text }}{% if row.ingredient.note %}<br>{{ row.ingredient.note }}{% endif %}</td><td class="text-break" data-label="Original">{{ row.original if row.original is not none else 'Ohne Mengenangabe' }}</td><td class="text-break" data-label="Berechnet">{{ row.scaled if row.scaled is not none else 'Ohne Mengenangabe' }}</td><td data-label="Einheit">{{ row.unit or '—' }}</td></tr>{% else %}<tr><td colspan="4" data-label="Zutaten">Keine Zutaten gespeichert.</td></tr>{% endfor %}
 </tbody></table></section>
 {% endmacro %}
 {% if payload is defined %}

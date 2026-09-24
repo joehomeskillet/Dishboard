@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, empty_state, status, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, icon, empty_state, disclosure_section, hint %}
 {% from 'ui/_semantic.html' import icon_label %}
 {% set workflow_nav = 'recipes' %}
 {% set layout_variant = 'standard' %}
@@ -7,10 +7,10 @@
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-admin.css') }}">{% endblock %}
 {% block page_scripts %}<script src="{{ url_for('static', filename='recipe-editor.js') }}" defer></script>{% endblock %}
 {% block page_header %}
-{% set status_items = [{'label': t('actions.import.label'), 'value': t('actions.preview.label') if not batch else ('Übernommen' if batch.status == 'imported' else t('publish.draft.label')), 'variant': 'success' if batch and batch.status == 'imported' else 'neutral'}] %}
+{% set status_items = [{'label': t('actions.import.label'), 'value': t('actions.preview.label') if not batch else ('Übernommen' if batch.status == 'imported' else ('Verworfen' if batch.status == 'cancelled' else t('publish.draft.label'))), 'variant': 'success' if batch and batch.status == 'imported' else 'neutral'}] %}
 {% if error %}{% set ignored = status_items.append({'label': t('actions.save.label'), 'value': t('status.error.label'), 'variant': 'danger'}) %}{% elif batch and batch.status == 'draft' %}{% set ignored = status_items.append({'label': t('actions.confirm.label'), 'value': t('status.done.label') if batch.confirmation_hash_sha256 else t('status.pending.label'), 'variant': 'neutral' if batch.confirmation_hash_sha256 else 'warning'}) %}{% endif %}
 {% call page_header(t('navigation.recipes.label'), 'CSV- oder JSON-Rezepte als standortgebundenen Entwurf speichern.', status_items=status_items) %}
-<a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('arrow-left') }}Zu den Rezepten</a>
+<a class="btn{% if batch and batch.status != 'draft' %} btn-primary{% endif %}" href="{{ url_for('admin.recipes_list') }}">{{ icon('arrow-left') }}Zu den Rezepten</a>
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -24,18 +24,18 @@
 {% if batch %}<details class="admin-compact-details mb-3" data-import-upload><summary class="btn">{{ icon_label('actions.upload') }}</summary>{% endif %}
 <section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-upload-title">
   <div class="card-header py-2"><h2 class="card-title mb-0" id="recipe-import-upload-title">{{ 'Andere Datei wählen' if batch else 'Datei importieren' }}</h2></div>
-  <form class="card-body py-2 admin-compact-form" method="post" action="{{ url_for('admin.recipe_import_create') }}" enctype="multipart/form-data">
+  <form class="card-body py-2 admin-compact-form" method="post" action="{{ url_for('admin.recipe_import_create') }}" enctype="multipart/form-data" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <div class="row g-2 align-items-end mb-2">
       <div class="col-12 col-lg">
-        <label class="form-label" for="source_file">Quelldatei</label>
+        <div class="d-flex align-items-center gap-2"><label class="form-label" for="source_file">Quelldatei</label>{{ hint('Höchstens 5 MiB, UTF-8, Schema Version 1.', 'import-file-hint') }}</div>
         <input class="form-control" id="source_file" name="source_file" type="file" accept=".csv,.json,text/csv,application/json" required>
       </div>
       <div class="col-12 col-lg-auto">
         <button class="btn{% if not batch %} btn-primary{% endif %}" type="submit">{{ icon('eye') }}Vorschau speichern</button>
       </div>
     </div>
-    <p class="form-hint mb-2">Höchstens 5 MiB, UTF-8, Schema Version 1. Unaufgelöste Zutaten bleiben Entwurf.</p>
+    <p class="mb-2">Unaufgelöste Zutaten bleiben Entwurf.</p>
     <fieldset class="mb-0">
       <legend class="form-label">Batch-Annotationen</legend>
       <div class="recipe-tag-options">
@@ -56,11 +56,11 @@
   <div class="card-header py-2">
     <h2 class="card-title mb-0 text-break" id="recipe-import-batch-title">Importstapel · {{ batch.source_filename or 'Datei importieren' }}</h2>
   </div>
-  <form class="card-body py-2 admin-compact-form" method="post" action="{{ url_for('admin.recipe_import_save', batch_id=batch.public_id) }}">
+  <form class="card-body py-2 admin-compact-form" method="post" action="{{ url_for('admin.recipe_import_save', batch_id=batch.public_id) }}" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="row_version" value="{{ values.row_version or batch.row_version }}">
     <p class="mb-2" data-checked-identity>Geprüftes Ergebnis von <strong>{{ batch.source_filename or 'einer Datei ohne Namen' }}</strong>. Eine neue Dateiauswahl oben legt einen anderen Stapel an und ändert dieses Ergebnis nicht.</p>
-    <p class="mb-2">{{ status(batch.status, mapping={'draft': ('Entwurf', 'secondary'), 'imported': ('Übernommen', 'success')}) }}
+    <p class="mb-2"><span class="badge admin-status--{{ 'success' if batch.status == 'imported' else 'neutral' }}">{{ icon('check' if batch.status == 'imported' else 'info-circle') }}{{ 'Übernommen' if batch.status == 'imported' else ('Entwurf' if batch.status == 'draft' else ('Verworfen' if batch.status == 'cancelled' else batch.status)) }}</span>
     {% if batch.status == 'imported' %}
     Dieser Importstapel ist übernommen und unveränderlich. Es erfolgte keine Veröffentlichung und keine Allergenfreigabe.
     {% elif batch.confirmation_hash_sha256 %}
@@ -145,7 +145,12 @@
     <div class="admin-form-footer mt-3">
       <button class="btn{% if not (batch.confirmation_hash_sha256 and can_import) %} btn-primary{% endif %}" type="submit" name="action" value="save">{{ icon_label('actions.save') }}</button>
       <button class="btn" type="submit" name="action" value="acknowledge">{{ icon_label('actions.confirm') }}</button>
-      <button class="btn" type="submit" name="action" value="cancel">{{ icon('x') }}Stapel verwerfen</button>
+      <details class="admin-compact-actions"><summary class="btn">{{ icon_label('actions.more') }}</summary>
+        <details class="mt-2"><summary class="btn">{{ icon('trash') }}Stapel verwerfen</summary>
+          <p id="discard-consequence">Der Importstapel wird verworfen. Ungespeicherte Änderungen gehen verloren; vorhandene Rezepte bleiben unverändert.</p>
+          <button class="btn btn-danger" type="submit" name="action" value="cancel" aria-describedby="discard-consequence">{{ icon('trash') }}Verwerfen bestätigen</button>
+        </details>
+      </details>
     </div>
     {% endif %}
     <noscript><p class="form-hint">Ohne JavaScript werden alle Felder beim Absenden mitgesendet.</p></noscript>
@@ -157,7 +162,7 @@
   <div class="card-body py-2">
     <p>Vorhandene Rezepte und deren Herkunft bleiben unverändert. Es erfolgt keine Veröffentlichung und keine Allergenfreigabe.</p>
     {% if can_import %}
-    <form method="post" action="{{ url_for('admin.recipe_import_commit', batch_id=batch.public_id) }}">
+    <form method="post" action="{{ url_for('admin.recipe_import_commit', batch_id=batch.public_id) }}" data-loading>
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       <input type="hidden" name="row_version" value="{{ values.row_version or batch.row_version }}">
       <input type="hidden" name="candidate_hash_sha256" value="{{ batch.candidate_hash_sha256 }}">
@@ -192,18 +197,18 @@
 {% if batches %}
 <div class="card admin-compact-section">
   <div class="table-responsive">
-    <table class="table table-vcenter card-table table-mobile-lg">
+    <table class="table table-vcenter card-table admin-table--stack">
       <thead>
         <tr>
-          <th>Datei</th>
-          <th>Status</th>
+          <th scope="col">Datei</th>
+          <th scope="col">Status</th>
         </tr>
       </thead>
       <tbody>
         {% for item in batches %}
         <tr>
           <td data-label="Datei"><a class="text-break" href="{{ url_for('admin.recipe_import_detail', batch_id=item.public_id) }}">{{ item.source_filename or t('actions.open.label') }}</a></td>
-          <td data-label="Status">{{ status(item.status, mapping={'draft': ('Entwurf', 'secondary'), 'imported': ('Übernommen', 'success')}) }}</td>
+          <td data-label="Status"><span class="badge admin-status--{{ 'success' if item.status == 'imported' else 'neutral' }}">{{ icon('check' if item.status == 'imported' else 'info-circle') }}{{ 'Übernommen' if item.status == 'imported' else ('Entwurf' if item.status == 'draft' else ('Verworfen' if item.status == 'cancelled' else item.status)) }}</span></td>
         </tr>
         {% endfor %}
       </tbody>
