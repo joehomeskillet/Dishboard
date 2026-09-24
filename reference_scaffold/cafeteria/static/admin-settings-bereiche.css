@@ -24,6 +24,7 @@
   padding: var(--app-space-2) var(--app-space-3);
   cursor: pointer;
 }
+.dishboard-admin .operations-editor > summary > .icon { flex-shrink: 0; }
 .dishboard-admin :is(.operations-overview-details, .operations-notice) > summary {
   display: flex;
   align-items: center;
@@ -43,7 +44,7 @@
 .dishboard-admin .operations-editor .card-footer {
   padding: var(--app-space-2) var(--app-space-3);
 }
-@media (max-width: 991.98px) {
+@media (max-width: 767.98px) {
   .dishboard-admin .operations-schedule td {
     display: block;
     padding: var(--app-space-1) var(--app-space-2);

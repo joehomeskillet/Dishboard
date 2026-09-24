@@ -1,4 +1,15 @@
 /* WP16: keep shared density insets and control targets; compact only the sample. */
+.display-setting-field:has(.admin-hint) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--app-space-2);
+  align-content: start;
+}
+.display-setting-field > .form-label { grid-column: 1 / -1; }
+.display-setting-field > .form-select { grid-column: 1; grid-row: 2; }
+.display-setting-field > .admin-hint { grid-column: 2; grid-row: 2; margin: 0; }
+.display-setting-field > .admin-hint[open] { grid-column: 1 / -1; grid-row: 3; }
+.display-setting-field > .invalid-feedback { grid-column: 1 / -1; }
 .display-form-actions .admin-form-footer {
   padding: 0;
   background: transparent;

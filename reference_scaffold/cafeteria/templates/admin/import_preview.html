@@ -49,7 +49,7 @@
         </div>
         {% endif %}
       </div>
-      <form id="csv-import" method="post" action="{{ url_for('admin.import_csv') }}">
+      <form id="csv-import" method="post" action="{{ url_for('admin.import_csv') }}" data-loading>
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="import_token" value="{{ import_token }}">
       </form>
@@ -69,7 +69,7 @@
   </section>
   {% endif %}
 
-  <form method="post" action="{{ url_for('admin.import_preview') }}" enctype="multipart/form-data" class="card admin-compact-form csv-upload-form" id="csv-upload">
+  <form method="post" action="{{ url_for('admin.import_preview') }}" enctype="multipart/form-data" class="card admin-compact-form csv-upload-form" id="csv-upload" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       <div class="card-body">
       <h2>{{ 'Andere Datei prüfen' if ready else 'CSV-Datei auswählen' }}</h2>

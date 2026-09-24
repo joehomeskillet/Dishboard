@@ -70,9 +70,9 @@ def test_get_authorization_csrf_and_shape(client, app, database_engine):  # noqa
     with database_engine.connect() as connection:
         timezone = connection.execute(text('SELECT timezone FROM cafeteria.locations WHERE active')).scalar_one()
     overview = re.search(r'id="operations-overview".*?</section>', body, re.S)
-    assert overview is not None and f'Zeitzone: {timezone}' in overview.group()
+    assert overview is not None and 'admin-table--stack' in overview.group()
     statusbar = re.search(r'<dl class="admin-statusbar".*?</dl>', body, re.S)
-    assert statusbar and timezone in statusbar.group()
+    assert statusbar and 'Zeitzone' in statusbar.group() and timezone in statusbar.group()
     assert 'Zeiten nicht eingetragen' in statusbar.group()
     assert 'href="#schedule-patient"' in statusbar.group()
     assert 'revision' not in statusbar.group() and 'row_version' not in statusbar.group()

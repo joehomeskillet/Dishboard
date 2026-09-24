@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, icon, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, select, icon, disclosure_section, hint %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'design' %}
 {% set layout_variant = 'standard' %}
@@ -34,7 +34,7 @@
 {% if brand_error %}<div class="alert alert-danger" role="alert">{{ brand_error }}{% if brand_values.logo_sha256 and brand_values.logo_sha256 != selected.config.logo_sha256 %} Bitte das neue Logo erneut auswählen.{% endif %}</div>{% endif %}
 <div class="brand-settings-grid">
   <section class="card brand-editor-card" aria-labelledby="brand-edit-title">
-    <form method="post" action="{{ url_for('admin.branding_editor') }}" enctype="multipart/form-data" class="brand-editor-form" id="brand-save" data-brand-action="save">
+    <form method="post" action="{{ url_for('admin.branding_editor') }}" enctype="multipart/form-data" class="brand-editor-form" id="brand-save" data-brand-action="save" data-loading>
       <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
       <div class="card-header py-2">
         <h2 class="card-title d-flex align-items-center gap-2 mb-0" id="brand-edit-title">{{ icon('pencil') }}<span>Entwurf bearbeiten</span></h2>
@@ -55,11 +55,8 @@
             </select>
           </div>
           <div class="col-12 col-sm-6">
-            <label class="form-label" for="brand-upload">{{ t('actions.upload.label') }}</label>
+            <div class="d-flex align-items-center gap-2"><label class="form-label mb-0" for="brand-upload">{{ t('actions.upload.label') }}</label>{{ hint('PNG, JPEG oder WebP, höchstens 1 MiB und 2048 × 2048 Pixel.', 'brand-upload-hint') }}</div>
             <input class="form-control" type="file" id="brand-upload" name="logo" accept="image/png,image/jpeg,image/webp" aria-describedby="brand-upload-hint">
-          </div>
-          <div class="col-12">
-            <p class="form-hint mb-0" id="brand-upload-hint">PNG, JPEG oder WebP, höchstens 1 MiB und 2048 × 2048 Pixel.</p>
           </div>
         </div>
         <fieldset class="mb-2">
@@ -96,7 +93,7 @@
     <div class="card-body py-2">
       <p class="brand-preview-meta mb-2" role="status">
         {{ selected.name }}
-        {% if selected_is_active %}<span class="badge bg-success-lt">{{ t('status.active.label') }}</span>{% elif selected_revision.published %}<span class="badge bg-secondary-lt">Früher aktiv</span>{% else %}<span class="badge bg-warning-lt">{{ t('publish.draft.label') }}</span>{% endif %}
+        {% if selected_is_active %}<span class="badge admin-status--active">{{ icon('check') }}{{ t('status.active.label') }}</span>{% elif selected_revision.published %}<span class="badge admin-status--neutral">{{ icon('history') }}Früher aktiv</span>{% else %}<span class="badge admin-status--warning">{{ icon('pencil') }}{{ t('publish.draft.label') }}</span>{% endif %}
       </p>
       <iframe class="brand-preview-frame" src="{{ url_for('admin.branding_preview', revision=selected.id) }}" title="Markenvorschau {{ selected.name }}"></iframe>
       <div class="brand-preview-actions">
@@ -123,7 +120,8 @@
     {% for item in document.revisions|reverse %}
     <a class="list-group-item list-group-item-action brand-history-row{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id) }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
       <span class="brand-history-name">{{ item.name }}</span>
-      <span class="badge {% if item.id == selected.id %}bg-white text-primary{% elif item.id == document.active_revision %}bg-success-lt{% elif item.published %}bg-secondary-lt{% else %}bg-warning-lt{% endif %}">
+      <span class="badge {% if item.id == document.active_revision %}admin-status--active{% elif item.published %}admin-status--neutral{% else %}admin-status--warning{% endif %}">
+        {{ icon('check' if item.id == document.active_revision else 'history' if item.published else 'pencil') }}
         {% if item.id == document.active_revision %}{{ t('status.active.label') }}{% elif item.published %}Früher aktiv{% else %}{{ t('publish.draft.label') }}{% endif %}
       </span>
     </a>

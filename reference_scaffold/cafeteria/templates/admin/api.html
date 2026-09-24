@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, field, check, status as status_badge %}
+{% from 'admin/_macros.html' import icon, page_header, field, check %}
 {% from 'ui/_semantic.html' import icon_label, sem_icon %}
 {% block title %}Schnittstellen{% endblock %}
 {% set workflow_nav = 'api' %}
@@ -28,10 +28,10 @@
         <section class="card mb-3" aria-labelledby="api-keys-title" data-api-keys>
           <div class="card-header"><h2 class="card-title" id="api-keys-title">API-Schlüssel</h2></div>
           {% if keys %}
-          <table class="table table-vcenter card-table table-mobile-lg">
+          <table class="table table-vcenter card-table admin-table--stack">
             <thead>
               <tr>
-                <th>Bezeichnung</th><th>Scopes / Kanäle</th><th>Läuft ab</th><th>Status</th><th>Aktionen</th>
+                <th scope="col">Bezeichnung</th><th scope="col">Scopes / Kanäle</th><th scope="col">Läuft ab</th><th scope="col">Status</th><th scope="col">Aktionen</th>
               </tr>
             </thead>
             <tbody>
@@ -42,15 +42,15 @@
                 </td>
                 <td data-label="Scopes / Kanäle">
                   <ul class="list-inline mb-0">
-                    {% for scope in key.scopes %}<li class="list-inline-item badge bg-secondary-lt">{{ scope }}</li>{% endfor %}
+                    {% for scope in key.scopes %}<li class="list-inline-item badge admin-status--neutral">{{ scope }}</li>{% endfor %}
                   </ul>
                   <div>{% for channel in key.channels %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
                 </td>
                 <td data-label="Läuft ab" class="text-secondary text-wrap">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
                 <td data-label="Status">
-                  {% if key.state == 'active' %}{{ status_badge('live', 'Aktiv') }}
-                  {% elif key.state == 'expired' %}{{ status_badge('incomplete', 'Abgelaufen') }}
-                  {% else %}<span class="badge bg-secondary-lt" data-status="revoked">Widerrufen</span>{% endif %}
+                  {% if key.state == 'active' %}<span class="badge admin-status--active" data-status="live">{{ icon('check') }}Aktiv</span>
+                  {% elif key.state == 'expired' %}<span class="badge admin-status--warning" data-status="incomplete">{{ icon('clock') }}Abgelaufen</span>
+                  {% else %}<span class="badge admin-status--neutral" data-status="revoked">{{ icon('lock') }}Widerrufen</span>{% endif %}
                 </td>
                 <td data-label="Aktionen">
                   <details class="admin-compact-details admin-api-key-details">
@@ -65,8 +65,8 @@
                     <input type="hidden" name="_csrf" value="{{ csrf }}">
                     <details class="admin-compact-details">
                       <summary class="btn btn-outline-danger">{{ icon('trash') }}Widerrufen</summary>
-                      <p class="my-2">Schlüssel wirklich widerrufen?</p>
-                      <button type="submit" class="btn btn-outline-danger">{{ icon_label('actions.confirm') }}</button>
+                      <p class="my-2">Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.</p>
+                      <button type="submit" class="btn btn-danger">{{ icon_label('actions.confirm') }}</button>
                     </details>
                   </form>
                   {% endif %}
@@ -98,7 +98,7 @@
                 <div class="col-12 col-md-6">
                   <label class="form-label required" for="api-key-expires">Läuft ab</label>
                   <input class="form-control" id="api-key-expires" name="expires_at" type="date" value="{{ values.expires_at }}" min="{{ min_expiry }}" max="{{ max_expiry }}" required aria-describedby="api-key-expiry-help">
-                  <p id="api-key-expiry-help" class="form-hint">Vorschlag: 30 Tage. Höchstens 90 Tage gültig; Ablauf am gewählten Tag um 23:59:59 Uhr (Europe/Zurich).</p>
+                  <p id="api-key-expiry-help" class="form-hint">Maximal 90 Tage; gültig bis 23:59:59 Uhr (Europe/Zurich) am gewählten Tag.</p>
                 </div>
                 <div class="col-12 col-md-6">
                   {{ check('scopes', 'Vorschau lesen (preview.read)', value='preview.read', checked=values.scopes_preview, id='api-key-scope-preview') }}
@@ -120,16 +120,16 @@
           <div class="card-body">
         <section aria-labelledby="api-status-title" data-api-status>
           <h2 class="card-title" id="api-status-title">Veröffentlichungsstatus je Bereich</h2>
-          <table class="table table-vcenter card-table table-mobile-lg">
+          <table class="table table-vcenter card-table admin-table--stack">
             <thead>
-              <tr><th>Kanal</th><th>Veröffentlicht</th><th>Revision</th><th>Woche</th></tr>
+              <tr><th scope="col">Kanal</th><th scope="col">Veröffentlicht</th><th scope="col">Revision</th><th scope="col">Woche</th></tr>
             </thead>
             <tbody>
               {% for channel in status.channels %}
               <tr>
                 <td data-label="Kanal">{{ 'Cafeteria' if channel.channel == 'cafeteria' else 'Patienten' }}</td>
                 <td data-label="Veröffentlicht">
-                  {% if channel.published %}{{ status_badge('live', 'Veröffentlicht') }}{% else %}{{ status_badge('incomplete', 'Nicht veröffentlicht') }}{% endif %}
+                  {% if channel.published %}<span class="badge admin-status--success" data-status="live">{{ icon('check') }}Veröffentlicht</span>{% else %}<span class="badge admin-status--warning" data-status="incomplete">{{ icon('alert-triangle') }}Nicht veröffentlicht</span>{% endif %}
                 </td>
                 <td data-label="Revision" class="text-secondary">{{ channel.revision_id or '—' }}</td>
                 <td data-label="Woche" class="text-secondary">

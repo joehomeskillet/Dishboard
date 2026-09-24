@@ -68,12 +68,35 @@ def test_wp19_measured_page_frame(live_accounts, browser, javascript):
                     width: innerWidth, height: document.documentElement.scrollHeight,
                     overflow: document.documentElement.scrollWidth > innerWidth,
                     primary: document.querySelectorAll('main .btn-primary').length,
+                    hints: [...document.querySelectorAll('main .form-hint')].filter(el => el.checkVisibility()).length,
                     open: document.querySelectorAll('main details[open]').length,
                     row: document.querySelector('[data-account-row], tbody tr')?.getBoundingClientRect().height ?? null,
                     contentHeight: document.querySelector('main').getBoundingClientRect().height,
                 })''')
                 assert not metric['overflow'], metric
                 assert metric['primary'] == 1, metric
+                if name in ('detail', 'events', 'history'):
+                    expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                    expect(page.locator('table.table-mobile-lg')).to_have_count(0)
+                    for table in page.locator('table.admin-table--stack').all():
+                        expect(table.locator('tbody td:not([data-label])')).to_have_count(0)
+                        assert table.locator('tbody tr').first.evaluate(
+                            'el => getComputedStyle(el).display'
+                        ) == ('grid' if width < 768 else 'table-row')
+                    if name in ('detail', 'events'):
+                        help_trigger = page.locator('.admin-hint > summary')
+                        help_trigger.focus()
+                        expect(help_trigger).to_be_focused()
+                        help_trigger.press('Enter')
+                        expect(page.locator('.admin-hint .form-hint')).to_be_visible()
+                        help_trigger.press('Enter')
+                        expect(page.locator('.admin-hint .form-hint')).to_be_hidden()
+                    else:
+                        scope = page.get_by_text('Geltungsbereich', exact=True)
+                        scope.focus()
+                        scope.press('Enter')
+                        expect(page.get_by_text('Zeitangaben: Schweiz.', exact=False)).to_be_visible()
+                        scope.press('Enter')
                 if name == 'detail':
                     expect(page.locator('.admin-statusbar')).to_be_visible()
                     assert 'authz_version' not in page.locator('.admin-statusbar').inner_text()
@@ -441,7 +464,7 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         assert 'Der Abschluss der Kontoaktion konnte nicht bestätigt werden.' in post.text()
 
 
-@pytest.mark.parametrize('width,javascript', [(1440, True), (390, False)])
+@pytest.mark.parametrize('width,javascript', [(1440, True), (360, False)])
 def test_history_rows_and_native_filters_keep_scope_and_pagination(live_accounts, browser, width, javascript):
     origin, client, owner, _ = live_accounts
     _seed_history(owner, 56)
@@ -449,6 +472,12 @@ def test_history_rows_and_native_filters_keep_scope_and_pagination(live_accounts
         page = context.new_page()
         _open(page, origin, '/admin/benutzer/zugriffsverlauf')
         expect(page.locator('tbody tr')).to_have_count(50)
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        expect(page.locator('tbody td:not([data-label])')).to_have_count(0)
+        assert page.locator('tbody tr').first.evaluate(
+            'el => getComputedStyle(el).display'
+        ) == ('grid' if width < 768 else 'table-row')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         _screenshot(page, f'access-history-populated-{width}-{javascript}.png')
         page.get_by_label('Zugang', exact=True).focus()
         page.keyboard.press('Tab')

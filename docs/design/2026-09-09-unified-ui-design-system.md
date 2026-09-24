@@ -1758,11 +1758,20 @@ Generisches Muster für vorhandene Einstellungen; keine neuen Einstelloptionen d
 
 ##### Modul Einstellungen – Bereiche & Öffnungszeiten (2026-09-20)
 
+**Polish P3:** Übersicht, Wochenvorgaben und Ausnahmen nutzen `admin-table--stack`
+mit Spaltenüberschriften und Zelllabels; Stapelung unter 768 px. Die exklusiven
+Primäraktionen bleiben erhalten. Der doppelte Übersichts-Folgetext entfällt;
+Hinweise zu Veröffentlichung, fehlenden Zeiten, Übernahme und Konflikten bleiben.
+
 Die Übersicht zeigt je Bereich eine kompakte Zeile mit Wochenendbetrieb, aufklappbaren Wochenvorgaben und «Bearbeiten» zum bestehenden Formular. Die gemeinsame Statusbar enthält echte Bereichsnamen, Zeitzone und ausschliesslich tatsächlich fehlende Zeitangaben offener Regeln; deren Anker führt zum betreffenden Wochenformular. Revisionen, IDs und ein erfundener Publikationsstatus gehören nicht hinein.
 
 Genau eine Primäraktion im `main`: «Anlegen» zum nativen Ausnahmeformular, nach Laden einer Ausnahme dessen «Speichern». Andere unabhängige Formulare behalten neutrale Speicheraktionen und ihre eigenen CSRF-/CAS-Felder. Hinweise stehen unter «Weitere Optionen», bei Inhalt oder Fehler offen. Leere, fehlerfreie Zeitfelder geschlossener Regeln werden kontextabhängig ausgeblendet, niemals deaktiviert oder geleert. Mobile Wochenvorgaben sind einspaltige Datensätze; Desktop zeigt gemeinsame Spaltenüberschriften statt wiederholter sichtbarer Labels. Zugängliche Feldlabels, native Bedienung ohne JavaScript, sichtbarer Fokus und 48-px-Ziele bleiben erhalten. Modul-CSS liegt in `admin-settings-bereiche.css`; gemeinsame Palette und Shell bleiben unverändert.
 
 ##### Modul Einstellungen – Darstellung (2026-09-20)
+
+**Polish P3:** Optionale Erklärungen zu Abständen und Vorschau-Breite stehen in
+nativen `hint()`-Hinweisen. Zurücksetzungsfolgen bleiben inline. `data-loading`
+nutzt den gemeinsamen Ladezustand bei unveränderten Submit-Werten.
 
 Darstellung verwendet M01, M24 und M25: Titel entspricht dem Navigationspunkt,
 ein Satz benennt die globale Wirkung. Die Statusbar zeigt den aktiven, aus dem
@@ -1791,6 +1800,11 @@ Zurücksetzen und Fehlerzustand. AuthZ/CSRF-Regression:
 `tests/test_admin_display_settings.py` (unverändert).
 
 ##### Modul Einstellungen – Schnittstellen (2026-09-20)
+
+**Polish P3:** Beide Tabellen nutzen `admin-table--stack` und beschriftete Zellen.
+Mobile Schlüssel bleiben kompakte Datensätze; lokale Tabler-Mobile-Overrides
+entfallen. Status verwendet die sechs gemeinsamen Stile mit Text. Ablaufgrenzen
+bleiben inline, Widerruf zeigt zusätzlich die Folge für den Vorschauzugriff.
 
 Schnittstellen folgt M01/M15/M23/M25: ein Satz Kontext, genau eine Primäraktion
 «Anlegen» im Kopf und Statusbar aus `status.channels`. Je Kanal werden ausschliesslich
@@ -1870,6 +1884,11 @@ Strukturmuster für den bestehenden Importablauf. Vorschau und Import nur in der
 **Schutz:** Keine neue automatische Importfunktion, kein Wegklicken fachlicher Fehler und kein neuer Fortschrittsdienst. Rohdaten, Tokens oder interne Fehlerdetails nicht in normale Meldungen kopieren. Produktionsimporte sind keine zulässigen UI-Tests.
 
 ##### Modul Einstellungen – Daten importieren (2026-09-20)
+
+**Polish P3:** Die bereits exklusiven Primäraktionen bleiben bytegleich bedingt.
+Beide nativen Formulare aktivieren `data-loading`. Geprüfte Datei, Übernahmefolgen,
+Warnungen und Fehler bleiben sichtbar; Dateiformathilfe bleibt per Tastatur
+unter «Weitere Optionen» erreichbar.
 
 Datenimport folgt M01/M17/M25. Seitentitel `Daten importieren` (Navigationspunkt), ein Satz Kontext, Statusbar aus vorhandenen Prüfergebnissen. Leer: `Prüfung` = `Offen` mit Ziel `#csv-upload`. Nach Vorschau: Bereich aus `result.profile` als Cafeteria/Patientenplan, Woche aus `result.week_start` (`KW n · ab TT.MM.JJJJ`), Prüfung `Bereit` (success) oder `Fehlerhaft` (danger, Ziel `#file-error`), `Zeilen` aus `result.rows`, `Warnungen` nur bei `result.warnings` (Ziel `#csv-warnings`). Keine Importrevision, keine internen Profilcodes (`staff_guest`/`patient`) als sichtbarer Text.
 
@@ -2178,6 +2197,10 @@ bleiben sichtbar. Vorschau- und Belegformulare opt-in `data-loading`.
 
 ##### Modul Einstellungen – Erscheinungsbild (2026-09-20)
 
+**Polish P3:** Uploadgrenzen stehen in `hint()` mit unverändertem Beschreibungsziel.
+Versionsbadges nutzen gemeinsame Statusstile mit Icon und Text. Speichern nutzt
+`data-loading`; Entwurf, Aktivierung, Versionsfelder und Uploadvertrag bleiben.
+
 Erscheinungsbild nutzt M01/M24/M25: Seitenkopf «Erscheinungsbild» mit einem Satz
 Kontext und genau einer Primäraktion «Speichern». Der frühere Veröffentlichungsblock
 im Inhalt ist am 2026-09-20 durch `page_header(..., status_items=...)` ersetzt.
@@ -2198,6 +2221,11 @@ gehört über das native `form`-Attribut zum selben Formular. Nachweise:
 No-JS, Tastatur, Statusbar, Überlauf), `tests/test_branding_browser.py`.
 
 ##### Modul Einstellungen – Benutzer & Zugriff (2026-09-20)
+
+**Polish P3:** Konto- und Zugriffsereignisse verwenden `admin-table--stack` mit
+Zelllabels und Stapelung unter 768 px. Optionale Konto-/Verlaufserklärungen liegen
+in nativen Hinweisen. Sitzungs-, Rechte- und Bestätigungsfolgen bleiben inline;
+Fehlerbadges und destruktive Bestätigungsbuttons nutzen gemeinsame Status-/Aktionsstile.
 
 Benutzer & Zugriff nutzt M01/M22/M23/M25. Die Anlage unter der Kontenliste ist
 ersetzt am 2026-09-20 durch eine Primäraktion «Anlegen» zur vorhandenen Anlageansicht;

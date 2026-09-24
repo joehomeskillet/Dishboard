@@ -18,8 +18,10 @@ from test_admin_workflow_routes import _login
 BRAND_PATH = '/admin/design/marke'
 BRAND_PREVIEW_PATH = '/admin/design/marke/vorschau/1'
 OPS_PATH = '/admin/bereiche-zeiten'
+
 VIEWPORTS = [
     (1440, 900),
+    (360, 844),
     (1024, 768),
     (768, 1024),
     (390, 844),
@@ -142,8 +144,24 @@ def test_operations_normal_state_and_viewports(
 
         expect(page.locator('h1.page-title')).to_have_text('Bereiche & Öffnungszeiten')
         expect(page.locator('.page-header-subtitle')).to_contain_text('Wochenvorgaben gelten für neue Ausgaben')
-        expect(page.locator('.text-secondary').first).to_contain_text('neue Ausgaben')
+        publication_hint = page.get_by_text('Wochenvorgaben gelten für neue Ausgaben.', exact=True)
+        expect(publication_hint).to_have_count(1)
+        expect(publication_hint).to_be_visible()
         expect(page.locator('#operations-overview')).to_be_visible()
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        expect(page.locator('table.table-mobile-lg')).to_have_count(0)
+        overview = page.locator('#operations-overview table')
+        expect(overview.locator('tbody :is(th, td):not([data-label])')).to_have_count(0)
+        assert overview.locator('tbody tr').first.evaluate(
+            'el => getComputedStyle(el).display'
+        ) == ('grid' if width < 768 else 'table-row')
+        details = page.locator('.operations-overview-details').first
+        details.locator('summary').focus()
+        page.keyboard.press('Enter')
+        expect(details.locator('ul')).to_be_visible()
+        page.keyboard.press('Enter')
+        expect(details.locator('ul')).to_be_hidden()
+        print('P3_OPERATIONS', width, page.evaluate('document.documentElement.scrollHeight'))
         expect(page.locator('#exception-editor > summary')).to_be_visible()
         expect(page.get_by_role('button', name='Ausgabe laden', exact=True)).to_be_hidden()
 

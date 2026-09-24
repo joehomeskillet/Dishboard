@@ -38,12 +38,12 @@
     <h2 class="card-title" id="operations-overview-title">{{ icon('clock') }}Bereiche und Öffnungszeiten</h2>
   </div>
   <div class="table-responsive">
-    <table class="table table-vcenter card-table table-mobile-lg">
-      <thead><tr><th>Bereich</th><th>Wochenendbetrieb für neue Ausgaben</th><th>Wochenvorgaben für neue Ausgaben</th></tr></thead>
+    <table class="table table-vcenter card-table admin-table--stack">
+      <thead><tr><th scope="col">Bereich</th><th scope="col">Wochenendbetrieb für neue Ausgaben</th><th scope="col">Wochenvorgaben für neue Ausgaben</th></tr></thead>
       <tbody>
       {% for code, schedule in schedules.items() %}
       <tr>
-        <th scope="row">{{ area_names[code] }}</th>
+        <th scope="row" data-label="Bereich">{{ area_names[code] }}</th>
         <td data-label="Wochenendbetrieb für neue Ausgaben">
           {% if code == 'staff_guest' %}{{ 'Möglich' if schedule.allows_weekend else 'Nicht möglich' }}
           {% else %}Je Mahlzeit festgelegt{% endif %}
@@ -73,7 +73,6 @@
       </tbody>
     </table>
   </div>
-  <div class="card-footer text-secondary">Wochenvorgaben gelten für neue Ausgaben. Zeitzone: {{ timezone }}.</div>
 </section>
 
 <h2 class="h3 mb-3">{{ t('admin.settings.label') }}</h2>
@@ -121,14 +120,14 @@
   <input type="hidden" name="revision" value="{{ values.get('revision', schedule.revision) if values.get('action') == 'save_schedule' and values.get('profile') == code else schedule.revision }}">
   {% if code == 'staff_guest' and not schedule.allows_weekend %}<div class="card-body pb-0"><p class="form-hint mb-0">Samstag und Sonntag werden erst mit aktiviertem Wochenendbetrieb wirksam.</p></div>{% endif %}
   <div class="table-responsive">
-    <table class="table table-vcenter card-table table-mobile-lg operations-schedule">
-      <thead><tr><th>Tag / Mahlzeit</th><th>Betrieb</th><th>Beginn</th><th>Ende</th><th>Hinweis</th></tr></thead>
+    <table class="table table-vcenter card-table admin-table--stack operations-schedule">
+      <thead><tr><th scope="col">Tag / Mahlzeit</th><th scope="col">Betrieb</th><th scope="col">Beginn</th><th scope="col">Ende</th><th scope="col">Hinweis</th></tr></thead>
       <tbody>
       {% for slot, rule in schedule.slots.items() %}
       {% set day, meal = slot %}{% set prefix = 'slot_' ~ day ~ '_' ~ meal ~ '_' %}
       {% set editing = values.get('action') == 'save_schedule' and values.get('profile') == code %}
       <tr>
-        <th scope="row">{{ day_names[day - 1] }} · {{ meal_labels[meal] }}</th>
+        <th scope="row" data-label="Tag / Mahlzeit">{{ day_names[day - 1] }} · {{ meal_labels[meal] }}</th>
         <td data-label="Betrieb">
           {% set id = code ~ '-' ~ prefix ~ 'state' %}
           <label class="form-label" for="{{ id }}">Betrieb</label>
@@ -182,7 +181,7 @@
     </form>
     {% endfor %}
     {% if preview %}
-    <form method="post" id="exception-save" class="mt-4" action="{{ url_for('admin.operations_settings') }}">
+    <form method="post" id="exception-save" class="mt-4" action="{{ url_for('admin.operations_settings') }}" data-loading>
       <h3>{{ area_names[values.profile] }} · {{ values.date }} · {{ meal_labels[values.meal] }}</h3>
       <p class="form-hint">{% if values.row_version == '0' %}Vorgabe, noch nicht gespeichert.{% else %}Gespeicherter Stand geladen. Parallele Änderungen führen zu einem Konflikt.{% endif %}</p>
       <input type="hidden" name="_csrf" value="{{ operations_csrf[values.profile].save_exception }}"><input type="hidden" name="action" value="save_exception">
@@ -202,13 +201,13 @@
 <details class="card operations-editor" id="saved-exceptions">
   <summary class="card-header gap-2">{{ icon('calendar-week') }}<span class="card-title mb-0">Gespeicherte Ausnahmen</span>{{ icon('chevron-right', class='ms-auto') }}</summary>
   {% if exceptions %}
-  <div class="table-responsive"><table class="table table-vcenter card-table table-mobile-lg">
-    <thead><tr><th>Datum / Bereich</th><th>Betrieb</th><th>Zeiten / Hinweis</th><th>Woche</th></tr></thead>
+  <div class="table-responsive"><table class="table table-vcenter card-table admin-table--stack">
+    <thead><tr><th scope="col">Datum / Bereich</th><th scope="col">Betrieb</th><th scope="col">Zeiten / Hinweis</th><th scope="col">Woche</th></tr></thead>
     <tbody>{% for item in exceptions %}<tr>
-      <th scope="row">{{ item.service_date.strftime('%d.%m.%Y') }} · {{ area_names[item.profile_code] }} · {{ meal_labels[item.meal_code] }}</th>
-      <td data-label="Betrieb"><span class="badge bg-secondary-lt" data-kind="{{ item.kind }}">{{ {'closure': 'Schliessung', 'time': 'Andere Zeit', 'open': 'Zusätzlich offen'}[item.kind] }}</span><div>{{ state_labels[item.service_state] }}</div></td>
+      <th scope="row" data-label="Datum / Bereich">{{ item.service_date.strftime('%d.%m.%Y') }} · {{ area_names[item.profile_code] }} · {{ meal_labels[item.meal_code] }}</th>
+      <td data-label="Betrieb"><span class="badge admin-status--neutral" data-kind="{{ item.kind }}">{{ icon('calendar-week') }}{{ {'closure': 'Schliessung', 'time': 'Andere Zeit', 'open': 'Zusätzlich offen'}[item.kind] }}</span><div>{{ state_labels[item.service_state] }}</div></td>
       <td data-label="Zeiten / Hinweis">{% if item.service_start or item.service_end %}{{ item.service_start or '–' }}–{{ item.service_end or '–' }}{% endif %}<div>{{ item.notice }}</div></td>
-      <td><a class="btn" href="{{ url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()) }}">{{ icon('calendar-week') }}Woche öffnen</a></td>
+      <td data-label="Woche"><a class="btn" href="{{ url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()) }}">{{ icon('calendar-week') }}Woche öffnen</a></td>
     </tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<div class="card-body"><p class="text-secondary mb-0">Keine gespeicherten Ausnahmen im Zeitraum von sieben Tagen vor heute bis acht Wochen danach.</p><a class="btn" href="#exception-load">{{ icon_label('actions.add') }}</a></div>{% endif %}

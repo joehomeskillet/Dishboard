@@ -234,6 +234,13 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                         page.set_viewport_size({'width': width, 'height': height})
                         page.evaluate('document.fonts.ready')
                         expect(page.locator('main .btn-primary')).to_have_count(1)
+                        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                        table = page.locator('[data-api-keys] table')
+                        expect(table).to_have_class(re.compile(r'\badmin-table--stack\b'))
+                        expect(table.locator('tbody td:not([data-label])')).to_have_count(0)
+                        assert table.locator('tbody tr').first.evaluate(
+                            'el => getComputedStyle(el).display'
+                        ) == ('grid' if width < 768 else 'table-row')
                         bar = page.locator('.admin-statusbar')
                         expect(bar).to_be_visible()
                         expect(bar.locator('.admin-statusbar-item')).to_have_count(2)
@@ -248,6 +255,7 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                             height: document.documentElement.scrollHeight,
                             row: document.querySelector('[data-key-id]').getBoundingClientRect().height,
                             primary: document.querySelectorAll('main .btn-primary').length,
+                            hints: [...document.querySelectorAll('main .form-hint')].filter(el => el.checkVisibility()).length,
                             open: document.querySelectorAll('main details[open]').length,
                             overflow: document.documentElement.scrollWidth - innerWidth})''')
                         assert metrics['overflow'] <= 1, metrics

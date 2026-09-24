@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = ROOT / ".claude" / "evidence" / "branding-reviewfix-0913" / "after"
 VIEWPORTS = (
     (1440, 900, "1440x900"),
+    (360, 844, "360x844"),
     (390, 844, "390x844"),
     (1024, 768, "1024x768"),
     (768, 1024, "768x1024"),
@@ -308,6 +309,13 @@ def test_branding_editor_keyboard_navigation(
         page.keyboard.press("Tab")
         expect(page.locator("#brand-logo-select")).to_be_focused()
 
+        page.keyboard.press("Tab")
+        upload_hint = page.locator('[aria-describedby="brand-upload-hint"]').filter(has=page.locator('svg'))
+        expect(upload_hint).to_be_focused()
+        expect(page.locator('#brand-upload-hint')).to_be_hidden()
+        page.keyboard.press("Enter")
+        expect(page.locator('#brand-upload-hint')).to_be_visible()
+        page.keyboard.press("Enter")
         page.keyboard.press("Tab")
         expect(page.locator("#brand-upload")).to_be_focused()
 

@@ -21,8 +21,8 @@
 </form>
 <section class="card admin-users-history" aria-labelledby="access-events-title">
   <h2 class="visually-hidden" id="access-events-title">Zugriffsereignisse</h2>
-  {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table table-mobile-lg">
-    <thead><tr><th>Zeitpunkt</th><th>Verifiziertes Konto</th><th>Zugang</th><th>Ereignis</th></tr></thead>
+  {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table admin-table--stack">
+    <thead><tr><th scope="col">Zeitpunkt</th><th scope="col">Verifiziertes Konto</th><th scope="col">Zugang</th><th scope="col">Ereignis</th></tr></thead>
     <tbody>{% for item in rows %}<tr>
       <td data-label="Zeitpunkt">{{ format_time(item.occurred_at) }}</td>
       <td data-label="Verifiziertes Konto" class="text-break">{{ item.actor_display_name or 'Nicht zugeordnet' }}</td>
