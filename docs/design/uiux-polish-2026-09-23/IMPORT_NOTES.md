@@ -34,3 +34,11 @@ Verbindlich und app-weit; präzisiert den Polish-Lauf. Einordnung gegenüber bes
 - **Listen:** eine app-weite Listenkomponente für Zeilenlisten UND Tabellen (Name/Primär → Sekundärinfo → Status → Aktionen rechts, `⋯` für seltene Aktionen), gleiche Metriken, Leerwerte, Köpfe, Sortierung, Filter, Pagination, Empty States. Baut auf `list_row` (M23) und `admin-table--stack` (P2) auf — keine dritte Form.
 - **Labels:** sechs Statusvarianten (P2: `admin-status--*`) plus Variante «Kategorie»; identische Metriken; zusammengesetzte Labels trennen oder als `⚠ kurz` mit Detail im Tooltip.
 - **Umsetzung:** P2b (gemeinsame Komponenten + Konsistenz-Ratschentests), danach P4-Migration je Modul; app-weite Prüfung §6 als statische Tests, damit neue Abweichungen den Gate brechen.
+
+## Ergänzung 2026-09-24: Navigation (`02_ERGAENZUNG_Navigation.md`)
+
+Verbindlich für die Sidebar (`templates/admin/_workflow_sidebar.html`, `_area_tabs.html`, `base_tabler.html`, Sidebar-Regeln in `static/admin-tabler.css`). Einordnung:
+
+- Bestätigt den Auftraggeber-Entscheid vom 2026-09-20 (Unterpunkte nur in der Sidebar, nur beim aktiven Parent) und verschärft die Darstellung: keine Tree-/Rail-Linien, Hierarchie über Einrückung, Abstand, Typografie, Hintergrund; genau eine starke aktive Fläche (aktiver Unterpunkt), Parent nur dezent; Chevron › / ⌄ als Zustand; Unterpunkte ohne Icon.
+- Neu: einklappbare Icon-Leiste (Tooltips, aktiver Zustand sichtbar, Untermenüs per Klick/Popover). Progressive Enhancement: ohne JavaScript bleibt die volle Sidebar; die bestehende mobile Offcanvas-Navigation und die No-JS-Navigation bleiben erhalten; CSP `script-src 'self'` (kein Inline-Skript).
+- Benutzerbereich unten, zurückhaltend getrennt.
