@@ -181,7 +181,7 @@ def _open_archive_action(page):
     expect(archive).to_have_count(1)
     expect(archive).to_be_hidden()
     summary = details.locator('summary')
-    expect(summary).to_contain_text('Weitere')
+    expect(summary).to_have_text('Mehr')
     summary.focus()
     page.keyboard.press('Enter')
     expect(archive).to_be_visible()
