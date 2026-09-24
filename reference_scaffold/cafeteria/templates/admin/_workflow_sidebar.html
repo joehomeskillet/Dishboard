@@ -3,6 +3,17 @@
 {% set user_name = user.name if user else 'Küche Administration' %}
 {% set _roles = roles|default([]) %}
 {% set display_role_title = 'Administration' if 'Cafeteria.Admin' in _roles else 'Freigabe & Redaktion' if 'Cafeteria.Publisher' in _roles else 'Küchenplanung' if 'Cafeteria.Editor' in _roles else '' %}
+{% macro subitems(tabs, label) %}
+<ul class="admin-nav-subitems" aria-label="{{ label }} Unterpunkte">
+  {% for tab in tabs if tab[3] %}
+  <li class="nav-item{% if tab[0] == area_nav.selected.item %} active{% endif %}">
+    <a href="{{ area_nav.href(tab) }}" title="{{ tab[2] }}" class="nav-link{% if tab[0] == area_nav.selected.item %} active{% endif %}"{% if tab[0] == area_nav.selected.item %} aria-current="page"{% endif %}>
+      <span class="nav-link-title">{{ tab[2] }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
 {% macro area_links() %}
 <ul class="navbar-nav">
   {% for key, label, icon_name, landing, tabs in area_nav.areas %}
@@ -20,16 +31,10 @@
           <span class="admin-nav-chevron" aria-hidden="true">{{ icon('chevron-down' if area_nav.selected.area == key else 'chevron-right') }}</span>
         </a>
         {% if area_nav.selected.area == key %}
-        <ul class="admin-nav-subitems" aria-label="{{ label }} Unterpunkte">
-          {% for tab in tabs if tab[3] %}
-          <li class="nav-item{% if tab[0] == area_nav.selected.item %} active{% endif %}">
-            <a href="{{ area_nav.href(tab) }}" title="{{ tab[2] }}" class="nav-link{% if tab[0] == area_nav.selected.item %} active{% endif %}"{% if tab[0] == area_nav.selected.item %} aria-current="page"{% endif %}>
-              <span class="nav-link-title">{{ tab[2] }}</span>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
+        {{ subitems(tabs, label) }}
         {% endif %}
+        {# Inert source: closed areas stay absent from the navigation until requested. #}
+        <template data-admin-nav-items>{{ subitems(tabs, label) }}</template>
       </li>
     {% endif %}
   {% endfor %}
@@ -76,6 +81,9 @@
         {{ area_links() }}
       </nav>
       <div class="navbar-footer admin-footer">
+        <button type="button" class="admin-nav-toggle" data-admin-nav-toggle hidden title="Navigation einklappen" aria-label="Navigation einklappen" aria-expanded="true" aria-controls="sidebar-menu">
+          {{ icon('chevron-left') }}
+        </button>
         <div class="admin-user-profile">
           <span class="avatar avatar-sm admin-user-avatar" aria-hidden="true">{{ user_name[:2]|upper }}</span>
           <div class="admin-user-info">
@@ -93,5 +101,6 @@
       </div>
     </div>
   </div>
+  <div class="admin-nav-flyout" id="admin-nav-flyout" popover="auto" role="navigation" aria-label="Unterpunkte"></div>
 </aside>
 {% endif %}
