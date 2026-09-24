@@ -541,8 +541,13 @@
 .dishboard-admin .admin-table thead th { color: var(--app-text-muted); background: var(--app-surface-soft); }
 .dishboard-admin .admin-table :is(.admin-table-status, .admin-table-actions) { width: 1%; white-space: nowrap; }
 .dishboard-admin .admin-table-actions { text-align: end; }
+.dishboard-admin .admin-table-status .badge { white-space: nowrap; }
+.dishboard-admin .admin-table-actions .admin-row-actions { min-width: max-content; flex-wrap: nowrap; }
 .dishboard-admin .admin-sort-header { display: inline-flex; align-items: center; min-height: var(--app-button-size); gap: var(--app-space-1); }
 @media (max-width: 767.98px) {
+  .dishboard-admin .admin-table--stack .admin-row-actions { min-width: 0; flex-wrap: wrap; }
+  .dishboard-admin .admin-table--stack .admin-table-status .badge { white-space: normal; }
+  .dishboard-admin .admin-table--stack :is(.admin-table-status, .admin-table-actions) { width: auto; white-space: normal; }
   .dishboard-admin table.admin-table--stack,
   .dishboard-admin .admin-table--stack :is(caption, tbody) { display: block; }
   .dishboard-admin .admin-table--stack thead {

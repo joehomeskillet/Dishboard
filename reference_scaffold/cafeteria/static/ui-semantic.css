@@ -14,6 +14,7 @@
 }
 .ui-sem-label .icon,
 .ui-sem-control > .icon { flex-shrink: 0; }
+.dishboard-admin .ui-sem-control,
 .ui-sem-control {
   --ui-control-size: var(--app-button-size);
   min-width: var(--ui-control-size);

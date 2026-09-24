@@ -84,7 +84,7 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 2,
     "local_filters": 0
   },
   "admin/_recipe_document.html": {
@@ -92,7 +92,7 @@
     "long_labels": 1,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 5,
     "local_filters": 0
   },
   "admin/_recipe_template_selection.html": {
@@ -124,7 +124,7 @@
     "long_labels": 2,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 2,
     "local_filters": 0
   },
   "admin/_week_menu_card.html": {
@@ -132,7 +132,7 @@
     "long_labels": 1,
     "legacy_labels": 5,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "admin/_week_service.html": {
@@ -156,7 +156,7 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "admin/access_history.html": {
@@ -172,7 +172,7 @@
     "long_labels": 1,
     "legacy_labels": 2,
     "wrong_icons": 0,
-    "local_lists": 2,
+    "local_lists": 3,
     "local_filters": 0
   },
   "admin/base_tabler.html": {
@@ -236,7 +236,7 @@
     "long_labels": 0,
     "legacy_labels": 2,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 2,
     "local_filters": 1
   },
   "admin/copy.html": {
@@ -244,7 +244,7 @@
     "long_labels": 1,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "admin/display_settings.html": {
@@ -252,7 +252,7 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "admin/einkaufsliste.html": {
@@ -260,7 +260,7 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 2,
+    "local_lists": 3,
     "local_filters": 2
   },
   "admin/einkaufslisten.html": {
@@ -300,7 +300,7 @@
     "long_labels": 1,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 1
   },
   "admin/grundlagen_location_conflict.html": {
@@ -340,7 +340,7 @@
     "long_labels": 2,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "admin/kalkulation.html": {
@@ -348,7 +348,7 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 2,
     "local_filters": 0
   },
   "admin/kochbuch_editor.html": {
@@ -356,7 +356,7 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 2,
     "local_filters": 0
   },
   "admin/kochbuecher.html": {
@@ -372,8 +372,8 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
-    "local_filters": 0
+    "local_lists": 2,
+    "local_filters": 1
   },
   "admin/kuechenkalender_anlass.html": {
     "literal_buttons": 0,
@@ -400,10 +400,10 @@
     "local_filters": 0
   },
   "admin/local_user_editor.html": {
-    "literal_buttons": 4,
-    "long_labels": 3,
+    "literal_buttons": 5,
+    "long_labels": 4,
     "legacy_labels": 3,
-    "wrong_icons": 0,
+    "wrong_icons": 1,
     "local_lists": 0,
     "local_filters": 0
   },
@@ -444,7 +444,7 @@
     "long_labels": 6,
     "legacy_labels": 1,
     "wrong_icons": 1,
-    "local_lists": 0,
+    "local_lists": 3,
     "local_filters": 1
   },
   "admin/operations.html": {
@@ -452,7 +452,7 @@
     "long_labels": 0,
     "legacy_labels": 1,
     "wrong_icons": 0,
-    "local_lists": 3,
+    "local_lists": 4,
     "local_filters": 0
   },
   "admin/patienten.html": {
@@ -468,7 +468,7 @@
     "long_labels": 3,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "admin/print_template_editor.html": {
@@ -540,7 +540,7 @@
     "long_labels": 3,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 2,
     "local_filters": 0
   },
   "admin/rezepte_revision.html": {
@@ -548,7 +548,7 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "admin/rezepte_revisionen.html": {
@@ -556,7 +556,7 @@
     "long_labels": 1,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 2,
+    "local_lists": 3,
     "local_filters": 0
   },
   "admin/rezepte_scale.html": {
@@ -605,14 +605,14 @@
     "legacy_labels": 0,
     "wrong_icons": 0,
     "local_lists": 1,
-    "local_filters": 0
+    "local_filters": 1
   },
   "admin/week_review.html": {
     "literal_buttons": 2,
     "long_labels": 2,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "api/docs.html": {
@@ -652,7 +652,7 @@
     "long_labels": 1,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "public/cafeteria_today.html": {
@@ -660,7 +660,7 @@
     "long_labels": 1,
     "legacy_labels": 1,
     "wrong_icons": 0,
-    "local_lists": 0,
+    "local_lists": 1,
     "local_filters": 0
   },
   "public/cafeteria_week.html": {

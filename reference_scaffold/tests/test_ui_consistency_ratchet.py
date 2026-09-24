@@ -42,3 +42,15 @@ def test_local_shared_class_copies_and_svg_icons_are_still_inventory():
     <button class="btn"><svg><use href="#tabler-trash"></use></svg>Speichern</button>'''
     result = inventory.count_template(source)
     assert result['local_lists'] == result['local_filters'] == result['wrong_icons'] == 1
+
+
+def test_plain_lists_filter_containers_and_mixed_literal_buttons():
+    source = '''<ul><li>Record</li></ul><ol><li>Record</li></ol>
+    <nav><ul><li>Navigation</li></ul></nav><ul class="pagination"></ul>
+    <section class="filter-bar"><div class="filter-fields">Query</div></section>
+    <button class="btn">{{ icon_label('actions.save') }} and close</button>'''
+    result = inventory.count_template(source)
+    assert result['local_lists'] == 2
+    assert result['local_filters'] == result['literal_buttons'] == 1
+    assert result['long_labels'] == 1
+    assert inventory.count_template('''<button class="btn">{{ icon(sem('view.reset').resolved_icon) }}{{ t(sem('view.reset').label_key) }}</button>''')['long_labels'] == 0

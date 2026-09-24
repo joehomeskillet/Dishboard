@@ -557,6 +557,106 @@ def _assert_statusbar_link_keyboard_focus_and_navigation(width):
         server.server_close()
 
 
+@pytest.mark.parametrize('width', [360, 390, 768, 1024, 1440, 1920])
+def test_p2b_labels_rows_actions_and_sorting_without_js(width, tmp_path):
+    markup = '''{% from 'admin/_macros.html' import label, list_row, empty_value, sort_header %}
+        {% from 'ui/_semantic.html' import row_actions, icon_button %}
+        <section id="labels">
+        {% for variant in ['neutral', 'info', 'active', 'success', 'warning', 'danger', 'category'] %}
+          {{ label('Prüfung offen', variant, icon='alert-triangle', detail='Allergenangaben fehlen') }}
+        {% endfor %}</section>
+        {% set controls = row_actions([{'key': 'actions.edit', 'href': '#edit', 'icon_only': true},
+          {'key': 'actions.preview', 'href': '#preview'}, {'key': 'actions.copy', 'href': '#copy'}]) %}
+        <section id="row">{{ list_row(primary='Reis', meta=empty_value(),
+          status=label('Aktiv', 'active'), actions=controls) }}</section>
+        <table class="table admin-table admin-table--stack"><thead><tr>
+          {{ sort_header('Name', 'name', 'name', 'asc', '?sort=name&direction=desc') }}
+          <th>Info</th><th>Status</th><th>Aktionen</th></tr></thead><tbody><tr>
+          <td data-label="Name"><strong>Reis</strong></td><td data-label="Info">{{ empty_value() }}</td>
+          <td data-label="Status" class="admin-table-status">{{ label('Aktiv', 'active') }}</td>
+          <td data-label="Aktionen" class="admin-table-actions">{{ controls }}</td>
+        </tr></tbody></table>
+        <section id="sizes">{{ icon_button('actions.edit', href='#edit') }}
+          {{ icon_button('actions.edit', href='#edit', icon_only=true) }}
+          {{ icon_button('actions.edit', href='#edit', icon_only=true, size='large') }}
+          {{ icon_button('actions.edit', href='#edit', size='large') }}</section>'''
+
+    def verify(page):
+        import json
+        import re
+
+        def luminance(color):
+            channels = [int(x) / 255 for x in re.findall(r'\d+', color)[:3]]
+            linear = [x / 12.92 if x <= .04045 else ((x + .055) / 1.055) ** 2.4 for x in channels]
+            return sum(x * weight for x, weight in zip(linear, (.2126, .7152, .0722), strict=True))
+
+        labels = page.locator('#labels .admin-label')
+        heights = [node.bounding_box()['height'] for node in labels.all()]
+        contrasts = []
+        assert len(heights) == 7 and max(heights) - min(heights) <= 1
+        for node in labels.all():
+            expect(node).to_have_attribute('title', 'Allergenangaben fehlen')
+            expect(node.locator('.visually-hidden')).to_contain_text('Allergenangaben fehlen')
+            colors = node.evaluate('e => [getComputedStyle(e).color, getComputedStyle(e).backgroundColor]')
+            foreground, background = sorted(map(luminance, colors))
+            contrasts.append((background + .05) / (foreground + .05))
+            assert contrasts[-1] >= 4.5, colors
+        group = page.locator('#row .admin-row-actions')
+        expect(group.locator(':scope > a:visible')).to_have_count(1)
+        expect(group.locator('details a:visible')).to_have_count(0)
+        direct = group.locator(':scope > a')
+        expect(direct).to_have_attribute('aria-label', 'Bearbeiten')
+        expect(direct).to_have_attribute('title', 'Bearbeiten')
+        size = direct.bounding_box()
+        assert size['height'] >= 48 and abs(size['width'] - size['height']) <= 1
+        page.keyboard.press('Tab')
+        expect(direct).to_be_focused()
+        assert direct.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
+        page.keyboard.press('Tab')
+        expect(group.locator('summary')).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(group.locator('details')).to_have_attribute('open', '')
+        expect(group.locator('details a:visible')).to_have_count(2)
+        page.keyboard.press('Tab')
+        expect(group.get_by_role('link', name='Vorschau', exact=True)).to_be_focused()
+        page.keyboard.press('Shift+Tab')
+        page.keyboard.press('Space')
+        expect(group.locator('details')).not_to_have_attribute('open', '')
+        expect(page.locator('th[aria-sort]')).to_have_attribute('aria-sort', 'ascending')
+        expect(page.locator('th[aria-sort] a')).to_have_attribute('href', '?sort=name&direction=desc')
+        assert page.locator('.admin-empty-value').all_text_contents() == ['—', '—']
+        row = page.locator('#row .admin-list-row')
+        table_row = page.locator('tbody tr')
+        if width >= 768:
+            assert abs(row.bounding_box()['height'] - table_row.bounding_box()['height']) <= 1
+            for side in ['Top', 'Right', 'Bottom', 'Left']:
+                assert row.evaluate(f'e => getComputedStyle(e).padding{side}') == page.locator('tbody td').first.evaluate(f'e => getComputedStyle(e).padding{side}')
+        else:
+            assert row.evaluate('e => getComputedStyle(e).padding') == table_row.evaluate('e => getComputedStyle(e).padding')
+            for cell in table_row.locator('td').all():
+                assert cell.bounding_box()['width'] >= table_row.bounding_box()['width'] - 25
+        assert abs(row.locator('.admin-label').bounding_box()['height'] - table_row.locator('.admin-label').bounding_box()['height']) <= 1
+        for control in table_row.locator('a:visible, summary').all():
+            box = control.bounding_box()
+            assert box['x'] >= 0 and box['width'] >= 48 and box['height'] >= 48
+        sizes = page.locator('#sizes a').all()
+        assert abs(sizes[0].bounding_box()['height'] - sizes[1].bounding_box()['height']) <= 1
+        assert sizes[2].bounding_box()['height'] == sizes[2].bounding_box()['width'] == 56
+        assert sizes[3].bounding_box()['height'] == sizes[2].bounding_box()['height']
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        (tmp_path / f'p2b-{width}.json').write_text(json.dumps({
+            'width': width, 'label_heights': heights, 'contrast_ratios': contrasts,
+            'list_height': row.bounding_box()['height'],
+            'table_height': table_row.bounding_box()['height'],
+            'icon_button': size,
+        }, indent=2))
+        page.screenshot(path=str(tmp_path / f'p2b-{width}.png'), full_page=True)
+        page.locator('body').evaluate("e => e.style.zoom = '2'")
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+    _run_polish_check(markup, verify, width, javascript=False)
+
+
 def test_admin_icons_exist_and_render(browser):  # noqa: F811
     # Every registry icon resolves to a sprite symbol that renders with a real bounding box.
     app = Flask('semantic-browser2', template_folder=str(ROOT.parent / 'templates'),

@@ -101,29 +101,46 @@ def canonical_icons():
             for verb, key in keys.items()}
 
 
-def count_template(source, icons=None, shared=False):
+def count_template(source, icons=None, shared=False, messages=None):
     parser = TemplateParser(source)
     counts = dict.fromkeys(CATEGORIES, 0)
     icons = canonical_icons() if icons is None else icons
+    if messages is None:
+        messages = json.loads((ROOT / 'reference_scaffold/cafeteria/translations/de.json').read_text())
+
+    def known_label(match):
+        expression = match.group()
+        key = re.search(r"\bicon_label\(\s*['\"]([^'\"]+)['\"]", expression)
+        if key is None and '.label_key' in expression:
+            key = re.search(r"\bsem\(\s*['\"]([^'\"]+)['\"]", expression)
+        return ' ' + messages.get(key[1] + '.label', '') + ' ' if key else ''
+
     for node in parser.nodes:
         attrs = {k: parser.restore(v or '') for k, v in node.attrs.items()}
         classes = attrs.get('class', '').split()
         raw = parser.restore(node.source())
         literal = ' '.join(TOKEN.sub('', node.text()).split())
+        visible = ' '.join(JINJA.sub(known_label, parser.restore(node.text())).split())
         if node.tag in {'a', 'button', 'summary'} and 'btn' in classes:
-            semantic = bool(re.search(r'\b(?:icon_label|icon_button|sem)\s*\(', raw))
-            counts['literal_buttons'] += bool(literal and not semantic)
-            counts['long_labels'] += len(literal) > 18 or len(literal.split()) > 2
+            counts['literal_buttons'] += bool(literal)
+            counts['long_labels'] += len(visible) > 18 or len(visible.split()) > 2
             found = re.findall(r"\bicon\(\s*['\"]([^'\"]+)", raw)
             found += re.findall(r'#tabler-([\w-]+)', raw)
             for verb, expected in icons.items():
-                if re.search(r'\b' + re.escape(verb) + r'\b', literal):
+                if re.search(r'\b' + re.escape(verb) + r'\b', visible):
                     counts['wrong_icons'] += bool(found and any(i != expected for i in found))
                     break
         if 'badge' in classes and not any(
                 c == 'admin-label' or c.startswith('admin-status--') for c in classes):
             counts['legacy_labels'] += 1
-        is_list = node.tag == 'table' or any(
+        navigation = any(c in {'pagination', 'breadcrumb', 'nav'} or 'sidebar' in c
+                         or c.startswith('admin-nav') for c in classes)
+        ancestor = node.parent
+        while ancestor:
+            navigation |= ancestor.tag == 'nav'
+            ancestor = ancestor.parent
+        is_list = (node.tag in {'ul', 'ol'} and not navigation
+                   and attrs.get('role') not in {'menu', 'menubar'}) or node.tag == 'table' or any(
             c in {'list-group', 'admin-list-row'} or c.endswith('-list-row') for c in classes)
         if is_list and 'admin-table' not in classes and not (shared and 'admin-list-row' in classes):
             counts['local_lists'] += 1
@@ -135,6 +152,14 @@ def count_template(source, icons=None, shared=False):
                 n.attrs.get('type') == 'search' or n.attrs.get('name') in {'q', 'query', 'search'}
                 or (n.tag == 'select' and attrs.get('method', 'get').lower() == 'get'))
                    and _inside(n, node) for n in parser.nodes)))
+        if node.tag in {'div', 'section'} and re.search(r'\b(?:filters?|search)\b', attrs.get('class', '')):
+            ancestor = node.parent
+            nested = False
+            while ancestor:
+                nested |= ancestor.tag == 'form' or bool(re.search(
+                    r'\b(?:filters?|search)\b', ancestor.attrs.get('class', '')))
+                ancestor = ancestor.parent
+            is_filter = not nested
         if is_filter and not (shared and 'admin-filter-bar' in classes):
             counts['local_filters'] += 1
     return counts

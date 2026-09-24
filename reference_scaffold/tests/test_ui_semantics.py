@@ -330,3 +330,44 @@ def test_hint_escapes_text_and_uses_caller_owned_description_id(semantic_app, mo
     if mode != 'inline':
         assert document.summary['aria-describedby'] == 'help-name'
         assert document.summary['title'] == text
+
+
+def test_p2b_slots_escape_details_and_preserve_zero_and_sort_states(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''
+            {% from 'admin/_macros.html' import label, list_row, sort_header %}
+            {{ label('Warning', 'danger', detail=detail) }}
+            {{ list_row(primary=0, secondary=detail, meta=0) }}
+            <table><tr>{{ sort_header('Name', 'name', 'other', 'asc', '#name') }}
+            {{ sort_header('Date', 'date', 'date', 'desc', '#date') }}</tr></table>
+        ''', detail='<img src=x onerror=alert(1)>')
+    document = BeautifulSoup(html, 'html.parser')
+    assert not document.select('img, script')
+    assert document.select_one('.admin-label')['title'] == '<img src=x onerror=alert(1)>'
+    assert document.select_one('.admin-list-name strong').text == '0'
+    assert document.select_one('.admin-list-meta').text == '0'
+    assert [n['aria-sort'] for n in document.select('th')] == ['none', 'descending']
+
+
+@pytest.mark.parametrize('locale', ['de', 'en'])
+def test_p2b_action_labels_are_short_and_registry_is_single_source(locale):
+    messages = load_locales()[locale]
+    for key, entry in load_registry().items():
+        if key.startswith(('actions.', 'view.')) or key in {'admin.settings', 'ui.templates_back'}:
+            label = messages[entry.label_key]
+            assert len(label) <= 18 and len(label.split()) <= 2, (key, label)
+
+
+def test_p2b_legacy_icon_link_and_status_mapping_contract(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'admin/_macros.html' import icon_link, status_badge %}
+            {{ icon_link('#edit', 'Bearbeiten') }}
+            {{ status_badge('active', mapping={'active': ('Konflikt', 'danger')}) }}''')
+    document = BeautifulSoup(html, 'html.parser')
+    assert document.select_one('use')['href'].endswith('#tabler-' + load_registry()['actions.edit'].resolved_icon)
+    assert document.a['title'] == document.a['aria-label'] == 'Bearbeiten'
+    assert document.select_one('.admin-status--danger').get_text(strip=True) == 'Konflikt'

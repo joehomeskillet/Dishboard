@@ -5,7 +5,7 @@
 {%- endmacro %}
 
 {%- macro icon_link(href, label) -%}
-<a class="btn btn-icon w-100" href="{{ href }}" aria-label="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon('pencil') }}</a>
+<a class="btn btn-icon w-100" href="{{ href }}" aria-label="{{ label }}" title="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon(sem('actions.edit').resolved_icon) }}</a>
 {%- endmacro %}
 
 {%- macro page_header(title, description=none, breadcrumbs=none, actions=none, pretitle=none, status_items=[]) -%}
@@ -263,7 +263,7 @@
   {%- set badge_var = 'secondary' -%}
 {%- endif -%}
 {%- set variant = {'secondary': 'neutral', 'green': 'success', 'teal': 'info', 'blue': 'info', 'yellow': 'warning', 'orange': 'warning', 'red': 'danger'}.get(badge_var, badge_var) -%}
-{{ render_label(badge_text, variant='active' if value == 'active' else variant, detail=detail, status=value, class='bg-' ~ badge_var ~ '-lt badge-pill') }}
+{{ render_label(badge_text, variant='active' if value == 'active' and not (mapping and value in mapping) else variant, detail=detail, status=value, class='bg-' ~ badge_var ~ '-lt badge-pill') }}
 {%- endmacro %}
 
 {%- macro status(value, label=none, mapping=none) -%}
