@@ -238,7 +238,9 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
                     expect(component).to_be_hidden()
                     row.get_by_role('button', name='Bearbeiten', exact=True).click()
                     expect(component).to_be_visible()
-                    row.get_by_role('button', name='Fertig', exact=True).click()
+                    finish = row.get_by_role('button', name='Bestätigen', exact=True)
+                    expect(finish.locator('[data-semantic="actions.confirm"]')).to_have_text('Bestätigen')
+                    finish.click()
                     expect(component).to_be_hidden()
                 else:
                     expect(component).to_be_visible()

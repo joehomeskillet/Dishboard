@@ -336,3 +336,36 @@ def test_zoom200_equivalent(editor_page, family: str, javascript: bool, tmp_path
         _controls(zoom_page, family)
         _keyboard(zoom_page)
         _capture(zoom_page, tmp_path, 'zoom200-equivalent')
+
+
+def test_p4_action_meanings_and_proposal_states(editor_page, family, javascript):
+    from flask import before_render_template
+
+    page, _, _, _, application, _ = editor_page
+    _open(page, family, (360, 800))
+    expect(page.locator('[data-add-row="components-list"]')).to_have_text('Baustein')
+    expect(page.locator('[data-add-row="components-list"]')).to_have_attribute('aria-label', 'Baustein hinzufügen')
+    origins = page.locator('details[data-mode-section="origin"]')
+    if origins.get_attribute('open') is None:
+        origins.locator('summary').click()
+    expect(page.locator('[data-add-row="origins-list"]')).to_have_text('Herkunft')
+    expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_text('Löschen')
+    expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_class('btn btn-outline-danger')
+    review = page.get_by_role('button', name='Als geprüft bestätigen', exact=True)
+    expect(review).to_have_text('Geprüft')
+    expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+
+    for freeze in (True, False):
+        def proposal(sender, template, context, **extra):
+            if template.name == 'admin/menu_editor.html':
+                context['cell'] = dict(context['cell'], proposal_hint='Rezeptstand prüfen',
+                                       proposal_freeze_url='/admin/rezepte/stand' if freeze else None,
+                                       proposal_recipe_url='/admin/rezepte/ansicht')
+
+        with before_render_template.connected_to(proposal, application):
+            _open(page, family, (360, 800))
+        action = page.get_by_role('link', name='Rezeptstand festhalten' if freeze else 'Rezept zur Vorlage öffnen')
+        expect(action).to_have_text('Festhalten' if freeze else 'Öffnen')
+        expect(action).to_have_attribute('href', '/admin/rezepte/stand' if freeze else '/admin/rezepte/ansicht')
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

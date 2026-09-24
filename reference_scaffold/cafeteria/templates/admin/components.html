@@ -137,7 +137,7 @@
           </td>
           <td class="usage" data-label="Verwendung">verwendet in {{ row.usage_count }} Gerichten</td>
           <td class="component-status admin-table-status" data-label="Status">{{ ui_label('Aktiv' if row.active else 'archiviert', 'active' if row.active else 'neutral', icon=sem('status.active' if row.active else 'actions.archive').resolved_icon) }}</td>
-          <td class="component-action admin-table-actions" data-label="Aktion">{{ row_actions([{'key': 'actions.edit', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}]) }}</td>
+          <td class="component-action admin-table-actions" data-label="Aktion">{{ row_actions([{'key': 'actions.edit', 'aria_label': 'Baustein ' ~ row.name ~ ' bearbeiten', 'title': 'Baustein ' ~ row.name ~ ' bearbeiten', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}]) }}</td>
         </tr>
         {% endfor %}
       </tbody>

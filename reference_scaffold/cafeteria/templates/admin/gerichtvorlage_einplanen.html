@@ -22,8 +22,8 @@
 {% endif %}
 {% if occupied is not none %}
 <div class="btn-list mb-3">
-  {{ icon_button('actions.open', href=existing_url) }}
-  {{ icon_button('actions.edit', href='#planning-target') }}
+  {{ icon_button('actions.open', text='Menü öffnen', aria_label='Bestehendes Menü öffnen: ' ~ occupied, href=existing_url) }}
+  {{ icon_button('actions.edit', text='Ziel wählen', aria_label='Anderes Ziel wählen', href='#planning-target') }}
 </div>
 {% endif %}
 {% if values.template_context %}
@@ -82,7 +82,7 @@
   </div>
 </form>
 {% else %}
-{{ icon_button('actions.back', href=url_for('admin.dish_template_edit', public_id=public_id)) }}
+{{ icon_button('actions.open', text='Vorlage prüfen', href=url_for('admin.dish_template_edit', public_id=public_id), emphasis='primary') }}
 {% endif %}
 {% endblock %}
 {% block page_scripts %}<script src="{{ url_for('static', filename='admin-gerichtvorlagen.js') }}" defer></script>{% endblock %}

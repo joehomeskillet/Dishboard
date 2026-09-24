@@ -195,7 +195,10 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
         expect(page.locator('.badge:visible').filter(has_text='Aktiv')).to_have_count(1)
         expect(page.locator('table.admin-table.admin-table--stack')).to_have_count(1)
         expect(page.locator('.admin-table-status .admin-label.admin-status--active')).to_be_visible()
-        expect(page.locator('.admin-table-actions [data-semantic="actions.open"]')).to_have_text('Öffnen')
+        planning = page.locator('.admin-table-actions [data-semantic="actions.open"]')
+        expect(planning).to_have_text('Einplanen')
+        expect(planning).to_have_attribute('aria-label', 'Browser Vorlage als Menü einplanen')
+        expect(planning).to_have_attribute('title', 'Browser Vorlage als Menü einplanen')
         page.get_by_role('link', name='Browser Vorlage').click()
         expect(page.get_by_label('Status', exact=True)).to_be_visible()
         expect(page.get_by_label('Status', exact=True).locator('dt').filter(has_text='Status')).to_be_visible()
@@ -307,6 +310,7 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
         page.on('request', lambda request: methods.append(request.method))
         page.on('pageerror', lambda error: errors.append(str(error)))
         _open(page, base)
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         _accessible_capture(page, f'list-{width}-js-{javascript}-reader-{read_only}', methods=methods.copy())
         link = page.get_by_role('link', name='Rezept: Rezept 205', exact=True)
         link.focus()
@@ -319,6 +323,7 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
         assert page.goto(base + path).status == 200
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         if read_only:
+            expect(page.locator('main .btn-primary:visible')).to_have_count(1)
             expect(page.locator('main button[name="action"]')).to_have_count(0)
             expect(page.get_by_role('link', name='Rezept: Rezept 205', exact=True)).to_be_visible()
         else:
@@ -419,6 +424,15 @@ def test_p3_polish_dish_templates_primary_stack_hint(b3, master_server, browser)
         assert stacked.evaluate("e => getComputedStyle(e).display") == 'grid'
         expect(page.locator('td[data-label="Menüart"]').first).to_be_visible()
         _open(page, base, path)
+        plan = page.get_by_role('link', name='Polish Vorlage als Menü einplanen')
+        expect(plan).to_have_text('Einplanen')
+        expect(plan).to_have_attribute('title', 'Polish Vorlage als Menü einplanen')
+        archive = page.locator('button[value="archive"]')
+        expect(archive).to_have_class('btn btn-danger')
+        expect(archive).to_have_attribute('data-confirm', 'Diese Vorlage archivieren?')
+        expect(page.locator('[name="recipe_search"]')).to_have_attribute('maxlength', '200')
+        expect(page.locator('button[value="recipe_search"]')).to_have_attribute('formnovalidate', '')
+        expect(page.locator('form[data-loading]')).to_have_count(1)
         expect(page.locator('#accompaniment-hint')).to_be_visible()
         expect(page.locator('#recipe-search-hint')).to_be_visible()
         _open(page, base, path + '/einplanen')
@@ -429,3 +443,27 @@ def test_p3_polish_dish_templates_primary_stack_hint(b3, master_server, browser)
         page.keyboard.press('Enter')
         expect(page.locator('#planning-refresh-hint')).to_be_visible()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+
+def test_p4_occupied_target_action_meanings(b3, master_server, browser):  # noqa: F811
+    from flask import before_render_template
+
+    application, _, client, _ = b3
+    path = create(client, title='Belegte Vorlage')
+    base, cookie = master_server
+
+    def occupied(sender, template, context, **extra):
+        if template.name == 'admin/gerichtvorlage_einplanen.html':
+            context.update(occupied='Bestehender Teller', existing_url='/admin/cafeteria/menu')
+
+    with browser.new_context(viewport={'width': 360, 'height': 800}) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        with before_render_template.connected_to(occupied, application):
+            _open(page, base, path + '/einplanen')
+        expect(page.get_by_role('link', name='Bestehendes Menü öffnen: Bestehender Teller')).to_have_text('Menü öffnen')
+        target = page.get_by_role('link', name='Anderes Ziel wählen')
+        expect(target).to_have_text('Ziel wählen')
+        expect(target).to_have_attribute('href', '#planning-target')
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        expect(page.locator('#planning-error')).to_contain_text('Bereits belegt mit')

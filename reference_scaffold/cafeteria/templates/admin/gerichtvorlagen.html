@@ -40,10 +40,12 @@
 {% endif %}
 {% call page_header('Gerichtvorlagen', description=('Vorlage bearbeiten · ' ~ row.title) if row else ('Vorlage anlegen' if editing else none), status_items=status_items) %}
   {% if editing %}
-    {% if row and row.active and can_write %}{{ icon_button('actions.open', href=url_for('admin.dish_template_plan', public_id=row.public_id)) }}{% endif %}
-    {{ icon_button('actions.back', href=url_for('admin.dish_templates_list'), icon_only=true) }}
+    {% if row and row.active and can_write %}{{ icon_button('actions.open', text='Einplanen', aria_label=row.title ~ ' als Menü einplanen', title=row.title ~ ' als Menü einplanen', href=url_for('admin.dish_template_plan', public_id=row.public_id)) }}{% endif %}
+    {{ icon_button('actions.back', href=url_for('admin.dish_templates_list'), icon_only=can_write, emphasis='secondary' if can_write else 'primary') }}
   {% elif can_write %}
     {{ icon_button('actions.add', href=url_for('admin.dish_template_new')) }}
+  {% else %}
+    {{ icon_button('actions.back', text='Übersicht', href='/admin/', emphasis='primary') }}
   {% endif %}
 {% endcall %}
 {% endblock %}
@@ -84,7 +86,7 @@
           <td data-label="Gebundenes Rezept">{{ recipe_state(item) }}</td>
           <td data-label="Dazu">{{ accompaniment_state(item) }}</td>
           <td class="admin-table-status" data-label="Aktivstatus">{{ label('Aktiv' if item.active else 'Archiviert', 'active' if item.active else 'neutral', icon=sem('status.active' if item.active else 'actions.archive').resolved_icon) }}</td>
-          {% if can_write %}<td class="admin-table-actions" data-label="Planung">{% if item.active %}{{ row_actions([{'key': 'actions.open', 'href': url_for('admin.dish_template_plan', public_id=item.public_id)}]) }}{% endif %}</td>{% endif %}
+          {% if can_write %}<td class="admin-table-actions" data-label="Planung">{% if item.active %}{{ row_actions([{'key': 'actions.open', 'text': 'Einplanen', 'aria_label': item.title ~ ' als Menü einplanen', 'title': item.title ~ ' als Menü einplanen', 'href': url_for('admin.dish_template_plan', public_id=item.public_id)}]) }}{% endif %}</td>{% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -182,7 +184,7 @@
           {% if row.active %}
           <button class="btn btn-danger" type="submit" name="action" value="archive" data-confirm="Diese Vorlage archivieren?">{{ icon_label('actions.archive') }}</button>
           <p class="ui-sem-consequence">Die Vorlage bleibt lesbar und erscheint nicht mehr in neuen Planungen.</p>
-          {% else %}{{ icon_button('actions.restore', name='action', value='reactivate') }}{% endif %}
+          {% else %}{{ icon_button('actions.activate', name='action', value='reactivate') }}{% endif %}
         </div>
       </details>{% endif %}
       <div class="admin-form-main">
