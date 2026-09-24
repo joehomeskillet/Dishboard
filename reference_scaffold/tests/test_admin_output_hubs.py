@@ -1,6 +1,8 @@
 """Output navigation uses authoritative roles and existing rendered destinations."""
 from __future__ import annotations
 
+import re
+
 import threading
 from html.parser import HTMLParser
 from pathlib import Path
@@ -93,9 +95,11 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         assert response.status_code == 200
         assert response.headers['Cache-Control'] == 'no-store'
         html = response.get_data(as_text=True)
-        assert (
-            f'href="{path}" class="nav-link active" aria-current="page"' in html
-            or f'class="nav-link active" href="{path}" aria-current="page"' in html
+        # The active sidebar link carries href, class and aria-current (other attributes such as the
+        # collapsed-sidebar tooltip may sit in between).
+        assert re.search(
+            rf'<a\b(?=[^>]*\bhref="{re.escape(path)}")(?=[^>]*\bclass="nav-link active")[^>]*\baria-current="page"',
+            html,
         )
         links = MainLinks(html).links
         screen_links = [link for link in links if link.startswith(('/admin/screens/', '/admin/vorlagen/screens/'))]

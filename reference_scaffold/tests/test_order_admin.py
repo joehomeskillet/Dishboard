@@ -395,6 +395,7 @@ def test_order_statuses_and_empty_texts_in_both_locales(b3, monkeypatch):  # noq
                 assert f'<span>{label}</span>' in html
                 assert '⟦' not in html
                 assert f'>{state}<' not in html
-                assert f'badge admin-status--{variant} ui-sem-label' in html
+                # Shared label system (P2b): badge + admin-label + status variant.
+                assert f'badge admin-label admin-status--{variant} ui-sem-label' in html
             assert f'admin-statusbar-item--{variant}' in detail
             assert ('Zeilen' if locale == 'de' else 'Lines') in detail
