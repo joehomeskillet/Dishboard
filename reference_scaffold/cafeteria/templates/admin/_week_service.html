@@ -1,4 +1,6 @@
 {# Compact meal service summary + existing POST form. #}
+{% from 'admin/_macros.html' import label %}
+{% from 'ui/_semantic.html' import icon_label, sem_icon %}
 {% set service = meal_cell %}
 {% set state = service.service_state if service else 'open' %}
 {% set start = service.service_start if service else '' %}
@@ -33,11 +35,11 @@
   <span>Hinweis: {{ notice }}</span>
   {% endif %}
   {% if srv_ver == 0 %}
-  <span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe, noch nicht gespeichert</span>
+  {{ label('Nicht gespeichert', 'neutral', detail='Vorgabe, noch nicht gespeichert') }}
   {% endif %}
 </div>
 <details class="admin-week-service"{% if service_open %} open{% endif %}>
-<summary>{{ icon('pencil') }}Ausgabeangaben ändern</summary>
+<summary>{{ sem_icon('actions.edit') }}Ausgabeangaben ändern</summary>
   <form method="post" action="/admin/{{ family }}/service" class="card card-sm mb-3 admin-week-service-form">
     <div class="card-body">
       {{ form_errors(service_errors.values()|list) }}
@@ -70,7 +72,7 @@
           {{ field('service_end', 'Ende', service_values.get('service_end', end), type='text' if service_error else 'time', id=end_id, error=service_errors.get('service_end'), autofocus=service_errors.get('service_end'), hint='HH:MM' if service_error else none) }}
         </div>
         <div class="col-12">
-          <button type="submit" class="btn">{{ icon('device-floppy') }}Ausgabeangaben speichern</button>
+          <button type="submit" class="btn ui-sem-control">{{ icon_label('actions.save') }}</button>
         </div>
       </div>
     </div>

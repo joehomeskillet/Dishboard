@@ -1,4 +1,6 @@
 {# Compact soup/dessert row for one meal. Context: kind, shared, exceptions, meal_cell, week_value, family. #}
+{% from 'admin/_macros.html' import label %}
+{% from 'ui/_semantic.html' import sem_icon %}
 {% set labels = {'soup': 'Suppe', 'dessert': 'Dessert'} %}
 {% set empty_labels = {'soup': 'Suppe noch nicht geplant', 'dessert': 'Dessert noch nicht geplant'} %}
 {% set none_labels = {'soup': 'Keine Suppe', 'dessert': 'Kein Dessert'} %}
@@ -9,7 +11,7 @@
     {% if course.state == 'planned' %}
     <span>{{ labels[kind] }}: {{ course.title }} · Für alle Menüs</span>
     {% if not course.allergens %}
-    <span class="badge bg-yellow-lt text-warning">Allergenangaben fehlen</span>
+    {{ label('Allergenangaben fehlen', 'warning') }}
     {% endif %}
     {% if course.labels %}
     <span class="text-secondary">{{ course.labels|join(', ') }}</span>
@@ -21,7 +23,7 @@
     <span class="visually-hidden">{{ empty_labels[kind] }}</span>
     {% endif %}
     {% if course.state in ('planned', 'not_offered') %}
-    <a class="btn text-wrap ms-auto" href="#{{ form_id }}-{{ kind }}-state" data-error-link aria-label="{{ labels[kind] }} bearbeiten · {{ day_iso }} · {{ meal_code }}">{{ icon('pencil') }}Bearbeiten</a>
+    <a class="btn ui-sem-control ui-sem-control--icon-only ms-auto" href="#{{ form_id }}-{{ kind }}-state" data-error-link title="{{ t(sem('actions.edit').tooltip_key) }}" aria-label="{{ labels[kind] }} bearbeiten · {{ day_iso }} · {{ meal_code }}">{{ sem_icon('actions.edit') }}</a>
     {% endif %}
   </p>
 </div>
@@ -30,7 +32,7 @@
   {% if override %}
   <p class="admin-week-course-exception">
     {% if option_code == 'VEGGIE' %}Vegetarisch{% else %}Menü 1{% endif %}:
-    {% if override.state == 'not_offered' %}{{ none_labels[kind] }}{% else %}{{ labels[kind] }}: {{ override.title }}{% if not override.allergens %} <span class="badge bg-yellow-lt text-warning">Allergenangaben fehlen</span>{% endif %}{% if override.labels %} <span class="text-secondary">{{ override.labels|join(', ') }}</span>{% endif %}{% endif %}
+    {% if override.state == 'not_offered' %}{{ none_labels[kind] }}{% else %}{{ labels[kind] }}: {{ override.title }}{% if not override.allergens %} {{ label('Allergenangaben fehlen', 'warning') }}{% endif %}{% if override.labels %} <span class="text-secondary">{{ override.labels|join(', ') }}</span>{% endif %}{% endif %}
   </p>
   {% endif %}
 {% endfor %}

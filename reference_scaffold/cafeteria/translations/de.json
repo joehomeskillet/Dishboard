@@ -1,4 +1,13 @@
 {
+  "actions.activate.label": "Aktivieren",
+  "actions.activate.tooltip": "Aktivieren",
+  "actions.activate.aria": "Aktivieren",
+  "actions.apply.label": "Übernehmen",
+  "actions.apply.tooltip": "Übernehmen",
+  "actions.apply.aria": "Übernehmen",
+  "actions.history.label": "Verlauf",
+  "actions.history.tooltip": "Verlauf",
+  "actions.history.aria": "Verlauf",
   "ui.order_articles.aria": "Artikel",
   "ui.order_articles.label": "Artikel",
   "ui.order_articles.tooltip": "Artikel",

@@ -1,5 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, status, empty_state, icon %}
+{% from 'admin/_macros.html' import page_header, status, empty_state, icon, list_row, label, empty_value %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenprüfung · {{ area_names[profile] }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">{% endblock %}
@@ -11,8 +12,8 @@
   {'label': 'Woche ab', 'value': week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]},
   {'label': 'Prüfstatus', 'value': 'Geprüft' if review.receipt else 'Noch zu prüfen', 'variant': 'success' if review.receipt else 'warning'}
 ]) %}
-  {% if not review.receipt and can_write %}<button class="btn btn-primary text-wrap" type="submit" form="week-review-form">{{ icon('check') }}Wochenkopf und alle Ausgabehinweise als geprüft bestätigen</button>{% endif %}
-  <a class="btn" href="{{ url_for('admin.' ~ family, week=week) }}">{{ icon('arrow-left') }}Zur Wochenübersicht</a>
+  {% if not review.receipt and can_write %}{{ icon_button('actions.confirm', form='week-review-form') }}{% endif %}
+  {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=week), icon_only=true) }}
 {% endcall %}
 </div>
 {% endblock %}
@@ -41,20 +42,16 @@
 </section>
 <h2 class="h3">Ausgabeangaben</h2>
 {% if context.services %}
-<ul class="list-unstyled mb-3">
+<div class="mb-3" role="list" aria-label="Ausgabeangaben">
   {% for service in context.services %}
-  <li>
-    <section class="admin-compact-row" aria-labelledby="service-{{ loop.index }}">
+  {% set primary %}
       <h3 class="h4 mb-1" id="service-{{ loop.index }}"><time datetime="{{ service.date }}">{{ service.date[8:10] }}.{{ service.date[5:7] }}.{{ service.date[:4] }}</time> · {{ 'Mittagessen' if service.meal == 'LUNCH' else 'Abendessen' }}</h3>
-      <dl class="row mb-0">
-        <dt class="col-sm-3">Betriebsstatus</dt><dd class="col-sm-9">{{ service_labels[service.state] }}</dd>
-        <dt class="col-sm-3">Ausgabehinweis</dt><dd class="col-sm-9 text-break">{{ service.notice or 'Kein Ausgabehinweis' }}</dd>
-        {% if service.get('start') or service.get('end') %}<dt class="col-sm-3">Öffnungszeit</dt><dd class="col-sm-9">{{ service.get('start') or '–' }}–{{ service.get('end') or '–' }}</dd>{% endif %}
-      </dl>
-    </section>
-  </li>
+  {% endset %}
+  {% set secondary %}<span class="text-break">{{ service.notice or 'Kein Ausgabehinweis' }}</span>{% endset %}
+  {% set times %}{% if service.get('start') or service.get('end') %}{{ service.get('start') or '–' }}–{{ service.get('end') or '–' }}{% else %}{{ empty_value() }}{% endif %}{% endset %}
+  <div role="listitem">{{ list_row(primary=primary, secondary=secondary, meta=times, status=label(service_labels[service.state], 'active' if service.state == 'open' else 'neutral')) }}</div>
   {% endfor %}
-</ul>
+</div>
 {% else %}
 {{ empty_state('none', 'Noch keine Ausgabeangaben gespeichert.', 'Später ergänzte Ausgabeangaben müssen erneut geprüft werden.') }}
 {% endif %}
