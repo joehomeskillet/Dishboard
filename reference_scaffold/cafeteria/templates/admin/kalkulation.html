@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon %}
+{% from 'admin/_macros.html' import page_header, disclosure_section, hint, icon %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'cost' %}
 {% block title %}Kalkulation · Menüplanung{% endblock %}
 {% block page_styles %}
@@ -18,7 +18,7 @@
   {% if incomplete %}{% set _ = status_items.append({'label': t('recipe.ingredient.label'), 'value': incomplete ~ ' · ' ~ t('status.pending.label'), 'variant': 'warning'}) %}{% endif %}
   {% if projection.complete and projection.total is not none %}{% set _ = status_items.append({'label': t('data.total.label'), 'value': projection.total ~ ' CHF', 'variant': 'neutral'}) %}{% endif %}
 {% endif %}
-{% call page_header(t('navigation.costing.label'), description='Bestätigen speichert einen unveränderlichen Beleg.' if projection else 'Vorschau schreibt nichts.', status_items=status_items) %}
+{% call page_header(t('navigation.costing.label'), description='Bestätigen speichert einen unveränderlichen Beleg.' if projection else none, status_items=status_items) %}
   {% if projection %}
     {{ icon_button('actions.confirm', form='cost-confirm') }}
   {% else %}
@@ -27,9 +27,9 @@
 {% endcall %}
 {% endblock %}
 {% block content %}
-
+{{ hint('Vorschau schreibt nichts.', 'cost-preview-hint') }}
 <section class="card mb-3 cost-calculation">
-  <form id="cost-preview" method="post" action="{{ url_for('admin.cost_preview') }}" class="card-body row g-2">
+  <form id="cost-preview" method="post" action="{{ url_for('admin.cost_preview') }}" class="card-body row g-2" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <div class="col-md-4"><label class="form-label" for="kind">Art</label>
       <select class="form-select" id="kind" name="kind">
@@ -61,15 +61,15 @@
     {% if not projection.complete %}
       <p>Unvollständig — fehlender Preis oder fehlende Umrechnung, nicht als 0.</p>
     {% endif %}
-    <table class="table cost-lines">
-      <thead><tr><th>Zutat</th><th>Menge</th><th>Status</th><th>Betrag</th></tr></thead>
+    <table class="table cost-lines admin-table--stack">
+      <thead><tr><th scope="col">Zutat</th><th scope="col">Menge</th><th scope="col">Status</th><th scope="col">Betrag</th></tr></thead>
       <tbody>
       {% for line in projection.lines %}
         <tr>
-          <td>{{ t('recipe.ingredient.label') }} {{ loop.index }}{% if not line.food_public_id %} · ohne Zutat{% endif %}</td>
-          <td>{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% endif %}</td>
-          <td>{{ sem_icon('status.ok' if line.status == 'complete' else 'status.warning') }} {{ 'vollständig' if line.status == 'complete' else 'unvollständig' }}</td>
-          <td>{% if line.amount is not none %}{{ line.amount }} CHF{% else %}—{% endif %}</td>
+          <td data-label="Zutat">{{ t('recipe.ingredient.label') }} {{ loop.index }}{% if not line.food_public_id %} · ohne Zutat{% endif %}</td>
+          <td data-label="Menge">{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% endif %}</td>
+          <td data-label="Status">{% if line.status == 'complete' %}<span class="admin-status--success">{{ icon('circle-check') }}<span>vollständig</span></span>{% else %}<span class="admin-status--warning">{{ icon('alert-triangle') }}<span>unvollständig</span></span>{% endif %}</td>
+          <td data-label="Betrag">{% if line.amount is not none %}{{ line.amount }} CHF{% else %}—{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -79,7 +79,7 @@
       {% for line in projection.lines %}<li>{{ line.food_public_id or 'ohne Zutat' }}</li>{% endfor %}
       </ol>
     {% endcall %}
-    <form id="cost-confirm" method="post" action="{{ url_for('admin.cost_confirm') }}">
+    <form id="cost-confirm" method="post" action="{{ url_for('admin.cost_confirm') }}" data-loading>
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       <input type="hidden" name="kind" value="{{ kind|default('recipe') }}">
       <input type="hidden" name="revision_public_id" value="{{ revision_public_id|default('') }}">
