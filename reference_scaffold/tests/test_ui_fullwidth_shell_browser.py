@@ -258,7 +258,9 @@ def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F
         expect(subitems).to_have_count(1)
         expect(subitems.get_by_role('link', name='Zutaten', exact=True)).to_be_visible()
         assert subitems.evaluate('el => parseFloat(getComputedStyle(el).marginLeft) > 0')
-        assert subitems.evaluate('el => getComputedStyle(el).borderLeftStyle') == 'solid'
+        # Rail -> spacing only: navigation supplement 2026-09-24 forbids tree lines.
+        assert subitems.evaluate('el => getComputedStyle(el).borderLeftStyle') == 'none'
+        assert subitems.evaluate('el => getComputedStyle(el).borderLeftWidth') == '0px'
 
         page.set_viewport_size({'width': 360, 'height': 800})
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')

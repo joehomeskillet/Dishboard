@@ -314,7 +314,11 @@ def test_mobile_focus_escape_and_viewports(site, database_engine, tmp_path):  # 
                 for link in page.locator('.admin-nav-area > .nav-link').all():
                     assert link.bounding_box()['height'] >= 56
                     assert float(link.evaluate('el => getComputedStyle(el).fontSize').removesuffix('px')) >= 15
-                    assert link.locator('.nav-link-title').evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+                    # Wrapped full text -> single-line ellipsis plus complete title (24 September).
+                    title = link.locator('.nav-link-title')
+                    assert title.evaluate('el => getComputedStyle(el).whiteSpace') == 'nowrap'
+                    assert title.evaluate('el => getComputedStyle(el).textOverflow') == 'ellipsis'
+                    assert link.get_attribute('title') == title.inner_text()
                 for link in page.locator('.admin-nav-subitems .nav-link').all():
                     assert link.bounding_box()['height'] >= 48
                     assert float(link.evaluate('el => getComputedStyle(el).fontSize').removesuffix('px')) >= 13
