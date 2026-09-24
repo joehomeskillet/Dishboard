@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, disclosure_section, hint %}
 {% from 'ui/_semantic.html' import icon_label, status_badge_sem %}
 {# Status labels only; no send action or state transition. #}
 {% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
@@ -22,11 +22,12 @@
 {% endblock %}
 {% block content %}
 <div class="order-workspace">
-<form method="post" action="{{ url_for('admin.order_basket_save', public_id=basket.public_id) }}" class="order-basket-form">
+{{ hint('CSV ändert keinen Status. Speichern schreibt Mengen, ohne Journal oder Sendauftrag.', 'korb-hint') }}
+<form method="post" action="{{ url_for('admin.order_basket_save', public_id=basket.public_id) }}" class="order-basket-form" data-loading>
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="row_version" value="{{ basket.row_version }}">
-<table class="table table-vcenter table-mobile-lg order-lines">
-<thead><tr><th>Artikel</th><th>Bestellmenge</th><th>Rohmenge</th><th>Gebinde</th></tr></thead>
+<table class="table table-vcenter table-mobile-lg order-lines admin-table--stack">
+<thead><tr><th scope="col">Artikel</th><th scope="col">Bestellmenge</th><th scope="col">Rohmenge</th><th scope="col">Gebinde</th></tr></thead>
 <tbody>
 {% for line in basket.lines %}
 <tr>

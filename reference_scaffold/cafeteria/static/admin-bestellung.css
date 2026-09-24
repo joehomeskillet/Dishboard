@@ -35,39 +35,9 @@
   border-radius: var(--app-radius-control);
   color: var(--app-text);
 }
+.dishboard-admin .order-lines.admin-table--stack tbody tr { height: auto; }
 @media (max-width: 767.98px) {
-  .dishboard-admin .order-lines thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-  .dishboard-admin .order-lines,
-  .dishboard-admin .order-lines tbody,
-  .dishboard-admin .order-lines tr,
-  .dishboard-admin .order-lines td {
-    display: block;
-    width: 100%;
-  }
-  .dishboard-admin .order-lines tr {
-    padding: var(--app-space-2) 0;
-    border-bottom: 1px solid var(--app-border);
-  }
-  .dishboard-admin .order-lines td {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--app-space-2);
-    padding-inline: 0;
-  }
-  .dishboard-admin .order-lines td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: var(--app-text-muted);
-  }
-  .dishboard-admin .order-lines td:empty {
+  .dishboard-admin .order-lines.admin-table--stack tbody td:empty {
     display: none;
   }
 }
