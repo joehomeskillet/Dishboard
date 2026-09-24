@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, pagination, field, status, empty_state, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, pagination, field, empty_state, disclosure_section, hint, icon %}
 {% from 'ui/_semantic.html' import sem_icon, icon_label %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenübersicht · {{ area_names[profile] }}{% endblock %}
@@ -20,7 +20,7 @@
         {% if can_write %}
         <details class="week-create"{% if error or values.shared_note %} open{% endif %}>
           <summary class="btn btn-primary" id="new-week-title">{{ sem_icon('actions.add') }}Neue Woche anlegen</summary>
-          <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form" aria-labelledby="new-week-title"{% if error %} aria-describedby="new-week-error"{% endif %}>
+          <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form" data-loading aria-labelledby="new-week-title"{% if error %} aria-describedby="new-week-error"{% endif %}>
             <div class="card-body">
               {% if error %}<div class="alert alert-danger error error-region" id="new-week-error" role="alert" tabindex="-1">{{ sem_icon('status.warning') }} {{ error }}</div>{% endif %}
               <input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -49,6 +49,7 @@
 {% endcall %}
 {% endblock %}
 {% block content %}
+        {{ hint('Öffnen zeigt den Wochenplan. Kopieren und Vorschau liegen unter Weitere Aktionen.', 'week-list-hint') }}
         <div class="week-filter btn-group mb-3" role="group" aria-label="{{ t('admin.area.label') }}">
           <a class="btn{% if family == 'cafeteria' %} active{% endif %}"{% if family == 'cafeteria' %} aria-current="true"{% endif %} href="{{ url_for('admin.week_management', family='cafeteria') }}">Cafeteria</a>
           <a class="btn{% if family == 'patienten' %} active{% endif %}"{% if family == 'patienten' %} aria-current="true"{% endif %} href="{{ url_for('admin.week_management', family='patienten') }}">Patienten</a>
@@ -57,7 +58,7 @@
           <h2 class="visually-hidden" id="saved-weeks-title">Gespeicherte Wochen</h2>
           <div class="week-list"{% if rows or has_next or page > 1 %} role="region" aria-label="Wochenliste" tabindex="0"{% endif %}>
           {% if rows %}
-          <table class="table table-vcenter card-table week-table">
+          <table class="table table-vcenter card-table week-table admin-table--stack">
             <thead>
               <tr><th scope="col">Kalenderwoche</th><th scope="col">Titel</th><th scope="col">Status</th><th scope="col">Aktionen</th></tr>
             </thead>
@@ -70,7 +71,14 @@
                 </td>
                 <td data-label="Titel" class="text-break">{{ row.title }}</td>
                 <td data-label="Status">
-                  {{ status(row.status, {'live': 'Veröffentlicht', 'review_open': 'Noch zu prüfen'}.get(row.status, status_labels[row.status])) }}
+                  {% set week_status_variant = {
+                    'live': 'success', 'review_open': 'warning', 'changed': 'warning',
+                    'ready': 'info', 'incomplete': 'warning', 'empty': 'neutral'
+                  }.get(row.status, 'neutral') %}
+                  {% set week_status_icon = {
+                    'success': 'circle-check', 'warning': 'alert-triangle', 'info': 'info-circle'
+                  }.get(week_status_variant, 'circle') %}
+                  {% set week_status_label = {'live': 'Veröffentlicht', 'review_open': 'Noch zu prüfen'}.get(row.status, status_labels[row.status]) %}
                   {% set status_descriptions = {
                     'live': 'Veröffentlicht · entspricht dem gespeicherten Stand',
                     'changed': 'Veröffentlicht · gespeicherte Änderungen noch nicht veröffentlicht',
@@ -79,8 +87,8 @@
                     'incomplete': 'Unvollständig',
                     'empty': 'Noch keine Menüs erfasst'
                   } %}
-                  <p class="text-secondary small mb-0">{{ status_descriptions.get(row.status, '') }}</p>
-                  {% if row.workflow_state == 'archived' %}<div class="mt-1">{{ status('archived') }}</div>{% endif %}
+                  <span class="badge admin-status--{{ week_status_variant }}" title="{{ status_descriptions.get(row.status, '') }}">{{ icon(week_status_icon) }}<span>{{ week_status_label }}</span></span>
+                  {% if row.workflow_state == 'archived' %}<div class="mt-1"><span class="badge admin-status--neutral">{{ icon('archive') }}<span>Archiviert</span></span></div>{% endif %}
                 </td>
                 <td data-label="Aktionen">
                   <div class="week-actions">
