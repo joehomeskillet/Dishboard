@@ -105,14 +105,14 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.get_by_role('link', name='Neu laden').click()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Andere Sitzung')
         page.get_by_text('Allergenprüfung', exact=True).last.click()
-        page.get_by_role('button', name='Als geprüft bestätigen').click()
+        page.get_by_role('button', name='Bestätigen', exact=True).click()
         page.get_by_text('Allergenprüfung', exact=True).last.click()
-        expect(page.get_by_role('button', name='Prüfung zurücknehmen')).to_be_visible()
+        expect(page.get_by_role('button', name='Rückgängig', exact=True)).to_be_visible()
         page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
         page.get_by_role('button', name='Archivieren', exact=True).click()
         page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
-        expect(page.get_by_role('button', name='Reaktivieren', exact=True)).to_be_visible()
-        page.get_by_role('button', name='Reaktivieren', exact=True).click()
+        expect(page.get_by_role('button', name='Wiederherstellen', exact=True)).to_be_visible()
+        page.get_by_role('button', name='Wiederherstellen', exact=True).click()
         targets(page)
         assets = page.locator('link[rel="stylesheet"], script[src]').evaluate_all(
             'els => els.map(el => new URL(el.href || el.src).pathname)')
@@ -131,8 +131,8 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         screenshot = evidence / f'food-{width}-js-{javascript}.png'
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
-        page.get_by_role('link', name='Zur Liste', exact=True).click()
-        expect(page.locator('.list-group-item').filter(has_text='Andere Sitzung').get_by_role('link', name='Bearbeiten', exact=True)).to_be_visible()
+        page.get_by_role('link', name='Zurück', exact=True).click()
+        expect(page.locator('.admin-list-row').filter(has_text='Andere Sitzung').get_by_role('link', name='Bearbeiten', exact=True)).to_be_visible()
         targets(page)
 
 
@@ -216,7 +216,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         screenshot = evidence / f'location-conflict-{width}-js-{javascript}-existing-{existing}.png'
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
-        page.get_by_role('link', name='Zur Liste', exact=True).click()
+        page.get_by_role('link', name='Zurück', exact=True).click()
         expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
         assert snapshot(owner) == before
 

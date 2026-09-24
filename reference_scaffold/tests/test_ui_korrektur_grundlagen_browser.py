@@ -55,7 +55,7 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                             page.goto(base + path, wait_until='networkidle')
                             metric = page.evaluate('''() => ({
                                 height: document.documentElement.scrollHeight,
-                                row: document.querySelector('.list-group-item')?.getBoundingClientRect().height,
+                                row: document.querySelector('.admin-list-row')?.getBoundingClientRect().height,
                                 primary: document.querySelectorAll('main .btn-primary').length,
                                 open: document.querySelectorAll('main details[open]').length,
                                 overflow: document.documentElement.scrollWidth > innerWidth + 1
@@ -191,7 +191,7 @@ def test_ingredient_list_is_first_full_width_and_visible(
         expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
             'href', re.compile(r'tabler-')
         )
-        first = page.locator('.grundlagen-list .list-group-item').first
+        first = page.locator('.grundlagen-list .admin-list-row').first
         expect(first).to_be_visible()
         box = first.bounding_box()
         assert box is not None
@@ -256,7 +256,7 @@ def test_ingredient_list_genuine_browser_zoom_200(
             expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
                 'href', re.compile(r'tabler-')
             )
-            first = page.locator('.grundlagen-list .list-group-item').first
+            first = page.locator('.grundlagen-list .admin-list-row').first
             expect(first).to_be_visible()
             expect(page.locator('details').filter(has_text='Filter').first).not_to_have_attribute('open', '')
             _assert_no_horizontal_scroll(page)
@@ -374,9 +374,13 @@ def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser)
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         _assert_no_horizontal_scroll(page)
         expect(page.locator('.badge.admin-status--active').first).to_be_visible()
+        expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_be_visible()
+        expect(page.locator('.admin-label.admin-status--active').first).to_be_visible()
         page.goto(base + path)
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         expect(page.locator('#food-core-save-hint')).to_be_visible()
+        expect(page.locator('[data-semantic="actions.back"]').first).to_be_visible()
+        expect(page.locator('[data-semantic="actions.save"]').first).to_be_visible()
         _assert_no_horizontal_scroll(page)
         page.get_by_role('link', name='Lagerorte').click()
         storage_hint = page.locator('summary[aria-describedby="storage-list-hint"]')

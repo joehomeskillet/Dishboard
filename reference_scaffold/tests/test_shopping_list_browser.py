@@ -152,17 +152,17 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
         _shot(page, f'detail-empty-{width}x{height}-js-{javascript}')
 
         # Woche waehlen: no bound week yet, real navigation via the always-visible submit button.
-        _select_and_submit(page, '#compute_week', week_public, submit_label='Woche laden')
+        _select_and_submit(page, '#compute_week', week_public, submit_label='Filtern')
         checkbox = page.locator('input[name="component_ids"]').first
         expect(checkbox).to_be_visible()
         checkbox.check()
         with page.expect_navigation(wait_until='load'):
-            page.get_by_role('button', name='Neu berechnen', exact=True).click()
+            page.get_by_role('button', name='Aktualisieren', exact=True).click()
         assert '1000 Gramm' in page.inner_text('main')
         _shot(page, f'detail-computed-{width}x{height}-js-{javascript}')
 
         with page.expect_navigation(wait_until='load'):
-            page.get_by_role('button', name='Abhaken', exact=True).first.click()
+            page.get_by_role('button', name='Bestätigen', exact=True).first.click()
         assert 'Abgehakt' in page.inner_text('main')
 
         with owner.begin() as connection:
@@ -170,10 +170,10 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
                 text("UPDATE cafeteria.menu_item_components SET target_quantity='16' WHERE menu_item_id=:item"), ids,
             )
         page.goto(base + page.url.replace(base, ''))
-        _select_and_submit(page, '#compute_week', week_public, submit_label='Woche laden')
+        _select_and_submit(page, '#compute_week', week_public, submit_label='Filtern')
         page.locator('input[name="component_ids"]').first.check()
         with page.expect_navigation(wait_until='load'):
-            page.get_by_role('button', name='Neu berechnen', exact=True).click()
+            page.get_by_role('button', name='Aktualisieren', exact=True).click()
         assert '2000 Gramm' in page.inner_text('main')
         assert 'Geändert, erneut offen' in page.inner_text('main')
         expect(page.locator('.shopping-result-table .badge:visible', has_text='Geändert, erneut offen')).to_have_count(1)
@@ -187,8 +187,8 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
             page.get_by_role('button', name='Anlegen', exact=True).click()
         expect(page.locator('input[value="Servietten"]')).to_be_visible()
         with page.expect_navigation(wait_until='load'):
-            page.get_by_role('button', name='Abhaken', exact=True).last.click()
-        expect(page.get_by_role('button', name='Wieder öffnen', exact=True).last).to_be_visible()
+            page.get_by_role('button', name='Bestätigen', exact=True).last.click()
+        expect(page.get_by_role('button', name='Rückgängig', exact=True).last).to_be_visible()
 
         page.locator('select[name="revision"]').select_option(index=1)
         with page.expect_navigation(wait_until='load'):
@@ -198,7 +198,7 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
         assert 'Testmehl' in main and '1000 Gramm' in main and '2000 Gramm' not in main and 'Servietten' in main
         assert main.count('nicht aktuell') == 2, main  # notice + the visible status of the single line
         expect(page.locator('.shopping-result-table .badge:visible', has_text='nicht aktuell')).to_have_count(1)
-        for label in ('Abhaken', 'Wieder öffnen', 'Neu berechnen', 'Anlegen', 'Speichern', 'Löschen'):
+        for label in ('Bestätigen', 'Rückgängig', 'Aktualisieren', 'Anlegen', 'Speichern', 'Löschen'):
             expect(page.get_by_role('button', name=label)).to_have_count(0)
         _shot(page, f'detail-older-revision-{width}x{height}-js-{javascript}')
         assert not errors
@@ -221,7 +221,7 @@ def test_detail_shared_viewports_no_overflow_and_48px_targets(server, browser, w
         assert page.goto(f'{base}/admin/einkaufslisten/{list_id}').status == 200
         expect(page.locator('#compute_week')).to_have_value(week_public)
         expect(page.locator('input[name="component_ids"]').first).to_be_visible()
-        expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
+        expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(2)
         page.evaluate('window.scrollTo(0, 0)')  # full-page capture of the fixed sidebar starts at the top
         _shot(page, f'detail-shared-{width}x{height}')
 
@@ -363,8 +363,11 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                     expect(detail_bar.locator('.admin-statusbar-item').filter(
                         has=page.get_by_text(label, exact=True)
                     )).to_have_count(1)
-                expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
-                expect(page.get_by_role('button', name='Neu berechnen', exact=True)).to_have_count(1)
+                expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(2)
+                expect(page.get_by_role('button', name='Aktualisieren', exact=True)).to_have_count(1)
+                expect(page.locator('[data-semantic="actions.confirm"]').first).to_be_visible()
+                expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
+                expect(page.locator('.admin-label').first).to_be_visible()
                 expect(page.locator('main .btn-primary')).to_have_count(1)
                 expect(page.locator('main .btn-primary')).to_be_visible()
                 if width < 768:

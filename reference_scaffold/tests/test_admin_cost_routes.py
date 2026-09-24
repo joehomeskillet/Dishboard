@@ -140,10 +140,12 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             expect(page.locator('main .btn-primary')).to_be_visible()
             if width < 768 and state != 'empty':
                 stacked = page.evaluate('''() => {
-                    const table = document.querySelector('.cost-lines.admin-table--stack');
+                    const table = document.querySelector('.cost-lines.admin-table.admin-table--stack');
                     return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
                 }''')
                 assert stacked, (state, width, javascript)
+                expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
+                expect(page.locator('.admin-label').first).to_be_visible()
             hint = page.locator('details.admin-hint').first
             summary = hint.locator('summary')
             expect(summary).to_be_visible()

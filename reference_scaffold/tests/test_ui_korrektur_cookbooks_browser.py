@@ -53,35 +53,35 @@ DENSITY_METRICS = '''() => {
     innerWidth, innerHeight,
     overflow: document.documentElement.scrollWidth > innerWidth + 1,
     documentHeight: document.documentElement.scrollHeight,
-    firstCardTop: top('section[aria-label="Kochbücher"] article'),
+    firstCardTop: top('section[aria-label="Kochbücher"] .admin-list-row'),
     statusbar: document.querySelector('dl.admin-statusbar')?.innerText || '',
     primaryCount: document.querySelectorAll('main .btn-primary').length,
-    cards: [...document.querySelectorAll('section[aria-label="Kochbücher"] article')].map(card => {
-      const body = card.querySelector('.card-body');
-      const title = card.querySelector('.card-title');
+    cards: [...document.querySelectorAll('section[aria-label="Kochbücher"] .admin-list-row')].map(card => {
+      const title = card.querySelector('.admin-list-name');
+      const heading = card.querySelector('.admin-list-name strong');
       const description = card.querySelector('.admin-list-subtitle');
       const action = card.querySelector('.cookbook-row-action');
-      const count = card.querySelector('.cookbook-recipe-count');
+      const count = card.querySelector('.admin-list-meta');
       const rect = element => {
         const {x, y, width, height, right, bottom} = element.getBoundingClientRect();
         return {x, y, width, height, right, bottom};
       };
       const range = document.createRange();
-      range.selectNodeContents(title);
-      const style = getComputedStyle(body);
+      range.selectNodeContents(heading);
+      const style = getComputedStyle(card);
       return {
-        name: title.textContent.trim(), card: rect(card), title: rect(title), text: rect(range),
+        name: heading.textContent.trim(), card: rect(card), title: rect(title), text: rect(range),
         description: description ? rect(description) : null,
         action: rect(action), count: rect(count), countText: count.textContent.trim(),
-        contentWidth: body.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
-        contentOverflow: body.scrollHeight > body.clientHeight + 1,
+        contentWidth: card.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+        contentOverflow: card.scrollHeight > card.clientHeight + 1,
       };
     }),
     firstFieldLabelTop: top('label[for="cookbook-name"]'),
     firstFieldTop: top('#cookbook-name'),
     assignmentRows: [...document.querySelectorAll('form[action$="/rezepte"] tbody tr')]
       .map(row => Math.round(row.getBoundingClientRect().height)),
-    cardTitleOverflow: overflows('section[aria-label="Kochbücher"] .card-title'),
+    cardTitleOverflow: overflows('section[aria-label="Kochbücher"] .admin-list-name'),
     headingOverflow: overflows('h1'),
     iconButtons: [...document.querySelectorAll('main .btn-icon')].map(element => {
       const rect = element.getBoundingClientRect();
@@ -204,7 +204,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.locator('details#cookbook-create')).to_have_count(0)
         expect(page.locator('dl.admin-statusbar')).to_contain_text('Aktiv')
         assert page.locator('main .btn-primary').count() == 1
-        rows = cards.locator('article')
+        rows = cards.locator('.admin-list-row')
         assert rows.count() == 2
         edit = rows.nth(0).get_by_role('link', name='Testkochbuch bearbeiten', exact=True)
         view = rows.nth(1).get_by_role('link', name='Altes Buch öffnen', exact=True)
@@ -284,19 +284,19 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
         assert page.locator('section[aria-labelledby="cookbook-header-title"] h3').count() == 0
         expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
-        reactivate = page.get_by_role('link', name='Reaktivieren', exact=True)
-        assert _symbol(reactivate) == 'archive-off'
+        reactivate = page.get_by_role('link', name='Wiederherstellen', exact=True)
+        assert _symbol(reactivate) == 'restore'
         assert page.locator('form[action$="/rezepte"]').count() == 0
-        expect(page.locator('ol').get_by_role('link', name='Testrezept', exact=True)).to_be_visible()
+        expect(page.locator('td[data-label="Rezept"]').get_by_role('link', name='Testrezept', exact=True)).to_be_visible()
         assert page.locator('main .btn-primary').count() == 1
 
         page.set_content(_editor_html(
             archived, header_token='', recipes_token='', status_token='status-token',
             status_action='cookbook.reactivate',
         ))
-        confirm = page.get_by_role('button', name='Reaktivieren', exact=True)
+        confirm = page.get_by_role('button', name='Wiederherstellen', exact=True)
         assert 'btn-primary' in (confirm.get_attribute('class') or '').split()
-        assert _symbol(confirm) == 'archive-off'
+        assert _symbol(confirm) == 'restore'
         assert page.locator('main .btn-primary').count() == 1
     finally:
         page.close()
@@ -570,7 +570,7 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
         expect(page.locator('dl.admin-statusbar')).to_be_visible()
         page.get_by_label('Suche', exact=True).focus()
         _tab_to(page, page.get_by_label('Archivierte einschliessen', exact=True))
-        _tab_to(page, page.get_by_role('button', name='Suchen', exact=True))
+        _tab_to(page, page.get_by_role('button', name='Filtern', exact=True))
         _tab_to(page, edit)
         expect(edit).to_be_focused()
         rings = {'row-action': _focus_ring(edit)}
@@ -674,7 +674,7 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                     expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
                 captures = {'top': _native_viewport_capture(page, EVIDENCE / f'native-200-{name}.png')}
                 if name == 'list':
-                    page.get_by_role('heading', level=2, name=LONG_NAME, exact=True).scroll_into_view_if_needed()
+                    page.locator('.admin-list-name').filter(has_text=LONG_NAME).scroll_into_view_if_needed()
                     captures['long-card'] = _native_viewport_capture(page, EVIDENCE / 'native-200-list-long-card.png')
                 if name == 'editor':
                     page.locator('#cookbook-recipes-title').scroll_into_view_if_needed()
@@ -751,9 +751,13 @@ def test_p3_polish_cookbook_editor_primary_stack_hint(cookbook_server, browser):
         page.goto(cookbook_server['base'] + path)
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         _assert_page_width(page, 360)
-        row = page.locator('table.admin-table--stack tbody tr').first
+        row = page.locator('table.admin-table.admin-table--stack tbody tr').first
         assert row.evaluate("e => getComputedStyle(e).display") == 'grid'
         expect(page.locator('td[data-label="Position"]').first).to_be_visible()
+        expect(page.locator('[data-semantic="actions.save"]').first).to_be_visible()
+        page.goto(cookbook_server['base'] + '/admin/kochbuecher')
+        expect(page.locator('.admin-filter-bar').first).to_be_visible()
+        expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_be_visible()
         page.goto(cookbook_server['base'] + path + '/status')
         page.get_by_role('button', name='Archivieren', exact=True).click()
         page.goto(cookbook_server['base'] + path)

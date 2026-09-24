@@ -106,10 +106,12 @@ def test_lager_statusbar_viewports_nojs_and_keyboard(b3, master_server, tmp_path
                         expect(page.locator('main .btn-primary')).to_be_visible()
                         if width < 768:
                             stacked = page.evaluate('''() => {
-                                const table = document.querySelector('.lager-table.admin-table--stack');
+                                const table = document.querySelector('.lager-table.admin-table.admin-table--stack');
                                 return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
                             }''')
                             assert stacked, (javascript, width)
+                        expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
+                        expect(page.locator('.admin-label.admin-status--warning').first).to_be_visible()
                         hint = page.locator('details.admin-hint').first
                         summary = hint.locator('summary')
                         expect(summary).to_be_visible()
