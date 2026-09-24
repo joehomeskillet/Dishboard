@@ -1204,6 +1204,18 @@ Kontexte und Rollenbedingungen bleiben unverändert. Nachweise:
 360/1440 px, JS/No-JS, Primäraktion, Tabellen, Tastaturhilfe, Eingabewerterhalt),
 Rezeptsuche, Import-Browsertests und unveränderliche Revisions-DB-Tests.
 
+**Polish P4: Rezepte (2026-09-24).** Übersicht, Editor, Dokument, Import, Bilder,
+History, Skalierung und Vorlagenwahl nutzen R43–R48 / M64–M68: `icon_button` /
+`icon_label` mit Registry-Kurzlabels, `label()` für Entwurf/Archiv/Importstatus,
+`list_row` für die Rezeptliste und übernommene Importzeilen, `filter_bar_sem`
+für die Rezeptsuche (`name=text` plus Kennzeichnung, Titel, Zutat, Archiv),
+`admin-table` + `admin-table--stack` für Bilder, History, Skalierung und
+Importstapel. Inhaltslisten im Rezeptblatt (Zutaten, Schritte, Herkunft) und
+GET-Auswahlformulare ohne Suchfeld (Vorlage, Revision) bleiben fachliche
+Sonderfälle. Formularnamen, CSRF, CAS und Submitter unverändert. Nachweise:
+`test_recipe_search_browser.py`, `test_recipe_filters_browser.py`,
+`test_recipe_import_browser.py`.
+
 #### M03 — Rezeptzutat: nur die benötigten Details öffnen
 
 Dieselbe Liste wie M02; die erste Zutat ist geöffnet. Andere Zutaten bleiben direkt erreichbar.
