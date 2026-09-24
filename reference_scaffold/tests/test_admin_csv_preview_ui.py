@@ -206,6 +206,7 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     expect(page.get_by_text('Die Vorschau speichert noch keinen Entwurf.')).to_be_visible()
     expect(page.locator('main .btn-primary')).to_have_text('Vorschau')
     expect(page.locator('main .btn-primary')).to_have_count(1)
+    expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
     expect(page.get_by_label('CSV-Datei', exact=True)).to_be_visible()
     expect(page.locator('dl.admin-statusbar')).to_contain_text('Offen')
     expect(page.locator('dl.admin-statusbar .admin-statusbar-link')).to_have_attribute('href', '#csv-upload')

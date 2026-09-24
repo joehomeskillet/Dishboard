@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory, gettempdir
@@ -23,6 +24,7 @@ from test_auth_routes import ACTOR_IDENTIFIER, auth_app
 __all__ = ["admin_account", "auth_app", "browser", "live_accounts"]
 
 EVIDENCE = Path(gettempdir()) / "uiux-wp19-0920-evidence"
+CSS_PATH = Path(__file__).resolve().parents[1] / "cafeteria/static/admin-settings-benutzer.css"
 VIEWPORTS = (
     (1440, 900, "1440x900"),
     (1024, 768, "1024x768"),
@@ -32,6 +34,13 @@ VIEWPORTS = (
     (2560, 1440, "2560x1440"),
     (320, 844, "320-reflow"),
 )
+
+
+def test_user_settings_css_keeps_shared_list_tokens() -> None:
+    css = CSS_PATH.read_text(encoding="utf-8")
+    assert "#e6e7e9" not in css
+    assert "calc(var(--app-list-pad-y) - 3px)" not in css
+    assert "padding-block: 0" not in css
 
 
 @pytest.fixture(scope="session")
@@ -194,6 +203,31 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         assert box is not None and box["y"] + box["height"] <= 900
         assert box["height"] <= 96
         expect(first_row.get_by_text("Aktiv", exact=True)).to_be_visible()
+        edit = first_row.locator('a[data-semantic="actions.edit"]')
+        expect(edit).to_have_attribute('aria-label', re.compile(r'Konto ui\.list\.(js|nojs) bearbeiten'))
+        expect(edit).to_have_attribute('title', re.compile(r'Konto ui\.list\.(js|nojs) bearbeiten'))
+        expect(edit.locator('svg.icon')).to_have_count(1)
+        metrics = first_row.locator('.admin-list-row').evaluate('''el => {
+            const host = document.querySelector('.dishboard-admin');
+            const probe = document.createElement('div');
+            probe.style.minHeight = 'var(--app-list-row-min-height)';
+            probe.style.paddingTop = 'var(--app-list-pad-y)';
+            host.appendChild(probe);
+            const token = getComputedStyle(probe);
+            const cs = getComputedStyle(el);
+            const result = {minHeight: cs.minHeight, tokenMin: token.minHeight,
+                            paddingTop: cs.paddingTop, tokenPad: token.paddingTop};
+            probe.remove();
+            return result;
+        }''')
+        assert metrics['minHeight'] == metrics['tokenMin'], metrics
+        assert metrics['paddingTop'] == metrics['tokenPad'], metrics
+        page.locator('details.admin-compact-details > summary').filter(
+            has_text='Weitere Optionen'
+        ).click()
+        history_nav = page.get_by_role('navigation', name='Kontoverlauf')
+        expect(history_nav.get_by_role('link', name='Kontoereignisse', exact=True)).to_be_visible()
+        expect(history_nav.get_by_role('link', name='Zugriffsverlauf', exact=True)).to_be_visible()
         info = first_row.locator('summary')
         info.focus()
         page.keyboard.press('Enter')
@@ -413,7 +447,13 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         page = context.new_page()
         _open(page, origin, '/admin/benutzer')
         expect(page.get_by_text('Noch keine lokalen Konten angelegt.', exact=True)).to_be_visible()
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('[data-empty-kind] .btn-primary')).to_have_count(0)
+        expect(page.locator('[data-empty-kind] a[data-semantic="actions.add"]')).to_be_visible()
         _screenshot(page, f'local-users-empty-{width}-{javascript}.png')
+        _open(page, origin, '/admin/benutzer/protokoll')
+        expect(page.locator('[data-empty-kind]')).to_contain_text('Noch keine Kontoereignisse')
+        _open(page, origin, '/admin/benutzer')
         target = _create(issuer, 'ui.states.target')
         page.get_by_label('Kontostatus', exact=True).select_option('disabled')
         page.get_by_role('button', name='Filtern', exact=True).click()

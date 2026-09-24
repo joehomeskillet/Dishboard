@@ -138,6 +138,10 @@ def test_branding_editor_separates_saved_draft_from_publication(
         activate = page.get_by_role("button", name="Version 1 aktivieren", exact=True)
         expect(activate).not_to_have_class(re.compile(r"\bbtn-primary\b"))
         expect(activate).to_be_disabled()
+        expect(activate).to_have_attribute("data-semantic", "actions.activate")
+        expect(activate).to_have_attribute("title", "Öffentliche Marke aktivieren")
+        expect(activate.locator("span")).to_have_text("Aktivieren")
+        expect(activate).not_to_contain_text("Bereit")
         expect(page.locator('form[data-brand-action="activate"]')).to_have_attribute(
             "data-confirm", re.compile(r"Version 1")
         )
@@ -199,7 +203,10 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         expect(page.locator("[role='status']")).to_contain_text("Klarer Entwurf")
 
         page.locator("#brand-more summary").click()
-        page.get_by_role("button", name="Version 2 als neuen Entwurf übernehmen", exact=True).click()
+        restore = page.get_by_role("button", name="Version 2 als neuen Entwurf übernehmen", exact=True)
+        expect(restore).to_have_attribute("data-semantic", "actions.apply")
+        expect(restore.locator("span")).to_have_text("Übernehmen")
+        restore.click()
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=3$"))
 
         page.locator("#brand-more summary").click()
