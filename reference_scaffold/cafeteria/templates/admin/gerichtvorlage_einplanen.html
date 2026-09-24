@@ -10,7 +10,7 @@
   {% set _ = status_items.append({'label': 'Mahlzeit', 'value': meals.get(values.meal, values.meal), 'variant': 'neutral'}) %}
 {% endif %}
 {% call page_header('Gerichtvorlagen', description='Als Menü einplanen · ' ~ values.title, status_items=status_items) %}
-{{ icon_button('actions.back', href=url_for('admin.dish_template_edit', public_id=public_id), icon_only=true) }}
+{{ icon_button('actions.back', aria_label='Zur Vorlage ' ~ values.title, href=url_for('admin.dish_template_edit', public_id=public_id), icon_only=true) }}
 {% endcall %}
 {% endblock %}
 {% block content %}

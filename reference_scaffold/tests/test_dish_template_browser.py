@@ -88,6 +88,9 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
         _open(page, base, path)
         expect(page.locator('.admin-statusbar')).to_contain_text('Archiviert')
         measurements['archived-editor'] = _rework_measure(page, 'archived-editor', width)
+        page.locator('.admin-form-rare > summary').click()
+        expect(page.get_by_role('button', name='Aktivieren', exact=True)).to_have_attribute('value', 'reactivate')
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         (EVIDENCE / f'rework-{width}-js-{javascript}.json').write_text(json.dumps(measurements, indent=2))
         for state, result in measurements.items():
@@ -345,8 +348,11 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
             assert snapshot(owner) == before
             page.get_by_label('Rezept nach Titel suchen', exact=True).fill('')
             page.get_by_role('button', name='Suchen', exact=True).click()
-            page.get_by_role('button', name='Weiter', exact=True).click()
+            next_recipes = page.get_by_role('button', name='Weitere Rezepte', exact=True)
+            expect(next_recipes).to_have_attribute('formnovalidate', '')
+            next_recipes.click()
             expect(page.get_by_text('Seite 2', exact=True)).to_be_visible()
+            expect(page.get_by_role('button', name='Vorige Rezepte', exact=True)).to_have_attribute('formnovalidate', '')
             expect(page.get_by_label('Gebundenes Rezept', exact=True)).to_have_value(ids[-1])
             expect(page.locator('[name="updated_at"]')).to_have_value(token)
             assert snapshot(owner) == before

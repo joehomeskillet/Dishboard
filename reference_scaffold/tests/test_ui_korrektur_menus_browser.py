@@ -168,6 +168,8 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             gratin_card = page.locator('#menu-cards [data-menu-id]').filter(has_text='Kartoffelgratin')
             expect(gratin_card.locator('[data-review="open"]')).to_contain_text('Prüfung offen')
             expect(gratin_card).to_contain_text('Allergenangaben nicht erfasst')
+            expect(gratin_card.locator('[data-review="open"] .small')).to_be_visible()
+            expect(gratin_card.locator('[data-review="open"] .small')).to_contain_text('Allergenangaben nicht erfasst')
 
             # Long description/note stays available in a native disclosure.
             details = gratin_card.locator('details.menu-note-details')

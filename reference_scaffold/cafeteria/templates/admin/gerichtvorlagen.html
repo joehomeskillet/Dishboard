@@ -41,7 +41,7 @@
 {% call page_header('Gerichtvorlagen', description=('Vorlage bearbeiten · ' ~ row.title) if row else ('Vorlage anlegen' if editing else none), status_items=status_items) %}
   {% if editing %}
     {% if row and row.active and can_write %}{{ icon_button('actions.open', text='Einplanen', aria_label=row.title ~ ' als Menü einplanen', title=row.title ~ ' als Menü einplanen', href=url_for('admin.dish_template_plan', public_id=row.public_id)) }}{% endif %}
-    {{ icon_button('actions.back', href=url_for('admin.dish_templates_list'), icon_only=can_write, emphasis='secondary' if can_write else 'primary') }}
+    {{ icon_button('actions.back', text='Vorlagenliste', aria_label='Zur Vorlagenliste', title='Zur Vorlagenliste', href=url_for('admin.dish_templates_list'), icon_only=can_write, emphasis='secondary' if can_write else 'primary') }}
   {% elif can_write %}
     {{ icon_button('actions.add', href=url_for('admin.dish_template_new')) }}
   {% else %}
@@ -171,9 +171,9 @@
       {% if not recipe_choices.choices %}<p class="mt-2">Keine passenden Rezepte</p>{% endif %}
       {% if recipe_choices.offset or recipe_choices.has_next %}
       <nav class="btn-list mt-2" aria-label="Rezeptauswahl Seiten">
-        {% if recipe_choices.offset %}<button class="btn" type="submit" name="action" value="recipe_previous" formnovalidate>{{ icon_label('actions.back') }}</button>{% endif %}
+        {% if recipe_choices.offset %}{{ icon_button('actions.back', text='Vorige Rezepte', name='action', value='recipe_previous', emphasis='secondary', attrs={'formnovalidate': true}) }}{% endif %}
         <span class="align-self-center">Seite {{ recipe_choices.offset // 50 + 1 }}</span>
-        {% if recipe_choices.has_next %}<button class="btn" type="submit" name="action" value="recipe_next" formnovalidate>{{ icon_label('actions.next') }}</button>{% endif %}
+        {% if recipe_choices.has_next %}{{ icon_button('actions.next', text='Weitere Rezepte', name='action', value='recipe_next', emphasis='secondary', attrs={'formnovalidate': true}) }}{% endif %}
       </nav>
       {% endif %}
     </div>

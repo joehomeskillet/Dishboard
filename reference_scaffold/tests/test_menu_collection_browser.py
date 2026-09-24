@@ -400,6 +400,9 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
                         # Compare actual successful fields and submitter contracts without recording secrets.
                         contract = page.locator('main form').evaluate_all('''forms => forms.map(f => ({
                             action: f.getAttribute('action'), method: f.method,
+                            loading: f.getAttribute('data-loading'),
+                            fieldAttributes: [...f.querySelectorAll('input, select, textarea')]
+                                .map(e => [e.name, e.getAttribute('maxlength'), e.getAttribute('aria-describedby')]),
                             fields: [...new FormData(f)].filter(([k]) => k !== '_csrf').map(([k, v]) => {
                                 if (k === 'template_context') {
                                     const context = JSON.parse(atob(v.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
@@ -416,6 +419,7 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
                         if version == 'after':
                             page.screenshot(path=str(tmp_path / f'p4-{key}.png'), full_page=True)
                             expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                            expect(page.locator('main [onclick], main script:not([src])')).to_have_count(0)
     finally:
         app.jinja_env.loader = original_loader
         app.jinja_env.cache.clear()
