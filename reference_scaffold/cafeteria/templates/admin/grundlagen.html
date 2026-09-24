@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, disclosure_section, hint %}
 {% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}{{ t('navigation.ingredients.label') }} · Menüplanung{% endblock %}
@@ -33,7 +33,7 @@
 {% if can_write and not (kind == 'einheiten' and row.code in ['G', 'ML', 'STK']) %}
 {% set purpose = 'archivieren' if row.active else 'reaktivieren' %}
 <form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=purpose) }}" data-confirm="{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}">
-{{ form_start(purpose) }}<button class="btn" type="submit">{{ icon('archive' if row.active else 'archive-off') }}{{ 'Archivieren' if row.active else 'Reaktivieren' }}</button><p class="form-hint">{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}</p></form>
+{{ form_start(purpose) }}<button class="btn{% if row.active %} btn-danger{% endif %}" type="submit">{{ icon('archive' if row.active else 'archive-off') }}{{ 'Archivieren' if row.active else 'Reaktivieren' }}</button><p class="form-hint ui-sem-consequence">{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}</p></form>
 {% elif kind == 'einheiten' and row.code in ['G', 'ML', 'STK'] %}<p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Diese Basiseinheit bleibt dauerhaft aktiv.</p>{% endif %}
 {% endif %}
 {% endmacro %}
@@ -42,7 +42,7 @@
 {% endmacro %}
 {% block content %}
 {% set singular = {'zutaten': 'Zutat', 'einheiten': 'Einheit', 'kategorien': 'Kategorie', 'tags': 'Kennzeichnung', 'lagerorte': 'Lagerort'} %}
-{% if kind == 'lagerorte' %}<p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.</p>{% endif %}
+{% if kind == 'lagerorte' %}{{ hint('Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.', 'storage-list-hint') }}{% endif %}
 <nav class="mb-3" aria-label="Stammdatenbereiche"><ul class="nav nav-pills">
 {% for key, label in kinds.items() %}<li class="nav-item"><a class="nav-link gap-1{% if key == kind %} active{% endif %}"{% if key == kind %} aria-current="true"{% endif %} href="{{ url_for('admin.master_data_list', kind=query_kinds[key]) }}">{{ icon(kind_icons[key]) }}{{ 'Kennzeichnungen' if key == 'tags' else label }}</a></li>{% endfor %}
 </ul></nav>
@@ -67,7 +67,7 @@
 <div class="list-group list-group-flush">
 {% for item in rows %}<div class="list-group-item"><div class="row g-2 align-items-center"><div class="col">
 <a class="text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>
-<span class="badge bg-secondary-lt">{{ 'Aktiv' if item.active else 'Archiviert' }}</span>
+<span class="badge admin-status--{{ 'active' if item.active else 'neutral' }}">{{ icon('circle-check' if item.active else 'archive') }}<span>{{ 'Aktiv' if item.active else 'Archiviert' }}</span></span>
 {% if kind == 'zutaten' %}<div class="text-secondary">{{ item.base_unit.display_name }} · {% for storage in item.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}{{ icon('alert-triangle', class='text-secondary') }}Lagerort fehlt{% endfor %}</div>
 {% if item.prepared_recipe %}<div><a href="{{ url_for('admin.recipe_revision', recipe_id=item.prepared_recipe.recipe_public_id, revision_id=item.prepared_recipe.revision_public_id) }}">{{ icon('tools-kitchen-2', class='text-secondary') }}{{ item.prepared_recipe.title }} · Stand {{ item.prepared_recipe.revision_number }}</a></div>{% endif %}{% endif %}</div>
 <div class="col-auto">{{ icon_button('actions.edit' if can_write else 'actions.open', href=url_for('admin.master_data_detail', kind=kind, public_id=item.public_id)) }}</div></div></div>

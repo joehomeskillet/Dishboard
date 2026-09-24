@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, form_footer %}
+{% from 'admin/_macros.html' import page_header, icon, form_footer, hint %}
 {% set workflow_nav = 'dish_templates' %}
 {% block title %}Gerichtvorlagen · Menüplanung{% endblock %}
 {% block page_header %}
@@ -26,7 +26,7 @@
 </div>
 {% endif %}
 {% if values.template_context %}
-<form method="post" action="{{ url_for('admin.dish_template_plan_post', public_id=public_id) }}" class="card" id="planning-target" aria-labelledby="planning-title" data-dirty-tracking="off">
+<form method="post" action="{{ url_for('admin.dish_template_plan_post', public_id=public_id) }}" class="card" id="planning-target" aria-labelledby="planning-title" data-dirty-tracking="off" data-loading>
   <input type="hidden" name="_csrf" value="{{ values._csrf }}">
   <input type="hidden" name="template_context" value="{{ values.template_context }}">
   <input type="hidden" name="source_profile" value="{{ values.source_profile }}">
@@ -69,11 +69,11 @@
     </div>
     <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
       <button class="btn" type="submit" name="action" value="refresh">{{ icon('refresh') }}Ziel aktualisieren</button>
-      <p class="form-hint mb-0">Nach Wechsel von Bereich oder Woche: verfügbare Tage und Mahlzeiten aktualisieren.</p>
+      {{ hint('Nach Wechsel von Bereich oder Woche verfügbare Tage und Mahlzeiten aktualisieren.', 'planning-refresh-hint') }}
     </div>
     <p class="mt-3 mb-0 text-break" role="status" id="planning-summary">{{ values.title }} → {{ area_labels.get(values.area, values.area) }} · {{ summary_day }} · {{ meals.get(values.meal, values.meal) }} · {{ dict(types).get(values.option, values.option) }}</p>
     <noscript><p class="form-hint">«Ziel aktualisieren» übernimmt Ihre Auswahl in die Zusammenfassung.</p></noscript>
-    <p class="form-hint mt-2">Im nächsten Schritt können Sie die Menüangaben anpassen. Erst «Menü speichern» übernimmt das Menü in den Plan.</p>
+    <p class="form-hint mt-2">Erst «Menü speichern» übernimmt das Menü in den Plan.</p>
     {{ form_footer(primary={'type': 'submit', 'name': 'action', 'value': 'continue', 'label': 'Weiter zum Menü', 'icon': 'chevron-right'}, cancel_url=url_for('admin.dish_template_edit', public_id=public_id)) }}
   </div>
 </form>

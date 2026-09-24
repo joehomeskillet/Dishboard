@@ -1117,6 +1117,11 @@ Tastaturfokus. `test_wp06_allergen_payload_and_review_are_independent` vergleich
 native POST-Felder vor/nach Auswahl und prüft den getrennten Prüfstatus. Bestehende
 Browsertests behalten CAS-, Standortkonflikt-, Recovery- und 48-px-Assertions.
 
+Polish P3: Optionale Erklärtexte liegen als `hint()`. Allergen-, Bestätigungs- und
+Pflichthinweise bleiben sichtbar. Status in der Liste ist `admin-status--active`/
+`--neutral` plus Text. Archivieren bleibt destruktiv mit Folgetext. Eine sichtbare
+`.btn-primary` je Zustand.
+
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
 Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeutiges Objekt, nicht mehrfach denselben Titel.
@@ -1628,6 +1633,10 @@ bleiben bis zur zentralen Übersetzungsmigration erhalten. Browsernachweise in d
 drei Komponenten-Testdateien umfassen 360/768/1024/1440 px, FormData-Parität,
 Tastatur, No-JS, Fehlereingaben und Archivierung. Die Route-Matrix aktualisiert WP20.
 
+Polish P3: Katalogtabelle nutzt `admin-table--stack` mit `data-label` je Zelle.
+Statuszeilen tragen `admin-status--active`/`--neutral` plus Text. Erklärtexte
+liegen als `hint()` oder Allergenhinweis; Archivieren ist destruktiv mit Folgetext.
+
 #### M14 — Drucken und Vorschau: Arbeitsauftrag von Layoutverwaltung trennen
 
 Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte Woche und veröffentlichten Stand.
@@ -2117,6 +2126,11 @@ Speichern der Zuordnung bleibt sekundär. CSRF, CAS und gesendete Feldnamen blei
 unverändert. Nachweis: `test_ui_korrektur_cookbooks_browser.py`,
 `test_cookbook_routes.py`.
 
+Polish P3: Rezept-Zuordnung nutzt `admin-table--stack` mit `data-label`.
+Statusanzeige im Editorkopf ist `admin-status--active`/`--neutral` plus Text.
+Schreibschutz bleibt sichtbar; vertiefende Erläuterung liegt als `hint()`.
+Eine sichtbare `.btn-primary` je Zustand; Archivieren bleibt selten und bestätigt.
+
 ##### Modul Gerichtvorlagen (2026-09-20)
 
 Das Modul Gerichtvorlagen nutzt M22 (Filterzeile), M23 (Zeilenvertrag) und M24 (Formularfuss) anstelle eigener Custom-Controls. Die Haupttabelle trennt Rezept, Status und Planung auf dem Desktop, wird auf schmalen Viewports aber zu einer kompakten Zeile je Vorlage verdichtet. Der Anlage- und Editorbereich folgt dem gemeinsamen Formular-Grid, mit exakt einer Primäraktion im Formularfuss. Statuswerte (Aktiv, Bereich, Rezeptbindung) sind in die zentrale Statusbar verlegt, die Planungsziel-Vorschau verbleibt fokussiert im Einplanen-Kontext. Dauerhaft geöffnete Anlage- oder Suchformulare am Listenende sind durch die Primäraktion im Seitenkopf abgelöst.
@@ -2124,6 +2138,12 @@ Das Modul Gerichtvorlagen nutzt M22 (Filterzeile), M23 (Zeilenvertrag) und M24 (
 Nachbesserung 2026-09-23: H1 und Dokumenttitel bleiben auf Liste, Anlage, Editor und Einplanen «Gerichtvorlagen»; die konkrete Aufgabe steht in der Beschreibung. Liste und Leerzustand besitzen nur die Kopfaktion «Vorlage anlegen», Editoren nur «Speichern» als Primäraktion. Die Rezeptsuche bleibt im Anlageformular (`recipe_search`, nativer Such-Submit mit Werterhalt). Der Archivfilter nutzt einen Jinja-Block und den nativen «Filtern»-Submit ohne Change-Autosubmit. Mobile und Desktop-Planungsaktionen heissen gleich «Als Menü einplanen». Die Zusammenfassung `#planning-summary` bleibt sichtbar und wird ohne JavaScript über «Ziel aktualisieren» erneuert. Textlinks erhalten dieselben 48-px-Bedienziele wie die gemeinsamen Controls; Rezept-Metadaten stehen kompakt zusammen.
 
 Messnachweis: `test_dish_template_browser.py::test_rework_layout_measurements` prüft 360/390/1440 px, genau eine Primäraktion, sämtliche sichtbaren Aktionsziele mindestens 48 × 48 px, Desktop-Zeilen maximal 96 px, Überlauf und echte Statuswerte für aktive/archivierte Vorlagen mit/ohne Rezeptbindung. Bestehende Tests für Konflikte, Rezeptsuche mit Werterhalt, Leserechte, 320-px-Reflow und echten 200-%-Browserzoom bleiben erhalten. Vorher-/Nachherwerte und Gate-Ergebnis stehen im WP09-Nachbesserungsreport.
+
+Polish P3: Die Vorlagenliste nutzt `admin-table--stack` mit `data-label` je Zelle;
+Mobile und Desktop teilen denselben Inhalt. Status ist `admin-status--success`/
+`--neutral` plus Text. «Als Menü einplanen» ist überall derselbe beschriftete
+Knopf. Optionale Erklärtexte liegen als `hint()`; Übernahme- und Bindungshinweise
+bleiben sichtbar. Archivieren bleibt selten, destruktiv, mit Folgetext.
 
 ##### Modul Einkaufslisten (2026-09-20)
 

@@ -84,7 +84,7 @@ def test_wp05_density_and_form_contract(catalog_page, request, tmp_path):  # noq
                     expect(probe.locator('.admin-statusbar')).to_contain_text('Cafeteria')
                     assert probe.locator('.admin-statusbar-item').count() == (1 if state == 'list' else 4)
                     if state == 'list':
-                        assert metrics['row'] <= (260 if width < 992 else 100)
+                        assert metrics['row'] <= (260 if width < 768 else 100)
                     if width == 1440 and javascript and state == 'editor':
                         assert metrics['height'] < 1354
                     _assert_component_controls_fit(probe)
@@ -427,3 +427,26 @@ def test_allergen_display_preserves_native_values_and_single_save(
         page.evaluate('scrollTo(0, 0)')
         _assert_component_controls_fit(page)
         _shot(page, 'komponente', f'allergen-js{javascript}', width, height)
+
+
+def test_p3_polish_components_primary_stack_hint(catalog_page: Page) -> None:  # noqa: F811
+    page = catalog_page
+    page.set_viewport_size({'width': 360, 'height': 800})
+    _open_editor(page, 'cafeteria')
+    page.goto('/admin/cafeteria/komponenten')
+    expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    row = page.locator('table.admin-table--stack tbody tr').first
+    assert row.evaluate("e => getComputedStyle(e).display") == 'grid'
+    expect(row.locator('[data-label="Kategorie"]')).to_be_visible()
+    expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+    page.locator('.component-edit-link').first.click()
+    page.wait_for_load_state()
+    expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+    food_hint = page.locator('summary[aria-describedby="c-food-extra-hint"]')
+    page.locator('#component-options > summary').click()
+    food_hint.focus()
+    expect(food_hint).to_be_focused()
+    page.keyboard.press('Enter')
+    expect(page.locator('#c-food-extra-hint')).to_be_visible()
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
