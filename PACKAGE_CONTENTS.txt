@@ -582,6 +582,8 @@ docs/design/uiux-handoff-2026-09-20/07_ERGAENZUNGEN/Ergaenzungsprompt_Kompakte_F
 docs/design/uiux-handoff-2026-09-20/07_ERGAENZUNGEN/README.md
 docs/design/uiux-handoff-2026-09-20/README.md
 docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md
+docs/design/uiux-polish-2026-09-23/01_ERGAENZUNG_Buttons_Listen_Labels.md
+docs/design/uiux-polish-2026-09-23/02_ERGAENZUNG_Navigation.md
 docs/design/uiux-polish-2026-09-23/IMPORT_NOTES.md
 docs/DOCKER_COMPOSE_RUNBOOK.md
 docs/ENTRA_SSO_BETRIEBSKONZEPT.md
