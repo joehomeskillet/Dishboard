@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, field, select, form_errors, empty_state, disclosure_section, hint %}
+{% from 'admin/_macros.html' import page_header, icon, field, select, form_errors, empty_state, disclosure_section, hint, label %}
 {% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'shopping_lists' %}
 {% block title %}Einkaufslisten · {{ detail.title }}{% endblock %}
@@ -45,10 +45,10 @@
 {% endblock %}
 {% block content %}
 {%- macro line_status(line) -%}
-{%- if line.checked_status == 'checked' -%}<span class="badge admin-status--active">{{ icon('circle-check') }}<span>Abgehakt</span></span>
-{%- elif line.checked_status == 'changed_open' -%}<span class="badge admin-status--warning">{{ icon('alert-triangle') }}<span>Geändert, erneut offen</span></span>
-{%- elif line.checked_status == 'not_current' -%}<span class="badge admin-status--neutral">{{ icon('history') }}<span>nicht aktuell</span></span>
-{%- else -%}<span class="badge admin-status--neutral">{{ icon('circle') }}<span>Offen</span></span>{%- endif -%}
+{%- if line.checked_status == 'checked' -%}{{ label('Abgehakt', 'active', icon='circle-check') }}
+{%- elif line.checked_status == 'changed_open' -%}{{ label('Geändert, erneut offen', 'warning', icon='alert-triangle') }}
+{%- elif line.checked_status == 'not_current' -%}{{ label('nicht aktuell', 'neutral', icon='history') }}
+{%- else -%}{{ label('Offen', 'neutral', icon='circle') }}{%- endif -%}
 {%- endmacro -%}
 {%- set policy_labels = {'leaf': 'Blattbedarf', 'prepared': 'Vorbereiteter Bedarf'} -%}
 {%- set detail_url = url_for('admin.shopping_list_detail', public_id=detail.public_id) -%}
@@ -97,7 +97,7 @@
         <option value="{{ week.public_id }}"{% if week_public_id == week.public_id %} selected{% endif %}>{{ week.label }}</option>
         {% endfor %}
       </select>
-      <button class="btn" type="submit">Woche laden</button>
+      <button class="btn" type="submit">{{ icon_label('view.filter') }}</button>
     </div>
   </form>
   {% if week_public_id and not candidates %}
@@ -142,7 +142,7 @@
       {% endfor %}
       {% if policy_error %}<div class="invalid-feedback d-block field-error" id="policy-error">{{ policy_error }}</div>{% endif %}
     </fieldset>
-    <button class="btn btn-primary" type="submit">{{ icon('refresh') }}Neu berechnen</button>
+    <button class="btn btn-primary" type="submit">{{ icon_label('actions.refresh') }}</button>
   </form>
   {% endif %}
 </section>
@@ -152,7 +152,7 @@
 <section class="shopping-result mb-3" aria-labelledby="ergebnis-title">
   <h2 class="h3" id="ergebnis-title">Ergebnis</h2>
   {% if selected.lines %}
-  <table class="table table-vcenter shopping-result-table admin-table--stack">
+  <table class="table table-vcenter shopping-result-table admin-table admin-table--stack">
     <thead><tr>
       <th scope="col">Zutat</th>
       <th scope="col">Bedarf</th>
@@ -179,10 +179,10 @@
             <input type="hidden" name="line_key" value="{{ line.line_key }}">
             {% if line.checked_status == 'checked' %}
             <input type="hidden" name="checked" value="false">
-            <button class="btn text-nowrap" type="submit">{{ icon('x') }}Wieder öffnen</button>
+            <button class="btn text-nowrap" type="submit">{{ icon_label('actions.undo') }}</button>
             {% else %}
             <input type="hidden" name="checked" value="true">
-            <button class="btn text-nowrap" type="submit">{{ icon('check') }}Abhaken</button>
+            <button class="btn text-nowrap" type="submit">{{ icon_label('actions.confirm') }}</button>
             {% endif %}
           </form>
         </td>
@@ -212,7 +212,7 @@
 <section class="shopping-manual" aria-labelledby="manuell-title">
   <h2 class="h3" id="manuell-title">Manuelle Positionen {% if not is_latest_view %}{{ hint('Aktueller Stand, nicht Teil des Belegs.', 'einkauf-manual-hint') }}{% endif %}</h2>
   {% if detail.manual_items %}
-  <table class="table table-vcenter shopping-manual-table admin-table--stack">
+  <table class="table table-vcenter shopping-manual-table admin-table admin-table--stack">
     <thead>
       <tr>
         <th scope="col">Text</th>
@@ -244,9 +244,9 @@
               <div class="shopping-item-actions">
                 <button class="btn" type="submit" name="action" value="save">{{ icon_label('actions.save') }}</button>
                 {% if item.checked %}
-                <button class="btn" type="submit" name="action" value="uncheck" formnovalidate>{{ icon('x') }}Wieder öffnen</button>
+                <button class="btn" type="submit" name="action" value="uncheck" formnovalidate>{{ icon_label('actions.undo') }}</button>
                 {% else %}
-                <button class="btn" type="submit" name="action" value="check" formnovalidate>{{ icon('check') }}Abhaken</button>
+                <button class="btn" type="submit" name="action" value="check" formnovalidate>{{ icon_label('actions.confirm') }}</button>
                 {% endif %}
                 <button class="btn btn-danger ms-3" type="submit" name="action" value="delete" formnovalidate data-confirm="Diese Position löschen?" aria-describedby="shopping-delete-hint">{{ icon_label('actions.delete') }}</button>
               </div>
@@ -257,7 +257,7 @@
         <td class="text-break" data-label="Text">{{ item.item_text }}</td>
         <td data-label="Menge">{% if item.quantity %}{{ item.quantity }} {{ unit_names.get(item.unit_code, item.unit_code) }}{% endif %}</td>
         <td data-label="Einheit">{{ unit_names.get(item.unit_code, item.unit_code or '—') }}</td>
-        <td data-label="Status">{% if item.checked %}<span class="badge admin-status--active">{{ icon('circle-check') }}<span>Abgehakt</span></span>{% else %}<span class="badge admin-status--neutral">{{ icon('circle') }}<span>Offen</span></span>{% endif %}</td>
+        <td data-label="Status">{% if item.checked %}{{ label('Abgehakt', 'active', icon='circle-check') }}{% else %}{{ label('Offen', 'neutral', icon='circle') }}{% endif %}</td>
         {% endif %}
       </tr>
       {% endfor %}

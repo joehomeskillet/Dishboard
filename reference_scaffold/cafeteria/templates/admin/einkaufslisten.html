@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, field, select, textarea, form_errors, empty_state, list_row, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_label, sem_icon %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% set workflow_nav = 'shopping_lists' %}
 {% block title %}Einkaufslisten · Menüplanung{% endblock %}
 {% block page_styles %}
@@ -49,8 +49,8 @@
 </div>
 {% endif %}
 <nav class="shopping-filter btn-group mb-3" role="group" aria-label="Archivfilter">
-  <a class="btn{% if not include_archived %} active{% endif %}"{% if not include_archived %} aria-current="true"{% endif %} href="{{ url_for('admin.shopping_lists_index') }}">Aktive</a>
-  <a class="btn{% if include_archived %} active{% endif %}"{% if include_archived %} aria-current="true"{% endif %} href="{{ url_for('admin.shopping_lists_index', archived='1') }}">Archivierte einschliessen</a>
+  <a class="btn{% if not include_archived %} active{% endif %}"{% if not include_archived %} aria-current="true"{% endif %} href="{{ url_for('admin.shopping_lists_index') }}">{{ icon_label('status.active') }}</a>
+  <a class="btn{% if include_archived %} active{% endif %}"{% if include_archived %} aria-current="true"{% endif %} href="{{ url_for('admin.shopping_lists_index', archived='1') }}">{{ icon_label('actions.archive') }}</a>
 </nav>
 {% if rows %}
 <section class="shopping-list" aria-label="Einkaufslisten">
@@ -60,7 +60,7 @@
   {% set subtitle = week_text ~ ' · ' ~ computed ~ ' · ' ~ item.open_count ~ ' offen / ' ~ item.checked_count ~ ' abgehakt' %}
   {% set more %}
     {% if item.latest_revision_public_id %}
-    <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id, revision=item.latest_revision_public_id) }}">{{ sem_icon('actions.print') }}Drucken · Stand {{ item.latest_revision_number }}<span class="visually-hidden"> · {{ item.title }}</span></a>
+    <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id, revision=item.latest_revision_public_id) }}" title="Drucken · Stand {{ item.latest_revision_number }}">{{ icon_label('actions.print') }}<span class="visually-hidden">Drucken · Stand {{ item.latest_revision_number }} · {{ item.title }}</span></a>
     {% else %}
     <a class="btn" href="{{ url_for('admin.shopping_list_pdf', public_id=item.public_id) }}">{{ icon_label('actions.print') }}<span class="visually-hidden"> · {{ item.title }}</span></a>
     {% endif %}

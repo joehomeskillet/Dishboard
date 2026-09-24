@@ -1,5 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon %}
+{% from 'ui/_semantic.html' import icon_button, sem_icon %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}Standort geändert · Grundlagen{% endblock %}
 {% block page_header %}{{ page_header(t('navigation.ingredients.label'), description='Ursprüngliche Eingaben', status_items=[{'label': t('status.error.label'), 'value': message, 'variant': 'danger'}]) }}{% endblock %}
@@ -44,7 +45,7 @@
 </section>
 <p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Neu laden verwirft diesen Formularstand. Daten des vorherigen Standorts sind am neuen Standort nicht verfügbar.</p>
 <div class="d-flex flex-wrap gap-2">
-<a class="btn btn-primary" href="{{ reload_url }}">{{ icon('refresh') }}Neu laden</a>
-<a class="btn" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ icon('arrow-left') }}Zur Liste</a>
+<a class="btn btn-primary" href="{{ reload_url }}">{{ sem_icon('actions.refresh') }}Neu laden</a>
+{{ icon_button('actions.back', href=url_for('admin.master_data_list', kind=query_kinds[kind])) }}
 </div></div></div>
 {% endblock %}

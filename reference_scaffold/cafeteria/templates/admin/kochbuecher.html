@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, empty_state, pagination, status_badge %}
-{% from 'ui/_semantic.html' import icon_label, icon_button %}
+{% from 'admin/_macros.html' import page_header, empty_state, pagination, status_badge, list_row %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, filter_bar_sem %}
 {% set workflow_nav = 'cookbooks' %}
 {% set cookbook_status = [] %}
 {% if include_archived %}
@@ -19,40 +19,22 @@
 {% endcall %}
 {% endblock %}
 {% block content %}
-<form class="admin-filter-bar" method="get" action="{{ url_for('admin.cookbooks_list') }}" role="search" data-dirty-tracking="off">
-  <div class="admin-filter-search">
-    <label class="form-label" for="cookbook-q">Suche</label>
-    <input class="form-control" id="cookbook-q" name="q" type="search" maxlength="200" value="{{ search }}">
-  </div>
-  <div class="admin-filter-slots">
-    <label class="form-check">
-      <input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}>
-      <span class="form-check-label">Archivierte einschliessen</span>
-    </label>
-  </div>
-  <button class="btn" type="submit">{{ icon_label('view.search') }}</button>
-  {% if search or include_archived %}<a class="btn" href="{{ url_for('admin.cookbooks_list') }}">{{ icon_label('view.reset') }}</a>{% endif %}
-</form>
+{% set cookbook_filters %}
+<label class="form-check">
+  <input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}>
+  <span class="form-check-label">Archivierte einschliessen</span>
+</label>
+{% endset %}
+{{ filter_bar_sem(url_for('admin.cookbooks_list'), search_name='q', search_value=search, filters=cookbook_filters, active=search or include_archived, reset_url=(url_for('admin.cookbooks_list') if search or include_archived else none), id='cookbook') }}
 {% if rows %}
 <section class="cookbook-list" aria-label="Kochbücher">
   {% for book in rows %}
   {% set count = book.recipe_public_ids|length %}
   {% set editable = can_write and book.active %}
-  <article class="card cookbook-row">
-    <div class="card-body cookbook-list-row">
-      <div class="cookbook-list-name">
-        <h2 class="card-title text-break mb-0">{{ book.name }}</h2>
-        {% if book.description %}<p class="admin-list-subtitle text-break mb-0">{{ book.description|truncate(160) }}</p>{% endif %}
-      </div>
-      {% if not book.active %}{{ status_badge('archived') }}{% endif %}
-      <span class="cookbook-recipe-count text-secondary">{{ count }} {{ 'Rezept' if count == 1 else 'Rezepte' }}</span>
-      {% if editable %}
-      <a class="btn cookbook-row-action" href="{{ url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}" aria-label="{{ book.name }} bearbeiten">{{ icon_label('actions.edit') }}</a>
-      {% else %}
-      <a class="btn cookbook-row-action" href="{{ url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}" aria-label="{{ book.name }} öffnen">{{ icon_label('actions.open') }}</a>
-      {% endif %}
-    </div>
-  </article>
+  {% set actions %}
+  <a class="btn cookbook-row-action" href="{{ url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}" aria-label="{{ book.name }} {{ 'bearbeiten' if editable else 'öffnen' }}">{{ icon_label('actions.edit' if editable else 'actions.open') }}</a>
+  {% endset %}
+  {{ list_row(primary=book.name, secondary=book.description|truncate(160) if book.description else none, meta=(count ~ (' Rezept' if count == 1 else ' Rezepte')), status=status_badge('archived') if not book.active else none, actions=actions) }}
   {% endfor %}
 </section>
 {{ pagination(page, has_next, prev_url, next_url, 'Kochbuchseiten') }}
