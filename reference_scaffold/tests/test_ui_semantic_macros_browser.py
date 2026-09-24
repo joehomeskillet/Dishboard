@@ -32,6 +32,25 @@ PAGE = '''<!doctype html><html lang="{{ ui_locale }}"><head>
 <section id="filter-wrapper">{{ filter_bar_sem('/__semantic__', active=true, reset_url='/__semantic__') }}</section>
 </main></body></html>'''
 
+CONTEXT_PAGE = '''<!doctype html><html lang="de"><head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% for file in ['tokens.css', 'vendor/tabler/tabler.min.css', 'admin-tabler.css', 'ui-semantic.css'] %}
+<link rel="stylesheet" href="{{ url_for('static', filename=file) }}">{% endfor %}
+</head><body class="admin-body dishboard-admin"><main class="container-fluid py-4">
+{% from 'ui/_semantic.html' import row_actions, filter_bar_sem %}
+{{ row_actions([
+  {'key':'actions.edit', 'href':'#template', 'icon_only':true, 'aria_label':'Vorlage X bearbeiten'},
+  {'key':'actions.apply', 'text':'Übernehmen', 'title':'Wochenvorgaben übernehmen',
+   'aria_label':'Übernehmen: Wochenvorgaben', 'class':'dropdown-item',
+   'name':'intent', 'value':'apply', 'form':'week', 'attrs':{'formnovalidate':true}},
+  {'key':'actions.history', 'text':'Zugriffsverlauf', 'href':'#history', 'class':'dropdown-item',
+   'attrs':{'target':'_blank', 'rel':'noreferrer'}}]) }}
+<p id="search-help">Zusatzfilter bleiben sichtbar.</p>
+{{ filter_bar_sem('/__context__', search_name='text', search_value='Suppe',
+    maxlength=200, describedby='search-help', loading=true, open=true,
+    more_filters='<label for="category">Kategorie</label><input id="category" name="category" value="active">'|safe) }}
+</main></body></html>'''
+
 
 @pytest.fixture(params=['de', 'en', 'xx'])
 def semantic_site(request):
@@ -55,6 +74,10 @@ def semantic_site(request):
     @app.route('/__proof__')
     def proof_page():
         return render_template('admin/print_template_unavailable.html')
+
+    @app.route('/__context__')
+    def context_page():
+        return render_template_string(CONTEXT_PAGE)
 
     server = make_server('127.0.0.1', 0, app, threaded=True)
     thread = Thread(target=server.serve_forever, daemon=True)
@@ -123,6 +146,54 @@ def test_semantic_macros_keyboard_names_reflow(semantic_site, width, tmp_path):
         expect(page.locator('.admin-statusbar-value')).to_have_text('0')
         expect(page.locator('.admin-filter-bar')).to_have_attribute('method', 'get')
         page.screenshot(path=str(tmp_path / f'semantic-{locale}-{width}.png'), full_page=True)
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize('width', [360, 390, 768, 1024, 1440, 1920])
+def test_p2c_context_actions_dropdown_and_active_filters(semantic_site, width, tmp_path):
+    app, browser, origin = semantic_site
+    context = browser.new_context(java_script_enabled=False, viewport={'width': width, 'height': 1000})
+    page = context.new_page()
+    try:
+        assert page.goto(origin + '/__context__').status == 200
+        edit = page.get_by_role('link', name='Vorlage X bearbeiten', exact=True)
+        expect(edit).to_have_accessible_name('Vorlage X bearbeiten')
+        expect(edit).to_have_attribute('title', 'Vorlage X bearbeiten')
+        page.keyboard.press('Tab')
+        expect(edit).to_be_focused()
+        assert edit.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+        page.keyboard.press('Tab')
+        summary = page.locator('.ui-sem-actions summary')
+        expect(summary).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('.ui-sem-actions')).to_have_attribute('open', '')
+        page.keyboard.press('Tab')
+        apply = page.get_by_role('button', name='Übernehmen: Wochenvorgaben', exact=True)
+        expect(apply).to_be_focused()
+        expect(apply).to_have_attribute('title', 'Wochenvorgaben übernehmen')
+        expect(apply).to_have_attribute('form', 'week')
+        expect(apply).to_have_attribute('formnovalidate', '')
+        for control in page.locator('.dropdown-item').all():
+            size = control.bounding_box()
+            parent = control.locator('..').bounding_box()
+            assert size['height'] >= 48 and abs(size['width'] - parent['width']) <= 1
+            assert control.evaluate('el => getComputedStyle(el).justifyContent') == 'flex-start'
+            assert control.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+        history = page.get_by_role('link', name='Zugriffsverlauf', exact=True)
+        page.keyboard.press('Tab')
+        expect(history).to_be_focused()
+        expect(history).to_have_attribute('rel', 'noreferrer noopener')
+        expect(history).to_have_attribute('target', '_blank')
+        expect(page.locator('.admin-filter-more')).to_have_attribute('open', '')
+        expect(page.get_by_label('Kategorie')).to_be_visible()
+        search = page.get_by_role('searchbox')
+        expect(search).to_have_value('Suppe')
+        expect(search).to_have_attribute('maxlength', '200')
+        expect(search).to_have_attribute('aria-describedby', 'search-help')
+        expect(page.get_by_role('search')).to_have_attribute('data-loading', 'true')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        page.screenshot(path=str(tmp_path / f'p2c-context-{app.config["UI_LOCALE"]}-{width}.png'), full_page=True)
     finally:
         context.close()
 

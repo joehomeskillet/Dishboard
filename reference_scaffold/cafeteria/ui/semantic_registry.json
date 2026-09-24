@@ -22,6 +22,39 @@
     "role": "primary"
   },
   {
+    "key": "actions.activate",
+    "category": "actions",
+    "ascii": "[ON]",
+    "icon": "circle-check",
+    "label_key": "actions.activate.label",
+    "tooltip_key": "actions.activate.tooltip",
+    "aria_key": "actions.activate.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "actions.apply",
+    "category": "actions",
+    "ascii": "[OK]",
+    "icon": "check",
+    "label_key": "actions.apply.label",
+    "tooltip_key": "actions.apply.tooltip",
+    "aria_key": "actions.apply.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "actions.history",
+    "category": "actions",
+    "ascii": "[H]",
+    "icon": "history",
+    "label_key": "actions.history.label",
+    "tooltip_key": "actions.history.tooltip",
+    "aria_key": "actions.history.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
     "key": "actions.edit",
     "category": "actions",
     "ascii": "[E]",
