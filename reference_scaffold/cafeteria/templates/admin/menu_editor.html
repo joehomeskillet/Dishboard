@@ -141,8 +141,8 @@
         <div class="card-body">
           {% if cell.proposal_hint %}
           <p class="mb-2" id="proposal-recipe-hint">{{ icon('info-circle') }}{{ cell.proposal_hint }}</p>
-          {% if cell.proposal_freeze_url %}{{ icon_button('actions.save', text='Festhalten', emphasis='secondary', aria_label='Rezeptstand festhalten', href=cell.proposal_freeze_url) }}
-          {% elif cell.proposal_recipe_url %}{{ icon_button('actions.open', aria_label='Rezept zur Vorlage öffnen', href=cell.proposal_recipe_url) }}{% endif %}
+          {% if cell.proposal_freeze_url %}{{ icon_button('actions.save', text='Festhalten', emphasis='secondary', aria_label='Rezeptstand festhalten', title='Rezeptstand festhalten', href=cell.proposal_freeze_url) }}
+          {% elif cell.proposal_recipe_url %}{{ icon_button('actions.open', aria_label='Rezept zur Vorlage öffnen', title='Rezept zur Vorlage öffnen', href=cell.proposal_recipe_url) }}{% endif %}
           {% endif %}
           <div id="components-list" class="menu-editor-row-list" data-row-list="component" data-row-title="Baustein">
             {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
@@ -177,7 +177,7 @@
                       <summary class="btn btn-ghost">{{ icon_label('actions.more') }}</summary>
                       <button type="button" class="btn" data-move-row="up">{{ sem_icon('actions.move') }}Nach oben</button>
                       <button type="button" class="btn" data-move-row="down">{{ sem_icon('actions.move') }}Nach unten</button>
-                      <button type="button" class="btn btn-outline-danger" data-remove-row>{{ icon_label('actions.delete') }}</button>
+                      <button type="button" class="btn{% if sem('actions.delete').role == 'danger' %} btn-danger{% endif %}" data-remove-row>{{ icon_label('actions.delete') }}</button>
                     </details>
                   </div>
                 </div>
@@ -243,7 +243,7 @@
           {{ field_error('component_text', 'err-component-text') }}
           {{ field_error('recipe_revision_public_id', 'err-recipe-revision') }}
           {{ field_error('target_quantity', 'err-target-quantity') }}
-          {{ icon_button('actions.add', type='button', text='Baustein', aria_label='Baustein hinzufügen', emphasis='secondary', class='mt-3', attrs={'data-add-row': 'components-list'}) }}
+          {{ icon_button('actions.add', type='button', text='Baustein', aria_label='Baustein hinzufügen', title='Baustein hinzufügen', emphasis='secondary', class='mt-3', attrs={'data-add-row': 'components-list'}) }}
         </div>
       </section>
 
@@ -282,14 +282,14 @@
                   </div>
                 </div>
                 <div class="menu-editor-row-actions mt-2">
-                  <button type="button" class="btn btn-outline-danger" aria-label="Herkunft löschen" title="Herkunft löschen" data-remove-row{% if is_auto['origin'] %} disabled{% endif %}>{{ icon_label('actions.delete') }}</button>
+                  <button type="button" class="btn{% if sem('actions.delete').role == 'danger' %} btn-danger{% endif %}" aria-label="Herkunft löschen" title="Herkunft löschen" data-remove-row{% if is_auto['origin'] %} disabled{% endif %}>{{ icon_label('actions.delete') }}</button>
                 </div>
               </div>
             </fieldset>
             {% endfor %}
           </div>
           {{ field_error('origin_ingredient', 'err-origin-ingredient') }}
-          {{ icon_button('actions.add', type='button', text='Herkunft', aria_label='Herkunft hinzufügen', emphasis='secondary', class='mt-3', attrs={'data-add-row': 'origins-list', 'disabled': is_auto['origin']}) }}
+          {{ icon_button('actions.add', type='button', text='Herkunft', aria_label='Herkunft hinzufügen', title='Herkunft hinzufügen', emphasis='secondary', class='mt-3', attrs={'data-add-row': 'origins-list', 'disabled': is_auto['origin']}) }}
         </div>
       </details>
 
@@ -412,7 +412,7 @@
           <input type="hidden" name="option" value="{{ cell.option }}">
           <input type="hidden" name="row_version" value="{{ cell.row_version }}">
           <input type="hidden" name="component_version" value="{{ review_token }}">
-          {{ icon_button('actions.confirm', text='Geprüft', aria_label='Als geprüft bestätigen', emphasis='secondary') }}
+          {{ icon_button('actions.confirm', text='Geprüft', aria_label='Als geprüft bestätigen', title='Als geprüft bestätigen', emphasis='secondary') }}
         </form>
       </div>
       {% endif %}
