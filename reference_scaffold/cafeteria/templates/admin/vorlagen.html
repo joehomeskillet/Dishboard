@@ -35,7 +35,7 @@
     <label class="form-label" for="output-week">Woche ab Montag</label>
     <input class="form-control" type="date" id="output-week" name="week" value="{{ week }}" required aria-describedby="output-week-hint">
   </div>
-  <div class="btn-list"><button class="btn" type="submit">{{ icon('calendar-week') }}Woche anzeigen</button>
+  <div class="btn-list"><button class="btn" type="submit" aria-label="Woche öffnen">{{ icon_label('actions.open') }}</button>
   {{ hint('Gilt für Wochenpflege und PDF.', 'output-week-hint') }}</div>
   <p class="form-hint mb-0">Öffentliche Druckansichten zeigen den veröffentlichten Plan.</p>
 </form>

@@ -219,9 +219,9 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_have_text('Archivierte Vorlage prüfen')
         page.get_by_label('Vorlage', exact=True).select_option('standard')
-        page.get_by_role('button', name='Anzeigen', exact=True).click()
+        page.get_by_role('button', name='Woche öffnen', exact=True).click()
         page.locator('details[data-template-versions] summary').click()
-        page.get_by_role('button', name='Version 1 als neuen Entwurf laden', exact=True).click()
+        page.get_by_role('button', name='Version 1 wiederherstellen: als neuen Entwurf laden', exact=True).click()
         expect(page.get_by_role('heading', name='PDF-Vorschau · Version 3', exact=True)).to_be_visible()
         expect(page.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('')
         assert 'Guten Appetit' in pdf_text(client.get(f'/admin/{family}/preview/print?week={DAY}'))
@@ -287,7 +287,7 @@ def test_hub_and_editor_statusbar_viewports_keyboard_and_no_js(
                 'el => el.getBoundingClientRect().height'
             )
             assert row_height <= 96
-        week_submit = page.get_by_role('button', name='Woche anzeigen', exact=True)
+        week_submit = page.get_by_role('button', name='Woche öffnen', exact=True)
         week_submit.focus()
         expect(week_submit).to_be_focused()
         page.screenshot(path=str(tmp_path / f'vorlagen-hub-{width}-js{javascript}.png'), full_page=True)

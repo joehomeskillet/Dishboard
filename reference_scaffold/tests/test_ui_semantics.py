@@ -282,6 +282,7 @@ def test_admin_shell_locale_and_single_semantic_stylesheet(semantic_app, locale)
     styles = [node['href'] for node in document.select('link[rel="stylesheet"]')]
     assert styles.count('/static/ui-semantic.css') == 1
     assert styles.index('/static/ui-semantic.css') == styles.index('/static/admin-tabler.css') + 1
+    assert styles.index('/static/admin-nav.css') == styles.index('/static/ui-semantic.css') + 1
 
 
 @pytest.mark.parametrize('locale,options,more', [
