@@ -190,6 +190,10 @@
     grid-column: 2 / -1;
     grid-row: 2 / span 2;
   }
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .menu-slot .card-body {
+    /* Avoid stacking roomy card insets inside the compact day workspace. */
+    padding-block: var(--app-space-1);
+  }
   .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course {
     grid-column: 1;
     align-self: start;
@@ -203,9 +207,14 @@
   .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course-line > span {
     grid-column: 1;
   }
+  /* Shared P2b badges need the full course width; the action belongs beside the title. */
+  .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course-line > .badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
   .dishboard-admin .admin-main[data-layout="workspace"] .admin-day-card .admin-week-course-line > .btn {
     grid-column: 2;
-    grid-row: 1 / span 3;
+    grid-row: 1;
     align-self: center;
     padding-inline: var(--app-space-1);
     font-size: var(--app-font-size-label);
