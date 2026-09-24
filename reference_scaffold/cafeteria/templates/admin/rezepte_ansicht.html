@@ -7,19 +7,19 @@
 {% macro print_reference(template) %}
 <p class="text-break">Druckvorlage: {% if template.url %}<a href="{{ template.url }}">{{ template.name }} · Revision {{ template.number }} (aktiv)</a>{% else %}{{ template.name }} · Revision {{ template.number }} (aktiv){% endif %}</p>
 {% endmacro %}
-{% from 'admin/_macros.html' import page_header, icon %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'admin/_macros.html' import page_header %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% if payload is defined %}
 {% extends 'admin/rezepte_revision.html' %}
 {% block title %}{{ document.title }} · {{ t('navigation.recipes.label') }}{% endblock %}
 {% block page_header %}
 {% call page_header(t('navigation.recipes.label'), document.title, status_items=[{'label': t('recipe.recipe.label'), 'value': 'Entwurf · nicht festgeschrieben' if recipe.active else 'Archiviert', 'variant': 'neutral'}]) %}
-<a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('arrow-left') }}Zur Rezeptliste</a>
-{% if can_write and recipe.active %}<a class="btn btn-primary" href="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) }}">{{ icon_label('actions.edit') }}</a>{% endif %}
+<a class="btn" href="{{ url_for('admin.recipes_list') }}" data-semantic="actions.back" aria-label="Zur Rezeptliste">{{ icon_label('actions.back') }}</a>
+{% if can_write and recipe.active %}{{ icon_button('actions.edit', href=url_for('admin.recipe_edit', recipe_id=recipe_id)) }}{% endif %}
 <details class="admin-compact-actions"><summary class="btn">{{ icon_label('actions.more') }}</summary><div class="d-flex flex-wrap gap-2 mt-2">
-<a class="btn" href="{{ scale_url }}">{{ icon('refresh') }}Mengen berechnen</a>
-<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('history') }}Rezept-History</a>
-{% if links.latest_revision %}<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=links.latest_revision.public_id) }}">{{ icon('printer') }}Drucken · Stand {{ links.latest_revision.revision_number }}</a>{% endif %}
+<a class="btn" href="{{ scale_url }}" data-semantic="recipe.quantity" aria-label="Mengen berechnen">{{ icon_label('recipe.quantity') }}</a>
+<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}" data-semantic="data.history" aria-label="Rezept-History">{{ icon_label('data.history') }}</a>
+{% if links.latest_revision %}<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=links.latest_revision.public_id) }}" data-semantic="actions.print">{{ icon_label('actions.print') }}</a>{% endif %}
 </div></details>
 {% endcall %}
 {% endblock %}

@@ -14,9 +14,9 @@
 {% block page_header %}
 {% call page_header(t('navigation.recipes.label'), document.title,
   status_items=[{'label': t('recipe.recipe.label'), 'value': t('status.readonly.label'), 'variant': 'neutral'}]) %}
-<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Zur Rezept-History</a>
-<a class="btn" href="{{ scale_url }}">{{ icon('refresh') }}Mengen berechnen</a>
-<a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=document.yield.amount) }}">{{ icon('printer') }}PDF öffnen</a>
+<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}" data-semantic="actions.back" aria-label="Zur Rezept-History">{{ icon_label('actions.back') }}</a>
+<a class="btn" href="{{ scale_url }}" data-semantic="recipe.quantity" aria-label="Mengen berechnen">{{ icon_label('recipe.quantity') }}</a>
+<a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=document.yield.amount) }}" data-semantic="actions.print" aria-label="PDF öffnen">{{ icon_label('actions.print') }}</a>
 {% endcall %}
 {% endblock %}
 {% block content %}

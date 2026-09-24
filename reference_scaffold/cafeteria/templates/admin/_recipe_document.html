@@ -1,4 +1,5 @@
 {% from 'admin/_macros.html' import icon %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% macro text_lines(value) %}{% for line in value.split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endmacro %}
 {% macro recipe_body(doc, asset_recipe_id, prefix) %}
 {% if doc.identity.kind == 'revision' %}
@@ -48,12 +49,12 @@
 </figure>{% endfor %}
 </div></section>{% endif %}
 <details class="recipe-originals mt-3">
-<summary class="btn">Originalmengen ansehen</summary>
+<summary class="btn" title="Originalmengen ansehen">{{ icon_label('recipe.quantity') }}</summary>
 <p class="mt-2">Originalausbeute: {{ doc.yield.original_amount }} {{ doc.yield.unit }}</p>
 <ul>{% for row in doc.ingredients %}<li>{{ row.text }}: {{ row.original_amount if row.original_amount is not none else 'Menge nicht erfasst' }} {{ row.unit or 'Einheit nicht erfasst' }}</li>{% endfor %}</ul>
 </details>
 <details class="recipe-provenance mt-2">
-<summary class="btn">Herkunft ansehen</summary>
+<summary class="btn" title="Herkunft ansehen">{{ icon_label('data.history') }}</summary>
 <ol class="mt-2">
 {% for origin in doc.provenance %}<li>
 <strong>{{ origin.label }}</strong>{% if origin.source.reference %} · {{ origin.source.reference }}{% endif %}

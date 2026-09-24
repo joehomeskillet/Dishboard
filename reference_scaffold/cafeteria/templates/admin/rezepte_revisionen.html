@@ -1,10 +1,10 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, pagination, disclosure_section, hint %}
+{% from 'admin/_macros.html' import page_header, icon, pagination, disclosure_section, hint, empty_state %}
 {% from 'ui/_semantic.html' import icon_label %}
 {% from 'admin/rezepte_ansicht.html' import print_reference %}
 {% set workflow_nav = 'recipes' %}
 {% block title %}Rezept-History · {{ recipe.payload.title }}{% endblock %}
-{% block page_header %}{% call page_header(t('navigation.recipes.label'), recipe.payload.title, status_items=[{'label': t('recipe.recipe.label'), 'value': t('publish.draft.label') if recipe.active else 'Archiviert', 'variant': 'neutral'}, {'label': t('recipe.ingredient.label'), 'value': t('status.missing.label') if preview and not preview.complete else none, 'variant': 'warning'}]) %}<a class="btn{% if not token %} btn-primary{% endif %}" href="{{ url_for('admin.recipe_view', recipe_id=recipe.public_id) }}">{{ icon_label('actions.open') }}</a>{% if token %}<button class="btn btn-primary" type="submit" form="recipe-freeze-form">{{ icon('device-floppy') }}Gespeicherten Stand festhalten</button>{% endif %}{% endcall %}{% endblock %}
+{% block page_header %}{% call page_header(t('navigation.recipes.label'), recipe.payload.title, status_items=[{'label': t('recipe.recipe.label'), 'value': t('publish.draft.label') if recipe.active else 'Archiviert', 'variant': 'neutral'}, {'label': t('recipe.ingredient.label'), 'value': t('status.missing.label') if preview and not preview.complete else none, 'variant': 'warning'}]) %}<a class="btn{% if not token %} btn-primary{% endif %}" href="{{ url_for('admin.recipe_view', recipe_id=recipe.public_id) }}">{{ icon_label('actions.open') }}</a>{% if token %}<button class="btn btn-primary" type="submit" form="recipe-freeze-form" data-semantic="actions.save" aria-label="Gespeicherten Stand festhalten">{{ icon_label('actions.save') }}</button>{% endif %}{% endcall %}{% endblock %}
 {% block content %}
 {{ print_reference(print_template) }}
 <section class="card mb-3" id="recipe-freeze"><div class="card-body">
@@ -18,7 +18,7 @@
 </div></section>
 {% if preview %}
 <section class="card mb-3" aria-labelledby="dependency-title"><div class="card-header"><h2 class="card-title" id="dependency-title">Zutatenstand prüfen</h2></div>
-<table class="table table-vcenter card-table admin-table--stack"><thead><tr><th scope="col">Zutat</th><th scope="col">Menge</th><th scope="col">Lebensmittel und Lagerort</th><th scope="col">Zubereitung</th></tr></thead><tbody>
+<table class="table table-vcenter card-table admin-table admin-table--stack"><thead><tr><th scope="col">Zutat</th><th scope="col">Menge</th><th scope="col">Lebensmittel und Lagerort</th><th scope="col">Zubereitung</th></tr></thead><tbody>
 {% for ingredient in preview.snapshot.recipe.ingredients %}
 {% set food = preview.snapshot.foods|selectattr('public_id', 'equalto', ingredient.food_public_id)|first %}
 <tr><td class="text-break" data-label="Zutat">{{ ingredient.ingredient_text }}</td>
@@ -40,9 +40,9 @@
 <details class="card mb-3"><summary class="card-header">Prüfnachweis anzeigen</summary><div class="card-body text-break">Prüfsumme des geprüften Zutatenstands: <code>{{ preview.dependency_hash_sha256 }}</code></div></details>
 {% endif %}
 <section class="card" id="recipe-history"><div class="card-header"><h2 class="card-title">Alle gespeicherten Stände</h2></div>
-{% if revisions %}<table class="table table-vcenter card-table admin-table--stack"><thead><tr><th scope="col">Stand</th><th scope="col">Erstellt</th><th scope="col">Metadaten</th><th scope="col">Aktion</th></tr></thead><tbody>
-{% for item in revisions %}<tr><td data-label="Stand">Gespeicherter Stand {{ item.revision_number }}</td><td data-label="Erstellt"><time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at|datetime_short }}</time></td><td class="text-break" data-label="Metadaten">Revision {{ item.revision_number }}{% call disclosure_section() %}<p class="mt-2 mb-0 text-break"><strong>Prüfsumme:</strong> <code>{{ item.content_hash_sha256 }}</code></p>{% endcall %}</td><td data-label="Aktion"><div class="d-flex flex-wrap gap-2"><a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="Gespeicherten Stand {{ item.revision_number }} ansehen">{{ icon_label('actions.open') }}</a><a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe.public_id, revision_id=item.public_id) }}" aria-label="PDF von Stand {{ item.revision_number }} öffnen">{{ icon('printer') }}PDF öffnen</a></div></td></tr>{% endfor %}
-</tbody></table>{% else %}<div class="card-body"><p class="mb-0">Noch keine gespeicherten Stände vorhanden.</p></div>{% endif %}
+{% if revisions %}<table class="table table-vcenter card-table admin-table admin-table--stack"><thead><tr><th scope="col">Stand</th><th scope="col">Erstellt</th><th scope="col">Metadaten</th><th scope="col">Aktion</th></tr></thead><tbody>
+{% for item in revisions %}<tr><td data-label="Stand">Gespeicherter Stand {{ item.revision_number }}</td><td data-label="Erstellt"><time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at|datetime_short }}</time></td><td class="text-break" data-label="Metadaten">Revision {{ item.revision_number }}{% call disclosure_section() %}<p class="mt-2 mb-0 text-break"><strong>Prüfsumme:</strong> <code>{{ item.content_hash_sha256 }}</code></p>{% endcall %}</td><td class="admin-table-actions" data-label="Aktion">{% set open_link %}<a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id) }}" data-semantic="actions.open" aria-label="Gespeicherten Stand {{ item.revision_number }} ansehen">{{ icon_label('actions.open') }}</a>{% endset %}{% set print_link %}<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe.public_id, revision_id=item.public_id) }}" data-semantic="actions.print" aria-label="PDF von Stand {{ item.revision_number }} öffnen">{{ icon_label('actions.print') }}</a>{% endset %}<div class="admin-row-actions">{{ open_link }}<details class="ui-sem-actions"><summary class="btn btn-ghost ui-sem-control" title="{{ t(sem('actions.more').tooltip_key) }}">{{ icon_label('actions.more') }}</summary><div class="ui-sem-action-items">{{ print_link }}</div></details></div></td></tr>{% endfor %}
+</tbody></table>{% else %}<div class="card-body">{{ empty_state('none', 'Noch keine gespeicherten Stände vorhanden.', 'Den aktuellen Entwurf zuerst festhalten.') }}</div>{% endif %}
 </section>
 {{ pagination(page, has_next, url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page-1), url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page+1), 'Seiten der gespeicherten Stände') }}
 {% endblock %}

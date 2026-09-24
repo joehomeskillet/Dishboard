@@ -1,50 +1,45 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, hint %}
-{% from 'ui/_semantic.html' import icon_label, sem_icon %}
+{% from 'admin/_macros.html' import page_header, pagination, empty_state, hint, label, list_row %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, filter_bar_sem %}
 {% from 'admin/rezepte_ansicht.html' import template_links %}
 {% set workflow_nav = 'recipes' %}
 {% block title %}Rezepte · Menüplanung{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-admin.css') }}">{% endblock %}
 {% block page_header %}
 {% call page_header(t('navigation.recipes.label'), 'Rezeptentwürfe finden und bearbeiten. Speichern veröffentlicht keinen Menüplan.', status_items=[{'label': t('view.filter.label'), 'value': 'Archivierte einschliessen' if archived else t('status.active.label'), 'variant': 'neutral'}]) %}
-{% if can_write %}<a class="btn btn-primary" href="{{ url_for('admin.recipe_new') }}">{{ icon_label('actions.add') }}</a>{% endif %}
+{% if can_write %}{{ icon_button('actions.add', href=url_for('admin.recipe_new')) }}{% endif %}
 {% endcall %}
 {% endblock %}
 {% block content %}
-<form class="admin-filter-bar recipe-filter" method="get" action="{{ url_for('admin.recipes_list') }}" role="search" data-dirty-tracking="off" data-loading>
-<div class="admin-filter-search"><label class="form-label" for="text">Suche</label><input class="form-control" id="text" name="text" maxlength="200" value="{{ text }}" aria-describedby="text-hint"></div>
-<div class="admin-filter-slots"><div><label class="form-label" for="tag">Kennzeichnung</label><select class="form-select" id="tag" name="tag"><option value="">Alle Kennzeichnungen</option>{% for value, label in tags %}<option value="{{ value }}"{% if value == tag %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div></div>
-<details class="admin-compact-details admin-filter-more"{% if query or ingredient or archived %} open{% endif %}><summary>{{ icon_label('view.filter') }}</summary><div class="row g-2">
-<div class="col-12 col-md-4"><label class="form-label" for="q">Nach Rezepttitel suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ query }}"></div>
-<div class="col-12 col-md-4"><label class="form-label" for="ingredient">Zutat</label><input class="form-control" id="ingredient" name="ingredient" maxlength="200" value="{{ ingredient }}"></div>
-<div class="col-12 col-md-4"><label class="form-check"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label></div>
-<div class="col-12">{{ hint('Durchsucht Titel, Zutaten und Zubereitung. Alle Wörter müssen vorkommen; "Anführungszeichen" suchen eine Wortfolge. Titel und Zutat enthalten den eingegebenen Text. Alle Filter gelten gemeinsam.', 'text-hint') }}</div>
-</div></details>
-<button class="btn{% if not can_write %} btn-primary{% endif %}" type="submit">{{ icon_label('view.search') }}</button>{% if query or ingredient or tag or archived or text %}<a class="btn" href="{{ url_for('admin.recipes_list') }}">Filter zurücksetzen</a>{% endif %}
-</form>
+{% set tag_slot %}
+<div><label class="form-label" for="tag">Kennzeichnung</label><select class="form-select" id="tag" name="tag"><option value="">Alle Kennzeichnungen</option>{% for value, option_label in tags %}<option value="{{ value }}"{% if value == tag %} selected{% endif %}>{{ option_label }}</option>{% endfor %}</select></div>
+{% endset %}
+{% set more_slot %}
+<div><label class="form-label" for="q">Nach Rezepttitel suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ query }}"></div>
+<div><label class="form-label" for="ingredient">Zutat</label><input class="form-control" id="ingredient" name="ingredient" maxlength="200" value="{{ ingredient }}"></div>
+<div><label class="form-check"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label></div>
+{{ hint('Durchsucht Titel, Zutaten und Zubereitung. Alle Wörter müssen vorkommen; "Anführungszeichen" suchen eine Wortfolge. Titel und Zutat enthalten den eingegebenen Text. Alle Filter gelten gemeinsam.', 'text-hint') }}
+{% endset %}
+{{ filter_bar_sem(url_for('admin.recipes_list'), search_name='text', search_value=text, filters=tag_slot, more_filters=more_slot, active=query or ingredient or tag or archived or text, reset_url=url_for('admin.recipes_list') if query or ingredient or tag or archived or text else none, id='text') }}
 {% if text %}<p class="text-secondary">Sortiert nach Relevanz.</p>{% endif %}
 <div class="recipe-card-grid">
-{% for item in rows %}{% set links = recipe_links[item.public_id] %}<article class="card recipe-card"><div class="card-body recipe-list-row"><div class="recipe-list-name">
+{% for item in rows %}{% set links = recipe_links[item.public_id] %}
 {% set draft = namespace(incomplete=not item.payload.ingredients) %}{% for ingredient in item.payload.ingredients %}{% if not ingredient.food_public_id or ingredient.quantity is none or not ingredient.unit_code %}{% set draft.incomplete = true %}{% endif %}{% endfor %}
-<h2 class="card-title text-break mb-1">{{ item.payload.title }}</h2><p class="mb-0 text-secondary">Ausbeute {{ item.payload.servings }} {{ item.payload.servings_unit_code }}</p>
-</div>
-<span class="badge admin-status--{{ 'warning' if item.active and draft.incomplete else 'neutral' }}">{{ icon('alert-triangle' if item.active and draft.incomplete else 'info-circle') }}{{ 'Entwurf · Angaben fehlen' if item.active and draft.incomplete else ('Entwurf' if item.active else 'Archiviert') }}</span>
-<div class="d-flex flex-wrap gap-2 align-items-start">
-{% if can_write and item.active %}<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=item.public_id) }}" aria-label="{{ item.payload.title }} bearbeiten">{{ icon_label('actions.edit') }}</a>{% else %}<a class="btn" href="{{ url_for('admin.recipe_view', recipe_id=item.public_id) }}">{{ icon_label('actions.open') }}</a>{% endif %}
-<details class="admin-compact-actions"><summary class="btn btn-icon" title="{{ t('actions.more.tooltip') }}" aria-label="{{ t('actions.more.aria') }}">{{ sem_icon('actions.more') }}</summary><div class="d-flex flex-wrap gap-2 mt-2">
-{% if can_write and item.active %}<a class="btn" href="{{ url_for('admin.recipe_view', recipe_id=item.public_id) }}">{{ icon_label('actions.open') }}</a>{% endif %}
+{% set status %}{% if item.active and draft.incomplete %}{{ label('Entwurf', 'info') }}{{ label('Angaben fehlen', 'warning', icon='alert-triangle', detail='Zutaten, Mengen oder Einheiten fehlen') }}{% elif item.active %}{{ label('Entwurf', 'info') }}{% else %}{{ label('Archiviert', 'neutral') }}{% endif %}{% endset %}
+{% set direct %}{% if can_write and item.active %}<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=item.public_id) }}" data-semantic="actions.edit" aria-label="{{ item.payload.title }} bearbeiten">{{ icon_label('actions.edit') }}</a>{% else %}<a class="btn" href="{{ url_for('admin.recipe_view', recipe_id=item.public_id) }}" data-semantic="actions.open" aria-label="{{ item.payload.title }} ansehen">{{ icon_label('actions.open') }}</a>{% endif %}{% endset %}
+{% set more %}
+{% if can_write and item.active %}<a class="btn" href="{{ url_for('admin.recipe_view', recipe_id=item.public_id) }}" data-semantic="actions.open">{{ icon_label('actions.open') }}</a>{% endif %}
 {% if links.latest_revision %}
-<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=item.public_id, revision_id=links.latest_revision.public_id) }}">{{ icon('printer') }}Drucken · Stand {{ links.latest_revision.revision_number }}<span class="visually-hidden"> · {{ item.payload.title }}</span></a>
-{% else %}<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=item.public_id, _anchor='recipe-freeze') }}" aria-describedby="print-hint-{{ item.public_id }}">{{ icon('printer') }}Drucken<span class="visually-hidden"> · {{ item.payload.title }}</span></a>{% endif %}
-<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=item.public_id) }}">{{ icon('history') }}Rezept-History<span class="visually-hidden"> · {{ item.payload.title }}</span></a>
-</div>
+<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=item.public_id, revision_id=links.latest_revision.public_id) }}" data-semantic="actions.print" aria-label="Drucken · Stand {{ links.latest_revision.revision_number }} · {{ item.payload.title }}">{{ icon_label('actions.print') }}</a>
+{% else %}<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=item.public_id, _anchor='recipe-freeze') }}" data-semantic="actions.print" aria-describedby="print-hint-{{ item.public_id }}" aria-label="Drucken · {{ item.payload.title }}">{{ icon_label('actions.print') }}</a>{% endif %}
+<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=item.public_id) }}" data-semantic="data.history" aria-label="Rezept-History · {{ item.payload.title }}">{{ icon_label('data.history') }}</a>
 {% if not links.latest_revision %}<p class="text-secondary mt-2 mb-0" id="print-hint-{{ item.public_id }}">Zum Drucken zuerst einen Stand festhalten.</p>{% endif %}
 {{ template_links(links, item.public_id, can_create_template) }}
-</details></div>
-</div></article>
+{% endset %}
+<article class="recipe-card">{{ list_row(primary=item.payload.title, secondary='Ausbeute ' ~ item.payload.servings ~ ' ' ~ item.payload.servings_unit_code, status=status, actions=direct, more_actions=more) }}</article>
 {% else %}{% set filtered = query or ingredient or tag or archived or text %}
 {% call empty_state('no_match' if filtered else 'none', 'Keine passenden Rezepte' if filtered else 'Noch keine Rezepte', 'Filter anpassen oder zurücksetzen.' if filtered else 'Beginnen Sie mit einem neuen Rezeptentwurf.') %}
-{% if filtered %}<a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon_label('view.reset') }}</a>{% elif can_write %}<a class="btn" href="{{ url_for('admin.recipe_new') }}">{{ icon_label('actions.add') }}</a>{% endif %}
+{% if filtered %}{{ icon_button('view.reset', href=url_for('admin.recipes_list')) }}{% elif can_write %}{{ icon_button('actions.add', href=url_for('admin.recipe_new')) }}{% endif %}
 {% endcall %}{% endfor %}
 </div>
 {{ pagination(page, has_next, prev_url, next_url, 'Rezeptseiten') }}
