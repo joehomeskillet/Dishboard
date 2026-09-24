@@ -1,6 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, page_header, pagination, empty_state, filter_bar, hint %}
+{% from 'admin/_macros.html' import icon, page_header, pagination, empty_state, hint, label %}
+{% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem %}
 {% block title %}Menüs {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-collection.css') }}">{% endblock %}
 {% set workflow_nav = 'menus' %}
@@ -12,16 +13,19 @@
   {'label': 'Profil', 'value': 'Cafeteria' if profile == 'staff_guest' else 'Patienten'},
   {'label': 'Prüfung offen', 'value': pending.count if pending.count else none, 'detail': 'Auf dieser Ergebnisseite', 'variant': 'warning'}
 ]) %}
-<a class="btn btn-primary" href="{{ url_for('admin.' ~ family) }}">{{ icon('calendar-week') }}Zum Wochenplan</a>
+<a class="btn btn-primary" href="{{ url_for('admin.' ~ family) }}">{{ icon_label('navigation.weekplan') }}</a>
 {% endcall %}
 {% endblock %}
 {% block content %}
         {% macro review_status(row) %}
         {% set warning = row.stale_components or row.review_open|default(true) or not row.allergens or row.allergen_review_status|default('not_checked') != 'checked' %}
-        {% set review_text = 'Erneute Prüfung erforderlich' if row.stale_components else 'Prüfung offen' if warning else 'Geprüft · gespeicherter Stand bestätigt' %}
-        {% if not row.allergens %}{% set review_text = review_text ~ ' · Allergenangaben nicht erfasst' %}
-        {% elif row.allergen_review_status|default('not_checked') != 'checked' %}{% set review_text = review_text ~ ' · Allergenprüfung offen' %}{% endif %}
-        <span data-review="{{ 'open' if row.review_open|default(true) else 'checked' }}"><span class="badge admin-status--{{ 'warning' if warning else 'success' }}">{{ icon('alert-triangle' if warning else 'circle-check') }}<span>{{ review_text }}</span></span></span>
+        {% set review_text = 'Erneute Prüfung erforderlich' if row.stale_components else '' if warning else 'gespeicherter Stand bestätigt' %}
+        {% if not row.allergens %}{% set review_text = (review_text ~ ' · ' if review_text else '') ~ 'Allergenangaben nicht erfasst' %}
+        {% elif row.allergen_review_status|default('not_checked') != 'checked' %}{% set review_text = (review_text ~ ' · ' if review_text else '') ~ 'Allergenprüfung offen' %}{% endif %}
+        <span data-review="{{ 'open' if row.review_open|default(true) else 'checked' }}">
+          {{ label('Prüfung offen' if warning else 'Geprüft', 'warning' if warning else 'success', icon=sem('review.pending' if warning else 'review.approved').resolved_icon, status='warning' if warning else 'success') }}
+          {% if review_text %}<span class="d-block small">{{ review_text }}</span>{% endif %}
+        </span>
         {% endmacro %}
         {% set declarations = namespace(options=[]) %}
         {% set empty_title = 'Keine Menüs für diese Suche gefunden.' if query else 'Noch keine Menüs auf dieser Seite.' %}
@@ -35,7 +39,7 @@
                   {% endfor %}
                 </nav>
                 {% endset %}
-                {{ filter_bar(url_for('admin.menu_collection', family=family), search_value=query, filters=profile_filters, active=query, reset_url=url_for('admin.menu_collection', family=family), id='menu-query') }}
+                {{ filter_bar_sem(url_for('admin.menu_collection', family=family), search_value=query, filters=profile_filters, active=query, reset_url=url_for('admin.menu_collection', family=family), id='menu-query') }}
               <div class="menu-view-switch">
                 <noscript>
                   <nav class="nav nav-tabs" aria-label="Menüansicht ohne JavaScript">
@@ -52,7 +56,7 @@
         <div class="tab-content">
         <div class="tab-pane active" id="menu-list" role="tabpanel" aria-labelledby="menu-list-tab" tabindex="0">
           <div class="card dishboard-menu-results" role="region" aria-label="Menüliste" tabindex="0">
-            <table class="table table-vcenter card-table dishboard-menu-table admin-table--stack">
+            <table class="table table-vcenter card-table dishboard-menu-table admin-table admin-table--stack">
               <caption class="visually-hidden">Gespeicherte Menüs der aktuellen Suche</caption>
               <thead><tr><th scope="col">Menü</th><th scope="col">Tag</th><th scope="col">Mahlzeit / Zuweisung</th><th scope="col">Gespeicherter Prüfstand</th><th scope="col">Bearbeiten</th></tr></thead>
               <tbody>
@@ -65,7 +69,7 @@
                     {% endif %}
                     {% if row.description or row.note %}
                     <details class="menu-note-details mt-1 fw-normal">
-                      <summary class="btn btn-ghost-secondary border-0 btn-sm text-start p-0 d-inline-flex align-items-center gap-1">{{ icon('info-circle') }}Details</summary>
+                      <summary class="btn btn-ghost-secondary border-0 btn-sm text-start p-0 d-inline-flex align-items-center gap-1">{{ icon_label('ui.disclosure.details') }}</summary>
                       <div class="menu-note-content mt-1">
                         {% if row.description %}<div class="menu-description mb-1"><strong>Beschreibung:</strong> {{ row.description }}</div>{% endif %}
                         {% if row.note %}<div class="shared-note mb-0"><strong>Hinweis:</strong> {{ row.note }}</div>{% endif %}
@@ -75,13 +79,13 @@
                   </th>
                   <td data-label="Tag"><time datetime="{{ row.service_date.isoformat() }}">{{ row.service_date.strftime('%d.%m.%Y') }}</time>{% if row.workflow_state == 'archived' %}<span class="d-block text-secondary">Archivierte Woche</span>{% endif %}</td>
                   <td data-label="Mahlzeit / Zuweisung">{{ meal_labels[row.meal_code] }}<span class="d-block text-secondary">{{ option_labels[row.type_code] }}</span></td>
-                  <td data-label="Gespeicherter Prüfstand">
+                  <td class="admin-table-status" data-label="Gespeicherter Prüfstand">
                     {{ review_status(row) }}
                   </td>
-                  <td data-label="Bearbeiten"><a class="btn w-100" href="{{ url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code) }}" aria-label="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' bearbeiten' }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' bearbeiten' }}">{{ icon('pencil') }}Bearbeiten</a></td>
+                  <td class="admin-table-actions" data-label="Bearbeiten"><a class="btn" href="{{ url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code) }}" aria-label="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' bearbeiten' }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' bearbeiten' }}">{{ icon_label('actions.edit') }}</a></td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5">{% call empty_state('no_match' if query else 'none', empty_title, empty_text) %}<a class="btn" href="{{ url_for('admin.menu_collection', family=family) if query else url_for('admin.' ~ family) }}">{{ icon('search' if query else 'calendar-week') }}{{ 'Filter zurücksetzen' if query else 'Zum Wochenplan' }}</a>{% endcall %}</td></tr>
+                <tr><td colspan="5">{% call empty_state('no_match' if query else 'none', empty_title, empty_text) %}{{ icon_button('view.reset' if query else 'navigation.weekplan', href=url_for('admin.menu_collection', family=family) if query else url_for('admin.' ~ family)) }}{% endcall %}</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -104,7 +108,7 @@
                 {{ review_status(row) }}
                 {% if row.description or row.note %}
                 <details class="menu-note-details mt-2">
-                  <summary class="btn btn-ghost-secondary border-0 btn-sm text-start p-0 d-inline-flex align-items-center gap-1">{{ icon('info-circle') }}Details</summary>
+                  <summary class="btn btn-ghost-secondary border-0 btn-sm text-start p-0 d-inline-flex align-items-center gap-1">{{ icon_label('ui.disclosure.details') }}</summary>
                   <div class="menu-note-content mt-1">
                     {% if row.description %}<p class="menu-description mb-1"><strong>Beschreibung:</strong> {{ row.description }}</p>{% endif %}
                     {% if row.note %}<p class="shared-note mb-0"><strong>Hinweis:</strong> {{ row.note }}</p>{% endif %}
@@ -113,7 +117,7 @@
                 {% endif %}
               </div>
               <div class="card-footer">
-                <a class="btn w-100" href="{{ url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code) }}" aria-label="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' bearbeiten' }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' bearbeiten' }}">{{ icon('pencil') }}Bearbeiten</a>
+                <div class="admin-row-actions"><a class="btn" href="{{ url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code) }}" aria-label="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' bearbeiten' }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y') ~ ' bearbeiten' }}">{{ icon_label('actions.edit') }}</a></div>
               </div>
             </article>
           </div>
@@ -121,7 +125,7 @@
           <div class="col-12">
             <div class="card">
               {% call empty_state('no_match' if query else 'none', empty_title, empty_text) %}
-                <a class="btn" href="{{ url_for('admin.menu_collection', family=family) if query else url_for('admin.' ~ family) }}">{{ icon('search' if query else 'calendar-week') }}{{ 'Filter zurücksetzen' if query else 'Zum Wochenplan' }}</a>
+                {{ icon_button('view.reset' if query else 'navigation.weekplan', href=url_for('admin.menu_collection', family=family) if query else url_for('admin.' ~ family)) }}
               {% endcall %}
             </div>
           </div>

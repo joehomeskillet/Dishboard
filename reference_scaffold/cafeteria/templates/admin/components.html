@@ -1,8 +1,8 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import symbol %}
-{% from 'admin/_macros.html' import icon, page_header, field, check %}
+{% from 'admin/_macros.html' import icon, page_header, field, check, label as ui_label, empty_state %}
 {% from 'admin/_country_select.html' import country_select, countries %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, row_actions %}
 {% set workflow_nav = 'components' %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
@@ -53,8 +53,8 @@
         </select>
       </div>
       <div class="col-12 col-lg-4 d-flex flex-wrap gap-2 align-items-center component-filter-actions">
-        <button type="submit" class="btn">{{ icon_label('view.search') }}</button>
-        {% if filtered %}<a class="btn btn-outline-secondary" href="/admin/{{ family }}/komponenten">{{ icon_label('view.reset') }}</a>{% endif %}
+        {{ icon_button('view.search') }}
+        {% if filtered %}{{ icon_button('view.reset', href='/admin/' ~ family ~ '/komponenten') }}{% endif %}
         <span id="component-result-count" class="text-secondary" role="status">{{ rows|length }} Treffer</span>
       </div>
     </div>
@@ -117,7 +117,7 @@
 <div class="component-list-container">
   {% if rows %}
   <div class="card dishboard-component-results">
-    <table class="table table-vcenter card-table dishboard-component-table admin-table--stack">
+    <table class="table table-vcenter card-table dishboard-component-table admin-table admin-table--stack">
       <caption class="visually-hidden">Bausteine der aktuellen Suche</caption>
       <thead><tr><th scope="col">Name</th><th scope="col">Kategorie</th><th scope="col">Kennzeichnungen</th><th scope="col">Verwendung</th><th scope="col">Status</th><th scope="col" class="component-action-col">Aktion</th></tr></thead>
       <tbody>
@@ -126,28 +126,29 @@
           <th scope="row" class="component-row-name" data-label="Name">{{ row.name }}
             <div class="text-secondary fw-normal text-break">{{ 'Lebensmittel: ' ~ row.food_name if row.food_name else 'kein Lebensmittel' }}</div>
           </th>
-          <td class="category" data-label="Kategorie">{{ categories.get(row.category, row.category) }}</td>
+          <td class="category" data-label="Kategorie">{{ ui_label(categories.get(row.category, row.category), 'category') }}</td>
           <td class="component-markers" data-label="Kennzeichnungen">
             <div class="d-flex flex-wrap gap-1 align-items-center">
-              {% if row.labels %}{% for label in row.labels[:2] %}<span class="badge bg-secondary-lt">{{ label.name|default(label.code) }}</span>{% endfor %}{% endif %}
-              {% if row.labels|length > 2 %}<details class="component-label-overflow"><summary>+{{ row.labels|length - 2 }} <span class="visually-hidden">{{ t('actions.more.label') }}</span></summary><div>{% for label in row.labels[2:] %}<span class="badge bg-secondary-lt">{{ label.name|default(label.code) }}</span>{% endfor %}</div></details>{% endif %}
+              {% if row.labels %}{% for label in row.labels[:2] %}{{ ui_label(label.name|default(label.code), 'category') }}{% endfor %}{% endif %}
+              {% if row.labels|length > 2 %}<details class="component-label-overflow"><summary>+{{ row.labels|length - 2 }} <span class="visually-hidden">{{ t('actions.more.label') }}</span></summary><div>{% for label in row.labels[2:] %}{{ ui_label(label.name|default(label.code), 'category') }}{% endfor %}</div></details>{% endif %}
               {% if row.origin_country_code %}<span class="text-secondary">{{ symbol('countries', row.origin_country_code, true) }}{{ row.origin_country_code }}</span>{% else %}<span class="text-secondary">Herkunft nicht erfasst</span>{% endif %}
             </div>
             <div class="text-secondary small">{{ 'gemeinsam' if row.profile_scope == 'common' else 'nur Cafeteria' if row.profile_scope == 'staff_guest' else 'nur Patienten' }}</div>
           </td>
           <td class="usage" data-label="Verwendung">verwendet in {{ row.usage_count }} Gerichten</td>
-          <td class="component-status" data-label="Status"><span class="badge admin-status--{{ 'active' if row.active else 'neutral' }}">{{ icon('circle-check' if row.active else 'archive') }}<span>{{ 'Aktiv' if row.active else 'archiviert' }}</span></span></td>
-          <td class="component-action" data-label="Aktion"><a class="btn component-edit-link" href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ icon_label('actions.edit') }}</a></td>
+          <td class="component-status admin-table-status" data-label="Status">{{ ui_label('Aktiv' if row.active else 'archiviert', 'active' if row.active else 'neutral', icon=sem('status.active' if row.active else 'actions.archive').resolved_icon) }}</td>
+          <td class="component-action admin-table-actions" data-label="Aktion">{{ row_actions([{'key': 'actions.edit', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}]) }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   {% else %}
-  <div class="card"><div class="card-body py-3">
-    <p class="mb-0">{{ icon('search' if filtered else 'components') }}{{ 'Keine Bausteine passen zu diesen Filtern.' if filtered else 'Noch keine aktiven Bausteine.' }}</p>
+  <div class="card">
+    {% call empty_state('no_match' if filtered else 'none', 'Keine Bausteine passen zu diesen Filtern.' if filtered else 'Noch keine aktiven Bausteine.', 'Filter anpassen.' if filtered else 'Einen Baustein anlegen.') %}
     <a class="btn mt-2" href="{{ '/admin/' ~ family ~ '/komponenten' if filtered else '#c-name' }}"{% if not filtered %} data-error-link{% endif %}>{{ icon_label('view.reset' if filtered else 'actions.add') }}</a>
-  </div></div>
+    {% endcall %}
+  </div>
   {% endif %}
 </div>
 

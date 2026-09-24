@@ -35,12 +35,6 @@
 .dishboard-admin .dishboard-component-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; padding: var(--app-space-1) var(--app-space-2); }
 .dishboard-admin .dishboard-component-table th { text-transform: none; letter-spacing: normal; }
 .component-row-name { font-weight: var(--app-font-weight-semibold, 600); }
-.component-edit-link {
-  display: inline-flex; align-items: center; justify-content: center; gap: var(--app-space-2);
-  min-height: var(--app-space-12); white-space: nowrap; overflow-wrap: normal; word-break: normal;
-}
-.component-edit-link .icon { flex: none; }
-.component-edit-link .ui-sem-label { white-space: nowrap; }
 .component-markers .badge { max-width: 100%; overflow-wrap: anywhere; }
 .component-label-overflow summary { min-height: var(--app-space-12); display: flex; align-items: center; cursor: pointer; }
 .component-secondary-actions .card-title { font-size: var(--app-font-size-body); }
@@ -65,7 +59,6 @@
   .component-row :is(.component-row-name, .component-markers, .usage, .component-action) { grid-column: 1 / -1; }
   .component-row .category { grid-column: 1; }
   .component-row .component-status { grid-column: 2; }
-  .component-edit-link { width: 100%; }
 }
 /* Desktop: a chosen allergen shows its presence beside the option, like the menu editor's option rows. */
 @media (min-width: 992px) {

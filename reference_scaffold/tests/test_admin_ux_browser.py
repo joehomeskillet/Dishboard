@@ -244,22 +244,25 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
         page.locator(f'[name="{mode}_mode"][value="manual"]').check()
     for index, text in enumerate(('Blattsalat', 'Gebäck')):
         if index:
-            page.get_by_role('button', name='Baustein hinzufügen').click()
+            page.locator('[data-add-row="components-list"]').click()
         else:
             page.get_by_role('button', name='Bearbeiten').first.click()
         page.locator('[data-component-kind-option][value="text"]').nth(index).check()
         page.locator('[name="component_text"]').nth(index).fill(text)
-    page.get_by_role('button', name='Baustein hinzufügen').click()
-    page.get_by_role('button', name='Entfernen').last.click()
-    page.get_by_role('button', name='Baustein hinzufügen').click()
+    page.locator('[data-add-row="components-list"]').click()
+    added = page.locator('#components-list .component-row').last
+    added.locator('[data-finish-row]').click()
+    added.locator('summary').click()
+    added.get_by_role('button', name='Löschen').click()
+    page.locator('[data-add-row="components-list"]').click()
     for index, (ingredient, country) in enumerate((('Rind', 'CH'), ('Kartoffel', 'DE'))):
         if index:
-            page.get_by_role('button', name='Herkunft hinzufügen').click()
+            page.locator('[data-add-row="origins-list"]').click()
         page.locator('[name="origin_ingredient"]').nth(index).fill(ingredient)
         page.locator('[name="origin_country_code"]').nth(index).select_option(country)
-    page.get_by_role('button', name='Herkunft hinzufügen').click()
-    page.get_by_role('button', name='Herkunft entfernen').last.click()
-    page.get_by_role('button', name='Herkunft hinzufügen').click()
+    page.locator('[data-add-row="origins-list"]').click()
+    page.locator('#origins-list [data-remove-row]').last.click()
+    page.locator('[data-add-row="origins-list"]').click()
     for code, presence in (('MILK', 'may_contain'), ('GLUTEN', 'contains')):
         checkbox = page.locator(f'[name="allergen_code"][value="{code}"]')
         checkbox.check()
@@ -335,7 +338,7 @@ def test_menu_catalog_pair_errors_and_archived_assignment_survive(
     expect(page.locator('[name="component_public_id"]')).to_have_value(public_id)
     expect(page.locator(f'option[value="{public_id}"]')).to_be_enabled()
     assert _submit_menu(page)['component_public_id'] == [public_id]
-    page.get_by_role('button', name='Baustein hinzufügen').click()
+    page.locator('[data-add-row="components-list"]').click()
     rows = page.locator('#components-list .component-row')
     expect(rows.first.locator(f'option[value="{public_id}"]')).to_be_enabled()
     expect(rows.last.locator('[name="component_public_id"]')).to_have_value('')
@@ -362,6 +365,7 @@ def test_cancelled_archive_confirm_keeps_unsaved_changes_guard(
         dialogs.append(dialog.type)
         dialog.dismiss()
 
+    page.locator('details').filter(has=page.locator('form[action$="/archive"]')).locator('summary').click()
     page.once('dialog', dismiss)
     page.locator('form[action$="/archive"] button').click()
     assert dialogs == ['confirm']

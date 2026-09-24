@@ -185,7 +185,7 @@ def _assert_component_controls_fit(page: Page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     dimensions = page.locator(
         'main .btn, main .form-control, main .form-select, main .form-check, '
-        'main summary, main .component-edit-link'
+        'main summary, main .component-action .ui-sem-control'
     ).evaluate_all('''elements => elements.filter(e => e.getClientRects().length).map(e => ({
         height: e.getBoundingClientRect().height,
         width: e.getBoundingClientRect().width,

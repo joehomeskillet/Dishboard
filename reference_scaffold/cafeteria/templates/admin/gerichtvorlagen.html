@@ -1,5 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, filter_bar, empty_state, form_footer, hint %}
+{% from 'admin/_macros.html' import page_header, icon, empty_state, hint, label, empty_value %}
+{% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem, row_actions %}
 {% set workflow_nav = 'dish_templates' %}
 {% set scope_labels = {'common': 'Gemeinsam', 'patient': 'Patienten', 'staff_guest': 'Cafeteria'} %}
 {% set type_labels = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'} %}
@@ -7,7 +8,7 @@
 {% macro accompaniment_state(item, icon_visible=true) %}
 {% if item.accompaniment_default == 'soup' %}{% if icon_visible %}{{ icon('soup') }}{% endif %}Suppe
 {% elif item.accompaniment_default == 'salad' %}{% if icon_visible %}{{ icon('salad') }}{% endif %}Salat
-{% else %}—{% endif %}
+{% else %}{{ empty_value() }}{% endif %}
 {% endmacro %}
 {% macro recipe_state(item) %}
 {% if item.recipe_public_id %}
@@ -39,10 +40,10 @@
 {% endif %}
 {% call page_header('Gerichtvorlagen', description=('Vorlage bearbeiten · ' ~ row.title) if row else ('Vorlage anlegen' if editing else none), status_items=status_items) %}
   {% if editing %}
-    {% if row and row.active and can_write %}<a class="btn" href="{{ url_for('admin.dish_template_plan', public_id=row.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}
-    <a class="btn" href="{{ url_for('admin.dish_templates_list') }}">{{ icon('arrow-left') }}Zur Vorlagenliste</a>
+    {% if row and row.active and can_write %}{{ icon_button('actions.open', href=url_for('admin.dish_template_plan', public_id=row.public_id)) }}{% endif %}
+    {{ icon_button('actions.back', href=url_for('admin.dish_templates_list'), icon_only=true) }}
   {% elif can_write %}
-    <a class="btn btn-primary" href="{{ url_for('admin.dish_template_new') }}">{{ icon('plus') }}Vorlage anlegen</a>
+    {{ icon_button('actions.add', href=url_for('admin.dish_template_new')) }}
   {% endif %}
 {% endcall %}
 {% endblock %}
@@ -57,10 +58,10 @@
 {% set filters %}
 <label class="form-check mb-0"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label>
 {% endset %}
-{{ filter_bar(url_for('admin.dish_templates_list'), filters=filters, active=include_archived) }}
+{{ filter_bar_sem(url_for('admin.dish_templates_list'), filters=filters, active=include_archived) }}
 {% if rows %}
 <div class="card mb-4">
-    <table class="table table-vcenter card-table admin-table--stack">
+    <table class="table table-vcenter card-table admin-table admin-table--stack">
       <thead>
         <tr>
           <th scope="col">Titel</th>
@@ -82,8 +83,8 @@
           <td data-label="Geltungsbereich">{{ scope_labels.get(item.profile_scope, item.profile_scope) }}</td>
           <td data-label="Gebundenes Rezept">{{ recipe_state(item) }}</td>
           <td data-label="Dazu">{{ accompaniment_state(item) }}</td>
-          <td data-label="Aktivstatus"><span class="badge admin-status--{{ 'success' if item.active else 'neutral' }}">{{ icon('circle-check' if item.active else 'archive') }}<span>{{ 'Aktiv' if item.active else 'Archiviert' }}</span></span></td>
-          {% if can_write %}<td data-label="Planung">{% if item.active %}<a class="btn" href="{{ url_for('admin.dish_template_plan', public_id=item.public_id) }}">{{ icon('calendar-plus') }}Als Menü einplanen</a>{% endif %}</td>{% endif %}
+          <td class="admin-table-status" data-label="Aktivstatus">{{ label('Aktiv' if item.active else 'Archiviert', 'active' if item.active else 'neutral', icon=sem('status.active' if item.active else 'actions.archive').resolved_icon) }}</td>
+          {% if can_write %}<td class="admin-table-actions" data-label="Planung">{% if item.active %}{{ row_actions([{'key': 'actions.open', 'href': url_for('admin.dish_template_plan', public_id=item.public_id)}]) }}{% endif %}</td>{% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -148,7 +149,7 @@
       <div class="row g-2 align-items-end mb-3">
         <div class="col-md-8"><label class="form-label" for="recipe-search">Rezept nach Titel suchen</label>
         <input class="form-control" id="recipe-search" name="recipe_search" value="{{ recipe_choices.search }}" maxlength="200"></div>
-        <div class="col-md-auto"><button class="btn" type="submit" name="action" value="recipe_search" formnovalidate>{{ icon('search') }}Rezepte suchen</button></div>
+        <div class="col-md-auto"><button class="btn" type="submit" name="action" value="recipe_search" formnovalidate>{{ icon_label('view.search') }}</button></div>
       </div>
       <input type="hidden" name="recipe_offset" value="{{ recipe_choices.offset }}">
       {{ hint('Suche und Seitenwechsel erhalten Ihre Eingaben. Gespeichert wird erst mit «Speichern».', 'recipe-search-hint', mode='inline') }}
@@ -168,14 +169,27 @@
       {% if not recipe_choices.choices %}<p class="mt-2">Keine passenden Rezepte</p>{% endif %}
       {% if recipe_choices.offset or recipe_choices.has_next %}
       <nav class="btn-list mt-2" aria-label="Rezeptauswahl Seiten">
-        {% if recipe_choices.offset %}<button class="btn" type="submit" name="action" value="recipe_previous" formnovalidate>{{ icon('arrow-left') }}Vorherige Rezepte</button>{% endif %}
+        {% if recipe_choices.offset %}<button class="btn" type="submit" name="action" value="recipe_previous" formnovalidate>{{ icon_label('actions.back') }}</button>{% endif %}
         <span class="align-self-center">Seite {{ recipe_choices.offset // 50 + 1 }}</span>
-        {% if recipe_choices.has_next %}<button class="btn" type="submit" name="action" value="recipe_next" formnovalidate>Weitere Rezepte {{ icon('arrow-right') }}</button>{% endif %}
+        {% if recipe_choices.has_next %}<button class="btn" type="submit" name="action" value="recipe_next" formnovalidate>{{ icon_label('actions.next') }}</button>{% endif %}
       </nav>
       {% endif %}
     </div>
-    {% set rare = '<button class="btn btn-danger" type="submit" name="action" value="archive" data-confirm="Diese Vorlage archivieren?">Archivieren</button><p class="ui-sem-consequence">Die Vorlage bleibt lesbar und erscheint nicht mehr in neuen Planungen.</p>' if (row and row.active) else ('<button class="btn" type="submit" name="action" value="reactivate">Reaktivieren</button>' if row else none) %}
-    {{ form_footer(primary={'type': 'submit', 'name': 'action', 'value': 'save', 'label': 'Speichern', 'icon': 'device-floppy'}, cancel_url=url_for('admin.dish_templates_list'), rare=rare|safe) }}
+    <div class="admin-form-footer">
+      {% if row %}<details class="admin-form-rare admin-compact-actions">
+        <summary class="btn btn-ghost">{{ icon_label('actions.more') }}</summary>
+        <div class="admin-form-tertiary">
+          {% if row.active %}
+          <button class="btn btn-danger" type="submit" name="action" value="archive" data-confirm="Diese Vorlage archivieren?">{{ icon_label('actions.archive') }}</button>
+          <p class="ui-sem-consequence">Die Vorlage bleibt lesbar und erscheint nicht mehr in neuen Planungen.</p>
+          {% else %}{{ icon_button('actions.restore', name='action', value='reactivate') }}{% endif %}
+        </div>
+      </details>{% endif %}
+      <div class="admin-form-main">
+        {{ icon_button('actions.cancel', href=url_for('admin.dish_templates_list')) }}
+        {{ icon_button('actions.save', name='action', value='save') }}
+      </div>
+    </div>
   </form>
 </section>
 {% endif %}

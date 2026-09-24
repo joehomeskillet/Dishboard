@@ -1,4 +1,14 @@
 /* Text links are actions too; keep their targets consistent with Tabler controls. */
+.dishboard-admin main .admin-table { width: 100%; }
+.dishboard-admin main .admin-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; }
+@media (min-width: 1200px) {
+  .dishboard-admin main .admin-table th { white-space: nowrap; }
+}
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .dishboard-admin main .admin-table { table-layout: fixed; }
+  .dishboard-admin main .admin-table :is(th:last-child, .admin-table-actions) { width: calc(var(--app-button-size) * 3); }
+  .dishboard-admin main .admin-table :is(th:nth-child(6), .admin-table-status) { width: calc(var(--app-button-size) * 2); }
+}
 .dishboard-admin main a:not(.btn) {
   display: inline-flex;
   align-items: center;

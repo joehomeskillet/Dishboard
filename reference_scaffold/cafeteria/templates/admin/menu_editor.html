@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, hint %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, hint, label, list_row %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set layout_variant = 'standard' %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
@@ -18,7 +18,7 @@
   {'label': 'Tag', 'value': day_title},
   {'label': 'Allergene', 'value': 'Allergenangaben nicht erfasst' if not cell.retained_only and not origin_conflict and (not effects or not effects.allergens) else none, 'variant': 'warning'}
 ]) %}
-<a class="btn" href="{{ back_url }}">{{ icon('arrow-left') }}Zum Wochenplan</a>
+{{ icon_button('navigation.weekplan', href=back_url) }}
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -36,7 +36,8 @@
 {% macro mode_summary(key, title, badge_id) %}
 <summary class="card-header">
   <h2 class="card-title mb-0">{{ title }}</h2>
-  <span class="badge admin-status--neutral" id="{{ badge_id }}" data-mode-badge="{{ key }}">{{ 'automatisch geerbt' if is_auto[key] else 'manuell festgelegt' }}</span>
+  {% set mode_text %}<span id="{{ badge_id }}" data-mode-badge="{{ key }}">{{ 'automatisch geerbt' if is_auto[key] else 'manuell festgelegt' }}</span>{% endset %}
+  {{ label(mode_text, 'neutral') }}
   {{ icon('chevron-right', 'admin-accordion-marker') }}
 </summary>
 {% endmacro %}
@@ -68,7 +69,7 @@
     <li>{% if cell.review_conflict %}{{ origin_conflict or message }}{% else %}<a href="#{{ error_targets.get(name, 'f-title') }}" data-error-link>{{ message }}</a>{% endif %}</li>
     {% endfor %}
   </ul>
-  {% if not cell.review_conflict %}<button type="button" class="btn" data-retry-page>{{ icon('refresh') }}Erneut versuchen</button>{% endif %}
+  {% if not cell.review_conflict %}<button type="button" class="btn" data-retry-page>{{ icon_label('actions.retry') }}</button>{% endif %}
 </div>
 {% endif %}
 
@@ -96,7 +97,8 @@
           {% if cell.dish_template or submitted.get('dish_template_public_id') %}
           <div class="mb-2" id="template-reference">
             {% if cell.dish_template %}
-            <a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ icon('copy') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a>
+            {{ icon_button('navigation.templates', href=url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id)) }}
+            <span>Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</span>
             {% else %}
             <p class="text-secondary mb-0">{{ icon('copy') }}Ursprünglicher Vorlagenbezug. Aktuelle Angaben wurden nicht geladen.</p>
             {% endif %}
@@ -139,8 +141,8 @@
         <div class="card-body">
           {% if cell.proposal_hint %}
           <p class="mb-2" id="proposal-recipe-hint">{{ icon('info-circle') }}{{ cell.proposal_hint }}</p>
-          {% if cell.proposal_freeze_url %}<a class="btn mb-2" href="{{ cell.proposal_freeze_url }}">{{ icon('history') }}Stand festhalten</a>
-          {% elif cell.proposal_recipe_url %}<a class="btn mb-2" href="{{ cell.proposal_recipe_url }}">{{ icon('eye') }}Rezept ansehen</a>{% endif %}
+          {% if cell.proposal_freeze_url %}{{ icon_button('actions.open', href=cell.proposal_freeze_url) }}
+          {% elif cell.proposal_recipe_url %}{{ icon_button('actions.open', href=cell.proposal_recipe_url) }}{% endif %}
           {% endif %}
           <div id="components-list" class="menu-editor-row-list" data-row-list="component" data-row-title="Baustein">
             {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
@@ -170,10 +172,13 @@
                 <div class="menu-editor-component-summary" data-component-summary-view hidden>
                   <strong data-component-summary>{{ c_text|default('') }}</strong>
                   <div class="menu-editor-row-actions">
-                    <button type="button" class="btn" data-edit-row>{{ icon('pencil') }}Bearbeiten</button>
-                    <button type="button" class="btn" data-move-row="up">Nach oben</button>
-                    <button type="button" class="btn" data-move-row="down">Nach unten</button>
-                    <button type="button" class="btn btn-outline-danger" data-remove-row>{{ icon('trash') }}Entfernen</button>
+                    <button type="button" class="btn" data-edit-row>{{ icon_label('actions.edit') }}</button>
+                    <details class="admin-compact-actions">
+                      <summary class="btn btn-ghost">{{ icon_label('actions.more') }}</summary>
+                      <button type="button" class="btn" data-move-row="up">{{ sem_icon('actions.move') }}Nach oben</button>
+                      <button type="button" class="btn" data-move-row="down">{{ sem_icon('actions.move') }}Nach unten</button>
+                      <button type="button" class="btn btn-outline-danger" data-remove-row>{{ icon_label('actions.delete') }}</button>
+                    </details>
                   </div>
                 </div>
                 <div class="menu-editor-row-body" data-component-edit-view>
@@ -229,7 +234,7 @@
                     <input type="hidden" name="target_quantity_unit_code" value="{{ revision_unit_code }}" data-target-quantity-unit>
                     <p class="form-hint" id="component-{{ i }}-target-quantity-hint" data-target-quantity-hint>{% if not r_id %}Nur mit gebundener Rezeptrevision verfügbar.{% elif revision_yield_text %}leer = deklarierte Ausbeute ({{ revision_yield_text }}). Dezimalpunkt verwenden, z. B. 2.5.{% else %}Angaben zur deklarierten Ausbeute für diese Revision derzeit nicht verfügbar. Dezimalpunkt verwenden, z. B. 2.5.{% endif %}</p>
                   </div>
-                  <button type="button" class="btn mt-3" data-finish-row hidden>Fertig</button>
+                  <button type="button" class="btn mt-3" data-finish-row hidden>{{ icon_label('actions.confirm') }}</button>
                 </div>
               </fieldset>
             {% endfor %}
@@ -238,7 +243,7 @@
           {{ field_error('component_text', 'err-component-text') }}
           {{ field_error('recipe_revision_public_id', 'err-recipe-revision') }}
           {{ field_error('target_quantity', 'err-target-quantity') }}
-          <button type="button" class="btn mt-3" data-add-row="components-list">{{ icon('plus') }}Baustein hinzufügen</button>
+          <button type="button" class="btn mt-3" data-add-row="components-list">{{ icon_label('actions.add') }}</button>
         </div>
       </section>
 
@@ -277,14 +282,14 @@
                   </div>
                 </div>
                 <div class="menu-editor-row-actions mt-2">
-                  <button type="button" class="btn btn-outline-danger" data-remove-row{% if is_auto['origin'] %} disabled{% endif %}>{{ icon('trash') }}Herkunft entfernen</button>
+                  <button type="button" class="btn btn-outline-danger" data-remove-row{% if is_auto['origin'] %} disabled{% endif %}>{{ icon_label('actions.delete') }}</button>
                 </div>
               </div>
             </fieldset>
             {% endfor %}
           </div>
           {{ field_error('origin_ingredient', 'err-origin-ingredient') }}
-          <button type="button" class="btn mt-3" data-add-row="origins-list"{% if is_auto['origin'] %} disabled{% endif %}>{{ icon('plus') }}Herkunft hinzufügen</button>
+          <button type="button" class="btn mt-3" data-add-row="origins-list"{% if is_auto['origin'] %} disabled{% endif %}>{{ icon_label('actions.add') }}</button>
         </div>
       </details>
 
@@ -333,10 +338,10 @@
       {% endcall %}
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
-        <button type="submit" class="btn btn-primary"{% if cell.template_proposal %} formaction="/admin/{{ family }}/menu?return_to=week"{% endif %}>{{ icon('device-floppy') }}Menü speichern</button>
+        <button type="submit" class="btn btn-primary"{% if cell.template_proposal %} formaction="/admin/{{ family }}/menu?return_to=week"{% endif %}>{{ icon_label('actions.save') }}</button>
         {# Native submit input: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
         {% if not cell.template_proposal %}<input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zum Wochenplan">{% endif %}
-        <a class="btn" href="{{ back_url }}">Abbrechen</a>
+        {{ icon_button('actions.cancel', href=back_url) }}
       </div>
     </form>
   </div>
@@ -354,18 +359,16 @@
             {% if cell.retained_only %}
             <span class="menu-editor-review-value" data-review-field="components">Gespeicherter Stand nicht verfügbar</span>
             {% elif cell.components %}
-            <ul class="list-unstyled menu-editor-review-components mb-0" data-review-field="components">
+            <div class="menu-editor-review-components mb-0" data-review-field="components">
               {% for assignment in cell.components %}
               {% set assignment_name = assignment.component_text or (catalog_choices|selectattr('public_id', 'equalto', assignment.component_public_id)|map(attribute='name')|first) or 'Unbenannter Baustein' %}
               {% set assignment_revision = assignment.recipe_revision_public_id %}
               {% set assignment_matches = review_revision_choices|selectattr('revision_public_id', 'equalto', assignment_revision)|list if assignment_revision else [] %}
               {% set assignment_choice = assignment_matches[0] if assignment_matches else none %}
-              <li class="menu-editor-review-component">
-                <span class="menu-editor-review-component-name">{{ assignment_name }}</span>
-                <span class="menu-editor-review-component-value">{% if not assignment_revision %}ohne Rezeptbindung{% elif assignment.target_quantity %}Zielmenge: {{ assignment.target_quantity }} {{ unit_display_names.get(assignment.target_quantity_unit_code, assignment.target_quantity_unit_code) }}{% elif assignment_choice and assignment_choice.metadata_available %}{% set assignment_yield = assignment_choice.yield_label.rsplit(' ', 1) %}Deklarierte Ausbeute: {{ assignment_yield[0] }} {{ unit_display_names.get(assignment_yield[1], assignment_yield[1]) }}{% else %}Deklarierte Ausbeute (Rezeptangaben derzeit nicht verfügbar){% endif %}</span>
-              </li>
+              {% set quantity_text %}{% if not assignment_revision %}ohne Rezeptbindung{% elif assignment.target_quantity %}Zielmenge: {{ assignment.target_quantity }} {{ unit_display_names.get(assignment.target_quantity_unit_code, assignment.target_quantity_unit_code) }}{% elif assignment_choice and assignment_choice.metadata_available %}{% set assignment_yield = assignment_choice.yield_label.rsplit(' ', 1) %}Deklarierte Ausbeute: {{ assignment_yield[0] }} {{ unit_display_names.get(assignment_yield[1], assignment_yield[1]) }}{% else %}Deklarierte Ausbeute (Rezeptangaben derzeit nicht verfügbar){% endif %}{% endset %}
+              {{ list_row(primary=assignment_name, secondary=quantity_text) }}
               {% endfor %}
-            </ul>
+            </div>
             {% else %}
             <span class="menu-editor-review-value" data-review-field="components">Noch keine Bausteine gespeichert</span>
             {% endif %}
@@ -409,7 +412,7 @@
           <input type="hidden" name="option" value="{{ cell.option }}">
           <input type="hidden" name="row_version" value="{{ cell.row_version }}">
           <input type="hidden" name="component_version" value="{{ review_token }}">
-          <button type="submit" class="btn w-100">{{ icon('check') }}Als geprüft bestätigen</button>
+          <button type="submit" class="btn">{{ icon_label('actions.confirm') }}</button>
         </form>
       </div>
       {% endif %}

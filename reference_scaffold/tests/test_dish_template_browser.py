@@ -45,7 +45,7 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
             measurements[state] = _rework_measure(page, state, width)
             if state == 'new':
                 expect(page.locator('[name="recipe_search"]')).to_be_visible()
-                expect(page.get_by_role('button', name='Rezepte suchen')).to_be_visible()
+                expect(page.get_by_role('button', name='Suchen')).to_be_visible()
         path = create(client, title='Messvorlage', menu_type_code='MENU_1', profile_scope='common')
         for state, route in [('list', '/admin/gerichtvorlagen'), ('editor', path),
                              ('planning', path + '/einplanen')]:
@@ -56,12 +56,13 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
                 expect(page.locator('.admin-statusbar')).to_contain_text('Gemeinsam')
                 expect(page.locator('.admin-statusbar')).to_contain_text('Fehlt')
             if state == 'planning':
+                expect(page.locator('[data-semantic="actions.next"].btn-primary')).to_have_text('Weiter')
                 summary = page.locator('#planning-summary')
                 expect(summary).to_be_visible()
                 expect(summary).to_contain_text('Messvorlage')
                 page.get_by_label('Menüart', exact=True).select_option('VEGGIE')
                 if not javascript:
-                    page.get_by_role('button', name='Ziel aktualisieren').click()
+                    page.get_by_role('button', name='Aktualisieren').click()
                 expect(summary).to_contain_text('Vegetarisch')
                 for name in ('area', 'meal', 'option'):
                     selected = page.locator(f'#planning-target [name="{name}"] option:checked').inner_text()
@@ -171,7 +172,7 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
         for column in COLUMNS:
             expect(page.get_by_role('columnheader', name=column)).to_have_count(0)
         expect(page.get_by_text('Noch keine Gerichtvorlagen')).to_be_visible()
-        page.get_by_role('link', name='Vorlage anlegen').click()
+        page.get_by_role('link', name='Anlegen').click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Gerichtvorlagen')
         expect(page.locator('.page-header')).to_contain_text('Vorlage anlegen')
         targets(page)
@@ -192,6 +193,9 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
             assert page.locator('table.admin-table--stack tbody tr').first.evaluate(
                 "e => getComputedStyle(e).display") == 'grid'
         expect(page.locator('.badge:visible').filter(has_text='Aktiv')).to_have_count(1)
+        expect(page.locator('table.admin-table.admin-table--stack')).to_have_count(1)
+        expect(page.locator('.admin-table-status .admin-label.admin-status--active')).to_be_visible()
+        expect(page.locator('.admin-table-actions [data-semantic="actions.open"]')).to_have_text('Öffnen')
         page.get_by_role('link', name='Browser Vorlage').click()
         expect(page.get_by_label('Status', exact=True)).to_be_visible()
         expect(page.get_by_label('Status', exact=True).locator('dt').filter(has_text='Status')).to_be_visible()
@@ -327,7 +331,7 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
             page.get_by_label('Rezept nach Titel suchen', exact=True).fill('001')
             before = snapshot(owner)
             with page.expect_response(lambda response: response.request.method == 'POST') as response:
-                page.get_by_role('button', name='Rezepte suchen', exact=True).click()
+                page.get_by_role('button', name='Suchen', exact=True).click()
             assert response.value.status == 200 and '_csrf' not in page.url
             expect(page.get_by_label('Titel', exact=True)).to_have_value('')
             expect(page.get_by_label('Beschreibung', exact=True)).to_have_value('Ungespeicherte Beschreibung')
@@ -335,8 +339,8 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
             expect(page.get_by_label('Gebundenes Rezept', exact=True)).to_have_value(ids[-1])
             assert snapshot(owner) == before
             page.get_by_label('Rezept nach Titel suchen', exact=True).fill('')
-            page.get_by_role('button', name='Rezepte suchen', exact=True).click()
-            page.get_by_role('button', name='Weitere Rezepte', exact=True).click()
+            page.get_by_role('button', name='Suchen', exact=True).click()
+            page.get_by_role('button', name='Weiter', exact=True).click()
             expect(page.get_by_text('Seite 2', exact=True)).to_be_visible()
             expect(page.get_by_label('Gebundenes Rezept', exact=True)).to_have_value(ids[-1])
             expect(page.locator('[name="updated_at"]')).to_have_value(token)

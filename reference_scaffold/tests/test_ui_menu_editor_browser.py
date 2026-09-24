@@ -265,7 +265,7 @@ def test_validation_preserves_inputs_and_tokens(editor_page, family: str, javasc
             page.locator('[data-component-kind-option][value="text"]').first.check()
         page.locator('#component-0-text').fill('Freitext behalten')
         with page.expect_response(lambda r: r.request.method == 'POST') as failed:
-            page.get_by_role('button', name='Menü speichern', exact=True).click()
+            page.get_by_role('button', name='Speichern', exact=True).click()
         assert failed.value.status == 400
         expect(page.locator('#f-title')).to_have_value('')
         expect(page.locator('#f-desc')).to_have_value('Behalten')
