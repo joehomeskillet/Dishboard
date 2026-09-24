@@ -1023,6 +1023,26 @@ Bestätigter Import hat genau eine dominante Übernahmeaktion; Speichern bleibt
 dann sekundär. CSRF, CAS, signierte Kontexte und alle gesendeten Werte bleiben
 unverändert. Browsernachweise: Rezeptsuche, Filter, Import und Portionsplanung.
 
+**Polish P3: Rezepte (2026-09-24).** Übersicht, Import, Bilder, Skalierung,
+History und Konflikt verwenden R14/R15/R17/R22/R34 sowie M44/M51/M57/M59.
+Pro Zustand bleibt eine sichtbare Primäraktion; ohne Schreibaktion wird die
+vorhandene Suche bzw. Rücknavigation hervorgehoben. Bestätigte Importstapel
+betonen die Übernahme, übernommene Stapel die Rückkehr zur Rezeptliste.
+Verwerfen liegt unter «Weitere Aktionen», gefolgt von einer nativen
+Bestätigungsstufe mit Folgetext und `btn-danger`; der Submit-Vertrag bleibt gleich.
+Such-/Dateiformat-/Mengenhilfe nutzt `hint()` mit Tastatur- und No-JS-Zugang.
+Sicherheits-, Übernahme-, Konflikt- und aufgelöste Referenztexte bleiben inline.
+Tabellen verwenden eine Struktur mit `admin-table--stack`, `scope="col"`
+und `data-label`; unter 768 px werden Zeilen gestapelt. Statusbadges verwenden
+`admin-status--*` mit Icon und Text. Import-Optionsgruppen haben 1/2/3 Spalten
+unter 768/ab 768/ab 1440 px. Konfliktwerte bleiben vollständig kopierbar und
+schreibgeschützt in einem kompakten Grid, längere Werte mehrzeilig.
+Native Formulare aktivieren `data-loading`; Namen, Werte, CSRF, CAS, signierte
+Kontexte und Rollenbedingungen bleiben unverändert. Nachweise:
+`test_recipe_filters_browser.py::test_polish_recipe_pages` (alle sechs Seiten,
+360/1440 px, JS/No-JS, Primäraktion, Tabellen, Tastaturhilfe, Eingabewerterhalt),
+Rezeptsuche, Import-Browsertests und unveränderliche Revisions-DB-Tests.
+
 #### M03 — Rezeptzutat: nur die benötigten Details öffnen
 
 Dieselbe Liste wie M02; die erste Zutat ist geöffnet. Andere Zutaten bleiben direkt erreichbar.

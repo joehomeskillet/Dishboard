@@ -93,7 +93,7 @@ def test_recipe_frame_measurements(search_lab, master_server, tmp_path, javascri
                         expect(page.locator('main .btn-primary')).to_have_count(1)
                         assert measurements['filter'] < (330 if width == 360 else 210)
                         assert measurements['row'] < (230 if width == 360 else 180)
-                        summary = page.locator('form[role="search"] summary')
+                        summary = page.locator('form[role="search"] .admin-filter-more > summary')
                         summary.focus()
                         expect(summary).to_be_focused()
                         assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
