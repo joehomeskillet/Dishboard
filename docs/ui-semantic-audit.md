@@ -3,6 +3,35 @@
 Scope: shared presentation foundation. Source baseline `760ca1cc270f42c91c0e58dde24abe10caca0e96`.
 No module migration is implied by this inventory. Business values, rights and URLs stay with their owners.
 
+## Polish P2b — 2026-09-24
+
+Runtime registry remains **184 customer seeds + 10 project additions = 194 keys**.
+No new key or sprite: `view.search`, `view.filter`, `admin.settings`, `actions.more`
+already cover search, filtering, settings and overflow. DE/EN short labels updated
+for `actions.more` and `ui.templates_back`; DE `view.filter` now uses the verb Filtern.
+Tooltips and accessible names retain their explanatory translations.
+
+Shared contracts: token-sized square icon buttons, `row_actions(items)`, seven
+`label` variants with accessible details, backward-compatible list slots, shared
+table metrics, `empty_value`, `sort_header`, delegated filter/empty-state macros.
+Legacy classes and native form fields remain; no module templates migrated here.
+
+The final detector also covers plain `ul`/`ol` (excluding navigation/pagination),
+filter containers without forms, and literal additions to semantic button labels.
+Initial counts are recomputed against the original shared templates; module files
+remain unchanged. Known German registry labels participate in length checks;
+unknown runtime expressions still require rendered review.
+With that detector, source baseline `80edf82b` has **199 literal buttons, 86 long
+labels, 45 legacy labels, 7 wrong canonical icons, 67 local lists/tables and 18
+local filter/search forms**. P2b ends at **197 / 85 / 43 / 6 / 67 / 18** in the
+same category order. Expanded detection is calibrated against original source,
+not treated as permission to increase future ceilings.
+Current per-template counts and totals: [P4 inventory](ui-consistency-inventory.md).
+The baseline only decreases; new templates have zero allowance. Dynamic labels
+and unrendered branches remain explicit limits of this static inventory.
+Evidence: `test_ui_consistency_ratchet.py`, `test_ui_semantics.py`,
+`test_admin_shared_patterns_browser.py`, semantic/browser/master-token regression gates.
+
 ## Polish P2 — 2026-09-23
 
 Current runtime registry: **184 unchanged customer seeds + 10 project additions = 194 keys**.

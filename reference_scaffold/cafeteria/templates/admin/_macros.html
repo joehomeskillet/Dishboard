@@ -5,7 +5,7 @@
 {%- endmacro %}
 
 {%- macro icon_link(href, label) -%}
-<a class="btn btn-icon w-100" href="{{ href }}" aria-label="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon('pencil') }}</a>
+<a class="btn btn-icon w-100" href="{{ href }}" aria-label="{{ label }}" title="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon(sem('actions.edit').resolved_icon) }}</a>
 {%- endmacro %}
 
 {%- macro page_header(title, description=none, breadcrumbs=none, actions=none, pretitle=none, status_items=[]) -%}
@@ -213,7 +213,14 @@
 {%- endif -%}
 {%- endmacro %}
 
-{%- macro status_badge(value, mapping=none, label=none) -%}
+{% set render_icon = icon %}
+{%- macro label(text, variant='neutral', icon=none, detail=none, semantic_key=none, status=none, class='') -%}
+{%- set variant = variant if variant in ['neutral', 'info', 'active', 'success', 'warning', 'danger', 'category'] else 'neutral' -%}
+<span class="badge admin-label admin-status--{{ variant }}{% if class %} {{ class }}{% endif %}"{% if detail %} title="{{ detail }}"{% endif %}{% if semantic_key %} data-semantic="{{ semantic_key }}"{% endif %}{% if status is not none %} data-status="{{ status }}"{% endif %}>{% if icon %}{{ render_icon(icon) }}{% endif %}<span>{{ text }}</span>{% if detail %}<span class="visually-hidden"> · {{ detail }}</span>{% endif %}</span>
+{%- endmacro %}
+{% set render_label = label %}
+
+{%- macro status_badge(value, mapping=none, label=none, detail=none) -%}
 {%- set default_map = {
   'live': ('Live', 'success'),
   'ready': ('Bereit', 'info'),
@@ -255,7 +262,8 @@
   {%- set badge_text = value -%}
   {%- set badge_var = 'secondary' -%}
 {%- endif -%}
-<span class="badge bg-{{ badge_var }}-lt badge-pill" data-status="{{ value }}">{{ badge_text }}</span>
+{%- set variant = {'secondary': 'neutral', 'green': 'success', 'teal': 'info', 'blue': 'info', 'yellow': 'warning', 'orange': 'warning', 'red': 'danger'}.get(badge_var, badge_var) -%}
+{{ render_label(badge_text, variant='active' if value == 'active' and not (mapping and value in mapping) else variant, detail=detail, status=value, class='bg-' ~ badge_var ~ '-lt badge-pill') }}
 {%- endmacro %}
 
 {%- macro status(value, label=none, mapping=none) -%}
@@ -266,15 +274,15 @@
 {%- endif -%}
 {%- endmacro %}
 
-{%- macro empty_state(kind, title, text, action=none) -%}
+{%- macro empty_state(kind, title, text, action=none, semantic_key=none, icon_name=none) -%}
 {%- set action_content = caller() if caller else action -%}
 {%- set icon_map = {
   'none': 'archive-off',
   'no_match': 'search',
   'forbidden': 'alert-triangle'
 } -%}
-{%- set kind_icon = icon_map.get(kind, 'info-circle') -%}
-<div class="empty" data-empty-kind="{{ kind }}">
+{%- set kind_icon = icon_name or icon_map.get(kind, 'info-circle') -%}
+<div class="empty" data-empty-kind="{{ kind }}"{% if semantic_key %} data-semantic="{{ semantic_key }}"{% endif %}>
   <div class="empty-icon">{{ icon(kind_icon) }}</div>
   <p class="empty-title">{{ title }}</p>
   <p class="empty-subtitle text-secondary">{{ text }}</p>
@@ -436,18 +444,28 @@
   <div class="admin-filter-search">{{ field(search_name, 'Suche', search_value, type='search', id=id ~ '-search') }}</div>
   {% if filters %}<div class="admin-filter-slots">{{ filters }}</div>{% endif %}
   {% if more_filters %}<details class="admin-compact-details admin-filter-more"><summary>{{ icon('search') }}Weitere Filter</summary><div class="admin-filter-slots">{{ more_filters }}</div></details>{% endif %}
-  <button class="btn" type="submit">{{ icon('search') }}Filtern</button>
-  {% if active and reset_url %}<a class="btn" href="{{ reset_url }}">{{ icon('x') }}Filter zurücksetzen</a>{% endif %}
+  <button class="btn" type="submit" title="{{ t(sem('view.filter').tooltip_key) }}">{{ icon(sem('view.filter').resolved_icon) }}{{ t(sem('view.filter').label_key) }}</button>
+  {% if active and reset_url %}<a class="btn" href="{{ reset_url }}" title="{{ t(sem('view.reset').tooltip_key) }}">{{ icon(sem('view.reset').resolved_icon) }}{{ t(sem('view.reset').label_key) }}</a>{% endif %}
 </form>
 {%- endmacro %}
 
-{%- macro list_row(name, subtitle, state, action, markings=none, overflow=0, more_actions=none) -%}
+{% set render_actions = actions %}
+{%- macro empty_value() -%}<span class="admin-empty-value">—</span>{%- endmacro %}
+
+{%- macro sort_header(label, key, current, direction, url) -%}
+<th scope="col" aria-sort="{{ ('descending' if direction == 'desc' else 'ascending') if key == current else 'none' }}"><a class="admin-sort-header" href="{{ url }}">{{ label }}{% if key == current %}{{ icon('chevron-down' if direction == 'desc' else 'chevron-up') }}{% endif %}</a></th>
+{%- endmacro %}
+
+{%- macro list_row(name=none, subtitle=none, state=none, action=none, markings=none, overflow=0, more_actions=none, primary=none, secondary=none, meta=none, status=none, actions=none) -%}
+{%- set primary_content = primary if primary is not none else name -%}
+{%- set secondary_content = secondary if secondary is not none else subtitle -%}
 <div class="admin-list-row">
-  <div class="admin-list-name"><strong>{{ name }}</strong><div class="admin-list-subtitle" title="{{ subtitle }}">{{ subtitle }}</div></div>
-  {{ status_badge(state) }}
-  {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}<span class="badge" aria-label="{{ overflow }} weitere Kennzeichnungen">+{{ overflow }}</span>{% endif %}</div>{% endif %}
+  <div class="admin-list-name"><strong>{{ empty_value() if primary_content is none or primary_content == '' else primary_content }}</strong>{% if secondary_content is not none %}<div class="admin-list-subtitle" title="{{ secondary_content|striptags }}">{{ secondary_content }}</div>{% endif %}</div>
+  {% if meta is not none %}<div class="admin-list-meta">{{ empty_value() if meta == '' else meta }}</div>{% endif %}
+  {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}{{ label('+' ~ overflow, detail=overflow ~ ' weitere Kennzeichnungen') }}{% endif %}</div>{% endif %}
+  <div class="admin-list-status">{{ status if status is not none and status != '' else status_badge(state) if state is not none and state != '' else empty_value() }}</div>
   <div class="admin-list-actions">
-    {{ actions(secondary=[action]) }}
+    {% if actions is not none %}{{ actions }}{% elif action %}{{ render_actions(secondary=[action]) }}{% endif %}
     {% if more_actions %}<details class="admin-compact-actions"><summary>{{ icon(sem('actions.more').resolved_icon) }}{{ t(sem('actions.more').label_key) }}</summary>{{ more_actions }}</details>{% endif %}
   </div>
 </div>

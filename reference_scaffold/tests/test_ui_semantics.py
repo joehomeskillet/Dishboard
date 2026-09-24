@@ -227,6 +227,26 @@ def test_registry_icons_in_sprite():
     assert not missing, f"Missing icons in sprite: {missing}"
 
 
+def test_row_actions_keep_one_direct_action_and_native_form_fields(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'ui/_semantic.html' import row_actions %}
+            {{ row_actions([{'key': 'actions.edit', 'href': '#edit', 'icon_only': true},
+                {'key': 'actions.copy', 'name': 'intent', 'value': 'copy', 'form': 'editor'},
+                {'key': 'actions.delete', 'name': 'intent', 'value': 'delete', 'form': 'editor',
+                 'consequence_key': 'ui.request_failed'}]) }}''')
+    document = BeautifulSoup(html, 'html.parser')
+    assert len(document.select('.admin-row-actions > a')) == 1
+    assert not document.details.has_attr('open')
+    assert document.summary.get_text(strip=True) == 'Mehr'
+    buttons = document.select('details button')
+    assert [(b['name'], b['value'], b['form']) for b in buttons] == [
+        ('intent', 'copy', 'editor'), ('intent', 'delete', 'editor')]
+    assert buttons[1].get_text(strip=True) == 'Löschen'
+    assert document.select_one('.ui-sem-consequence')
+
+
 def test_statusbar_without_href_preserves_markup(semantic_app):
     with semantic_app.test_request_context():
         html = render_template_string(
@@ -265,8 +285,8 @@ def test_admin_shell_locale_and_single_semantic_stylesheet(semantic_app, locale)
 
 
 @pytest.mark.parametrize('locale,options,more', [
-    ('de', 'Weitere Optionen', 'Weitere Aktionen'),
-    ('en', 'More options', 'More actions'),
+    ('de', 'Weitere Optionen', 'Mehr'),
+    ('en', 'More options', 'More'),
 ])
 def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options, more):
     from bs4 import BeautifulSoup
@@ -310,3 +330,44 @@ def test_hint_escapes_text_and_uses_caller_owned_description_id(semantic_app, mo
     if mode != 'inline':
         assert document.summary['aria-describedby'] == 'help-name'
         assert document.summary['title'] == text
+
+
+def test_p2b_slots_escape_details_and_preserve_zero_and_sort_states(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''
+            {% from 'admin/_macros.html' import label, list_row, sort_header %}
+            {{ label('Warning', 'danger', detail=detail) }}
+            {{ list_row(primary=0, secondary=detail, meta=0) }}
+            <table><tr>{{ sort_header('Name', 'name', 'other', 'asc', '#name') }}
+            {{ sort_header('Date', 'date', 'date', 'desc', '#date') }}</tr></table>
+        ''', detail='<img src=x onerror=alert(1)>')
+    document = BeautifulSoup(html, 'html.parser')
+    assert not document.select('img, script')
+    assert document.select_one('.admin-label')['title'] == '<img src=x onerror=alert(1)>'
+    assert document.select_one('.admin-list-name strong').text == '0'
+    assert document.select_one('.admin-list-meta').text == '0'
+    assert [n['aria-sort'] for n in document.select('th')] == ['none', 'descending']
+
+
+@pytest.mark.parametrize('locale', ['de', 'en'])
+def test_p2b_action_labels_are_short_and_registry_is_single_source(locale):
+    messages = load_locales()[locale]
+    for key, entry in load_registry().items():
+        if key.startswith(('actions.', 'view.')) or key in {'admin.settings', 'ui.templates_back'}:
+            label = messages[entry.label_key]
+            assert len(label) <= 18 and len(label.split()) <= 2, (key, label)
+
+
+def test_p2b_legacy_icon_link_and_status_mapping_contract(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'admin/_macros.html' import icon_link, status_badge %}
+            {{ icon_link('#edit', 'Bearbeiten') }}
+            {{ status_badge('active', mapping={'active': ('Konflikt', 'danger')}) }}''')
+    document = BeautifulSoup(html, 'html.parser')
+    assert document.select_one('use')['href'].endswith('#tabler-' + load_registry()['actions.edit'].resolved_icon)
+    assert document.a['title'] == document.a['aria-label'] == 'Bearbeiten'
+    assert document.select_one('.admin-status--danger').get_text(strip=True) == 'Konflikt'

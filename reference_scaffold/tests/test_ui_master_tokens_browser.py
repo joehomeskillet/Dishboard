@@ -314,7 +314,8 @@ def test_master_components_and_states(site, tmp_path: Path):
     for badge in page.locator('.badge').all():
         s = _styles(badge)
         assert contrast(_hex(s['color']), _hex(s['background-color'])) >= 4.5, s
-        assert s['border-radius'] == '999px' and s['font-size'] == '13px', s
+        # P2b uses the shared 14px label token for semantic and legacy badges.
+        assert s['border-radius'] == '999px' and s['font-size'] == '14px', s
     for alert in page.locator('.alert').all():
         assert _styles(alert)['border-top-color'] == 'rgb(229, 231, 235)'
     page.screenshot(path=str(tmp_path / 'component-states.png'), full_page=True)
