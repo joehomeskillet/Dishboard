@@ -241,7 +241,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         header_save = page.locator('form[action="/admin/kochbuecher/book-1"]').get_by_role(
             'button', name='Speichern', exact=True,
         )
-        assignment = page.locator('form[action$="/rezepte"]').get_by_role('button', name='Speichern', exact=True)
+        assignment = page.locator('form[action$="/rezepte"]').get_by_role('button', name='Rezepte speichern', exact=True)
         expect(header_save).to_be_visible()
         expect(assignment).to_be_visible()
         assert 'btn-primary' not in (assignment.get_attribute('class') or '').split()
@@ -284,8 +284,9 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
         assert page.locator('section[aria-labelledby="cookbook-header-title"] h3').count() == 0
         expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
-        reactivate = page.get_by_role('link', name='Wiederherstellen', exact=True)
-        assert _symbol(reactivate) == 'restore'
+        reactivate = page.get_by_role('link', name='Reaktivieren', exact=True)
+        assert _symbol(reactivate) == 'circle-check'
+        expect(page.get_by_role('link', name='Wiederherstellen', exact=True)).to_have_count(0)
         assert page.locator('form[action$="/rezepte"]').count() == 0
         expect(page.locator('td[data-label="Rezept"]').get_by_role('link', name='Testrezept', exact=True)).to_be_visible()
         assert page.locator('main .btn-primary').count() == 1
@@ -294,9 +295,10 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
             archived, header_token='', recipes_token='', status_token='status-token',
             status_action='cookbook.reactivate',
         ))
-        confirm = page.get_by_role('button', name='Wiederherstellen', exact=True)
+        confirm = page.get_by_role('button', name='Reaktivieren', exact=True)
         assert 'btn-primary' in (confirm.get_attribute('class') or '').split()
-        assert _symbol(confirm) == 'restore'
+        assert _symbol(confirm) == 'circle-check'
+        expect(page.get_by_role('button', name='Wiederherstellen', exact=True)).to_have_count(0)
         assert page.locator('main .btn-primary').count() == 1
     finally:
         page.close()
@@ -439,7 +441,7 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
             expect(page.locator('dl.admin-statusbar')).to_be_visible()
             expect(page.locator(f'form[action="{path}"]').get_by_role('button', name='Speichern', exact=True)).to_be_visible()
             assignment = page.locator(f'form[action="{path}/rezepte"]').get_by_role(
-                'button', name='Speichern', exact=True,
+                'button', name='Rezepte speichern', exact=True,
             )
             expect(assignment).to_be_visible()
             assert 'btn-primary' not in (assignment.get_attribute('class') or '').split()
@@ -495,7 +497,7 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
             lambda request: request.method == 'POST'
             and urlsplit(request.url).path == path + '/rezepte',
         ) as assignment_request:
-            assignment_form.get_by_role('button', name='Speichern', exact=True).click()
+            assignment_form.get_by_role('button', name='Rezepte speichern', exact=True).click()
         assignment = parse_qs(assignment_request.value.post_data or '', keep_blank_values=True)
         assert set(assignment) == {
             '_csrf', '_form_context', 'row_version', 'recipe_positions', 'recipe_public_ids',
@@ -583,7 +585,7 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
         expect(page.locator('#cookbook-description')).to_be_visible()
         expect(page.locator(f'form[action="{path}"]').get_by_role('button', name='Speichern', exact=True)).to_be_visible()
         expect(page.locator(f'form[action="{path}/rezepte"]').get_by_role(
-            'button', name='Speichern', exact=True,
+            'button', name='Rezepte speichern', exact=True,
         )).to_be_visible()
         position = page.get_by_label('Position 1', exact=True)
         position.focus()
@@ -667,7 +669,7 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                         'button', name='Speichern', exact=True,
                     )).to_be_visible()
                     expect(page.locator(f'form[action="{path}/rezepte"]').get_by_role(
-                        'button', name='Speichern', exact=True,
+                        'button', name='Rezepte speichern', exact=True,
                     )).to_be_visible()
                     expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
                     expect(_open_archive_action(page)).to_have_attribute('href', path + '/status')
@@ -757,6 +759,7 @@ def test_p3_polish_cookbook_editor_primary_stack_hint(cookbook_server, browser):
         expect(page.locator('[data-semantic="actions.save"]').first).to_be_visible()
         page.goto(cookbook_server['base'] + '/admin/kochbuecher')
         expect(page.locator('.admin-filter-bar').first).to_be_visible()
+        expect(page.get_by_label('Suche', exact=True)).to_have_attribute('maxlength', '200')
         expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_be_visible()
         page.goto(cookbook_server['base'] + path + '/status')
         page.get_by_role('button', name='Archivieren', exact=True).click()

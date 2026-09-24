@@ -156,7 +156,12 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             expect(hint).to_have_attribute('open', '')
             page.keyboard.press('Enter')
             if measured['row'] is not None:
-                assert measured['row'] < (109 if width == 360 else 46)
+                assert measured['row'] < (109 if width == 360 else 72)
+                if width >= 768:
+                    pad = page.evaluate(
+                        "() => getComputedStyle(document.querySelector('.cost-lines tbody td')).paddingTop",
+                    )
+                    assert pad != '0px'
             assert measured['form'] < (428 if width == 360 else 218)
             metrics.append({'state': state, 'width': width, 'javascript': javascript, **measured})
             for control in page.locator('main :is(.btn, input:not([type=hidden]), select, summary):visible').all():
