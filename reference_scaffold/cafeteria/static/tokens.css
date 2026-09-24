@@ -180,6 +180,9 @@
   --app-radius-control: 8px;
   --app-radius-pill: 999px;
   --app-control-min-height: 44px;
+  --app-button-size: var(--app-space-12);
+  --app-button-size-large: 56px;
+  --app-button-icon-gap: var(--app-space-2);
   --app-table-row-height: 56px;
   --app-focus-width: 2px;
   --app-action-hover-brightness: .95;

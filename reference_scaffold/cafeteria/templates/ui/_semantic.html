@@ -14,11 +14,11 @@
   <span class="ui-sem-label" data-semantic="{{ key }}">{{ sem_icon(key) }}<span>{{ t(sem(key).label_key) }}</span></span>
 {%- endmacro %}
 
-{% macro icon_button(key, href=none, name=none, value=none, icon_only=false, type='submit', id=none, form=none, consequence_key=none) -%}
+{% macro icon_button(key, href=none, name=none, value=none, icon_only=false, type='submit', id=none, form=none, consequence_key=none, size='default') -%}
   {{- require_icon_only(key, icon_only) -}}{{- require_consequence(key, consequence_key) -}}
   {%- set item = sem(key) -%}
   {%- set variant = 'btn-primary' if item.role == 'primary' else 'btn-danger' if item.role == 'danger' else '' -%}
-  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}" data-semantic="{{ key }}" title="{{ t(item.tooltip_key) }}"{% if icon_only %} aria-label="{{ t(item.aria_key) }}"{% endif %}{% if id %} id="{{ id }}"{% endif %}{% if href is not none %} href="{{ href }}"{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}>{{ sem_icon(key) }}{% if not icon_only %}<span>{{ t(item.label_key) }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>
+  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}{% if icon_only %} ui-sem-control--icon-only{% endif %}{% if size == 'large' %} ui-sem-control--large{% endif %}" data-semantic="{{ key }}" title="{{ t(item.tooltip_key) }}"{% if icon_only %} aria-label="{{ t(item.aria_key) }}"{% endif %}{% if id %} id="{{ id }}"{% endif %}{% if href is not none %} href="{{ href }}"{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}>{{ sem_icon(key) }}{% if not icon_only %}<span>{{ t(item.label_key) }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>
   {% if consequence_key %}<p class="ui-sem-consequence">{{ t(sem(consequence_key).label_key) }}</p>{% endif %}
 {%- endmacro %}
 
@@ -55,11 +55,23 @@
 
 {% macro action_menu(items) -%}
   <details class="ui-sem-actions">
-    <summary class="ui-sem-control">{{ icon_label('actions.more') }}</summary>
+    <summary class="btn btn-ghost ui-sem-control" title="{{ t(sem('actions.more').tooltip_key) }}">{{ icon_label('actions.more') }}</summary>
     <div class="ui-sem-action-items">
       {% for item in items %}{{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), form=item.form|default(none), consequence_key=item.consequence_key|default(none)) }}{% endfor %}
     </div>
   </details>
+{%- endmacro %}
+
+{# Sequence order chooses the one frequent action. Callers retain authorization,
+   URLs and native submit/form association; all remaining actions stay in details. #}
+{% macro row_actions(items) -%}
+  <div class="admin-row-actions">
+    {% if items %}
+      {% set item = items[0] %}
+      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), icon_only=item.icon_only|default(false), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none)) }}
+      {% if items|length > 1 %}{{ action_menu(items[1:]) }}{% endif %}
+    {% endif %}
+  </div>
 {%- endmacro %}
 
 {% macro empty_state_sem(key, description_key=none, action_key=none, href=none) -%}

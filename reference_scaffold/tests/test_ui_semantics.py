@@ -227,6 +227,26 @@ def test_registry_icons_in_sprite():
     assert not missing, f"Missing icons in sprite: {missing}"
 
 
+def test_row_actions_keep_one_direct_action_and_native_form_fields(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'ui/_semantic.html' import row_actions %}
+            {{ row_actions([{'key': 'actions.edit', 'href': '#edit', 'icon_only': true},
+                {'key': 'actions.copy', 'name': 'intent', 'value': 'copy', 'form': 'editor'},
+                {'key': 'actions.delete', 'name': 'intent', 'value': 'delete', 'form': 'editor',
+                 'consequence_key': 'ui.request_failed'}]) }}''')
+    document = BeautifulSoup(html, 'html.parser')
+    assert len(document.select('.admin-row-actions > a')) == 1
+    assert not document.details.has_attr('open')
+    assert document.summary.get_text(strip=True) == 'Mehr'
+    buttons = document.select('details button')
+    assert [(b['name'], b['value'], b['form']) for b in buttons] == [
+        ('intent', 'copy', 'editor'), ('intent', 'delete', 'editor')]
+    assert buttons[1].get_text(strip=True) == 'Löschen'
+    assert document.select_one('.ui-sem-consequence')
+
+
 def test_statusbar_without_href_preserves_markup(semantic_app):
     with semantic_app.test_request_context():
         html = render_template_string(
@@ -265,8 +285,8 @@ def test_admin_shell_locale_and_single_semantic_stylesheet(semantic_app, locale)
 
 
 @pytest.mark.parametrize('locale,options,more', [
-    ('de', 'Weitere Optionen', 'Weitere Aktionen'),
-    ('en', 'More options', 'More actions'),
+    ('de', 'Weitere Optionen', 'Mehr'),
+    ('en', 'More options', 'More'),
 ])
 def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options, more):
     from bs4 import BeautifulSoup
