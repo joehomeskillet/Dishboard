@@ -184,6 +184,15 @@
   --app-button-size-large: 56px;
   --app-button-icon-gap: var(--app-space-2);
   --app-table-row-height: 56px;
+  --app-label-min-height: var(--app-space-8);
+  --app-label-pad-x: var(--app-space-2);
+  --app-label-pad-y: var(--app-space-1);
+  --app-label-radius: var(--app-radius-pill);
+  --app-label-font-size: var(--app-font-size-label);
+  --app-label-font-weight: 600;
+  --app-label-line-height: 1.4;
+  --app-label-icon-size: var(--app-space-4);
+  --app-label-gap: var(--app-space-1);
   --app-focus-width: 2px;
   --app-action-hover-brightness: .95;
   --app-action-active-brightness: .9;

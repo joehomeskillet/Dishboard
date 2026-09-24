@@ -213,7 +213,14 @@
 {%- endif -%}
 {%- endmacro %}
 
-{%- macro status_badge(value, mapping=none, label=none) -%}
+{% set render_icon = icon %}
+{%- macro label(text, variant='neutral', icon=none, detail=none, semantic_key=none, status=none, class='') -%}
+{%- set variant = variant if variant in ['neutral', 'info', 'active', 'success', 'warning', 'danger', 'category'] else 'neutral' -%}
+<span class="badge admin-label admin-status--{{ variant }}{% if class %} {{ class }}{% endif %}"{% if detail %} title="{{ detail }}"{% endif %}{% if semantic_key %} data-semantic="{{ semantic_key }}"{% endif %}{% if status is not none %} data-status="{{ status }}"{% endif %}>{% if icon %}{{ render_icon(icon) }}{% endif %}<span>{{ text }}</span>{% if detail %}<span class="visually-hidden"> · {{ detail }}</span>{% endif %}</span>
+{%- endmacro %}
+{% set render_label = label %}
+
+{%- macro status_badge(value, mapping=none, label=none, detail=none) -%}
 {%- set default_map = {
   'live': ('Live', 'success'),
   'ready': ('Bereit', 'info'),
@@ -255,7 +262,8 @@
   {%- set badge_text = value -%}
   {%- set badge_var = 'secondary' -%}
 {%- endif -%}
-<span class="badge bg-{{ badge_var }}-lt badge-pill" data-status="{{ value }}">{{ badge_text }}</span>
+{%- set variant = {'secondary': 'neutral', 'green': 'success', 'teal': 'info', 'blue': 'info', 'yellow': 'warning', 'orange': 'warning', 'red': 'danger'}.get(badge_var, badge_var) -%}
+{{ render_label(badge_text, variant='active' if value == 'active' else variant, detail=detail, status=value, class='bg-' ~ badge_var ~ '-lt badge-pill') }}
 {%- endmacro %}
 
 {%- macro status(value, label=none, mapping=none) -%}

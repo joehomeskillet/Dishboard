@@ -337,9 +337,16 @@
 .dishboard-admin .card .card { border: 0; box-shadow: none; }
 .dishboard-admin :is(.card-header, .card-footer) { border-color: var(--app-border-soft); }
 .dishboard-admin .badge {
-  white-space: normal; text-align: start; line-height: 1.4;
-  font-size: calc(var(--app-font-size-small) * var(--app-font-scale));
-  border-radius: var(--app-radius-pill); padding: var(--app-space-1) 10px;
+  display: inline-flex; align-items: center; vertical-align: middle;
+  min-height: var(--app-label-min-height); gap: var(--app-label-gap);
+  white-space: normal; text-align: start; line-height: var(--app-label-line-height);
+  font-size: calc(var(--app-label-font-size) * var(--app-font-scale));
+  font-weight: var(--app-label-font-weight);
+  border-radius: var(--app-label-radius); padding: var(--app-label-pad-y) var(--app-label-pad-x);
+}
+.dishboard-admin .badge .icon {
+  width: var(--app-label-icon-size); height: var(--app-label-icon-size);
+  flex-shrink: 0; margin: 0;
 }
 .dishboard-admin [data-menu-metadata] .labels { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .dishboard-admin [data-menu-metadata] .label { padding: 4px 8px; border-radius: var(--sh-radius-sm); background: var(--sh-panel-soft); }
@@ -598,6 +605,7 @@
   font-size: var(--app-font-size-small); font-weight: 400;
 }
 .dishboard-admin .admin-status--neutral,
+.dishboard-admin .admin-status--category,
 .dishboard-admin .admin-statusbar-item--neutral {
   color: var(--app-neutral-text); background: var(--app-neutral-soft);
   border-left-color: var(--app-neutral-text);
@@ -628,6 +636,10 @@
   border-left-color: var(--app-primary);
 }
 .dishboard-admin .admin-statusbar-label .icon { margin-inline-end: var(--app-space-1); }
+/* Keep legacy bg-success-lt on active badges for callers, but use the active role. */
+.dishboard-admin .admin-label.admin-status--active {
+  color: var(--app-primary) !important; background: var(--app-primary-soft) !important;
+}
 .dishboard-admin .display-preview[data-content-width="contained"] { max-width: var(--app-container-width); margin-inline: auto; }
 .dishboard-admin .display-preview[data-content-width="full"] { max-width: none; }
 @media (max-width: 991.98px) {

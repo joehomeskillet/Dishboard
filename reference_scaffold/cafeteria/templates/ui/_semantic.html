@@ -1,5 +1,5 @@
 {# Keys describe presentation only; callers retain URLs, form fields and permissions. #}
-{% from 'admin/_macros.html' import icon, page_header, filter_bar %}
+{% from 'admin/_macros.html' import icon, page_header, filter_bar, label %}
 {% from '_food_symbols.html' import symbol %}
 
 {% macro sem_icon(key) -%}
@@ -22,10 +22,10 @@
   {% if consequence_key %}<p class="ui-sem-consequence">{{ t(sem(consequence_key).label_key) }}</p>{% endif %}
 {%- endmacro %}
 
-{% macro status_badge_sem(key) -%}
+{% macro status_badge_sem(key, detail=none) -%}
   {%- set item = sem(key) -%}
   {%- set variant = {'status.active': 'active', 'status.info': 'info'}.get(key, {'success':'success', 'warning':'warning', 'danger':'danger'}.get(item.role, 'neutral')) -%}
-  <span class="badge admin-status--{{ variant }} ui-sem-label" data-semantic="{{ key }}">{{ sem_icon(key) }}<span>{{ t(item.label_key) }}</span></span>
+  {{ label(t(item.label_key), variant, icon=item.resolved_icon, detail=detail, semantic_key=key, class='ui-sem-label') }}
 {%- endmacro %}
 
 {% macro diet_icon(key) -%}{{ icon_label(key) }}{%- endmacro %}
