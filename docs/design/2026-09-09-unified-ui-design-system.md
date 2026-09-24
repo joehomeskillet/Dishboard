@@ -1122,6 +1122,12 @@ Pflichthinweise bleiben sichtbar. Status in der Liste ist `admin-status--active`
 `--neutral` plus Text. Archivieren bleibt destruktiv mit Folgetext. Eine sichtbare
 `.btn-primary` je Zustand.
 
+**Polish P4:** Die Zutatenliste nutzt `list_row` mit Registry-Aktionen und `label()`.
+Abschnittsspeicher und Rücknavigation nutzen `icon_label`/`icon_button`. Die
+Preistabelle ist `admin-table admin-table--stack`. Der GET-Filter bleibt lokal,
+weil `filter_bar_sem` für Nicht-Zutaten `q` erzwingen würde. «Neu laden» im
+Standortkonflikt bleibt der sichtbare Wiederherstellungstext.
+
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
 Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeutiges Objekt, nicht mehrfach denselben Titel.
@@ -2070,6 +2076,11 @@ Nachbesserung 2026-09-23: «Anlegen» öffnet per GET-Parameter `open=korb|liefe
 «Kein Journal / kein Sendauftrag» bleibt im Aufklappbereich. Speicherformular
 opt-in `data-loading`.
 
+**Polish P4:** Übersichtskörbe, Lieferanten und Artikel nutzen `list_row`.
+Korbzeilen sind `admin-table admin-table--stack`. Anlegen im Kopf ist
+`btn btn-primary` plus `icon_label('actions.add')` (eine sichtbare Primäraktion
+im Quelltext).
+
 #### M24 — Formularfuss
 
 Einheitliche Aktionsleiste am Ende jedes Formulars und Editors.
@@ -2131,6 +2142,10 @@ Statusanzeige im Editorkopf ist `admin-status--active`/`--neutral` plus Text.
 Schreibschutz bleibt sichtbar; vertiefende Erläuterung liegt als `hint()`.
 Eine sichtbare `.btn-primary` je Zustand; Archivieren bleibt selten und bestätigt.
 
+**Polish P4:** Die Kochbuchliste nutzt `list_row` und `filter_bar_sem`.
+Zuordnung und schreibgeschützte Rezepte sind `admin-table admin-table--stack`.
+Reaktivieren verwendet `actions.restore`.
+
 ##### Modul Gerichtvorlagen (2026-09-20)
 
 Das Modul Gerichtvorlagen nutzt M22 (Filterzeile), M23 (Zeilenvertrag) und M24 (Formularfuss) anstelle eigener Custom-Controls. Die Haupttabelle trennt Rezept, Status und Planung auf dem Desktop, wird auf schmalen Viewports aber zu einer kompakten Zeile je Vorlage verdichtet. Der Anlage- und Editorbereich folgt dem gemeinsamen Formular-Grid, mit exakt einer Primäraktion im Formularfuss. Statuswerte (Aktiv, Bereich, Rezeptbindung) sind in die zentrale Statusbar verlegt, die Planungsziel-Vorschau verbleibt fokussiert im Einplanen-Kontext. Dauerhaft geöffnete Anlage- oder Suchformulare am Listenende sind durch die Primäraktion im Seitenkopf abgelöst.
@@ -2158,6 +2173,10 @@ bleiben sichtbar. Archivieren bleibt selten, destruktiv, mit Folgetext.
 **Nachweis:** `tests/test_shopping_list_browser.py` nutzt die vorhandene Session-Fixture `browser` ohne eigenen Playwright-Thread. 360/768/1024/1440, No-JS, direkte Anlageaktionen samt Fokus, zugänglicher Submit-Name, Tastatur, Statusbar, zustandsabhängige Primäraktion und kein Dokument-Overflow. Bei 1440 px Listenzeilen ≤72 px sowie Ergebnis- und manuelle Zeilen mit langen Inhalten ≤96 px; mobile Höhen werden separat gemessen. Fachliche Verträge in `tests/test_shopping_list_routes.py`, `tests/test_shopping_list_db.py`, `tests/test_shopping_list_pdf_http.py`.
 
 **Polish P3:** Ergebnis- und manuelle Tabellen nutzen `admin-table--stack` mit `data-label`; die frühere `d-none d-md-*`-Doppelung entfällt. Zeilenstatus ist `admin-status--*`. Hilfetext zur Bedarfspolitik und zum Berechnungsstand liegt in `hint()`; der Lösch-Folgetext bleibt inline. POST-Formulare opt-in `data-loading`.
+
+**Polish P4:** Ergebnis- und manuelle Tabellen tragen `admin-table`. Zeilenstatus
+ist `label()`. Abhaken/Wiederöffnen/Neu berechnen nutzen Registry-Kurzlabels.
+GET-Filter für Stand und Woche bleiben lokal, weil `filter_bar_sem` ein Suchfeld `q` erzwingen würde. Unvollständige Positionen bleiben eine Inhaltsliste.
 
 ##### Modul Lager (2026-09-20)
 
@@ -2191,6 +2210,9 @@ Bestand ohne Erfassung als `admin-status--warning`. Zuordnungshinweis in
 `hint()`, der Saldo-0-Hinweis bleibt sichtbar. Buchungsformulare nutzen
 `admin-option-grid` und `data-loading`.
 
+**Polish P4:** Zuordnungstabelle `admin-table admin-table--stack` mit
+`admin-table-status`/`admin-table-actions`. Fehlender Bestand ist `label()`.
+
 ##### Modul Kalkulation (2026-09-20)
 
 Kalkulation nutzt M01/M23/M25: Seitenkopf mit genau einer Primäraktion
@@ -2214,6 +2236,9 @@ Objektwähler benötigt ein eigenes Backend-Paket. Nachweise:
 `admin-status--*` für vollständig/unvollständig. «Vorschau schreibt nichts»
 liegt in `hint()`; der Preis-unvollständig-Hinweis und der Bestätigungsfolgetext
 bleiben sichtbar. Vorschau- und Belegformulare opt-in `data-loading`.
+
+**Polish P4:** Ergebniszeilen `admin-table admin-table--stack` mit `label()`
+und `empty_value()`. Technische Zutaten-IDs bleiben eine Inhaltsliste.
 
 ##### Modul Einstellungen – Erscheinungsbild (2026-09-20)
 
