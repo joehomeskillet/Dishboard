@@ -1,5 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, hint %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set layout_variant = 'standard' %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
@@ -73,7 +74,7 @@
 
 {% if cell.review_conflict %}
 <p>Öffnen Sie das bestehende Menü, um den aktuellen Stand zu prüfen.</p>
-<a class="btn btn-primary" href="{{ cell.existing_url }}">{{ icon('chevron-right') }}Bestehendes Menü öffnen</a>
+<a class="btn btn-primary" href="{{ cell.existing_url }}" aria-label="Bestehendes Menü öffnen">{{ icon_label('actions.open') }}</a>
 {% else %}
 <div class="admin-editor-layout">
   <div class="menu-editor-main">
@@ -105,7 +106,7 @@
             {% endif %}
           </div>
           {% endif %}
-          {% if errors %}<a class="btn mb-2" href="{{ cell.existing_url }}">{{ icon('chevron-right') }}Bestehendes Menü öffnen</a>{% endif %}
+          {% if errors %}<a class="btn mb-2" href="{{ cell.existing_url }}" aria-label="Bestehendes Menü öffnen">{{ icon_label('actions.open') }}</a>{% endif %}
           <label class="form-label" for="f-title">Menüname</label>
           <input class="form-control{{ invalid_class('title') }}" id="f-title" name="title" value="{{ submitted.get('title', '') }}"{{ error_attributes('title', 'err-title') }}>
           {{ field_error('title', 'err-title') }}
