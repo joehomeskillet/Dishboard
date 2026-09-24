@@ -77,11 +77,13 @@ def test_published_previews_and_assignment_form_are_readonly_tabler(
             expect(page.get_by_role('heading', level=1)).to_have_text('Vorlage zuweisen')
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             assignment = page.locator('#screen-assignment-details')
-            expect(assignment).not_to_have_attribute('open', '')
-            help_control = assignment.locator(':scope > summary')
+            expect(assignment.locator('form')).to_be_visible()
+            expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+            help_control = assignment.locator('.admin-hint > summary').first
             assert help_control.bounding_box()['height'] >= 48
             help_control.tap() if width < 1440 else help_control.click()
-            expect(assignment).to_have_attribute('open', '')
+            expect(assignment.locator('.admin-hint').first).to_have_attribute('open', '')
+            help_control.tap() if width < 1440 else help_control.click()
             cards = page.locator('.screen-choice-card').evaluate_all('els => els.map(el => {const b=el.getBoundingClientRect(); return [b.width,b.height]})')
             assert len(cards) == 2
             assert abs(cards[0][0] - cards[1][0]) <= 1 and abs(cards[0][1] - cards[1][1]) <= 1
@@ -116,7 +118,7 @@ def test_published_previews_and_assignment_form_are_readonly_tabler(
             page.screenshot(path=str(tmp_path / f'assignment-{family}-{width}-js{javascript}.png'), full_page=True)
             for mode in ('photo', 'text'):
                 page.goto(f'/admin/screens/{family}/wochenvorlage')
-                page.locator('#screen-assignment-details > summary').click()
+                expect(page.locator('#screen-assignment-details form')).to_be_visible()
                 target = f'/admin/vorlagen/screens/{family}/{prefix}-week-{mode}'
                 name = 'Wochenplan mit Bildern prüfen' if mode == 'photo' else 'Wochenplan ohne Bilder prüfen'
                 with page.expect_response(lambda response: urlsplit(response.url).path == target) as result:
@@ -165,8 +167,8 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
         assert page.locator('.menu-photo').count() > 0
         page.goto(route)
         stale.goto(route)
-        page.locator('#screen-assignment-details > summary').click()
-        stale.locator('#screen-assignment-details > summary').click()
+        expect(page.locator('#screen-assignment-details form')).to_be_visible()
+        expect(stale.locator('#screen-assignment-details form')).to_be_visible()
         token = stale.locator('[name="_form_context"]').input_value()
         submitted = []
         page.on('request', lambda request: submitted.append(request.method) if request.method == 'POST' else None)
@@ -184,7 +186,7 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
             page.goto('/admin/screens')
             expect(page.locator(f'#{prefix}-public-week-tab')).to_have_text(f'Wochenplan {name} · aktiv')
             page.goto(route)
-            page.locator('#screen-assignment-details > summary').click()
+            expect(page.locator('#screen-assignment-details form')).to_be_visible()
         assert submitted == ['POST', 'POST']
         stale.get_by_role('radio', name='Wochenplan ohne Bilder auswählen', exact=True).check()
         before = state(database_engine)
@@ -279,8 +281,13 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                     assert all(value for _, value in fields[:2])
                     assert fields[2:] == [['version', '0'], ['renderer_revision', '1'],
                                          ['action', 'activate'], ['template_id', 'cafeteria-week-photo']]
-                    summary = page.locator('#screen-assignment-details > summary')
+                    expect(form).to_be_visible()
+                    expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                    summary = page.locator('#screen-assignment-details .admin-hint > summary').first
                     summary.focus()
+                    page.keyboard.press('Enter')
+                    expect(page.locator('#screen-assignment-details .admin-hint').first).to_have_attribute('open', '')
+                    expect(summary).to_be_focused()
                     page.keyboard.press('Enter')
                     expect(page.locator('.admin-form-footer .btn-primary')).to_have_text('Speichern')
                     assert form.evaluate('form => Array.from(new FormData(form))') == fields

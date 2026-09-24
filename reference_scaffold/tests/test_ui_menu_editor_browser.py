@@ -16,7 +16,7 @@ from cafeteria.workflow_partial_store import persist_menu_item
 from test_admin_workflow_routes import DAY, ORIGIN_CONFLICT, WEEK, _login, _payload, _scope
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
 
-VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080)]
+VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (360, 800)]
 LONG_TITLE = 'Traditioneller geschmorter Rindsbraten mit Wurzelgemüse und Rotweinsauce ' * 2
 
 
@@ -177,6 +177,13 @@ def _keyboard(page: Page) -> None:
     page.locator('#f-title').focus()
     page.keyboard.press('Tab')
     expect(page.locator('#accompaniment-none')).to_be_focused()
+    page.keyboard.press('Tab')
+    expect(page.locator('summary[aria-describedby="accompaniment-hint"]')).to_be_focused()
+    page.keyboard.press('Enter')
+    expect(page.locator('#accompaniment-hint')).to_be_visible()
+    page.keyboard.press('Enter')
+    page.keyboard.press('Tab')
+    expect(page.locator('summary[aria-describedby="components-hint"]')).to_be_focused()
     page.keyboard.press('Tab')
     assert page.evaluate('document.activeElement.closest("#components-list") !== null')
     if page.locator('#sec-output-texts').get_attribute('open') is None:

@@ -1340,6 +1340,17 @@ Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten st
 
 ##### Modul Menüs und Menüeditor inkl. Allergene (2026-09-20)
 
+**Polish P3: editoren (2026-09-24).** Menü speichern bleibt die einzige
+Primäraktion; im Prüfkonflikt übernimmt «Bestehendes Menü öffnen» diese Rolle.
+Beilage und Bausteinauswahl verwenden `hint()` mit bestehenden Beschreibungs-IDs;
+doppelte Zeilenhilfe und selbstverständlicher Speicherhinweis entfallen.
+Rezeptbindungsfolgen, begrenzter Suchumfang, Mengenverfügbarkeit, Allergenwarnung
+und gespeicherter Prüfstand bleiben inline. Modusbadges nutzen den neutralen
+Statusstil; ihr dynamischer Textvertrag bleibt erhalten. Das Hauptformular
+aktiviert `data-loading`. Die Listenstruktur bleibt ohne doppelte mobile DOMs.
+Die lokale Zeilen-CSS hebt den Legenden-Float vor dem Eingabebereich auf, damit
+ohne JavaScript nach Textreduktion kein Feldlabel neben die Legende rutscht.
+
 Die Menüliste bleibt die Standardansicht. M22 liefert Suche und Profilwechsel;
 M23 wird als semantische Tabelle mit mobiler Zeilendarstellung angewendet.
 Je Menü steht genau ein zusammengefasster Prüfstatus mit Text neben «Bearbeiten».
@@ -1465,6 +1476,15 @@ Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte W
 
 ##### Modul Vorschau & Bildschirme (2026-09-20)
 
+**Polish P3: editoren (2026-09-24).** Auf der Zuweisungsseite ist die Auswahl
+direkt sichtbar in `section#screen-assignment-details`; nur die technische
+Zuordnungsversion bleibt eingeklappt. Dies ersetzt dort den bisherigen
+`disclosure_section`-Wrapper des Hauptformulars. `form_footer` und alle
+POST-/CAS-Felder bleiben erhalten. Erklärungen der Bildvarianten stehen in
+eindeutigen `hint()`-Disclosures; Veröffentlichungshinweis und Fehler bleiben
+inline. `data-loading` kennzeichnet den nativen Submit. Schreibberechtigte sehen
+genau eine primäre Speicheraktion, Lesende den Rückweg zur Bildschirmübersicht.
+
 Die Bildschirmverwaltung zeigt kompakte Karten mit genau einer neutralen Direktaktion
 «Öffnen». Weitere Ausgabeziele stehen unter «Weitere Aktionen»; eingebettete Vorschauen
 sind standardmässig geschlossen und nativ per Tastatur auch ohne JavaScript erreichbar.
@@ -1485,6 +1505,19 @@ bleiben unverändert. Modulprüfungen erfassen 360/768/1024/1440 px, Karten-/Sei
 geschlossene Vorschauen, Feldreihenfolge, No-JS, Tastatur und echten 200-%-Zoom.
 
 ##### Modul Vorlagen & Druck (2026-09-20)
+
+**Polish P3: editoren (2026-09-24).** Aktive und archivierte Vorlagen verwenden
+`admin-status--active/neutral` mit Icon und Text. Die Wochenauswahl hat eine
+Tastaturhilfe; der Unterschied zur veröffentlichten Ausgabe bleibt inline.
+Der Druckeditor nutzt Hilfen für Format, Textlängen, Bilder und Reihenfolge;
+Übernahme-/Aktivierungsfolgen und native Archivbestätigung bleiben sichtbar im
+jeweiligen Arbeitsbereich. Speichern bleibt primär und erhält `data-loading`;
+archivierte Vorlagen bieten primär die PDF-Prüfung, bei Vorschaufehlern «Erneut
+laden». Ein Katalogfehler bietet ebenfalls einen primären Wiederholungslink.
+Listen statt Tabellen bleiben erhalten. Browsernachweis in
+`test_print_template_browser.py::test_p3_editor_pages_polish`: 360/1440 px,
+JS/No-JS, genau eine sichtbare Primäraktion, kein Überlauf, native Hilfe mit
+sichtbarem Tastaturfokus und unveränderten FormData-Paaren.
 
 Die Übersicht «Vorlagen» folgt M01/M14/M23/M25: Titel entspricht dem bestehenden
 Seitentitel der Katalogtests; die Beschreibung nennt Druckvorlagen für gespeicherte
@@ -2150,6 +2183,14 @@ Operativer Arbeitsplatz für einen einzelnen Tag; Zielmodell SDD v2 §6.
 **Responsive:** Meal-Gruppen untereinander; Add-Karten und Primäraktionen bleiben tastaturbedienbar.
 
 ##### Modul Wochenplan-Kern: Cafeteria-Woche, Patienten-Raster, gemeinsame Wochen-Partials (2026-09-20)
+
+**Polish P3: editoren (2026-09-24).** Cafeteria verschiebt die optionale Erklärung
+zum Wochenendbetrieb in native Hinweisdetails und verwendet für ungespeicherte Tagesvorgaben
+den neutralen Statusstil mit Text und Icon. Die chronologische Tagesstruktur
+bleibt ein einzelnes responsives Raster. Veröffentlichungsaktionen, gemeinsame
+Partials, Formulare und fachliche Zustände bleiben unverändert. Die zusätzliche
+P3-Browserprüfung erfasst Hauptaktion und Überlauf bei 360/1440 px mit/ohne JS
+sowie die lineare Tagesfolge unter 768 px.
 
 M10/M11 und die frühere Bildgrössenregel in M11b sind für die operative Wochenansicht
 ersetzt am 2026-09-20 durch M26/M27: kompakte Tagesgruppen, Menü-Thumbnails mit maximal

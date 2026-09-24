@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section %}
+{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, hint %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set layout_variant = 'standard' %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
@@ -35,7 +35,7 @@
 {% macro mode_summary(key, title, badge_id) %}
 <summary class="card-header">
   <h2 class="card-title mb-0">{{ title }}</h2>
-  <span class="badge bg-secondary-lt" id="{{ badge_id }}" data-mode-badge="{{ key }}">{{ 'automatisch geerbt' if is_auto[key] else 'manuell festgelegt' }}</span>
+  <span class="badge admin-status--neutral" id="{{ badge_id }}" data-mode-badge="{{ key }}">{{ 'automatisch geerbt' if is_auto[key] else 'manuell festgelegt' }}</span>
   {{ icon('chevron-right', 'admin-accordion-marker') }}
 </summary>
 {% endmacro %}
@@ -73,13 +73,13 @@
 
 {% if cell.review_conflict %}
 <p>Öffnen Sie das bestehende Menü, um den aktuellen Stand zu prüfen.</p>
-<a class="btn" href="{{ cell.existing_url }}">{{ icon('chevron-right') }}Bestehendes Menü öffnen</a>
+<a class="btn btn-primary" href="{{ cell.existing_url }}">{{ icon('chevron-right') }}Bestehendes Menü öffnen</a>
 {% else %}
 <div class="admin-editor-layout">
   <div class="menu-editor-main">
     {# tojson only escapes single quotes for HTML-attribute safety, not double quotes,
        so this data attribute must be single-quoted (Flask/Jinja tojson convention). #}
-    <form method="post" action="/admin/{{ family }}/menu" class="admin-compact-form" data-menu-editor data-unit-display-names='{{ unit_display_names|default({})|tojson }}'>
+    <form method="post" action="/admin/{{ family }}/menu" class="admin-compact-form" data-loading data-menu-editor data-unit-display-names='{{ unit_display_names|default({})|tojson }}'>
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="week" value="{{ week }}">
       <input type="hidden" name="day" value="{{ cell.day }}">
@@ -126,7 +126,7 @@
                 <span class="form-check-label">{{ icon('salad') }}Salat (gemischt und grün)</span>
               </label>
             </div>
-            <p class="form-hint mb-0" id="accompaniment-hint">Nur eine Wahl. Bausteine und Rezepte bleiben unverändert.</p>
+            {{ hint('Nur eine Wahl. Bausteine und Rezepte bleiben unverändert.', 'accompaniment-hint') }}
             {% if cell.template_proposal %}<p class="form-hint mb-0">Aus Vorlage vorgeschlagen</p>{% endif %}
             {{ field_error('accompaniment', 'err-accompaniment') }}
           </fieldset>
@@ -134,14 +134,13 @@
       </section>
 
       <section class="card mb-3 admin-compact-section" aria-labelledby="sec-components">
-        <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Bausteine</h2></div>
+        <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Bausteine</h2>{{ hint('Aus Liste auswählen oder als eigenen Text erfassen — nicht beides gleichzeitig. Die Reihenfolge entspricht der Anzeige.', 'components-hint') }}</div>
         <div class="card-body">
           {% if cell.proposal_hint %}
           <p class="mb-2" id="proposal-recipe-hint">{{ icon('info-circle') }}{{ cell.proposal_hint }}</p>
           {% if cell.proposal_freeze_url %}<a class="btn mb-2" href="{{ cell.proposal_freeze_url }}">{{ icon('history') }}Stand festhalten</a>
           {% elif cell.proposal_recipe_url %}<a class="btn mb-2" href="{{ cell.proposal_recipe_url }}">{{ icon('eye') }}Rezept ansehen</a>{% endif %}
           {% endif %}
-          <p class="form-hint mb-2" id="components-hint">Aus Liste auswählen oder als eigenen Text erfassen — nicht beides gleichzeitig. Die Reihenfolge entspricht der Anzeige.</p>
           <div id="components-list" class="menu-editor-row-list" data-row-list="component" data-row-title="Baustein">
             {% set c_ids = submitted.getlist('component_public_id') if submitted.getlist else submitted.get('component_public_id', []) %}
             {% set c_texts = submitted.getlist('component_text') if submitted.getlist else submitted.get('component_text', []) %}
@@ -177,7 +176,6 @@
                   </div>
                 </div>
                 <div class="menu-editor-row-body" data-component-edit-view>
-                  <p class="menu-editor-row-hint form-hint mb-2">Baustein aus Katalog wählen oder als eigenen Text erfassen — nicht beides gleichzeitig.</p>
                   <fieldset class="menu-editor-entry-kind mb-3" data-component-kind hidden>
                     <legend class="form-label">Eingabeart</legend>
                     <div class="menu-editor-entry-kind-options" role="radiogroup" aria-label="Eingabeart für Baustein {{ i + 1 }}">
@@ -334,7 +332,6 @@
       {% endcall %}
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
-        <p class="menu-editor-save-hint form-hint mb-0">Speichern übernimmt die Eingaben.</p>
         <button type="submit" class="btn btn-primary"{% if cell.template_proposal %} formaction="/admin/{{ family }}/menu?return_to=week"{% endif %}>{{ icon('device-floppy') }}Menü speichern</button>
         {# Native submit input: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
         {% if not cell.template_proposal %}<input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zum Wochenplan">{% endif %}

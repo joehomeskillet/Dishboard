@@ -38,7 +38,7 @@
 {% from 'admin/_week_controls.html' import overview_header with context %}
 {{ overview_header('Cafeteria', 'Menüs und gemeinsame Gänge für die Mittagsausgabe planen.') }}
 {% if last_cell.day_label == 'Sonntag' %}
-<div class="container-xl"><p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p></div>
+<div class="container-xl"><details class="admin-compact-details" id="weekend-hint"><summary>Wochenendbetrieb</summary><p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p></details></div>
 {% endif %}
 {% endblock %}
 {% block content %}
@@ -70,7 +70,7 @@
       {% if filled < 2 %}
       <span class="text-secondary admin-week-day-count">{{ filled }} von 2 Menükarten erfasst</span>
       {% endif %}
-      {% if day_row.service_row_version == 0 %}<span class="badge bg-secondary-lt" title="Vorgabe, noch nicht gespeichert">Vorgabe, noch nicht gespeichert</span>{% endif %}
+      {% if day_row.service_row_version == 0 %}<span class="badge admin-status--neutral">{{ icon('info-circle') }}Vorgabe, noch nicht gespeichert</span>{% endif %}
     </div>
     <div class="card-body">
       {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=day_row, day_iso=day, service_index=loop.index0 %}

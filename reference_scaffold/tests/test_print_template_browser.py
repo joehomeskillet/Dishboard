@@ -1,6 +1,7 @@
 """Real HTTP, production CSP and native forms across two browser sessions."""
 from __future__ import annotations
 
+import json
 import threading
 from io import BytesIO
 from pathlib import Path
@@ -13,6 +14,89 @@ from werkzeug.serving import make_server
 from test_print_template_routes import database_engine, editor_app, pdf_text  # noqa: F401
 from test_admin_workflow_db import _patient_values, _save, _staff_values
 from test_admin_workflow_routes import DAY, _login
+from test_admin_operations_routes import PATH as OPERATIONS_PATH, _get as _operations_form
+
+
+@pytest.mark.parametrize('width', [360, 1440])
+@pytest.mark.parametrize('javascript', [False, True])
+def test_p3_editor_pages_polish(editor_app, editor_server, database_engine, browser, width, javascript, tmp_path):  # noqa: F811
+    client, _ = _login(editor_app, database_engine, ['Cafeteria.Admin'])
+    _save(database_engine, 'staff_guest', _staff_values())
+    _save(database_engine, 'patient', _patient_values())
+    paths = {
+        'menu': f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1',
+        'print': f'/admin/vorlagen/cafeteria?week={DAY}',
+        'vorlagen': f'/admin/vorlagen?week={DAY}',
+        'assignment': '/admin/screens/cafeteria/wochenvorlage',
+        'cafeteria': f'/admin/cafeteria?week={DAY}',
+    }
+    with _context(browser, editor_server, client, width, javascript=javascript) as context:
+        page = context.new_page()
+        for name, path in paths.items():
+            assert page.goto(path).status == 200
+            page.evaluate('document.fonts.ready')
+            metrics = page.evaluate('''() => ({
+                height: document.documentElement.scrollHeight,
+                width: document.documentElement.scrollWidth,
+                primary: [...document.querySelectorAll('main .btn-primary')].filter(e => e.checkVisibility()).length,
+                hints: [...document.querySelectorAll('main .form-hint')].filter(e => e.checkVisibility()).length,
+                tables: document.querySelectorAll('main table').length
+            })''')
+            print('P3_METRICS', name, width, javascript, json.dumps(metrics))
+            assert metrics['width'] <= width + 1
+            expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+            # These editors use native lists/grids, not desktop tables or duplicate mobile DOM.
+            expect(page.locator('main table')).to_have_count(0)
+            if name == 'menu' and not javascript:
+                for row in page.locator('.menu-editor-component-row').all():
+                    legend = row.locator(':scope > legend').bounding_box()
+                    label = row.locator('[data-component-edit-view] label:visible').first.bounding_box()
+                    assert label['y'] >= legend['y'] + legend['height']
+            page.screenshot(path=str(tmp_path / f'p3-{name}-{width}-{javascript}.png'), full_page=True)
+            page.screenshot(path=str(tmp_path / f'p3-{name}-{width}-{javascript}-viewport.png'))
+            print('P3_SCREENSHOT', tmp_path / f'p3-{name}-{width}-{javascript}.png')
+            if name != 'cafeteria':
+                forms_before = page.locator('main form').evaluate_all(
+                    'forms => forms.map(form => Array.from(new FormData(form)))'
+                )
+                help_details = page.locator('main .admin-hint:visible').first
+                trigger = help_details.locator(':scope > summary')
+                expect(help_details).not_to_have_attribute('open', '')
+                trigger.focus()
+                expect(trigger).to_be_focused()
+                page.keyboard.press('Enter')
+                expect(help_details).to_have_attribute('open', '')
+                expect(help_details.locator('.form-hint')).to_be_visible()
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+                assert trigger.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
+                page.keyboard.press('Enter')
+                expect(help_details).not_to_have_attribute('open', '')
+                assert page.locator('main form').evaluate_all(
+                    'forms => forms.map(form => Array.from(new FormData(form)))'
+                ) == forms_before
+            else:
+                # Planning remains one chronological day structure at mobile width.
+                expect(page.locator('.admin-week-days')).to_have_count(1)
+                if width < 768:
+                    days = page.locator('.admin-day-card').evaluate_all(
+                        'els => els.map(e => e.getBoundingClientRect().toJSON())'
+                    )
+                    assert all(b['top'] >= a['bottom'] for a, b in zip(days, days[1:]))
+                weekend_form = _operations_form(client, 'weekend-form')
+                assert client.post(OPERATIONS_PATH, data={**weekend_form, 'allows_weekend': 'on'}).status_code == 303
+                # The seeded five-day draft retains its original scope; the setting
+                # applies to a new week, not retroactively to existing menu data.
+                assert page.goto('/admin/cafeteria?week=2026-09-07').status == 200
+                expect(page.locator('.admin-day-card')).to_have_count(7)
+                expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                weekend_help = page.locator('#weekend-hint')
+                expect(weekend_help).not_to_have_attribute('open', '')
+                weekend_help.locator('summary').focus()
+                page.keyboard.press('Enter')
+                expect(weekend_help.locator('.form-hint')).to_be_visible()
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+                page.keyboard.press('Enter')
+                expect(weekend_help).not_to_have_attribute('open', '')
 
 
 @pytest.fixture(scope='module')
@@ -98,7 +182,7 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         expect(page.locator('main .btn-primary')).to_have_count(1)
         _targets(page)
         page.locator('details[data-template-appearance] summary').click()
-        page.locator('details[data-template-texts] summary').click()
+        page.locator('details[data-template-texts] > summary').click()
         page.get_by_label('Vorlagenname', exact=True).fill('Herbst am Südhang')
         page.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Guten Appetit')
         page.get_by_label('Farbpalette', exact=True).select_option('brand')
@@ -124,6 +208,16 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         page.get_by_label('Name der Kopie', exact=True).fill('Herbst Kopie')
         page.get_by_role('button', name='Kopie erstellen', exact=True).click()
         expect(page.get_by_label('Vorlagenname', exact=True)).to_have_value('Herbst Kopie')
+        page.locator('details[data-template-more-actions] > summary').click()
+        confirmation = page.get_by_role('checkbox', name='Ich möchte diese Vorlage archivieren.', exact=True)
+        page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
+        expect(confirmation).to_be_focused()
+        assert confirmation.evaluate('e => e.validity.valueMissing')
+        confirmation.check()
+        page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
+        expect(page.get_by_label('Vorlagenname', exact=True)).to_be_disabled()
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        expect(page.locator('main .btn-primary')).to_have_text('Archivierte Vorlage prüfen')
         page.get_by_label('Vorlage', exact=True).select_option('standard')
         page.get_by_role('button', name='Anzeigen', exact=True).click()
         page.locator('details[data-template-versions] summary').click()
@@ -149,7 +243,7 @@ def test_two_sessions_get_conflict_and_native_no_js_flow(editor_app, editor_serv
         a, b = first.new_page(), second.new_page()
         for page in (a, b):
             page.goto(f'/admin/vorlagen/patienten?week={DAY}')
-            page.locator('details[data-template-texts] summary').click()
+            page.locator('details[data-template-texts] > summary').click()
         a.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Erste Sitzung')
         a.get_by_role('button', name='Vorlage speichern', exact=True).click()
         expect(a.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('Erste Sitzung')
@@ -161,7 +255,7 @@ def test_two_sessions_get_conflict_and_native_no_js_flow(editor_app, editor_serv
         expect(b.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('Zweite Sitzung')
         b.get_by_role('link', name='Aktuellen Stand neu laden', exact=True).click()
         expect(b.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('Erste Sitzung')
-        b.locator('details[data-template-texts] summary').click()
+        b.locator('details[data-template-texts] > summary').click()
         b.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Zweite Sitzung bestätigt')
         b.get_by_role('button', name='Vorlage speichern', exact=True).click()
         b.locator('details[data-template-activation] summary').click()

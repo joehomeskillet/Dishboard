@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, disclosure_section, form_footer %}
+{% from 'admin/_macros.html' import page_header, icon, disclosure_section, form_footer, hint %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'screens' %}
 {% set layout_variant = 'standard' %}
@@ -14,13 +14,13 @@
   <p class="mb-0">{% if active.version == 0 %}Noch nicht gespeichert{% else %}Zuordnung {{ active.version }}{% endif %}</p>
 {% endcall %}
 {% endif %}
-{% call disclosure_section(title='Vorlage zuweisen', id='screen-assignment-details', has_error=error) %}
+<section id="screen-assignment-details" aria-label="Vorlage zuweisen">
 {% if error %}
 <div class="alert alert-danger error-region" role="alert" tabindex="-1" autofocus id="screen-form-error">{{ icon('alert-triangle') }}{{ error }}</div>
 <p class="text-secondary small">Ihre ursprüngliche Auswahl: <strong class="text-break">{{ values.template_id }}</strong> · Rendererrevision {{ values.renderer_revision }} · Zuordnungsversion {{ values.version }}.</p>
 <a class="btn mb-3" href="{{ url_for('admin.screen_template_assignment', family=family) }}">{{ icon('refresh') }}Aktuellen Stand laden</a>
 {% endif %}
-<form method="post" action="{{ url_for('admin.screen_template_assignment', family=family) }}">
+<form method="post" action="{{ url_for('admin.screen_template_assignment', family=family) }}" data-loading>
   {% for name in ['_csrf', '_form_context', 'version', 'renderer_revision', 'action'] %}<input type="hidden" name="{{ name }}" value="{{ values[name] }}">{% endfor %}
   <fieldset {% if error %}aria-describedby="screen-form-error"{% endif %}>
     <legend class="form-label">Darstellung auswählen</legend>
@@ -32,7 +32,7 @@
             <label class="form-check screen-choice-control flex-fill py-2 mb-0"><input class="form-check-input" type="radio" name="template_id" value="{{ choice.id }}" aria-label="{{ choice.name }} auswählen" {% if values.template_id == choice.id %}checked{% endif %} required><span class="form-check-label fw-semibold">{{ choice.name }}</span></label>
             <a class="btn btn-icon" href="{{ url_for('admin.screen_template_preview', family=family, template_id=choice.id) }}" aria-label="{{ choice.name }} prüfen" title="{{ choice.name }} prüfen" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ choice.name }} prüfen">{{ icon('eye') }}</a>
           </div>
-          <p class="text-secondary mb-0">{% if choice.show_menu_images %}Menübilder ergänzen die vollständigen Menütexte.{% else %}Alle Menütexte und Angaben bleiben sichtbar, ohne Fotoflächen.{% endif %}</p>
+          {{ hint('Menübilder ergänzen die vollständigen Menütexte.' if choice.show_menu_images else 'Alle Menütexte und Angaben bleiben sichtbar, ohne Fotoflächen.', 'screen-choice-' ~ choice.id ~ '-hint') }}
         </div>
       </article>
       {% endfor %}
@@ -41,6 +41,6 @@
   <p class="form-hint">Die Vorschau zeigt ausschliesslich die aktuelle Veröffentlichung. Ohne Veröffentlichung erscheint ein Hinweis.</p>
   {% if can_write %}{{ form_footer(primary=icon_button('actions.save'), cancel_url=url_for('admin.screens')) }}{% else %}<p class="alert alert-info">Zum Zuweisen ist eine Admin-Berechtigung erforderlich.</p>{% endif %}
 </form>
-{% endcall %}
-<a class="btn mt-3" href="{{ url_for('admin.screens') }}">{{ icon('arrow-left') }}Zur Bildschirmübersicht</a>
+</section>
+<a class="btn{% if not can_write %} btn-primary{% endif %} mt-3" href="{{ url_for('admin.screens') }}">{{ icon('arrow-left') }}Zur Bildschirmübersicht</a>
 {% endblock %}
