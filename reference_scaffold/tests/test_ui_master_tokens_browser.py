@@ -444,13 +444,15 @@ def test_sidebar_and_adjacent_contrasts(site, tmp_path):
     })''')
     for pair in pairs:
         assert contrast(_hex(pair['text']), _hex(pair['bg'])) >= 4.5, pair
-    # Contextual navigation marks the active area and, inside it, the current page.
+    # Two contextual markers -> one strong surface (navigation supplement 2026-09-24).
     active_links = page.locator('.admin-sidebar .nav-link.active')
     expect(active_links).to_have_count(2)
-    for index in range(2):
-        active_styles = _styles(active_links.nth(index))
-        assert 'rgb(243, 166, 192)' in active_styles['box-shadow']
-        assert contrast('#ffffff', _hex(active_styles['background-color'])) >= 3
+    parent_styles = _styles(active_links.first)
+    assert parent_styles['box-shadow'] == 'none'
+    assert parent_styles['background-color'] == 'rgba(0, 0, 0, 0)'
+    active_styles = _styles(active_links.last)
+    assert 'rgb(243, 166, 192)' in active_styles['box-shadow']
+    assert contrast('#ffffff', _hex(active_styles['background-color'])) >= 4.5
     active = page.locator('.admin-sidebar .admin-nav-subitems .nav-link[aria-current="page"]')
     expect(active).to_have_count(1)
     active.focus()

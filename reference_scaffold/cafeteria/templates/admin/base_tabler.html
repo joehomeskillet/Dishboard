@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin-nav.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='menu-images.css') }}">
   {% block page_styles %}{% endblock %}
@@ -35,6 +36,7 @@
   </div>
   <script src="{{ url_for('static', filename='vendor/tabler/tabler.min.js') }}" defer></script>
   <script src="{{ url_for('static', filename='admin.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin-nav.js') }}" defer></script>
   {% block page_scripts %}{% endblock %}
 </body>
 </html>

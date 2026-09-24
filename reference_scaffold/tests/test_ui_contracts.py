@@ -288,6 +288,9 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
         "tokens.css",
         "vendor/tabler/tabler.min.css",
         "admin-tabler.css",
+        # Sidebar supplement follows the adapter; existing semantic styles stay loaded.
+        "admin-nav.css",
+        "ui-semantic.css",
         "menu-images.css",
     ]
     for template in (patient, cafeteria):

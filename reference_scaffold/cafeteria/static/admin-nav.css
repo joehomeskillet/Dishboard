@@ -1,0 +1,89 @@
+/* Shared navigation supplement. Palette follows the existing sidebar tokens. */
+.dishboard-admin .admin-sidebar {
+  --admin-nav-group-gap: var(--app-space-3);
+  --admin-nav-item-gap: var(--app-space-1);
+}
+.dishboard-admin .admin-sidebar .navbar-nav { gap: var(--admin-nav-group-gap); }
+.dishboard-admin .admin-sidebar .navbar-nav .nav-link-title {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dishboard-admin .admin-sidebar .admin-nav-area > .nav-link { gap: var(--app-space-2); }
+.dishboard-admin .admin-sidebar .admin-nav-area > .nav-link.active:not([aria-current="page"]) {
+  background: transparent; box-shadow: none; color: var(--app-on-primary); font-weight: 700;
+}
+.dishboard-admin .admin-sidebar .admin-nav-area > .nav-link.active:not([aria-current="page"]):is(:hover, :focus-visible) {
+  background: var(--app-sidebar-hover);
+}
+.dishboard-admin .admin-sidebar .admin-nav-subitems {
+  border: 0; box-shadow: none; background: transparent;
+  gap: var(--admin-nav-item-gap);
+  margin: var(--app-space-1) 0 0 var(--app-space-8); padding: 0;
+}
+.dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link {
+  min-height: var(--app-space-12); font-size: var(--app-font-size-label); font-weight: 400;
+}
+.dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link[aria-current="page"] { font-weight: 700; }
+.dishboard-admin .admin-nav-chevron { margin-left: auto; display: flex; flex: none; }
+.dishboard-admin .admin-nav-chevron .icon { width: var(--app-space-4); height: var(--app-space-4); }
+.dishboard-admin .admin-sidebar .admin-footer { border: 0; padding-top: var(--app-space-6); }
+.dishboard-admin { --admin-nav-rail-width: calc(var(--app-space-12) + var(--app-space-6)); }
+.dishboard-admin .admin-nav-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: var(--app-space-12); min-height: var(--app-space-12);
+  margin-bottom: var(--app-space-2); padding: var(--app-space-3);
+  border: 0; border-radius: var(--app-radius-control);
+  background: transparent; color: var(--app-sidebar-text);
+}
+.dishboard-admin .admin-nav-toggle[hidden] { display: none; }
+.dishboard-admin .admin-nav-toggle:is(:hover, :focus-visible) { background: var(--app-sidebar-hover); }
+.dishboard-admin .admin-nav-flyout {
+  position: fixed; inset: var(--app-space-12) auto auto var(--admin-nav-rail-width);
+  width: var(--app-sidebar-width); max-height: calc(100dvh - var(--app-space-12) * 2);
+  margin: 0; padding: var(--app-space-2); overflow-y: auto;
+  border: 0; border-radius: var(--app-radius-control);
+  background: var(--app-sidebar); color: var(--app-sidebar-text);
+  box-shadow: var(--app-card-shadow);
+}
+.dishboard-admin .admin-sidebar .admin-nav-flyout .admin-nav-subitems { margin: 0; }
+.dishboard-admin .admin-nav-flyout .nav-link-title {
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (min-width: 992px) {
+  .dishboard-admin.admin-nav-collapsed { --tblr-sidebar-width: var(--admin-nav-rail-width); }
+  .dishboard-admin.admin-nav-collapsed .admin-sidebar {
+    width: var(--admin-nav-rail-width); flex-basis: var(--admin-nav-rail-width); overflow: visible;
+  }
+  .dishboard-admin.admin-nav-collapsed .admin-sidebar .container-fluid,
+  .dishboard-admin.admin-nav-collapsed .admin-nav { overflow: visible; }
+  .dishboard-admin.admin-nav-collapsed .admin-nav-area { position: relative; }
+  .dishboard-admin.admin-nav-collapsed .admin-nav-area > .nav-link {
+    justify-content: center; padding: var(--app-space-2); margin: 0 var(--app-space-1);
+  }
+  .dishboard-admin.admin-nav-collapsed .admin-sidebar .admin-nav-area > .nav-link.active:not([aria-current="page"]),
+  .dishboard-admin.admin-nav-collapsed .admin-sidebar .admin-nav-area > .nav-link[aria-current="page"] {
+    background: var(--app-sidebar-active); box-shadow: inset 3px 0 var(--app-sidebar-indicator);
+  }
+  .dishboard-admin.admin-nav-collapsed .admin-sidebar .admin-nav-area > .nav-link.active:not([aria-current="page"])[aria-expanded="true"] {
+    background: transparent; box-shadow: none;
+  }
+  .dishboard-admin.admin-nav-collapsed .admin-nav-area > .admin-nav-subitems,
+  .dishboard-admin.admin-nav-collapsed .admin-nav-chevron { display: none; }
+  /* Keep labels in the accessibility tree, including the unchanged logout form. */
+  .dishboard-admin.admin-nav-collapsed .admin-nav-area > .nav-link .nav-link-title,
+  .dishboard-admin.admin-nav-collapsed .admin-brand > span,
+  .dishboard-admin.admin-nav-collapsed .admin-user-info,
+  .dishboard-admin.admin-nav-collapsed .admin-logout-btn > span:last-child {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
+  .dishboard-admin.admin-nav-collapsed .admin-brand { padding: var(--app-space-1); }
+  .dishboard-admin.admin-nav-collapsed .admin-brand .admin-logo { width: 100%; object-fit: contain; }
+  .dishboard-admin.admin-nav-collapsed .admin-user-profile { justify-content: center; }
+  .dishboard-admin.admin-nav-collapsed .admin-nav-toggle .icon { transform: rotate(180deg); }
+  .dishboard-admin.admin-nav-collapsed .admin-nav-area > .nav-link:is(:hover, :focus-visible)::after {
+    content: attr(title); position: absolute; left: 100%; z-index: 1100;
+    padding: var(--app-space-2) var(--app-space-3); white-space: nowrap;
+    border-radius: var(--app-radius-control); background: var(--app-sidebar); color: var(--app-on-primary);
+    font-size: var(--app-font-size-label); font-weight: 400;
+  }
+}
