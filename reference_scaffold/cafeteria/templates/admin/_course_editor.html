@@ -1,5 +1,6 @@
 {# Atomic soup+dessert editor. Context: meal_cell, day_iso, meal_code, meal_label, family, week_value, week_csrf, recipe_page, shared, exceptions. #}
 {% from 'admin/_macros.html' import disclosure_section %}
+{% from 'ui/_semantic.html' import icon_label %}
 {% set recipe_choices = (recipe_page.choices if recipe_page is defined else []) %}
 {% set recipe_retained = (recipe_page.retained if recipe_page is defined else []) %}
 {% set form_id = 'course-' ~ day_iso ~ '-' ~ meal_code %}
@@ -92,7 +93,7 @@
         {% endfor %}
       {% endcall %}
       <div class="admin-form-footer"><div class="admin-form-main">
-        <button type="submit" class="btn btn-primary">{{ icon('device-floppy') }}Speichern</button>
+        <button type="submit" class="btn ui-sem-control">{{ icon_label('actions.save') }}</button>
       </div></div>
     </div>
   </form>

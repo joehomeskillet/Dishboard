@@ -1,10 +1,17 @@
 {% from '_food_symbols.html' import symbol, allergen_text %}
+{% from 'admin/_macros.html' import label as ui_label %}
 {% set tabler = tabler_admin|default(false) %}
 {% macro course_tags(course) %}
   {% if course and (course.labels or course.allergens) %}
   <span class="signage-tags{% if tabler %} badge-list{% endif %}">
-    {% for label in course.labels %}<span class="label green{% if tabler %} badge bg-green-lt mw-100 text-wrap text-break{% endif %}">{{ symbol('labels', label.code, tabler) }}{{ label.name }}</span>{% endfor %}
-    {% for allergen in course.allergens %}<span class="label amber {% if tabler %}badge bg-yellow-lt mw-100 text-wrap text-start{% else %}food-declaration{% endif %}">{{ symbol('allergens', allergen.code, tabler) }}<span{% if tabler %} class="text-break"{% endif %}>{{ allergen_text(allergen) }}</span></span>{% endfor %}
+    {% for label in course.labels %}
+      {% if tabler %}{% set declaration %}{{ symbol('labels', label.code, true) }}{{ label.name }}{% endset %}{{ ui_label(declaration, 'category') }}
+      {% else %}<span class="label green">{{ symbol('labels', label.code, false) }}{{ label.name }}</span>{% endif %}
+    {% endfor %}
+    {% for allergen in course.allergens %}
+      {% if tabler %}{% set declaration %}{{ symbol('allergens', allergen.code, true) }}<span class="text-break">{{ allergen_text(allergen) }}</span>{% endset %}{{ ui_label(declaration, 'warning') }}
+      {% else %}<span class="label amber food-declaration">{{ symbol('allergens', allergen.code, false) }}<span>{{ allergen_text(allergen) }}</span></span>{% endif %}
+    {% endfor %}
   </span>
   {% endif %}
 {% endmacro %}

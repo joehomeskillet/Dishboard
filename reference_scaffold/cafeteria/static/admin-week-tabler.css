@@ -300,6 +300,15 @@
 .dishboard-admin .admin-main[data-layout="workspace"] .slot-badge {
   align-self: flex-start;
 }
+/* Preserve the metadata hook without its legacy radius/background overriding shared labels. */
+.dishboard-admin .menu-slot [data-menu-metadata] .admin-label.label {
+  padding: var(--app-label-pad-y) var(--app-label-pad-x);
+  border-radius: var(--app-label-radius);
+  background: var(--app-neutral-soft);
+}
+.dishboard-admin .menu-slot [data-menu-metadata] .admin-label.admin-status--warning {
+  background: var(--app-warning-soft);
+}
 .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-table {
   display: grid;
   gap: var(--app-space-4);

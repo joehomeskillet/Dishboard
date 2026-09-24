@@ -1,6 +1,7 @@
+{% from 'ui/_semantic.html' import icon_button, icon_label, sem_icon %}
 {% if recipe_page is defined and recipe_page.query is defined %}
 <details class="admin-compact-details mb-2"{% if recipe_page.query.search or recipe_page.previous_offset is not none %} open{% endif %}>
-<summary>{{ icon('search') }}Rezepte suchen</summary>
+<summary>{{ sem_icon('view.search') }}Rezepte suchen</summary>
 <form method="get" action="/admin/{{ family }}" class="admin-filter-bar admin-week-course-search" aria-label="Rezepte für Gänge suchen" data-dirty-tracking="off">
     <input type="hidden" name="week" value="{{ week_value }}">
     <div class="row g-2 align-items-end">
@@ -9,16 +10,16 @@
         <input class="form-control" id="{{ form_id }}-search" name="recipe_search" value="{{ recipe_page.query.search }}" maxlength="200">
       </div>
       <div class="col-12 col-md-auto">
-        <button class="btn" type="submit">{{ icon('search') }}Rezepte suchen</button>
+        {{ icon_button('view.search') }}
       </div>
       {% if recipe_page.previous_offset is not none %}
       <div class="col-auto">
-        <button class="btn" type="submit" name="recipe_offset" value="{{ recipe_page.previous_offset }}">Vorherige Seite</button>
+        {{ icon_button('actions.back', name='recipe_offset', value=recipe_page.previous_offset) }}
       </div>
       {% endif %}
       {% if recipe_page.has_next and recipe_page.next_offset is not none %}
       <div class="col-auto">
-        <button class="btn" type="submit" name="recipe_offset" value="{{ recipe_page.next_offset }}">Nächste Seite</button>
+        <button class="btn ui-sem-control" type="submit" name="recipe_offset" value="{{ recipe_page.next_offset }}">{{ icon_label('actions.next') }}</button>
       </div>
       {% endif %}
     </div>

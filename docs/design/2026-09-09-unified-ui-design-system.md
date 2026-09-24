@@ -2342,6 +2342,12 @@ Kompakte Verwaltungsliste; Zielmodell SDD v2 §5.3.
 
 ##### Modul Wochenübersicht (Tabelle der gespeicherten Wochen) (2026-09-20)
 
+**Polish P4:** `admin-table admin-table--stack`, gemeinsame Status-/Aktionsspalten,
+`label()` und `empty_value()` vereinheitlichen die gespeicherten Wochen.
+Registry-Kurzlabels «Anlegen», «Öffnen», «Mehr», «Kopieren» ersetzen Langtexte.
+Publikations- und Kopierhinweise bleiben inline; native Bereichslinks behalten
+`active`/`aria-current` im gemeinsamen `admin-filter-bar`-Muster.
+
 M28 konkretisiert: KW/Zeitraum, Titel, Status und Aktionen. Die Seite zeigt genau
 einen Bereich; daher keine redundante Bereichsspalte. Offene Punkte pro Woche
 fehlen im vorhandenen Kontext und werden nicht erfunden. Cafeteria/Patienten sind
@@ -2436,6 +2442,23 @@ Operativer Arbeitsplatz für einen einzelnen Tag; Zielmodell SDD v2 §6.
 **Responsive:** Meal-Gruppen untereinander; Add-Karten und Primäraktionen bleiben tastaturbedienbar.
 
 ##### Modul Wochenplan-Kern: Cafeteria-Woche, Patienten-Raster, gemeinsame Wochen-Partials (2026-09-20)
+
+**Polish P4:** Gänge, Menüdeklarationen und Prüfstatus nutzen gemeinsame Labels;
+Allergene und fehlende Angaben bleiben vollständig inline. Registry-Symbole und
+Kurzlabels ersetzen lokale Aktionsdarstellungen. Unterformulare speichern neutral,
+damit die Wochenhauptaktion allein primär bleibt. Native Hüllen erhalten Modal-,
+Disabled-, Fokusziel- und Formularattribute, die `icon_button` nicht unterstützt.
+Wochenprüfung verwendet `list_row` für Ausgabeangaben und «Bestätigen»;
+Kopieren verwendet «Kopieren» mit unverändertem sichtbarem Übernahmehinweis.
+Gangsuche behält Feldnamen, `maxlength`, Pagination-Submitter und Warnhinweis im
+gemeinsamen Filtermuster. Inhalts- und Fehleraufzählungen bleiben semantische Listen.
+Nicht übernommen (Release 12, Judge-Befunde): Wochensteuerung (Veröffentlichen,
+Prüfen, Wochenvorgaben), «Zum ersten Slot», «Suppe/Dessert planen» und der Vorlagen-Link der
+Menükarte behalten ihre zielspezifischen Texte, bis `icon_button` Kontexttext (`text=`,
+`aria_label=`) und die Schlüssel «Übernehmen»/«Aktivieren»/«Verlauf» kennt (P2c). Regel: eine
+Aktion mit eigener Wirkung (Veröffentlichen, Einplanen, Festhalten) wird nie auf ein generisches
+Registry-Verb («Bestätigen», «Öffnen», «Kopieren») abgebildet; sichtbarer Text muss im
+zugänglichen Namen enthalten sein.
 
 **Polish P3: editoren (2026-09-24).** Cafeteria verschiebt die optionale Erklärung
 zum Wochenendbetrieb in native Hinweisdetails und verwendet für ungespeicherte Tagesvorgaben

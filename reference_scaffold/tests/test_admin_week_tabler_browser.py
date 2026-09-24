@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+from pathlib import Path
+from datetime import timedelta
 from urllib.parse import parse_qs
 
 import pytest
 from flask import Flask
+from jinja2 import ChoiceLoader, DictLoader
 from playwright.sync_api import Page, expect, sync_playwright
 
 from test_admin_ux_browser import (  # noqa: F401
@@ -308,7 +312,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     expect(publish).to_be_disabled()
     page.get_by_role('button', name='Abbrechen', exact=True).click()
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        header.get_by_role('button', name='Wochenangaben speichern').click()
+        header.get_by_role('button', name='Speichern').click()
     assert saved.value.status == 303
     payload = parse_qs(saved.value.request.post_data, keep_blank_values=True)
     assert set(payload) == {'_csrf', 'week', 'row_version', 'title', 'shared_note'}
@@ -326,7 +330,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     service.locator('[name="service_start"]').fill('11:45')
     service.locator('[name="service_end"]').fill('13:45')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved_service:
-        service.get_by_role('button', name='Ausgabeangaben speichern').click()
+        service.get_by_role('button', name='Speichern').click()
     assert saved_service.value.status == 303
     payload = parse_qs(saved_service.value.request.post_data, keep_blank_values=True)
     assert set(payload) == {
@@ -343,3 +347,66 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     expect(service.locator('[name="notice"]')).to_have_value('Geänderte Ausgabezeit')
     expect(service.locator('[name="service_start"]')).to_have_value('11:45')
     expect(service.locator('[name="service_end"]')).to_have_value('13:45')
+
+
+def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engine, tmp_path, caplog):  # noqa: F811
+    """Compare owned templates to the assigned release candidate, without checkout."""
+    _save_reviewed(admin_engine, 'staff_guest', _staff_values())
+    _save_reviewed(admin_engine, 'patient', _patient_values())
+    root = Path(__file__).resolve().parents[2]
+    names = ('_course_editor', '_course_line', '_course_recipe_search', '_service_courses',
+             '_week_controls', '_week_menu_card', '_week_service', '_week_settings',
+             'cafeteria', 'copy', 'kuechenkalender', 'week_management', 'week_review')
+    sources = {}
+    for name in names:
+        path = f'admin/{name}.html'
+        sources[path] = subprocess.run(
+            ['git', 'cat-file', 'blob',
+             f'2932189c7276edbe984b5bf880b3293e84230493:reference_scaffold/cafeteria/templates/{path}'],
+            cwd=root, check=True, capture_output=True, text=True,
+        ).stdout
+    routes = {'cafeteria': f'/admin/cafeteria?week={DAY}',
+              'patienten': f'/admin/patienten?week={DAY}',
+              'management': '/admin/cafeteria/wochen',
+              'review': f'/admin/cafeteria/wochen/pruefung?week={DAY}',
+              'copy': f'/admin/cafeteria/copy?week={WEEK + timedelta(weeks=1)}',
+              'calendar': f'/admin/kuechenkalender?year={WEEK.year}&month={WEEK.month}'}
+    loader = admin_app.jinja_env.loader
+    measurements = {}
+    page = page_context
+    try:
+        for phase in ('before', 'after'):
+            admin_app.jinja_env.loader = ChoiceLoader([DictLoader(sources), loader]) if phase == 'before' else loader
+            admin_app.jinja_env.cache.clear()
+            for name, route in routes.items():
+                for width in (360, 1440):
+                    page.set_viewport_size({'width': width, 'height': 900})
+                    response = page.goto(route)
+                    assert response is not None and response.status == 200, caplog.text
+                    page.evaluate('document.fonts.ready')
+                    metrics = page.evaluate('''() => ({
+                        height: document.documentElement.scrollHeight,
+                        width: document.documentElement.scrollWidth,
+                        rows: [...document.querySelectorAll('.admin-day-card, .patient-admin-day, tr[data-week-id]')]
+                            .map(e => e.getBoundingClientRect().height),
+                        fields: [...document.querySelectorAll('main input, main select, main textarea, main button')]
+                            .map(e => ({tag: e.tagName, type: e.type, name: e.name,
+                                value: e.name === '_csrf' ? Boolean(e.value) : e.value,
+                                form: e.form?.id, action: e.form?.getAttribute('action'),
+                                disabled: e.disabled})),
+                    })''')
+                    measurements[f'{phase}-{name}-{width}'] = metrics
+                    page.screenshot(path=str(tmp_path / f'p4-{phase}-{name}-{width}.png'), full_page=True)
+    finally:
+        admin_app.jinja_env.loader = loader
+        admin_app.jinja_env.cache.clear()
+    (tmp_path / 'p4-density-contract.json').write_text(json.dumps(measurements, indent=2))
+    for name in routes:
+        for width in (360, 1440):
+            before, after = (measurements[f'{phase}-{name}-{width}'] for phase in ('before', 'after'))
+            assert after['fields'] == before['fields'], (name, width)
+            assert after['width'] <= width, (name, width, after)
+            if width == 1440:
+                assert after['height'] <= before['height'] + 1, (name, before['height'], after['height'])
+                assert len(after['rows']) == len(before['rows'])
+                assert all(a <= b + 1 for a, b in zip(after['rows'], before['rows'])), (name, before['rows'], after['rows'])

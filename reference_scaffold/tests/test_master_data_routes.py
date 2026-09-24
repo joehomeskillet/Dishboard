@@ -390,4 +390,6 @@ def test_invalid_choices_remain_visible_with_original_form_and_legacy_navigation
     assert snapshot(owner) == before
     # The sidebar sub-items come from the shared shell; assert them on a rendered page.
     html = client.get('/admin/grundlagen').text
-    assert 'href="/admin/grundlagen" class="nav-link active" aria-current="page"' in html
+    # Attribute order is not part of the contract (the sidebar adds a title for the collapsed rail).
+    assert re.search(r'<a\b(?=[^>]*\bhref="/admin/grundlagen")(?=[^>]*\bclass="nav-link active")'
+                     r'[^>]*\baria-current="page"', html)
