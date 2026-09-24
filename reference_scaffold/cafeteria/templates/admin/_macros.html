@@ -95,13 +95,14 @@
 
 {# Group related fields in .admin-option-grid, one div per field: 1/2/3 columns
    at <768/768/1440px. Controls stay >=48px; errors remain beside their control. #}
-{%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none, readonly=false, disabled=false, autofocus=false, placeholder=none) -%}
+{%- macro field(name, label, value='', type='text', id=none, required=false, error=none, hint=none, readonly=false, disabled=false, autofocus=false, placeholder=none, maxlength=none, describedby=none) -%}
 {%- set field_id = id or name -%}
 {%- set desc_ids = [] -%}
+{%- if describedby -%}{%- set _ = desc_ids.append(describedby) -%}{%- endif -%}
 {%- if hint -%}{%- set _ = desc_ids.append(field_id ~ '-hint') -%}{%- endif -%}
 {%- if error -%}{%- set _ = desc_ids.append(field_id ~ '-error') -%}{%- endif -%}
 <label class="form-label{% if required %} required{% endif %}" for="{{ field_id }}">{{ label }}</label>
-<input class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}{% if readonly %} readonly aria-readonly="true"{% endif %}{% if disabled %} disabled{% endif %}{% if autofocus %} autofocus{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}>
+<input class="form-control{% if error %} is-invalid{% endif %}" id="{{ field_id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if required %} required{% endif %}{% if readonly %} readonly aria-readonly="true"{% endif %}{% if disabled %} disabled{% endif %}{% if autofocus %} autofocus{% endif %}{% if error %} aria-invalid="true"{% endif %}{% if desc_ids %} aria-describedby="{{ desc_ids|join(' ') }}"{% endif %}{% if maxlength is not none %} maxlength="{{ maxlength }}"{% endif %}>
 {%- if hint -%}<div class="form-hint" id="{{ field_id }}-hint">{{ hint }}</div>{%- endif -%}
 {%- if error -%}<div class="invalid-feedback d-block field-error" id="{{ field_id }}-error">{{ error }}</div>{%- endif -%}
 {%- endmacro %}
@@ -439,11 +440,11 @@
 </fieldset>
 {%- endmacro %}
 
-{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters') -%}
-<form class="admin-filter-bar" method="get" action="{{ action }}" data-dirty-tracking="off" role="search">
-  <div class="admin-filter-search">{{ field(search_name, 'Suche', search_value, type='search', id=id ~ '-search') }}</div>
+{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false) -%}
+<form class="admin-filter-bar" method="get" action="{{ action }}" data-dirty-tracking="off" role="search"{% if loading is not none %} data-loading="{{ 'true' if loading is sameas true else 'false' if loading is sameas false else loading }}"{% endif %}>
+  <div class="admin-filter-search">{{ field(search_name, 'Suche', search_value, type='search', id=id ~ '-search', maxlength=maxlength, describedby=describedby) }}</div>
   {% if filters %}<div class="admin-filter-slots">{{ filters }}</div>{% endif %}
-  {% if more_filters %}<details class="admin-compact-details admin-filter-more"><summary>{{ icon('search') }}Weitere Filter</summary><div class="admin-filter-slots">{{ more_filters }}</div></details>{% endif %}
+  {% if more_filters %}<details class="admin-compact-details admin-filter-more"{% if open %} open{% endif %}><summary>{{ icon('search') }}Weitere Filter</summary><div class="admin-filter-slots">{{ more_filters }}</div></details>{% endif %}
   <button class="btn" type="submit" title="{{ t(sem('view.filter').tooltip_key) }}">{{ icon(sem('view.filter').resolved_icon) }}{{ t(sem('view.filter').label_key) }}</button>
   {% if active and reset_url %}<a class="btn" href="{{ reset_url }}" title="{{ t(sem('view.reset').tooltip_key) }}">{{ icon(sem('view.reset').resolved_icon) }}{{ t(sem('view.reset').label_key) }}</a>{% endif %}
 </form>
