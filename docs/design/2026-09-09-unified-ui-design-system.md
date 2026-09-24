@@ -1371,6 +1371,10 @@ Listenlängen reichen nicht als Paarungsnachweis. Dieser Fall blockiert die
 Integration bis zur separaten Korrektur des gemeinsamen Vertrags. Keine UI-Freigabe
 aus erfolgreichen Referenz-POSTs allein ableiten.
 
+**Polish P3:** Die Listenansicht nutzt `admin-table--stack` mit `data-label`;
+Prüfstand ist `admin-status--warning`/`--success` inkl. Allergenhinweis. Ansichtshilfe
+in `hint()`.
+
 #### M13 — Baustein bearbeiten: eindeutige Allergenfelder
 
 Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine fachliche Deklaration.
@@ -1825,6 +1829,10 @@ Das Korbdetail nutzt dieselbe Statusbar mit übersetztem Statusbadge, Lieferante
 
 Nachbesserung 2026-09-23: «Anlegen» öffnet per GET-Parameter `open=korb|lieferant|artikel` unmittelbar das passende native Details-Formular, auch bei vorhandenen Körben; Anker und bedingtes `autofocus` führen zum ersten Feld. POST-Ziele, Werte und Defaults bleiben unverändert. Empty States, neue Statusbar-Texte und Statuslabels verwenden die Registry und DE/EN-Projektschlüssel `ui.order_*`; die 184 Seeds bleiben erhalten. Nachweis: `test_order_admin.py` für 360/390/768/1024/1440 px mit und ohne JS, alle Korbzeilen bei 1440 px ≤ 96 px, zentrale Ziele ≥ 48 × 48 px, echten Anlage-/Speicher-POST ohne JS, Mehrpositions-Roundtrip mit unterschiedlichen Rohmengen und DE/EN-Statusdarstellung. `test_ui_semantics.py` prüft Registry und Startvalidierung. Screenshot- und Messbelege liegen beim Testlauf; kein Produktionsnachweis.
 
+**Polish P3 (Korb):** Zeilentabelle `admin-table--stack`; CSV-Hinweis in `hint()`.
+«Kein Journal / kein Sendauftrag» bleibt im Aufklappbereich. Speicherformular
+opt-in `data-loading`.
+
 #### M24 — Formularfuss
 
 Einheitliche Aktionsleiste am Ende jedes Formulars und Editors.
@@ -1901,6 +1909,8 @@ Messnachweis: `test_dish_template_browser.py::test_rework_layout_measurements` p
 
 **Nachweis:** `tests/test_shopping_list_browser.py` nutzt die vorhandene Session-Fixture `browser` ohne eigenen Playwright-Thread. 360/768/1024/1440, No-JS, direkte Anlageaktionen samt Fokus, zugänglicher Submit-Name, Tastatur, Statusbar, zustandsabhängige Primäraktion und kein Dokument-Overflow. Bei 1440 px Listenzeilen ≤72 px sowie Ergebnis- und manuelle Zeilen mit langen Inhalten ≤96 px; mobile Höhen werden separat gemessen. Fachliche Verträge in `tests/test_shopping_list_routes.py`, `tests/test_shopping_list_db.py`, `tests/test_shopping_list_pdf_http.py`.
 
+**Polish P3:** Ergebnis- und manuelle Tabellen nutzen `admin-table--stack` mit `data-label`; die frühere `d-none d-md-*`-Doppelung entfällt. Zeilenstatus ist `admin-status--*`. Hilfetext zur Bedarfspolitik und zum Berechnungsstand liegt in `hint()`; der Lösch-Folgetext bleibt inline. POST-Formulare opt-in `data-loading`.
+
 ##### Modul Lager (2026-09-20)
 
 Die Lagerseite folgt M01/M23/M25: Titel «Lager», ein Satz Kontext, Statusbar
@@ -1928,6 +1938,11 @@ Standardwerte bleiben byte-gleich. Eigene Styles nur in `admin-lager.css`.
 Nachweis: `test_inventory_ui.py` (eigener Playwright-Start, 360/768/1024/1440,
 No-JS, Tastatur, Formularfeldvergleich).
 
+**Polish P3:** Zuordnungstabelle `admin-table--stack` mit `data-label`;
+Bestand ohne Erfassung als `admin-status--warning`. Zuordnungshinweis in
+`hint()`, der Saldo-0-Hinweis bleibt sichtbar. Buchungsformulare nutzen
+`admin-option-grid` und `data-loading`.
+
 ##### Modul Kalkulation (2026-09-20)
 
 Kalkulation nutzt M01/M23/M25: Seitenkopf mit genau einer Primäraktion
@@ -1946,6 +1961,11 @@ liefert, bleibt die erforderliche Revisions-ID eine Eingabe. Ein benannter
 Objektwähler benötigt ein eigenes Backend-Paket. Nachweise:
 `tests/test_admin_cost_routes.py` (360/768/1024/1440, No-JS, Tastatur, POST-Felder),
 `tests/test_shopping_cost.py`, `tests/test_recipe_cost_db.py`, `tests/test_cost_calc.py`.
+
+**Polish P3:** Ergebniszeilen `admin-table--stack` mit `data-label` und
+`admin-status--*` für vollständig/unvollständig. «Vorschau schreibt nichts»
+liegt in `hint()`; der Preis-unvollständig-Hinweis und der Bestätigungsfolgetext
+bleiben sichtbar. Vorschau- und Belegformulare opt-in `data-loading`.
 
 ##### Modul Einstellungen – Erscheinungsbild (2026-09-20)
 
@@ -2087,6 +2107,10 @@ Nachweise: `test_week_management.py`, `test_week_management_browser.py` (eigener
 Playwright-Start, 360/768/1024/1440 px, Tastatur und No-JS), management-Fälle in
 `test_ui_weeks_browser.py`; keine Abschwächung der Review-/Zoom-Prüfungen.
 
+**Polish P3:** Wochentabelle `admin-table--stack`; Status als `admin-status--*`
+mit Icon und Text, lange Beschreibung im `title`. Kopierfolge bleibt im
+Aufklappbereich. Anlageformular opt-in `data-loading`; Listenhinweis in `hint()`.
+
 #### M29 — Küchenkalender — Monat
 
 Monatskalender zur Orientierung; Zielmodell SDD v2 §5.4.
@@ -2122,6 +2146,11 @@ Monatskalender zur Orientierung; Zielmodell SDD v2 §5.4.
 **Anlass-Formular (`kuechenkalender_anlass.html`):** Titel «Anlass anlegen»/«Anlass bearbeiten»; Statusbar aus `values.event_date`, `scope_labels[profile_scope]`, `guest_count`, optional `row_version`. Pflichtfelder Datum, Bereich, Titel, Gästezahl sichtbar; Beginn, Ende, Notiz und `row_version` in `disclosure_section` «Weitere Optionen» (öffnet bei Inhalt/Fehler). `form_footer` mit «Abbrechen» zum Kalender und einer «Speichern»-Primäraktion. Alle Feldnamen und POST-Ziele unverändert.
 
 **Nachweis:** `tests/test_calendar_event_routes.py`, `tests/test_calendar_nav.py`.
+
+**Polish P3:** Das Monatsraster bleibt ein Kalender; unter 1024 px gilt weiterhin
+die vorhandene `kitchen-cal-list` statt `admin-table--stack`. «Heute» nutzt
+`admin-status--info`. Sprungformular opt-in `data-loading`; Raster-/Listenumschaltung
+in `hint()`.
 
 #### M30 — Tagesansicht
 
