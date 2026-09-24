@@ -25,3 +25,20 @@ Quelle: Prompt des Auftraggebers vom 2026-09-23 (Text in `00_PROMPT_Global_UI_Po
 Die Regeln werden in `docs/design/2026-09-09-unified-ui-design-system.md` im Abschnitt
 «Auftraggeber-Polish-Lauf (2026-09-23)» als R-/M-/A-Regeln geführt; dieser Ordner ist die Quelle, die
 Designquelle die verbindliche Ableitung.
+
+## Ergänzung 2026-09-24: Buttons, Listen, Labels (`01_ERGAENZUNG_Buttons_Listen_Labels.md`)
+
+Verbindlich und app-weit; präzisiert den Polish-Lauf. Einordnung gegenüber bestehenden Verträgen:
+
+- **Buttons:** «Symbol + Kürze» erweitert die Icon-only-Regel des Semantic-Language-Packs. Icon-only bleibt an Tooltip + `aria-label` gebunden (Makro `icon_button(icon_only=true)`), Primär- und destruktive Aktionen behalten ein kurzes sichtbares Label (Semantic Pack + Polish R15). Ein Symbol je semantischem Schlüssel — Quelle ist die Registry (`cafeteria/ui/semantic_registry.json`), nie ein lokales `icon('…')`.
+- **Listen:** eine app-weite Listenkomponente für Zeilenlisten UND Tabellen (Name/Primär → Sekundärinfo → Status → Aktionen rechts, `⋯` für seltene Aktionen), gleiche Metriken, Leerwerte, Köpfe, Sortierung, Filter, Pagination, Empty States. Baut auf `list_row` (M23) und `admin-table--stack` (P2) auf — keine dritte Form.
+- **Labels:** sechs Statusvarianten (P2: `admin-status--*`) plus Variante «Kategorie»; identische Metriken; zusammengesetzte Labels trennen oder als `⚠ kurz` mit Detail im Tooltip.
+- **Umsetzung:** P2b (gemeinsame Komponenten + Konsistenz-Ratschentests), danach P4-Migration je Modul; app-weite Prüfung §6 als statische Tests, damit neue Abweichungen den Gate brechen.
+
+## Ergänzung 2026-09-24: Navigation (`02_ERGAENZUNG_Navigation.md`)
+
+Verbindlich für die Sidebar (`templates/admin/_workflow_sidebar.html`, `_area_tabs.html`, `base_tabler.html`, Sidebar-Regeln in `static/admin-tabler.css`). Einordnung:
+
+- Bestätigt den Auftraggeber-Entscheid vom 2026-09-20 (Unterpunkte nur in der Sidebar, nur beim aktiven Parent) und verschärft die Darstellung: keine Tree-/Rail-Linien, Hierarchie über Einrückung, Abstand, Typografie, Hintergrund; genau eine starke aktive Fläche (aktiver Unterpunkt), Parent nur dezent; Chevron › / ⌄ als Zustand; Unterpunkte ohne Icon.
+- Neu: einklappbare Icon-Leiste (Tooltips, aktiver Zustand sichtbar, Untermenüs per Klick/Popover). Progressive Enhancement: ohne JavaScript bleibt die volle Sidebar; die bestehende mobile Offcanvas-Navigation und die No-JS-Navigation bleiben erhalten; CSP `script-src 'self'` (kein Inline-Skript).
+- Benutzerbereich unten, zurückhaltend getrennt.
