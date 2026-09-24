@@ -73,7 +73,7 @@
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-today-mark {
   font-size: var(--app-font-size-small);
   font-weight: 600;
-  color: var(--app-primary);
+  padding-inline: var(--app-space-1);
 }
 
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-event {

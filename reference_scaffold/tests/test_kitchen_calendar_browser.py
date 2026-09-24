@@ -11,7 +11,7 @@ from wsgiref.simple_server import make_server
 
 import pytest
 from flask import Flask
-from playwright.sync_api import Browser, Page, sync_playwright
+from playwright.sync_api import Browser, Page, expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'reference_scaffold'))
@@ -229,7 +229,25 @@ def test_calendar_has_no_horizontal_overflow(
             scrollWidth: document.documentElement.scrollWidth,
             innerWidth: window.innerWidth,
         })''')
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('main .btn-primary')).to_be_visible()
+        hint = page.locator('details.admin-hint').first
+        summary = hint.locator('summary')
+        expect(summary).to_be_visible()
+        summary.focus()
+        expect(summary).to_be_focused()
+        if hint.get_attribute('open') is None:
+            page.keyboard.press('Enter')
+        expect(hint).to_have_attribute('open', '')
+        page.keyboard.press('Enter')
         if width == 360:
+            list_visible = page.evaluate('''() => {
+                const list = document.querySelector('.kitchen-cal-list');
+                const grid = document.querySelector('.kitchen-cal-grid');
+                return Boolean(list) && getComputedStyle(list).display !== 'none'
+                    && Boolean(grid) && getComputedStyle(grid).display === 'none';
+            }''')
+            assert list_visible
             empty_day = _empty_list_day(page)
             day_box = empty_day.bounding_box()
             assert day_box is not None, 'empty mobile list day missing'
