@@ -52,6 +52,9 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         expect(page.locator('.recipe-card')).to_have_count(50)
+        expect(page.locator('form[role="search"] .admin-filter-more')).to_have_attribute('open', '')
+        expect(page.get_by_label('Suche', exact=True)).to_have_attribute('maxlength', '200')
+        expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_attribute('maxlength', '200')
         filters = {'q': ['Seitensuppe'], 'ingredient': ['rüebli'], 'tag': [tag], 'archived': ['1']}
         assert parse_qs(urlsplit(page.url).query) == filters
         next_link = page.locator('nav[aria-label="Rezeptseiten"] a[href*="page=2"]')
@@ -83,6 +86,9 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         page.get_by_label('Zutat', exact=True).fill('keine solche Zutat')
         page.get_by_role('button', name='Filtern', exact=True).click()
         expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_have_text('Keine passenden Rezepte')
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('[data-empty-kind="no_match"] .btn-primary')).to_have_count(0)
+        expect(page.locator('[data-empty-kind="no_match"] [data-semantic="view.reset"]')).to_be_visible()
         expect(page.get_by_label('Kennzeichnung', exact=True)).to_have_value(filter_catalog['tag'])
         expect(page.locator('#tag option:checked')).to_have_text('Regional · archiviert')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')

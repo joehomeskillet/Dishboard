@@ -41,7 +41,11 @@ def test_native_text_search_is_keyboard_operable_ranked_and_no_overflow(
         assert response.status == 200 and response.headers['cache-control'] == 'no-store'
         form = page.locator('form[action="/admin/rezepte"]')
         assert form.get_attribute('method') == 'get'
+        assert form.get_attribute('data-loading') == 'Rezepte suchen'
         control = page.get_by_label('Suche', exact=True)
+        assert control.get_attribute('id') == 'text'
+        assert control.get_attribute('maxlength') == '200'
+        assert 'text-hint' in (control.get_attribute('aria-describedby') or '')
         control.focus()
         expect(control).to_be_focused()
         assert control.bounding_box()['height'] >= 44
@@ -156,6 +160,13 @@ def test_editor_disclosures_preserve_complete_native_post(
                         expect(page.locator('.admin-statusbar')).to_contain_text('Entwurf')
                         assert sorted(map(tuple, form.evaluate('f => [...new FormData(f)]'))) == expected
                         page.screenshot(path=str(tmp_path / f'editor-{width}-js-{javascript}.png'), full_page=True)
+                    page.get_by_label('Aktionen für Zutat 1', exact=True).click()
+                    remove = page.locator('button[formaction*="row_action=remove"]').first
+                    assert 'btn-danger' in (remove.get_attribute('class') or '').split()
+                    expect(remove.locator('span')).to_have_text('Entfernen')
+                    assert remove.get_attribute('formnovalidate') is not None
+                    assert '/admin/rezepte/formular?' in (remove.get_attribute('formaction') or '')
+                    expect(page.locator('.ui-sem-consequence').first).to_be_visible()
                     source = page.locator('#recipe-source > summary')
                     source.focus()
                     page.keyboard.press('Enter')
@@ -176,3 +187,17 @@ def test_editor_disclosures_preserve_complete_native_post(
         worker.submit(inspect).result()
     current = recipe_store.get_recipe(search_lab['engine'], recipe.public_id)
     assert current.payload == original_payload
+
+
+def test_unfiltered_empty_list_keeps_single_primary_add(master_server, browser):  # noqa: F811
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': 1440, 'height': 900}, java_script_enabled=False,
+                             reduced_motion='reduce', service_workers='block') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        assert page.goto(base + '/admin/rezepte').status == 200
+        expect(page.locator('[data-empty-kind="none"] .empty-title')).to_have_text('Noch keine Rezepte')
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('.page-header .btn-primary')).to_have_attribute('data-semantic', 'actions.add')
+        expect(page.locator('[data-empty-kind="none"] .btn-primary')).to_have_count(0)
+        expect(page.locator('[data-empty-kind="none"] [data-semantic="actions.add"]')).to_be_visible()

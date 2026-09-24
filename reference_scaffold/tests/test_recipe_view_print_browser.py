@@ -1,4 +1,5 @@
 """Recipe view/print navigation, role boundaries and measured Tabler evidence."""
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -51,28 +52,45 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         page.on('pageerror', lambda error: errors.append(str(error)))
         for label, route in routes(recipe, revision):
             assert page.goto(route).status == 200
+            if label == 'print-template':
+                expect(page.locator('#recipe-search')).to_have_attribute('maxlength', '200')
+                expect(page.locator('#recipe-search')).to_have_attribute('name', 'q')
             for glyph in page.locator('main use').all():
                 if glyph.evaluate('el => el.closest("svg").getClientRects().length > 0'):
                     assert glyph.evaluate('el => el.getBBox().width > 0'), glyph.get_attribute('href')
             accessibility._accessible_capture(page, f'{label}-{width}x{height}-js{javascript}', methods=methods.copy())
         page.goto('/admin/rezepte')
-        card = page.locator('article').filter(has=page.get_by_role('heading', name='Suppe', exact=True))
-        view = card.get_by_role('link', name='Suppe ansehen', exact=True)
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.add')
+        card = page.locator('article.recipe-card').filter(
+            has=page.locator('.admin-list-name strong', has_text=re.compile(r'^Suppe$')))
         edit = card.get_by_role('link', name='Suppe bearbeiten', exact=True)
+        card.locator('.admin-compact-actions > summary').click()
+        view = card.get_by_role('link', name='Suppe ansehen', exact=True)
         pdf = card.get_by_role('link', name='Drucken · Stand 1 · Suppe', exact=True)
         assert len({view.get_attribute('href'), edit.get_attribute('href'), pdf.get_attribute('href')}) == 3
         response = client.get(pdf.get_attribute('href'))
         assert response.status_code == 200 and response.data.startswith(b'%PDF-')
         assert response.headers['X-Recipe-Revision'] == revision.public_id
+        edit.focus()
+        expect(edit).to_be_focused()
+        page.keyboard.press('Shift+Tab')
+        page.keyboard.press('Tab')
+        expect(edit).to_be_focused()
+        ring = edit.evaluate(
+            "el => getComputedStyle(el).outlineStyle + ' ' + getComputedStyle(el).boxShadow")
+        assert ring != 'none none'
         view.focus()
         expect(view).to_be_focused()
-        assert view.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         with page.expect_navigation() as navigation:
             page.keyboard.press('Enter')
         assert navigation.value.status == 200
         expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         assert page.locator('main [name="_form_context"]').count() == 0
         assert page.locator('#recipe-document input, #recipe-document select, #recipe-document textarea').count() == 0
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.edit')
+        page.locator('.page-header .admin-compact-actions > summary').click()
         page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         page.get_by_label('Zielmenge · PORTION', exact=True).fill('8')
         page.get_by_role('button', name='Mengen berechnen', exact=True).click()
@@ -110,6 +128,12 @@ def test_reader_view_print_without_write_actions(view_print, recipe_editor, reci
             assert page.locator('main a[href*="/vorlagen/rezepte?"]').count() == 0
             assert page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True).count() == 0
             assert page.get_by_role('link', name='Vorlage anlegen', exact=True).count() == 0
+            expect(page.locator('main .btn-primary')).to_have_count(1)
+            if label == 'recipes':
+                expect(page.locator('form[role="search"] .btn-primary')).to_have_attribute(
+                    'data-semantic', 'view.filter')
+            elif label == 'view':
+                expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.back')
             accessibility._accessible_capture(page, f'{label}-reader-{width}-js{javascript}', methods=['GET'])
     assert state(recipe_editor[1]) == before
 
@@ -168,7 +192,10 @@ def test_history_opens_each_of_three_archived_stands(view_print, recipe_editor, 
         page.set_viewport_size({'width': width, 'height': height})
         root = f'/admin/rezepte/{recipe}'
         assert page.goto(root + '/revisionen').status == 200
-        expect(page.get_by_role('heading', name='Rezept-History', exact=True)).to_be_visible()
+        expect(page).to_have_title(re.compile(r'^Rezept-History'))
+        expect(page.locator('#recipe-history')).to_be_visible()
+        expect(page.locator('#recipe-history .admin-row-actions')).to_have_count(3)
+        expect(page.locator('#recipe-history .ui-sem-actions')).to_have_count(3)
         expect(page.locator('#recipe-history time')).to_have_count(3)
         accessibility._accessible_capture(page, f'history-three-{width}', methods=['GET'])
         for number, revision in enumerate(revisions, 1):
@@ -252,19 +279,24 @@ def test_readable_recipe_content_and_explicit_mode(readable_recipe, recipe_edito
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             for glyph in document.locator('use').all():
                 assert glyph.evaluate('el => el.getBBox().width > 0 && el.getBBox().height > 0')
-            originals = document.get_by_text('Originalmengen ansehen', exact=True)
+            originals = document.locator('.recipe-originals > summary')
+            expect(originals).to_have_attribute('title', 'Originalmengen ansehen')
+            expect(originals).to_have_attribute('aria-label', 'Originalmengen ansehen')
             originals.focus()
             expect(originals).to_be_focused()
             page.keyboard.press('Enter')
             expect(document.get_by_text('Originalausbeute: 4 PORTION', exact=True)).to_be_visible()
             page.keyboard.press('Enter')
             accessibility._accessible_capture(page, f'complete-{label}-{width}-js{javascript}', methods=['GET'])
+            more = page.locator('.page-header .admin-compact-actions > summary')
+            if more.count():
+                more.click()
             page.get_by_role('link', name='Mengen berechnen', exact=True).click()
             page.get_by_label('Zielmenge · PORTION', exact=True).fill('6')
             page.get_by_role('button', name='Mengen berechnen', exact=True).click()
             if label == 'saved':
                 assert 'mode=scale' in page.url and revision in page.url
-                assert 'yield=6' in page.get_by_role('link', name='PDF öffnen', exact=True).get_attribute('href')
+                assert 'yield=6' in page.get_by_role('link', name='PDF öffnen').get_attribute('href')
             page.get_by_role('link', name='Rezept ansehen', exact=True).click()
             expect(page.locator('.recipe-amount').first).to_have_text('1200 G')
             expect(page.locator('#recipe-document input, #recipe-document table')).to_have_count(0)
