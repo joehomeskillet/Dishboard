@@ -230,7 +230,7 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
     title.fill('Wochenangebot September')
     header.locator('[name="shared_note"]').fill('Frisch zubereitet')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        header.get_by_role('button', name='Wochenangaben speichern', exact=True).click()
+        header.get_by_role('button', name='Speichern', exact=True).click()
     assert saved.value.status == 303
     payload = parse_qs(saved.value.request.post_data or '', keep_blank_values=True)
     assert set(payload) == {'_csrf', 'week', 'row_version', 'title', 'shared_note'}
@@ -245,7 +245,7 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
     service.locator('[name="service_start"]').fill('11:30')
     service.locator('[name="service_end"]').fill('13:30')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        service.get_by_role('button', name='Ausgabeangaben speichern', exact=True).click()
+        service.get_by_role('button', name='Speichern', exact=True).click()
     assert saved.value.status == 303
     payload = parse_qs(saved.value.request.post_data or '', keep_blank_values=True)
     assert set(payload) == {'_csrf', 'week', 'day', 'meal', 'row_version', 'service_state', 'notice', 'service_start', 'service_end'}

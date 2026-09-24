@@ -34,7 +34,7 @@ BASE = 'cbed49229d3dbd041542d86af41d6d3e735ea0c1'
 ROOT = Path(__file__).resolve().parents[2]
 VIEWPORTS = ((1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080))
 CORE = ((1440, 900), (390, 844))
-CONFIRM = 'Wochenkopf und alle Ausgabehinweise als geprüft bestätigen'
+CONFIRM = 'Bestätigen'
 
 
 @pytest.fixture(params=[(family, profile, js) for family, profile in
@@ -90,10 +90,13 @@ def _views(page: Page, tmp_path: Path, state: str, viewports=VIEWPORTS) -> None:
         assert page.locator('main :is(.btn, input:not([type=hidden]), textarea, summary):visible').evaluate_all(
             'es => es.every(e => e.getBoundingClientRect().height >= 48)'
         )
-        assert page.locator('main :is(td, dd, p):visible').evaluate_all('''es => es.every(e => {
+        clipped = page.locator('main :is(td, dd, p):visible').evaluate_all(r'''es => es.flatMap(e => {
             const s = getComputedStyle(e);
-            return s.webkitLineClamp === 'none' && e.scrollWidth <= e.clientWidth + 1;
+            return s.webkitLineClamp === 'none' && e.scrollWidth <= e.clientWidth + 1 ? [] :
+                [{tag: e.tagName, cls: e.className, text: e.textContent.trim().replace(/\s+/g, ' '), width: e.clientWidth,
+                  scroll: e.scrollWidth, whiteSpace: s.whiteSpace, viewport: innerWidth}];
         })''')
+        assert not clipped, clipped
         pairs = page.locator('main :is(.badge, .btn, .text-secondary, dd, dt, th, .form-label):visible').evaluate_all('''es => es.map(e => {
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = 1;
@@ -201,7 +204,7 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
         if expected == 303:
             page.locator('#new-week-date').fill(str(WEEK))
         with page.expect_response(lambda r: r.request.method == 'POST') as posted:
-            page.get_by_role('button', name='Woche anlegen', exact=True).click()
+            page.get_by_role('button', name='Anlegen', exact=True).click()
         assert posted.value.status == expected
         page.wait_for_load_state()
         if expected == 303:
@@ -222,7 +225,7 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
             assert '/preview?week=' in page.url
             _goto(page, path)
             row.locator('details.week-more summary').click()
-            row.get_by_role('link', name='Kopieren vorbereiten', exact=True).click()
+            row.get_by_role('link', name='Kopieren', exact=True).click()
             expect(page.locator('main')).to_have_attribute('data-source-week', str(WEEK))
             expect(page.locator('main')).to_have_attribute('data-target-week', str(WEEK + timedelta(days=7)))
             expect(page.locator('#copy-description')).to_contain_text('in die leere Woche')
@@ -270,7 +273,7 @@ def test_review_saved_context_receipt_and_stale_submission(weeks_ui, tmp_path):
     _before(page, app, path, 'week_review.html', tmp_path)
     _goto(page, path)
     expected_context = get_week_review(engine, scope, WEEK)
-    expect(page.locator('main .badge')).to_have_text('Noch zu prüfen')
+    expect(page.locator('main [data-status="review_open"]')).to_have_text('Noch zu prüfen')
     for service in expected_context['context']['services']:
         expect(page.get_by_text(service['notice'], exact=True)).to_be_visible()
     _views(page, tmp_path, 'unreviewed-long')
@@ -296,7 +299,7 @@ def test_review_saved_context_receipt_and_stale_submission(weeks_ui, tmp_path):
     response = page.context.request.post(path.split('?')[0], form=fields)
     assert response.status == 409
     _goto(page, path)
-    expect(page.locator('main .badge')).to_have_text('Noch zu prüfen')
+    expect(page.locator('main [data-status="review_open"]')).to_have_text('Noch zu prüfen')
     expect(page.get_by_role('button', name=CONFIRM)).to_be_visible()
     assert get_week_review(engine, scope, WEEK)['receipt'] is None
     assert _snapshot(engine) == before
@@ -341,7 +344,7 @@ def test_real_publication_statuses_and_read_only(weeks_ui, monkeypatch, tmp_path
     before = _snapshot(engine)
     _goto(page, path)
     expect(page.locator('#new-week-title')).to_have_count(0)
-    expect(page.get_by_role('link', name='Kopieren vorbereiten')).to_have_count(0)
+    expect(page.get_by_role('link', name='Kopieren')).to_have_count(0)
     expect(page.get_by_role('link', name='Vorschau', exact=True)).to_have_count(0)
     _views(page, tmp_path, 'read-only', CORE)
     _goto(page, path + f'/pruefung?week={WEEK}')

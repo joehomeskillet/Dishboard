@@ -1,6 +1,36 @@
 [
   {
     "category": "actions",
+    "semantic_key": "actions.activate",
+    "ascii": "[ON]",
+    "label_de": "Aktivieren",
+    "label_en": "Activate",
+    "tabler_icon": "circle-check",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.apply",
+    "ascii": "[OK]",
+    "label_de": "Übernehmen",
+    "label_en": "Apply",
+    "tabler_icon": "check",
+    "icon_only_allowed": "no",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
+    "semantic_key": "actions.history",
+    "ascii": "[H]",
+    "label_de": "Verlauf",
+    "label_en": "History",
+    "tabler_icon": "history",
+    "icon_only_allowed": "yes",
+    "role": "neutral"
+  },
+  {
+    "category": "actions",
     "semantic_key": "actions.add",
     "ascii": "[+]",
     "label_de": "Anlegen",

@@ -12,6 +12,9 @@
   padding: var(--app-space-1) var(--app-space-2);
 }
 .dishboard-admin .week-table th { text-transform: none; letter-spacing: normal; }
+.dishboard-admin .week-table :is(.admin-table-status, .admin-table-actions) { width: auto; white-space: normal; }
+.dishboard-admin .week-table .admin-row-actions { min-width: 0; }
+.dishboard-admin .week-table .admin-table-status .badge { white-space: normal; }
 .dishboard-admin .week-table .badge { white-space: normal; text-align: left; }
 .dishboard-admin .week-actions { display: flex; gap: var(--app-space-2); align-items: start; }
 .dishboard-admin .week-action-primary { flex: none; }
