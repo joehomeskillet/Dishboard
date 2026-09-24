@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, field, check %}
-{% from 'ui/_semantic.html' import icon_label, sem_icon %}
+{% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state %}
+{% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button, status_badge_sem, row_actions %}
 {% block title %}Schnittstellen{% endblock %}
 {% set workflow_nav = 'api' %}
 {% block main_attributes %}data-page="api"{% endblock %}
@@ -12,7 +12,7 @@
     {% set _ = publication.append({'label': 'Cafeteria' if channel.channel == 'cafeteria' else 'Patienten', 'value': value, 'variant': 'success' if channel.published else 'warning', 'detail': (channel.week_start ~ ' – ' ~ channel.week_end) if channel.week_start and channel.week_end else none}) %}
   {% endfor %}
   {% call page_header('Schnittstellen', description='Veröffentlichte Menüs sind über REST und FHIR öffentlich lesbar.', status_items=publication) %}
-    <a class="btn btn-primary" href="#api-key-label">{{ icon_label('actions.add') }}</a>
+    {{ icon_button('actions.add', href='#api-key-label') }}
   {% endcall %}
 {% endblock %}
 {% block content %}
@@ -28,7 +28,7 @@
         <section class="card mb-3" aria-labelledby="api-keys-title" data-api-keys>
           <div class="card-header"><h2 class="card-title" id="api-keys-title">API-Schlüssel</h2></div>
           {% if keys %}
-          <table class="table table-vcenter card-table admin-table--stack">
+          <table class="table table-vcenter card-table admin-table admin-table--stack">
             <thead>
               <tr>
                 <th scope="col">Bezeichnung</th><th scope="col">Scopes / Kanäle</th><th scope="col">Läuft ab</th><th scope="col">Status</th><th scope="col">Aktionen</th>
@@ -40,37 +40,37 @@
                 <td data-label="Bezeichnung" class="text-wrap text-break">
                   <strong>{{ key.label }}</strong>
                 </td>
-                <td data-label="Scopes / Kanäle">
-                  <ul class="list-inline mb-0">
-                    {% for scope in key.scopes %}<li class="list-inline-item badge admin-status--neutral">{{ scope }}</li>{% endfor %}
-                  </ul>
-                  <div>{% for channel in key.channels %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+                <td data-label="Scopes / Kanäle" class="admin-api-key-scopes">
+                  {% for scope in key.scopes %}{{ label(scope, 'neutral', semantic_key='status.info') }}{% endfor %}
+                  <span class="text-secondary">{% for channel in key.channels %}{% if not loop.first %}, {% endif %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% endfor %}</span>
                 </td>
                 <td data-label="Läuft ab" class="text-secondary text-wrap">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
-                <td data-label="Status">
-                  {% if key.state == 'active' %}<span class="badge admin-status--active" data-status="live">{{ icon('check') }}Aktiv</span>
-                  {% elif key.state == 'expired' %}<span class="badge admin-status--warning" data-status="incomplete">{{ icon('clock') }}Abgelaufen</span>
-                  {% else %}<span class="badge admin-status--neutral" data-status="revoked">{{ icon('lock') }}Widerrufen</span>{% endif %}
+                <td data-label="Status" class="admin-table-status">
+                  {% if key.state == 'active' %}<span data-status="live">{{ status_badge_sem('status.active') }}</span>
+                  {% elif key.state == 'expired' %}<span data-status="incomplete">{{ label('Abgelaufen', 'warning', icon='clock', detail='Schlüssel abgelaufen') }}</span>
+                  {% else %}<span data-status="revoked">{{ label('Widerrufen', 'neutral', icon='lock', detail='Schlüssel widerrufen') }}</span>{% endif %}
                 </td>
-                <td data-label="Aktionen">
-                  <details class="admin-compact-details admin-api-key-details">
-                    <summary class="btn btn-outline-secondary" aria-label="Details zu {{ key.label }}">{{ icon_label('ui.disclosure.details') }}</summary>
-                    <dl class="mb-0 mt-2">
-                      <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
-                      <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
-                      <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</dd>
-                    </dl>
-                  {% if key.state == 'active' %}
-                  <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" data-confirm="Schlüssel wirklich widerrufen?">
-                    <input type="hidden" name="_csrf" value="{{ csrf }}">
-                    <details class="admin-compact-details">
-                      <summary class="btn btn-outline-danger">{{ icon('trash') }}Widerrufen</summary>
-                      <p class="my-2">Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.</p>
-                      <button type="submit" class="btn btn-danger">{{ icon_label('actions.confirm') }}</button>
+                <td data-label="Aktionen" class="admin-table-actions">
+                  <div class="admin-row-actions">
+                    <details class="admin-compact-details admin-api-key-details">
+                      <summary class="btn btn-outline-secondary btn-icon" aria-label="Details zu {{ key.label }}">{{ sem_icon('ui.disclosure.details') }}</summary>
+                      <dl class="mb-0 mt-2">
+                        <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
+                        <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
+                        <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</dd>
+                      </dl>
                     </details>
-                  </form>
-                  {% endif %}
-                  </details>
+                    {% if key.state == 'active' %}
+                    <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="d-inline" data-confirm="Schlüssel wirklich widerrufen?">
+                      <input type="hidden" name="_csrf" value="{{ csrf }}">
+                      <details class="admin-compact-details">
+                        <summary class="btn btn-outline-danger btn-icon" aria-label="{{ t(sem('actions.delete').aria_key) }}">{{ sem_icon('actions.delete') }}</summary>
+                        <p class="my-2">Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.</p>
+                        <button type="submit" class="btn btn-danger ui-sem-control" data-semantic="actions.confirm" title="{{ t(sem('actions.confirm').tooltip_key) }}">{{ icon_label('actions.confirm') }}</button>
+                      </details>
+                    </form>
+                    {% endif %}
+                  </div>
                 </td>
               </tr>
               {% endfor %}
@@ -78,8 +78,7 @@
           </table>
           {% else %}
           <div class="card-body py-3">
-            <p class="mb-2">{{ icon('info-circle') }}Noch keine API-Schlüssel vorhanden.</p>
-            <a class="btn" href="#api-key-label">{{ icon_label('actions.add') }}</a>
+            {% call empty_state('none', 'Noch keine API-Schlüssel vorhanden.', 'Legen Sie einen Schlüssel mit Vorschauzugriff an.') %}<a class="btn ui-sem-control" href="#api-key-label" data-semantic="actions.add">{{ icon_label('actions.add') }}</a>{% endcall %}
           </div>
           {% endif %}
         </section>
@@ -111,7 +110,7 @@
               </div>
             </div>
             <div class="card-footer d-flex">
-              <div class="btn-list ms-auto"><button type="submit" class="btn">{{ icon_label('actions.add') }}</button></div>
+              <div class="btn-list ms-auto"><button type="submit" class="btn ui-sem-control" data-semantic="actions.add" title="{{ t(sem('actions.add').tooltip_key) }}">{{ icon_label('actions.add') }}</button></div>
             </div>
           </form>
         </details>
@@ -120,7 +119,7 @@
           <div class="card-body">
         <section aria-labelledby="api-status-title" data-api-status>
           <h2 class="card-title" id="api-status-title">Veröffentlichungsstatus je Bereich</h2>
-          <table class="table table-vcenter card-table admin-table--stack">
+          <table class="table table-vcenter card-table admin-table admin-table--stack">
             <thead>
               <tr><th scope="col">Kanal</th><th scope="col">Veröffentlicht</th><th scope="col">Revision</th><th scope="col">Woche</th></tr>
             </thead>
@@ -129,7 +128,7 @@
               <tr>
                 <td data-label="Kanal">{{ 'Cafeteria' if channel.channel == 'cafeteria' else 'Patienten' }}</td>
                 <td data-label="Veröffentlicht">
-                  {% if channel.published %}<span class="badge admin-status--success" data-status="live">{{ icon('check') }}Veröffentlicht</span>{% else %}<span class="badge admin-status--warning" data-status="incomplete">{{ icon('alert-triangle') }}Nicht veröffentlicht</span>{% endif %}
+                  {% if channel.published %}<span data-status="live">{{ status_badge_sem('publish.published') }}</span>{% else %}<span data-status="incomplete">{{ label('Nicht veröffentlicht', 'warning', icon='alert-triangle') }}</span>{% endif %}
                 </td>
                 <td data-label="Revision" class="text-secondary">{{ channel.revision_id or '—' }}</td>
                 <td data-label="Woche" class="text-secondary">
@@ -144,9 +143,9 @@
           <h2 class="card-title" id="api-interfaces-title">Technische Endpunkte</h2>
             <p>Vorschauen benötigen einen API-Schlüssel mit <code>preview.read</code> und einer Berechtigung für den jeweiligen Kanal.</p>
             <div class="btn-list mb-2">
-              <a class="btn btn-outline-secondary" href="/api/v1/docs" target="_blank" rel="noopener">{{ icon('eye') }}Swagger UI</a>
-              <a class="btn btn-outline-secondary" href="/api/v1/openapi.json">{{ icon('info-circle') }}OpenAPI JSON</a>
-              <a class="btn btn-outline-secondary text-wrap" href="/fhir/metadata">{{ icon('info-circle') }}FHIR CapabilityStatement</a>
+              {{ icon_button('actions.preview', href='/api/v1/docs') }}
+              {{ icon_button('actions.open', href='/api/v1/openapi.json') }}
+              {{ icon_button('actions.open', href='/fhir/metadata') }}
             </div>
             <p class="text-secondary mb-0">Technische Details und Beispiele: <code>docs/API.md</code>.</p>
         </section>

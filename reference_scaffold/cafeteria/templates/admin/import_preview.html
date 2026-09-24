@@ -1,5 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, disclosure_section, icon %}
+{% from 'ui/_semantic.html' import icon_button, icon_label, sem_icon %}
 {% set workflow_nav = 'import' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Daten importieren{% endblock %}
@@ -28,7 +29,7 @@
 {% block page_header %}
 {% call page_header('Daten importieren', 'Wochen-CSV prüfen und als Entwurf übernehmen.', status_items=status_items) %}
 {%- if ready -%}
-<button class="btn btn-primary" type="submit" form="csv-import">{{ icon('file-import') }}Geprüfte Datei importieren</button>
+<button class="btn btn-primary ui-sem-control" type="submit" form="csv-import" data-semantic="actions.import" title="{{ t(sem('actions.import').tooltip_key) }}">{{ icon_label('actions.import') }}</button>
 {%- endif -%}
 {% endcall %}
 {% endblock %}
@@ -79,7 +80,7 @@
           <label class="form-label" for="file">{{ 'Korrigierte CSV-Datei' if invalid else 'CSV-Datei' }}</label>
           <input class="form-control{% if invalid %} is-invalid{% endif %}" id="file" name="file" type="file" accept=".csv,text/csv" required{% if invalid %} aria-invalid="true" aria-describedby="file-error"{% endif %}>
         </div>
-        <button class="btn{% if not ready %} btn-primary{% endif %}" type="submit">{{ icon('eye') }}Vorschau prüfen</button>
+        <button class="btn{% if not ready %} btn-primary{% endif %} ui-sem-control" type="submit" data-semantic="actions.preview" title="{{ t(sem('actions.preview').tooltip_key) }}">{{ icon_label('actions.preview') }}</button>
       </div>
       {% call disclosure_section(id='csv-more', has_content=result, has_error=invalid) %}
           <p class="mb-2">Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>
@@ -91,5 +92,5 @@
     </div>
   </form>
 </div>
-  <a class="btn csv-back" href="{{ url_for('admin.' ~ family, week=result.week_start.isoformat()) if ready else url_for('admin.' ~ family) }}">{{ icon('arrow-left') }}Zurück zur Wochenübersicht</a>
+  <div class="csv-back">{{ icon_button('actions.back', href=url_for('admin.' ~ family, week=result.week_start.isoformat()) if ready else url_for('admin.' ~ family)) }}</div>
 {% endblock %}
