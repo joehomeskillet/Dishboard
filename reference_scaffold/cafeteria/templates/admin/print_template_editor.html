@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, hint %}
 {% set workflow_nav = 'vorlagen' %}
 {% set label = 'Rezepte' if recipe_editor else 'Patienten' if profile == 'patient' else 'Cafeteria' %}
 {% set output_scope = 'Rezept-PDFs' if recipe_editor else label ~ '-Wochenpläne' %}
@@ -29,6 +29,7 @@
 {% block page_header %}
 {% call page_header('Vorlagen', description=label ~ ' · Vorlageneditor.', status_items=editor_status) %}
 <a class="btn" href="{{ url_for('admin.vorlagen') if recipe_editor else url_for('admin.vorlagen', week=week) }}" aria-label="Alle Vorlagen">{{ icon('arrow-left') }}Vorlagen</a>
+{% if template.archived and not preview_error %}<a class="btn btn-primary" href="{{ preview_url }}" target="_blank" rel="noopener">{{ icon('eye') }}Archivierte Vorlage prüfen</a>{% elif template.archived %}<a class="btn btn-primary" href="{{ editor_url }}">{{ icon('refresh') }}Erneut laden</a>{% endif %}
 {% if recipe_editor and recipe %}
 <a class="btn" href="{{ url_for('admin.recipe_view', recipe_id=recipe.public_id) }}" aria-label="Zurück zum Rezept «{{ recipe.payload.title }}»">{{ icon('tools-kitchen-2') }}Rezept</a>
 {% if recipe_revision %}<a class="btn" href="{{ url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=recipe_revision.public_id) }}" aria-label="Zum gespeicherten Stand {{ recipe_revision.revision_number }}">{{ icon('history') }}Stand {{ recipe_revision.revision_number }}</a>{% endif %}
@@ -78,7 +79,7 @@
 {% endif %}
 <div class="row row-cards print-template-editor">
   <div class="col-12 col-xl-5">
-    <form class="card admin-compact-form" method="post" action="{{ editor_url }}" data-template-properties>
+    <form class="card admin-compact-form" method="post" action="{{ editor_url }}" data-template-properties data-loading>
       {% if not template.archived %}{{ hidden('save') }}{% endif %}
       <div class="card-header"><h2 class="card-title" data-template-current-version>Vorlage · {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }}</h2></div>
       <fieldset {% if template.archived %}disabled{% endif %}>
@@ -102,7 +103,7 @@
           <summary class="btn w-100 text-start justify-content-start">{{ icon('pencil') }}Kopf- und Fusszeile{% if values.header_text or values.footer_text %}<span class="text-secondary">· Zusatztext vorhanden</span>{% endif %}{% if error and error_field in ['header_text', 'footer_text'] %}<span class="text-danger" data-admin-details-error>· Fehler</span>{% endif %}</summary>
           <div class="pt-3">
             {% for field, field_label in [('header_text', 'Zusatz unter dem Kopfbereich'), ('footer_text', 'Zusatz in der Fusszeile')] %}
-            <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><textarea class="form-control" id="template-{{ field }}" name="{{ field }}" maxlength="{{ text_limits[field] }}" rows="2" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>{{ values[field] }}</textarea><p class="form-hint">Optional, höchstens {{ text_limits[field] }} Zeichen. Nur einfacher Text.</p></div>
+            <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ field_label }}</label><textarea class="form-control" id="template-{{ field }}" name="{{ field }}" maxlength="{{ text_limits[field] }}" rows="2" {% if error_field == field %}aria-invalid="true" aria-describedby="template-error"{% endif %}>{{ values[field] }}</textarea>{{ hint('Optional, höchstens ' ~ text_limits[field] ~ ' Zeichen. Nur einfacher Text.', 'template-' ~ field ~ '-hint') }}</div>
             {% endfor %}
           </div>
         </details>
@@ -130,7 +131,7 @@
               </select>
             </div>
             {% endfor %}
-            <p class="form-hint mb-0">Bilder verwenden vorhandene Menübilder. Fehlende Bilder bleiben leer. Die Legende erscheint, sobald Menüangaben sie benötigen.</p>
+            {{ hint('Bilder verwenden vorhandene Menübilder. Fehlende Bilder bleiben leer. Die Legende erscheint, sobald Menüangaben sie benötigen.', 'template-images-hint') }}
           </div>
         </details>
         {% for group, group_label in [('header', 'Reihenfolge im Kopfbereich'), ('menu_fields', 'Reihenfolge im Menüblock'), ('footer', 'Reihenfolge im Fussbereich')] %}
@@ -138,7 +139,7 @@
           <summary class="btn w-100 text-start justify-content-start">{{ icon('arrow-down') }}{{ group_label }}</summary>
           <fieldset class="p-3">
             <legend class="visually-hidden">{{ group_label }}</legend>
-            <p class="form-hint">Jedes Feld genau einmal auswählen. Leere Menüangaben bleiben leer.</p>
+            {{ hint('Jedes Feld genau einmal auswählen. Leere Menüangaben bleiben leer.', 'template-' ~ group ~ '-order-hint') }}
             {% for binding in layout_groups[group] %}
             {% set field = 'layout_' ~ group ~ '_' ~ loop.index0 %}
             <div class="mb-3"><label class="form-label" for="template-{{ field }}">{{ group_label }} · Position {{ loop.index }}</label>
@@ -161,11 +162,11 @@
   </div>
   <div class="col-12 col-xl-7">
     <section class="card mb-4" aria-labelledby="pdf-heading">
-      <div class="card-header"><h2 class="card-title" id="pdf-heading">PDF-Vorschau · {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }}</h2></div>
+      <div class="card-header"><h2 class="card-title" id="pdf-heading">PDF-Vorschau · {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }}</h2>{{ hint('A4 hoch · Fortlaufende Seiten.' if recipe_editor else 'A4 quer · Montag bis Sonntag · Mittag und Abend' if profile == 'patient' else 'A4 hoch · Alle freigegebenen Wochentage', 'template-format-hint') }}</div>
       <div class="card-body">
         {% if recipe_editor %}<p>{% if recipe_revision %}{{ recipe_revision.snapshot.recipe.title }} · Rezeptrevision {{ recipe_revision.revision_number }}.{% endif %} Die Vorschau verwendet die gespeicherte Vorlagenrevision.</p>{% else %}
         <p>Gespeicherte Woche ab {{ week|date_long }}. Die Vorschau verwendet die angezeigte gespeicherte Vorlagenversion.</p>{% endif %}
-        <p class="form-hint">{% if recipe_editor %}A4 hoch · Fortlaufende Seiten. Zutaten, Mengen, Bilder und Herkunft bleiben vollständig erhalten.{% else %}{{ 'A4 quer · Montag bis Sonntag · Mittag und Abend' if profile == 'patient' else 'A4 hoch · Alle freigegebenen Wochentage' }}. Alle Menütexte und Deklarationen bleiben vollständig erhalten.{% endif %}</p>
+        <p class="form-hint">{% if recipe_editor %}Zutaten, Mengen, Bilder und Herkunft bleiben vollständig erhalten.{% else %}Alle Menütexte und Deklarationen bleiben vollständig erhalten.{% endif %}</p>
         {% if preview_error %}<div class="alert alert-warning text-warning-emphasis" role="status">{{ preview_error }}</div>{% else %}
         <iframe class="print-template-preview {% if profile == 'patient' %}print-template-preview-landscape{% endif %}" src="{{ preview_url }}#toolbar=0&amp;navpanes=0&amp;view=Fit" title="{{ label }} PDF-Vorschau Revision {{ revision.id }}"></iframe>
         <a class="btn mt-3" href="{{ preview_url }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau als PDF öffnen</a>
@@ -175,7 +176,7 @@
         <summary class="btn w-100 text-start justify-content-start">{{ icon('file-check') }}Aktivieren</summary>
         <div class="pt-3">
           {% if document.active_template == template.id and document.active_revision == revision.id %}
-          <p class="mb-2"><span class="badge bg-success-lt">Aktive Druckvorlage</span> {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }} für {{ output_scope }}</p>
+          <p class="mb-2"><span class="badge admin-status--active">{{ icon('circle-check') }}Aktive Druckvorlage</span> {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }} für {{ output_scope }}</p>
           {% elif not template.archived and (not recipe_editor or not preview_error) %}
           <form method="post" action="{{ editor_url }}">{{ hidden('activate') }}<button class="btn" type="submit">{{ icon('check') }}{{ 'Revision ' ~ revision.id ~ ' prüfen und aktivieren' if recipe_editor else 'Diese Version aktivieren' }}</button></form>
           {% endif %}

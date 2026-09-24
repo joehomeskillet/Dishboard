@@ -27,6 +27,7 @@
   width: auto; margin: 0 0 var(--app-space-1); padding: 0;
   color: var(--app-text-muted); font-size: var(--app-font-size-label);
 }
+.dishboard-admin .menu-editor-row-body { clear: both; }
 .dishboard-admin .menu-editor-component-summary {
   align-items: center; grid-template-columns: minmax(0, 1fr) auto; gap: var(--app-space-2);
   min-height: var(--app-space-12);
