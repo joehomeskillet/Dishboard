@@ -1,0 +1,28 @@
+/* Shared navigation supplement. Palette follows the existing sidebar tokens. */
+.dishboard-admin .admin-sidebar {
+  --admin-nav-group-gap: var(--app-space-3);
+  --admin-nav-item-gap: var(--app-space-1);
+}
+.dishboard-admin .admin-sidebar .navbar-nav { gap: var(--admin-nav-group-gap); }
+.dishboard-admin .admin-sidebar .navbar-nav .nav-link-title {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dishboard-admin .admin-sidebar .admin-nav-area > .nav-link { gap: var(--app-space-2); }
+.dishboard-admin .admin-sidebar .admin-nav-area > .nav-link.active:not([aria-current="page"]) {
+  background: transparent; box-shadow: none; color: var(--app-on-primary); font-weight: 700;
+}
+.dishboard-admin .admin-sidebar .admin-nav-area > .nav-link.active:not([aria-current="page"]):is(:hover, :focus-visible) {
+  background: var(--app-sidebar-hover);
+}
+.dishboard-admin .admin-sidebar .admin-nav-subitems {
+  border: 0; box-shadow: none; background: transparent;
+  gap: var(--admin-nav-item-gap);
+  margin: var(--app-space-1) 0 0 var(--app-space-8); padding: 0;
+}
+.dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link {
+  min-height: var(--app-space-12); font-size: var(--app-font-size-label); font-weight: 400;
+}
+.dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link[aria-current="page"] { font-weight: 700; }
+.dishboard-admin .admin-nav-chevron { margin-left: auto; display: flex; flex: none; }
+.dishboard-admin .admin-nav-chevron .icon { width: var(--app-space-4); height: var(--app-space-4); }
+.dishboard-admin .admin-sidebar .admin-footer { border: 0; padding-top: var(--app-space-6); }

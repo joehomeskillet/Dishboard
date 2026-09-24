@@ -14,15 +14,16 @@
     {% endfor %}
     {% if pick.target %}
       <li class="nav-item admin-nav-area{% if area_nav.selected.area == key %} active{% endif %}">
-        <a href="{{ area_nav.href(pick.target) }}" class="nav-link{% if area_nav.selected.area == key %} active{% endif %}"{% if area_nav.selected.area == key and not area_nav.selected.item %} aria-current="page"{% endif %}>
+        <a href="{{ area_nav.href(pick.target) }}" title="{{ label }}" class="nav-link{% if area_nav.selected.area == key %} active{% endif %}"{% if area_nav.selected.area == key and not area_nav.selected.item %} aria-current="page"{% endif %}>
           <span class="nav-link-icon">{{ icon(icon_name) }}</span>
           <span class="nav-link-title">{{ label }}</span>
+          <span class="admin-nav-chevron" aria-hidden="true">{{ icon('chevron-down' if area_nav.selected.area == key else 'chevron-right') }}</span>
         </a>
         {% if area_nav.selected.area == key %}
         <ul class="admin-nav-subitems" aria-label="{{ label }} Unterpunkte">
           {% for tab in tabs if tab[3] %}
           <li class="nav-item{% if tab[0] == area_nav.selected.item %} active{% endif %}">
-            <a href="{{ area_nav.href(tab) }}" class="nav-link{% if tab[0] == area_nav.selected.item %} active{% endif %}"{% if tab[0] == area_nav.selected.item %} aria-current="page"{% endif %}>
+            <a href="{{ area_nav.href(tab) }}" title="{{ tab[2] }}" class="nav-link{% if tab[0] == area_nav.selected.item %} active{% endif %}"{% if tab[0] == area_nav.selected.item %} aria-current="page"{% endif %}>
               <span class="nav-link-title">{{ tab[2] }}</span>
             </a>
           </li>

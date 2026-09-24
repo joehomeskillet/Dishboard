@@ -32,6 +32,30 @@ Gemäss Auftraggeber-Entscheid im Handoff (`docs/design/uiux-handoff-2026-09-20/
 * Verbindliche Token-Pflicht für alle Styles.
 * Signage und öffentliche Seiten sind nicht Teil dieser Umsetzungs-Welle.
 
+## Auftraggeber-Ergänzung Navigation (2026-09-24)
+
+Quelle: `uiux-polish-2026-09-23/02_ERGAENZUNG_Navigation.md`. Diese Ergänzung
+ersetzt die frühere Trennlinie in M01/WP1: Unterlisten besitzen keine Rails,
+Verbindungslinien oder Tree-Dekoration. Einrückung, kleinere Schrift und Abstand
+bilden die Hierarchie (4 px innerhalb, 12 px zwischen Hauptgruppen).
+Nur der tatsächlich aktive Eintrag trägt `aria-current="page"` und die starke
+aktive Fläche. Sein Parent bleibt ohne aktive Fläche; Chevron und Schriftgewicht
+zeigen den geöffneten Bereich. Icons stehen nur auf der Hauptebene. Labels sind
+einzeilig mit Ellipsis und vollständigem `title`; Rollen und Ziele bleiben gleich.
+
+Desktop ab 992 px kann die Sidebar von 248 px auf eine 72-px-Icon-Leiste reduzieren.
+Ein externer, verzögert geladener Controller merkt die Auswahl in `localStorage`;
+ein kurzer initialer Breitenwechsel ist wegen CSP und Progressive Enhancement
+akzeptiert. Ohne JavaScript bleibt die volle Sidebar, der Umschalter verborgen.
+Mobile Offcanvas und native No-JS-Navigation bleiben erhalten. Flyouts bieten
+dieselben erlaubten Unterpunkte; Enter öffnet, Escape schliesst mit Fokusrückgabe.
+Tooltips erscheinen bei Hover und Tastaturfokus. Fokus bleibt mindestens 2 px,
+Bedienziele mindestens 48 px. Benutzerbereich und POST-Abmeldung bleiben unten.
+
+Prüfmatrix: `tests/test_admin_nav_browser.py` plus bestehende Shell-/Rollen-Gates;
+Desktop 1440 px, Mobile 390 px, Parent/Child/kein aktiver Eintrag, No-JS,
+Persistenz, lange Labels, reduzierte Rollen und Tastatur-Flyouts.
+
 ## Auftraggeber-Ergänzung 2026-09-20: Vereinfachung und kompakte Formulare
 
 Ergänzung zu den Auftraggeber-Prompts «Kompakte Formulare» und «Globale UI-Vereinfachung» (`docs/design/uiux-handoff-2026-09-20/07_ERGAENZUNGEN/`). Beispielbilder sind Denkweise und Komposition, keine Datenquelle und kein Funktionsumfang.

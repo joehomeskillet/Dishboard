@@ -97,7 +97,6 @@
   display: grid; gap: var(--app-space-1); list-style: none;
   margin: var(--app-space-1) 0 var(--app-space-3) var(--app-space-8);
   padding: 0 0 0 var(--app-space-2);
-  border-left: 1px solid var(--app-sidebar-hover);
 }
 .dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link {
   min-height: 48px; padding: var(--app-space-2) var(--app-space-3);
