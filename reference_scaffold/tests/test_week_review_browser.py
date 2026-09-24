@@ -23,7 +23,7 @@ from test_admin_ux_browser import (  # noqa: F401
 )
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
-CONFIRM = 'Wochenkopf und alle Ausgabehinweise als geprüft bestätigen'
+CONFIRM = 'Bestätigen'
 
 
 def _values(profile: str, *, closed: bool = False) -> dict:
@@ -71,7 +71,7 @@ def _assert_layout(page: Page) -> None:
 
 
 @pytest.mark.parametrize(('family', 'profile'), [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
-@pytest.mark.parametrize('width', [360, 768, 1024, 1280])
+@pytest.mark.parametrize('width', [360, 768, 1024, 1280, 1440])
 def test_real_week_review_saved_content_and_explicit_confirmation(
     page_context: Page, admin_app: Flask, admin_engine: Engine, family: str, profile: str, width: int,
 ) -> None:
@@ -95,6 +95,11 @@ def test_real_week_review_saved_content_and_explicit_confirmation(
         assert not re.search(r'preis|chf|rappen|kosten|price', page.content(), re.I)
     _assert_layout(page)
     confirm = page.get_by_role('button', name=CONFIRM)
+    expect(confirm.locator('use')).to_have_attribute('href', re.compile(r'#tabler-check$'))
+    expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+    expect(page.locator('.admin-list-row')).to_have_count(len(services))
+    expect(page.get_by_role('list', name='Ausgabeangaben').get_by_role('listitem')).to_have_count(len(services))
+    expect(page.locator('.admin-list-status .admin-label')).to_have_count(len(services))
     box = confirm.bounding_box()
     assert box is not None and box['width'] >= 48 and box['height'] >= 48
     confirm.focus()

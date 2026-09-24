@@ -10434,7 +10434,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "d3866643725bf4e1fff4923f00d5a40c113819caac23674dc959b2a4c6c06fe3",
+      "sha256": "bf38181bcc6ed17d2a26efeafe70725dadcba60e0c15e7307481768d493266d7",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10454,7 +10454,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "26aa1cc6862ecc1114831c335673a78309786e0cb8624a4b9c3b16a4498e6bd1",
+      "sha256": "46a8c64999219c5f9cbbcca410bc2ef90ab17e908be00a830d3bcb0541173e19",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10474,7 +10474,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "f2e5455cd70a070559c138a3fc9ba35a70f8edb5c4664dd34036a3f17be3bea3",
+      "sha256": "f91216f8f38df510044694dbb2505cd1e3f107a6f47c79b4d2c0d2687587de4a",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10765,7 +10765,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "47f73eee7b63211570b0343298b1bd7603846cc9ff3fac51128e90375aa9b647",
+      "sha256": "207cc6e446e65bc2c4eca622fa246e938d59759cc689ebfee3fc2ac0f01e48b9",
       "used_by_endpoints": [
         "admin.cafeteria"
       ],
@@ -10836,7 +10836,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "eed81107e9785facd2284ee0434e4edb46a8979390124afcb6c1fffdb3742ebc",
+      "sha256": "5cf707dbeca2d25de056c70bf63cd76330ec63136013b9994f1bb39b8642921f",
       "used_by_endpoints": [
         "admin.copy_get"
       ],
@@ -11779,7 +11779,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "a85221303e403d73f16d04f14967a4e619bdce6711fd2298f4a0957b93225990",
+      "sha256": "4f79a7b1390d15e52ae52da3c92565d06ada0a78a7d317f182ea91c7c8948fb4",
       "used_by_endpoints": [
         "admin.week_management"
       ],
@@ -11800,7 +11800,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "499c4d9c82ca9040ebb64de7ba2f20a6372203b9f3b30b1d22e59e250ea50564",
+      "sha256": "4008e0ee863b0c81e4cf656657e9987c34968a90236a1040a96f8f7af94f4ab2",
       "used_by_endpoints": [
         "admin.week_review_get"
       ],
@@ -12325,7 +12325,7 @@
       "includes": [
         "admin/_course_recipe_search.html"
       ],
-      "sha256": "e0ac7df370205b6b458612e9afc4512fa939b2a7a456e93b7970c95441cbe529",
+      "sha256": "c84b8c141035f82c6b6da1b0532ed7b989b2b37670f631009cdc9492c5b8e24a",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -12337,7 +12337,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "459f5eae9c175568517b58cbc1151e597fbc738d159ce0ae2e44c3e96844e40c",
+      "sha256": "7641d0df8d3aa7128abca1453f3acab9f1aa3677b2297a0ea3ac28276eae22dc",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -12349,7 +12349,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "154cd2c7eae0aeb2f5e9832fd4fcf4c99b878e5a4344be0fbd804ebb7a195d44",
+      "sha256": "e308df74e765fe51de8bbe1b6ce49adefcbd3a0450efde0deeadd9e0394a34ba",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -12363,7 +12363,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "ebad0e44407b1baeede0c8bca7361b1109782b162e016829fceff01cfee4058e",
+      "sha256": "bb8c281a0a2f929747432971910b0391be90e4e07fee8b74180e296252082377",
       "used_by_endpoints": [
         "admin.preview",
         "admin.screen_template_preview",

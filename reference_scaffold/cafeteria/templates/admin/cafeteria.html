@@ -60,6 +60,7 @@
 {% endif %}
 
 <section class="admin-week-days d-block d-md-grid" aria-label="Wochenübersicht Cafeteria">
+  {% from 'admin/_macros.html' import label %}
   {% for day, grouped in day_cells|groupby('day') %}
   {% set day_row = grouped|first %}
   <article class="card admin-day-card mb-3 mb-md-0">
@@ -70,7 +71,7 @@
       {% if filled < 2 %}
       <span class="text-secondary admin-week-day-count">{{ filled }} von 2 Menükarten erfasst</span>
       {% endif %}
-      {% if day_row.service_row_version == 0 %}<span class="badge admin-status--neutral">{{ icon('info-circle') }}Vorgabe, noch nicht gespeichert</span>{% endif %}
+      {% if day_row.service_row_version == 0 %}{{ label('Nicht gespeichert', 'neutral', detail='Vorgabe, noch nicht gespeichert') }}{% endif %}
     </div>
     <div class="card-body">
       {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=day_row, day_iso=day, service_index=loop.index0 %}

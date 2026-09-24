@@ -1,5 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import page_header, icon %}
+{% from 'ui/_semantic.html' import icon_button, icon_label %}
 {% set workflow_nav = 'weeks' %}
 {% set layout_variant = 'standard' %}
 {% set week = target.isoformat() %}
@@ -12,7 +13,7 @@
   {'label': 'Quellwoche', 'value': 'KW ' ~ source.isocalendar().week ~ ' / ' ~ source.isocalendar().year, 'detail': source.strftime('%d.%m.%Y')},
   {'label': 'Zielwoche', 'value': 'KW ' ~ target.isocalendar().week ~ ' / ' ~ target.isocalendar().year, 'detail': target.strftime('%d.%m.%Y')}
 ]) %}
-<button type="submit" form="week-copy-form" class="btn btn-primary">{{ icon('copy') }}Vorwoche kopieren</button>
+<button type="submit" form="week-copy-form" class="btn btn-primary ui-sem-control">{{ icon_label('actions.copy') }}</button>
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -34,7 +35,7 @@
       <input type="hidden" name="source_week" value="{{ source.isoformat() }}">
       <input type="hidden" name="target_week" value="{{ target.isoformat() }}">
       <input type="hidden" name="target_row_version" value="{{ target_row_version }}">
-      <a class="btn" href="{{ url_for('admin.' ~ family, week=target.isoformat()) }}">{{ icon('arrow-left') }}Zurück zur Wochenübersicht</a>
+      {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=target.isoformat()), icon_only=true) }}
     </form>
    </div>
   </section>

@@ -1,5 +1,8 @@
 ﻿category,semantic_key,ascii,label_de,label_en,tabler_icon,icon_only_allowed,role
 actions,actions.add,[+],Anlegen,Create,plus,no,primary
+actions,actions.activate,[ON],Aktivieren,Activate,circle-check,no,neutral
+actions,actions.apply,[OK],Übernehmen,Apply,check,no,neutral
+actions,actions.history,[H],Verlauf,History,history,yes,neutral
 actions,actions.add_existing,[+],Hinzufügen,Add,circle-plus,no,primary
 actions,actions.edit,[E],Bearbeiten,Edit,edit,yes,neutral
 actions,actions.save,[OK],Speichern,Save,device-floppy,no,primary

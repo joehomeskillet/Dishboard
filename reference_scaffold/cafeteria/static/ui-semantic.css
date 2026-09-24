@@ -29,6 +29,12 @@
   padding: 0; flex: 0 0 var(--ui-control-size);
 }
 .dishboard-admin .ui-sem-control--icon-only .icon { margin: 0; }
+/* Semantic actions retain the native dropdown's full-width, leading alignment. */
+.dishboard-admin .ui-sem-control.dropdown-item {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: start;
+}
 .admin-row-actions {
   display: flex; flex-wrap: wrap; align-items: start; justify-content: flex-end;
   gap: var(--app-space-2); min-width: 0;
