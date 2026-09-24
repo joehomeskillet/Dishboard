@@ -406,6 +406,15 @@ def test_csv_preview_frame_viewports_statusbar_nojs_keyboard(
                         assert metric['overflow'] is False, metric
                         assert metric['primary'] == 1, metric
                         assert metric['open'] == 0, metric
+                        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                        expect(page.locator('#csv-upload')).to_have_attribute('data-loading', '')
+                        more = page.locator('#csv-more > summary')
+                        more.focus()
+                        expect(more).to_be_focused()
+                        more.press('Enter')
+                        expect(page.get_by_text('Cafeteria und Patientenplan verwenden getrennte Formate.', exact=False)).to_be_visible()
+                        more.press('Enter')
+                        expect(page.locator('#csv-more')).not_to_have_attribute('open', '')
                         expect(page.locator('dl.admin-statusbar')).to_contain_text('Offen')
                         expect(page.locator('main .btn-primary')).to_have_text('Vorschau prüfen')
                         if width == 360:

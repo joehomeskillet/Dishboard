@@ -60,6 +60,15 @@ def test_display_frame_viewports_nojs_and_keyboard(
                             ['admin_density', 'compact'], ['admin_font_size', 'normal'],
                             ['admin_content_width', 'contained'], ['admin_menu_images', 'show'],
                         ]
+                        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                        help_trigger = page.locator('.admin-hint > summary').first
+                        help_trigger.focus()
+                        expect(help_trigger).to_be_focused()
+                        help_trigger.press('Enter')
+                        expect(page.locator('#admin-density-hint')).to_be_visible()
+                        help_trigger.press('Enter')
+                        expect(page.locator('#admin-density-hint')).to_be_hidden()
+                        assert _display_metrics(page)['fields'] == metrics['fields']
                         expect(page.get_by_role('heading', level=1)).to_have_text('Darstellung')
                         status = page.locator('.admin-statusbar')
                         expect(status).to_contain_text('Aktiv')
@@ -222,7 +231,11 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
             _assert_controls(page)
         page.goto(PATH)
         expect(page.get_by_label('Abstände', exact=True)).to_have_value('compact')
+        density_help = page.locator('.admin-hint > summary[aria-describedby="admin-density-hint"]')
+        density_help.focus()
+        density_help.press('Enter')
         expect(page.locator('#admin-density-hint')).to_be_visible()
+        density_help.press('Enter')
         expect(page.get_by_label('Inhaltsbreite', exact=True)).to_have_value('contained')
         expect(page.locator('#admin-content-width-hint')).to_contain_text('volle Breite')
         # K7-A, Entscheidungsdokument §10: compact = Master-Card-Inset (16 px mobil, 24 px ab 768 px)

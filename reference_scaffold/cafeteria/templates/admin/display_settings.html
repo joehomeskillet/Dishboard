@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, field %}
+{% from 'admin/_macros.html' import page_header, select, field, hint as help_hint %}
 {% from 'ui/_semantic.html' import icon_button, icon_label %}
 {% set workflow_nav = 'design' %}
 {% set layout_variant = 'standard' %}
@@ -16,7 +16,7 @@
   ]) }}
 {% endblock %}
 {% block content %}
-  <form method="post" action="{{ url_for('admin.display_settings') }}" class="card mb-4 admin-compact-form" id="display-settings-form">
+  <form method="post" action="{{ url_for('admin.display_settings') }}" class="card mb-4 admin-compact-form" id="display-settings-form" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf }}">
     <div class="card-body">
       {% if display_errors %}
@@ -32,8 +32,9 @@
           ('admin_content_width', 'Inhaltsbreite', [('contained', 'Begrenzt'), ('full', 'Voll')], 'Die Arbeitsfläche nutzt immer die volle Breite neben der Navigation. Begrenzt und Voll gelten nur noch für die Vorschau auf dieser Seite.'),
           ('admin_menu_images', 'Menübilder', [('show', 'Anzeigen'), ('hide', 'Ausblenden')], 'Serviervorschläge in Menükarten und Admin-Vorschau. Menütexte, Allergene und Prüfhinweise bleiben immer sichtbar.'),
         ] %}
-        <div class="col-12 col-md-6">
-          {{ select(key, label, choices=choices, value=display_values[key], id=key|replace('_', '-'), error=display_errors.get(key), hint=hint if key != 'admin_menu_images' else none) }}
+        <div class="col-12 col-md-6 display-setting-field">
+          {{ select(key, label, choices=choices, value=display_values[key], id=key|replace('_', '-'), error=display_errors.get(key)) }}
+          {% if hint and key != 'admin_menu_images' %}{{ help_hint(hint, key|replace('_', '-') ~ '-hint') }}{% endif %}
         </div>
         {% endfor %}
       </div>
