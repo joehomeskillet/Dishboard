@@ -1,9 +1,10 @@
 {% from 'admin/_macros.html' import icon %}
+{% from 'ui/_semantic.html' import icon_button, sem_icon %}
 <!doctype html><html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Benutzerverwaltung nicht verfügbar</title><link rel="icon" type="image/png" href="{{ url_for('static', filename='img/suedhang-logo.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
 </head><body class="dishboard-admin"><main class="container-fluid py-5"><div class="card"><div class="card-body">
 <h1 class="page-title mb-3">Benutzer & Zugriff</h1>
-<h2 class="card-title">{{ icon('alert-triangle') }}Benutzerverwaltung nicht verfügbar</h2><p role="alert">Benutzerkonten und Zugriffsverlauf können momentan nicht geladen werden. Bitte versuchen Sie es später erneut.</p>
+<h2 class="card-title">{{ sem_icon('status.warning') }}<span>Benutzerverwaltung nicht verfügbar</span></h2><p role="alert">Benutzerkonten und Zugriffsverlauf können momentan nicht geladen werden. Bitte versuchen Sie es später erneut.</p>
 {% if request.method == 'POST' %}<p>Der Abschluss der Kontoaktion konnte nicht bestätigt werden. Laden Sie den aktuellen Stand, bevor Sie die Aktion erneut bestätigen.</p>{% endif %}
-<a class="btn btn-primary" href="{{ url_for('admin.local_users_list') }}">{{ icon('refresh') }}Benutzerverwaltung erneut öffnen</a></div></div></main></body></html>
+{{ icon_button('actions.retry', href=url_for('admin.local_users_list')) }}</div></div></main></body></html>

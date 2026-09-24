@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, icon, disclosure_section, hint %}
-{% from 'ui/_semantic.html' import icon_button %}
+{% from 'admin/_macros.html' import page_header, select, icon, disclosure_section, hint, label %}
+{% from 'ui/_semantic.html' import icon_button, icon_label, sem_icon, status_badge_sem %}
 {% set workflow_nav = 'design' %}
 {% set layout_variant = 'standard' %}
 {% set active_revision = document.revisions[document.active_revision - 1] %}
@@ -93,13 +93,13 @@
     <div class="card-body py-2">
       <p class="brand-preview-meta mb-2" role="status">
         {{ selected.name }}
-        {% if selected_is_active %}<span class="badge admin-status--active">{{ icon('check') }}{{ t('status.active.label') }}</span>{% elif selected_revision.published %}<span class="badge admin-status--neutral">{{ icon('history') }}Früher aktiv</span>{% else %}<span class="badge admin-status--warning">{{ icon('pencil') }}{{ t('publish.draft.label') }}</span>{% endif %}
+        {% if selected_is_active %}{{ status_badge_sem('status.active') }}{% elif selected_revision.published %}{{ label('Früher aktiv', 'neutral', icon='history') }}{% else %}{{ label(t('publish.draft.label'), 'warning', icon='pencil') }}{% endif %}
       </p>
       <iframe class="brand-preview-frame" src="{{ url_for('admin.branding_preview', revision=selected.id) }}" title="Markenvorschau {{ selected.name }}"></iframe>
       <div class="brand-preview-actions">
         <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="activate" data-confirm="Version {{ selected.id }} «{{ selected.name }}» als öffentliches Erscheinungsbild aktivieren?">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-          <button class="btn d-inline-flex align-items-center gap-1" type="submit" name="action" value="activate"{% if selected_is_active %} disabled{% endif %}>{{ icon('check') }}Version {{ selected.id }} aktivieren</button>
+          <button class="btn ui-sem-control" type="submit" name="action" value="activate" data-semantic="publish.ready" title="{{ t(sem('publish.ready').tooltip_key) }}" aria-label="Version {{ selected.id }} aktivieren"{% if selected_is_active %} disabled{% endif %}>{{ sem_icon('publish.ready') }}<span>{{ t(sem('publish.ready').label_key) }}</span></button>
         </form>
         {% if selected_is_active %}
         <span class="text-success small d-inline-flex align-items-center gap-1">{{ icon('check') }}{{ t('status.active.label') }}</span>
@@ -113,23 +113,20 @@
   <h3 class="h4 d-flex align-items-center gap-2 mb-2" id="brand-history-title">{{ icon('copy') }}<span>Ausgewählten Stand übernehmen</span></h3>
   <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="restore">
     <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-    <button class="btn d-inline-flex align-items-center gap-1" type="submit" name="action" value="restore">{{ icon('copy') }}Version {{ selected.id }} als neuen Entwurf übernehmen</button>
+    <button class="btn ui-sem-control" type="submit" name="action" value="restore" data-semantic="actions.restore" title="{{ t(sem('actions.restore').tooltip_key) }}" aria-label="Version {{ selected.id }} als neuen Entwurf übernehmen">{{ icon_label('actions.restore') }}</button>
   </form>
   <h3 class="h4 pt-3 mb-2 d-flex align-items-center gap-2">{{ icon('history') }}<span>Version auswählen</span></h3>
   <div class="list-group list-group-flush brand-history-list">
     {% for item in document.revisions|reverse %}
     <a class="list-group-item list-group-item-action brand-history-row{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id) }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
       <span class="brand-history-name">{{ item.name }}</span>
-      <span class="badge {% if item.id == document.active_revision %}admin-status--active{% elif item.published %}admin-status--neutral{% else %}admin-status--warning{% endif %}">
-        {{ icon('check' if item.id == document.active_revision else 'history' if item.published else 'pencil') }}
-        {% if item.id == document.active_revision %}{{ t('status.active.label') }}{% elif item.published %}Früher aktiv{% else %}{{ t('publish.draft.label') }}{% endif %}
-      </span>
+      {% if item.id == document.active_revision %}{{ status_badge_sem('status.active') }}{% elif item.published %}{{ label('Früher aktiv', 'neutral', icon='history') }}{% else %}{{ label(t('publish.draft.label'), 'warning', icon='pencil') }}{% endif %}
     </a>
     {% endfor %}
   </div>
   <form class="pt-3" method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="reset" data-confirm="Südhang Standard als neuen Entwurf anlegen?">
     <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
-    <button class="btn d-inline-flex align-items-center gap-1" name="action" value="reset" type="submit">{{ icon('refresh') }}Südhang Standard als Entwurf</button>
+    <button class="btn ui-sem-control" type="submit" name="action" value="reset" data-semantic="view.reset" title="{{ t(sem('view.reset').tooltip_key) }}" aria-label="Südhang Standard als Entwurf">{{ icon_label('view.reset') }}</button>
   </form>
 </section>
 {% endcall %}

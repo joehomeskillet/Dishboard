@@ -1,4 +1,35 @@
 /* WP19: existing tokens and native forms, scoped to account views. */
+.dishboard-admin .admin-users-list [data-account-row] .admin-list-row {
+  margin: 0;
+  border-bottom: 0;
+  min-height: 0;
+  padding-block: 0;
+  padding-inline: var(--app-list-pad-x);
+}
+.dishboard-admin .admin-users-list [data-account-row] {
+  border-bottom: var(--app-list-line-width, 1px) solid var(--tblr-border-color, #e6e7e9);
+  padding-block: max(0px, calc(var(--app-list-pad-y) - 3px));
+  padding-inline: 0;
+  min-height: 0;
+}
+.dishboard-admin .admin-users-list [data-account-row] .admin-list-subtitle {
+  line-height: 1.2;
+}
+.dishboard-admin .admin-users-list .admin-list-meta .small {
+  display: inline;
+}
+.dishboard-admin .admin-users-list .admin-list-meta .small:not(:last-child)::after {
+  content: " · ";
+}
+@media (min-width: 1024px) {
+  .dishboard-admin .admin-users-list .admin-list-row {
+    flex-wrap: nowrap;
+  }
+  .dishboard-admin .admin-users-list .admin-list-meta {
+    flex: 0 1 auto;
+    max-width: 40%;
+  }
+}
 .dishboard-admin .admin-users-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
