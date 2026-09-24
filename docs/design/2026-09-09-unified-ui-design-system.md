@@ -1176,10 +1176,12 @@ Pflichthinweise bleiben sichtbar. Status in der Liste ist `admin-status--active`
 `.btn-primary` je Zustand.
 
 **Polish P4:** Die Zutatenliste nutzt `list_row` mit Registry-Aktionen und `label()`.
-Abschnittsspeicher und Rücknavigation nutzen `icon_label`/`icon_button`. Die
-Preistabelle ist `admin-table admin-table--stack`. Der GET-Filter bleibt lokal,
-weil `filter_bar_sem` für Nicht-Zutaten `q` erzwingen würde. «Neu laden» im
-Standortkonflikt bleibt der sichtbare Wiederherstellungstext.
+Abschnittsspeicher und Rücknavigation nutzen `icon_label`/`icon_button` mit
+abschnittsspezifischen Kurzlabels. Die Preistabelle ist `admin-table
+admin-table--stack`. Der GET-Filter bleibt lokal, weil `filter_bar_sem` für
+Nicht-Zutaten `q` erzwingen würde. «Neu laden» im Standortkonflikt bleibt der
+sichtbare Wiederherstellungstext. Allergenprüfung heisst «Prüfung bestätigen»/
+«Prüfung aufheben»; Reaktivieren nutzt `actions.activate`.
 
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
@@ -2195,9 +2197,10 @@ Statusanzeige im Editorkopf ist `admin-status--active`/`--neutral` plus Text.
 Schreibschutz bleibt sichtbar; vertiefende Erläuterung liegt als `hint()`.
 Eine sichtbare `.btn-primary` je Zustand; Archivieren bleibt selten und bestätigt.
 
-**Polish P4:** Die Kochbuchliste nutzt `list_row` und `filter_bar_sem`.
-Zuordnung und schreibgeschützte Rezepte sind `admin-table admin-table--stack`.
-Reaktivieren verwendet `actions.restore`.
+**Polish P4:** Die Kochbuchliste nutzt `list_row` und `filter_bar_sem` mit
+`maxlength=200`. Zuordnung und schreibgeschützte Rezepte sind `admin-table
+admin-table--stack`. Reaktivieren verwendet `actions.activate` mit sichtbarem
+Kurzlabel «Reaktivieren».
 
 ##### Modul Gerichtvorlagen (2026-09-20)
 
@@ -2228,8 +2231,11 @@ bleiben sichtbar. Archivieren bleibt selten, destruktiv, mit Folgetext.
 **Polish P3:** Ergebnis- und manuelle Tabellen nutzen `admin-table--stack` mit `data-label`; die frühere `d-none d-md-*`-Doppelung entfällt. Zeilenstatus ist `admin-status--*`. Hilfetext zur Bedarfspolitik und zum Berechnungsstand liegt in `hint()`; der Lösch-Folgetext bleibt inline. POST-Formulare opt-in `data-loading`.
 
 **Polish P4:** Ergebnis- und manuelle Tabellen tragen `admin-table`. Zeilenstatus
-ist `label()`. Abhaken/Wiederöffnen/Neu berechnen nutzen Registry-Kurzlabels.
-GET-Filter für Stand und Woche bleiben lokal, weil `filter_bar_sem` ein Suchfeld `q` erzwingen würde. Unvollständige Positionen bleiben eine Inhaltsliste.
+ist `label()`. Abhaken, Wieder öffnen, Neu berechnen und Woche laden behalten
+ihre fachlichen Kurzlabels über `icon_button(..., text=)`. Der Listenfilter
+heisst «Mit Archivierten», getrennt von der Archivierungsaktion. GET-Filter für
+Stand und Woche bleiben lokal, weil `filter_bar_sem` ein Suchfeld `q` erzwingen
+würde. Unvollständige Positionen bleiben eine Inhaltsliste.
 
 ##### Modul Lager (2026-09-20)
 

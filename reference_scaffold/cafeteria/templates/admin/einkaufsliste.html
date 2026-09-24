@@ -97,7 +97,7 @@
         <option value="{{ week.public_id }}"{% if week_public_id == week.public_id %} selected{% endif %}>{{ week.label }}</option>
         {% endfor %}
       </select>
-      <button class="btn" type="submit">{{ icon_label('view.filter') }}</button>
+      {{ icon_button('view.filter', text='Woche laden') }}
     </div>
   </form>
   {% if week_public_id and not candidates %}
@@ -142,7 +142,7 @@
       {% endfor %}
       {% if policy_error %}<div class="invalid-feedback d-block field-error" id="policy-error">{{ policy_error }}</div>{% endif %}
     </fieldset>
-    <button class="btn btn-primary" type="submit">{{ icon_label('actions.refresh') }}</button>
+    {{ icon_button('actions.refresh', text='Neu berechnen', emphasis='primary') }}
   </form>
   {% endif %}
 </section>
@@ -179,10 +179,10 @@
             <input type="hidden" name="line_key" value="{{ line.line_key }}">
             {% if line.checked_status == 'checked' %}
             <input type="hidden" name="checked" value="false">
-            <button class="btn text-nowrap" type="submit">{{ icon_label('actions.undo') }}</button>
+            {{ icon_button('actions.undo', text='Wieder öffnen', emphasis='secondary') }}
             {% else %}
             <input type="hidden" name="checked" value="true">
-            <button class="btn text-nowrap" type="submit">{{ icon_label('actions.confirm') }}</button>
+            {{ icon_button('actions.confirm', text='Abhaken', emphasis='secondary') }}
             {% endif %}
           </form>
         </td>
@@ -244,9 +244,9 @@
               <div class="shopping-item-actions">
                 <button class="btn" type="submit" name="action" value="save">{{ icon_label('actions.save') }}</button>
                 {% if item.checked %}
-                <button class="btn" type="submit" name="action" value="uncheck" formnovalidate>{{ icon_label('actions.undo') }}</button>
+                {{ icon_button('actions.undo', name='action', value='uncheck', text='Wieder öffnen', emphasis='secondary', attrs={'formnovalidate': true}) }}
                 {% else %}
-                <button class="btn" type="submit" name="action" value="check" formnovalidate>{{ icon_label('actions.confirm') }}</button>
+                {{ icon_button('actions.confirm', name='action', value='check', text='Abhaken', emphasis='secondary', attrs={'formnovalidate': true}) }}
                 {% endif %}
                 <button class="btn btn-danger ms-3" type="submit" name="action" value="delete" formnovalidate data-confirm="Diese Position löschen?" aria-describedby="shopping-delete-hint">{{ icon_label('actions.delete') }}</button>
               </div>

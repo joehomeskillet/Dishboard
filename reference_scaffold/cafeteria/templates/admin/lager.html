@@ -40,7 +40,7 @@
         <td data-label="Lagerort">{{ slot.storage_name }}</td>
         <td class="admin-table-status" data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}{{ label('Kein Bestand erfasst', 'warning', icon='alert-triangle') }}{% endif %}</td>
         <td class="lager-row-action admin-table-actions" data-label="Aktion">
-          <a class="btn{% if current %} active{% endif %}" href="{{ url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id) }}"{% if current %} aria-current="true"{% endif %}>{{ icon_label('actions.open') }}</a>
+          {{ icon_button('actions.open', href=url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id), class=('active' if current else ''), aria_label=t(sem('actions.open').label_key) ~ ': ' ~ slot.food_name, attrs={'aria-current': true} if current else none) }}
         </td>
       </tr>
     {% endfor %}

@@ -144,6 +144,7 @@
     white-space: nowrap;
   }
   .dishboard-admin [data-shopping-lists] .shopping-result-table tbody td[data-label="Zutat"],
+  .dishboard-admin [data-shopping-lists] .shopping-result-table tbody td[data-label="Aktion"],
   .dishboard-admin [data-shopping-lists] .shopping-manual-table tbody td[data-label="Text"] {
     white-space: normal;
   }

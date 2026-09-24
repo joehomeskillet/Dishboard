@@ -22,7 +22,7 @@
   {% if projection %}
     {{ icon_button('actions.confirm', form='cost-confirm') }}
   {% else %}
-    <button class="btn btn-primary" type="submit" form="cost-preview">{{ icon_label('actions.preview') }}</button>
+    {{ icon_button('actions.preview', type='submit', form='cost-preview', emphasis='primary') }}
   {% endif %}
 {% endcall %}
 {% endblock %}

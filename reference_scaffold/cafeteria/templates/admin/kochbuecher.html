@@ -25,7 +25,7 @@
   <span class="form-check-label">Archivierte einschliessen</span>
 </label>
 {% endset %}
-{{ filter_bar_sem(url_for('admin.cookbooks_list'), search_name='q', search_value=search, filters=cookbook_filters, active=search or include_archived, reset_url=(url_for('admin.cookbooks_list') if search or include_archived else none), id='cookbook') }}
+{{ filter_bar_sem(url_for('admin.cookbooks_list'), search_name='q', search_value=search, filters=cookbook_filters, active=search or include_archived, reset_url=(url_for('admin.cookbooks_list') if search or include_archived else none), id='cookbook', maxlength=200) }}
 {% if rows %}
 <section class="cookbook-list" aria-label="Kochbücher">
   {% for book in rows %}
@@ -44,7 +44,7 @@
 {% endcall %}
 {% else %}
 {% call empty_state('none', 'Noch keine Kochbücher', 'Ein Kochbuch anlegen, um Rezepte zu ordnen.') %}
-{% if can_write %}<a class="btn" href="{{ url_for('admin.cookbook_new') }}">{{ icon_label('actions.add') }}</a>{% endif %}
+{% if can_write %}{{ icon_button('actions.add', href=url_for('admin.cookbook_new'), emphasis='secondary') }}{% endif %}
 {% endcall %}
 {% endif %}
 {% endblock %}

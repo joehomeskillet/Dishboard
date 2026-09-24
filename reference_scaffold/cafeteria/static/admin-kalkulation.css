@@ -22,10 +22,7 @@
   }
 }
 
-.dishboard-admin .cost-lines.admin-table tbody tr { height: auto; }
 .dishboard-admin .cost-lines.admin-table tbody td {
-  padding-block: 0;
-  padding-inline: var(--app-space-2);
   overflow-wrap: anywhere;
 }
 
