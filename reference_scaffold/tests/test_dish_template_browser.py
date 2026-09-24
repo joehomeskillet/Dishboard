@@ -184,7 +184,7 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
         page.get_by_label('Menüart').select_option('MENU_1')
         page.get_by_label('Geltungsbereich').select_option('common')
         page.get_by_role('button', name='Speichern').click()
-        expect(page.get_by_role('link', name='Browser Vorlage')).to_be_visible()
+        expect(page.get_by_role('link', name='Browser Vorlage', exact=True)).to_be_visible()
         for column in COLUMNS:
             if width >= 768:
                 expect(page.get_by_role('columnheader', name=column)).to_be_visible()
@@ -202,7 +202,7 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
         expect(planning).to_have_text('Einplanen')
         expect(planning).to_have_attribute('aria-label', 'Browser Vorlage als Menü einplanen')
         expect(planning).to_have_attribute('title', 'Browser Vorlage als Menü einplanen')
-        page.get_by_role('link', name='Browser Vorlage').click()
+        page.get_by_role('link', name='Browser Vorlage', exact=True).click()
         expect(page.get_by_label('Status', exact=True)).to_be_visible()
         expect(page.get_by_label('Status', exact=True).locator('dt').filter(has_text='Status')).to_be_visible()
         expect(page.get_by_label('Status', exact=True).locator('dd').filter(has_text='Aktiv')).to_be_visible()
