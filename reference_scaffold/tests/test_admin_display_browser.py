@@ -311,14 +311,14 @@ def test_csv_states_remain_independent_of_density_and_old_local_storage(page_con
     page.locator('input[type="file"]').set_input_files({
         'name': 'invalid.csv', 'mimeType': 'text/csv', 'buffer': b'not,a,valid,header\n',
     })
-    page.get_by_role('button', name='Vorschau prüfen', exact=True).click()
+    page.get_by_role('button', name='Vorschau', exact=True).click()
     expect(page.locator('main')).to_have_attribute('data-state', 'error')
     expect(page.locator('.error-region')).to_be_visible()
     page.locator('input[type="file"]').set_input_files(
         str(Path(__file__).resolve().parents[2] / 'csv' / 'menu_patient_example.csv'),
     )
-    page.get_by_role('button', name='Vorschau prüfen', exact=True).click()
+    page.get_by_role('button', name='Vorschau', exact=True).click()
     expect(page.locator('main')).to_have_attribute('data-state', 'ready')
     expect(page.locator('main')).to_have_attribute('data-density', 'compact')
-    expect(page.get_by_role('button', name='Geprüfte Datei importieren')).to_be_visible()
+    expect(page.get_by_role('button', name='Importieren')).to_be_visible()
     expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)

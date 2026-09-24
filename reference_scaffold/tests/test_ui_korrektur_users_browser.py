@@ -303,11 +303,11 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
         cases = (
             ("#roles-action", "Speichern", "rollen", {"roles"}),
             (
-                "#password-action", "Passwort zurücksetzen", "passwort",
+                "#password-action", "Zurücksetzen", "passwort",
                 {"password", "password_confirm"},
             ),
-            ("#state-action", "Konto deaktivieren", "deaktivieren", set()),
-            ("#state-action", "Konto reaktivieren", "aktivieren", set()),
+            ("#state-action", "Archivieren", "deaktivieren", set()),
+            ("#state-action", "Wiederherstellen", "aktivieren", set()),
         )
         for selector, button, action, extra_fields in cases:
             _open(page, origin, f"/admin/benutzer/{target.public_id}")
@@ -428,7 +428,7 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         expect(page.get_by_text('Keine Zugriffsereignisse in dieser Auswahl.', exact=True)).to_be_visible()
         expect(page.get_by_label('Zugang', exact=True)).to_have_value('entra')
         _screenshot(page, f'access-history-filter-empty-{width}-{javascript}.png')
-        page.get_by_role('link', name='Filter zurücksetzen', exact=True).click()
+        page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         expect(page.get_by_label('Zugang', exact=True)).to_have_value('all')
 
         app.extensions['cafeteria_auth_issuer_db'] = None
@@ -487,7 +487,7 @@ def test_history_rows_and_native_filters_keep_scope_and_pagination(live_accounts
         page.get_by_role('button', name='Filtern', exact=True).click()
         assert parse_qs(urlsplit(page.url).query) == {'provider': ['entra'], 'action': ['auth.login.accepted']}
         expect(page.locator('tbody tr')).to_have_count(9)
-        page.get_by_role('link', name='Filter zurücksetzen', exact=True).click()
+        page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         page.get_by_role('navigation', name='Zugriffsereignisseiten').get_by_role('link', name='Weiter').click()
         expect(page.locator('tbody tr')).to_have_count(6)
         page.get_by_text('Geltungsbereich', exact=True).click()

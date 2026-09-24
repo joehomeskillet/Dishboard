@@ -119,10 +119,11 @@ def test_no_js_creation_channels_and_revoke_flow(admin_client, browser, width):
             row = page.locator('[data-api-keys] tbody tr')
             expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('Patienten')
             expect(row.locator('[data-label="Scopes / Kanäle"]')).not_to_contain_text('Cafeteria')
-            # Destructive flow: row details → «Widerrufen» → explicit «Bestätigen».
-            row.locator('summary', has_text='Details').click()
-            row.locator('summary', has_text='Widerrufen').click()
-            row.get_by_role('button', name='Bestätigen', exact=True).click()
+            # Destructive flow: icon details → revoke disclosure → explicit «Bestätigen».
+            row.locator('details.admin-api-key-details summary').click()
+            revoke = row.locator('form[action$="/revoke"]')
+            revoke.locator('summary').click()
+            revoke.get_by_role('button', name='Bestätigen', exact=True).click()
             expect(page.locator('[data-key-state="revoked"]')).to_be_visible()
             expect(page.locator('[data-new-key]')).to_have_count(0)
     finally:
