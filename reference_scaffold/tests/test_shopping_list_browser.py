@@ -365,6 +365,23 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                     )).to_have_count(1)
                 expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
                 expect(page.get_by_role('button', name='Neu berechnen', exact=True)).to_have_count(1)
+                expect(page.locator('main .btn-primary')).to_have_count(1)
+                expect(page.locator('main .btn-primary')).to_be_visible()
+                if width < 768:
+                    stacked = page.evaluate('''() => {
+                        const table = document.querySelector('.shopping-result-table.admin-table--stack');
+                        return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
+                    }''')
+                    assert stacked, (javascript, width)
+                hint = page.locator('details.admin-hint').first
+                summary = hint.locator('summary')
+                expect(summary).to_be_visible()
+                summary.focus()
+                expect(summary).to_be_focused()
+                if hint.get_attribute('open') is None:
+                    page.keyboard.press('Enter')
+                expect(hint).to_have_attribute('open', '')
+                page.keyboard.press('Enter')
             if javascript:
                 page.set_viewport_size({'width': 1440, 'height': 900})
                 assert page.goto(f'{base}/admin/einkaufslisten/{list_id}').status == 200

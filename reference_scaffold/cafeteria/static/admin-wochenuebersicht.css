@@ -1,6 +1,7 @@
 /* M28: compact saved weeks; native actions and an unscrolled mobile list. */
 .dishboard-admin .week-list { container-type: inline-size; }
 .dishboard-admin .week-table { width: 100%; table-layout: fixed; }
+.dishboard-admin .week-table.admin-table--stack tbody tr { height: auto; }
 .dishboard-admin .week-table th:nth-child(1) { width: 23%; }
 .dishboard-admin .week-table th:nth-child(2) { width: 19%; }
 .dishboard-admin .week-table th:nth-child(3) { width: 30%; }

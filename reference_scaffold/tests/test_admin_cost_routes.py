@@ -137,6 +137,22 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
                 row: document.querySelector('.cost-lines tbody tr')?.getBoundingClientRect().height ?? null,
                 primary: document.querySelectorAll('main .btn-primary').length,
                 open: document.querySelectorAll('main details[open]').length})''')
+            expect(page.locator('main .btn-primary')).to_be_visible()
+            if width < 768 and state != 'empty':
+                stacked = page.evaluate('''() => {
+                    const table = document.querySelector('.cost-lines.admin-table--stack');
+                    return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
+                }''')
+                assert stacked, (state, width, javascript)
+            hint = page.locator('details.admin-hint').first
+            summary = hint.locator('summary')
+            expect(summary).to_be_visible()
+            summary.focus()
+            expect(summary).to_be_focused()
+            if hint.get_attribute('open') is None:
+                page.keyboard.press('Enter')
+            expect(hint).to_have_attribute('open', '')
+            page.keyboard.press('Enter')
             if measured['row'] is not None:
                 assert measured['row'] < (109 if width == 360 else 46)
             assert measured['form'] < (428 if width == 360 else 218)

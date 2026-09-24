@@ -48,6 +48,23 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, tmp_pat
                     expect(page.locator('main .btn-primary')).to_have_count(1)
                     expect(page.locator('.admin-statusbar')).to_contain_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
                     expect(page.locator('#menu-list [data-review] .badge')).to_have_count(1)
+                    expect(page.locator('main .btn-primary')).to_have_count(1)
+                    expect(page.locator('main .btn-primary')).to_be_visible()
+                    if width < 768:
+                        stacked = page.evaluate('''() => {
+                            const table = document.querySelector('.dishboard-menu-table.admin-table--stack');
+                            return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
+                        }''')
+                        assert stacked, width
+                    hint = page.locator('details.admin-hint').first
+                    summary = hint.locator('summary')
+                    expect(summary).to_be_visible()
+                    summary.focus()
+                    expect(summary).to_be_focused()
+                    if hint.get_attribute('open') is None:
+                        page.keyboard.press('Enter')
+                    expect(hint).to_have_attribute('open', '')
+                    page.keyboard.press('Enter')
                     assert row_height < (284 if width < 1440 else 86)
                     page.screenshot(path=str(tmp_path / f'list-{width}.png'), full_page=True)
                     page.locator('#menu-list [data-admin-icon-action]').first.click()

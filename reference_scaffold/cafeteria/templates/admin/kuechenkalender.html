@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header, icon, hint %}
 {% set workflow_nav = 'calendar' %}
 {% set layout_variant = 'calendar' %}
 {% block title %}Küchenkalender · Menüplanung{% endblock %}
@@ -92,10 +92,11 @@
     {% endif %}
   {% endif %}
 {% endmacro %}
+{{ hint('Auf schmalen Bildschirmen erscheint die Monatsliste statt des Rasters. Anlass anlegen bleibt die Hauptaktion.', 'kitchen-cal-hint') }}
 <div class="kitchen-cal-toolbar" role="region" aria-label="Kalendersteuerung">
   <div class="kitchen-cal-month-nav" role="group" aria-label="Monat wählen">
     <a class="btn" href="{{ url_for('admin.kitchen_calendar', year=prev_year, month=prev_month, profiles=profiles) }}" aria-label="Vorheriger Monat">{{ icon('chevron-left') }}</a>
-    <form class="kitchen-cal-jump" method="get" action="{{ url_for('admin.kitchen_calendar') }}" data-autosubmit data-dirty-tracking="off">
+    <form class="kitchen-cal-jump" method="get" action="{{ url_for('admin.kitchen_calendar') }}" data-autosubmit data-dirty-tracking="off" data-loading>
       <label class="visually-hidden" for="calendar-jump">Monat</label>
       <input class="form-control" type="month" id="calendar-jump" name="jump" value="{{ jump_value }}">
       <input type="hidden" name="profiles" value="{{ profiles }}">
@@ -129,7 +130,7 @@
           {% if cell.in_month and not cell.groups and not cell.events %}<span class="kitchen-cal-empty visually-hidden">Keine Einträge für diesen Tag.</span>{% endif %}
           <a class="kitchen-cal-day-head" href="{{ plan_href(cell.date, (cell.groups[0].family if cell.groups else plan_family), cell.plan_week_start) }}">
             <span class="kitchen-cal-day-num">{{ cell.date.day }}</span>
-            {% if cell.is_today %}<span class="kitchen-cal-today-mark">Heute</span>{% endif %}
+            {% if cell.is_today %}<span class="admin-status--info kitchen-cal-today-mark">Heute</span>{% endif %}
           </a>
           {{ day_plan_btn(cell) }}
         </div>

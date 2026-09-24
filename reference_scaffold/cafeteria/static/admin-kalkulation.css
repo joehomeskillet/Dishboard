@@ -22,8 +22,9 @@
   }
 }
 
+.cost-lines.admin-table--stack tbody tr { height: auto; }
 .cost-lines td {
-  padding: var(--app-space-2);
+  padding: 0 var(--app-space-2);
   overflow-wrap: anywhere;
 }
 
@@ -35,28 +36,14 @@
   list-style: none;
 }
 
-@media (max-width: 767px) {
-  .cost-lines thead {
-    position: absolute;
-    clip-path: inset(50%);
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-  }
-
-  .cost-lines tbody {
-    display: block;
-  }
-
-  .cost-lines tr {
-    display: grid;
+@media (max-width: 767.98px) {
+  .cost-lines.admin-table--stack tbody tr {
     grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0;
     padding-block: var(--app-space-2);
-    border-bottom: var(--tblr-border-width) solid var(--tblr-border-color);
   }
-
-  .cost-lines td {
-    padding: 0 var(--app-space-2);
-    border: 0;
+  .cost-lines.admin-table--stack [data-label]::before {
+    display: inline;
+    margin-right: var(--app-space-1);
   }
 }

@@ -102,6 +102,23 @@ def test_lager_statusbar_viewports_nojs_and_keyboard(b3, master_server, tmp_path
                         assert metric['overflow'] is False
                         assert metric['primary'] == 1
                         assert metric['open'] == 0
+                        expect(page.locator('main .btn-primary')).to_have_count(1)
+                        expect(page.locator('main .btn-primary')).to_be_visible()
+                        if width < 768:
+                            stacked = page.evaluate('''() => {
+                                const table = document.querySelector('.lager-table.admin-table--stack');
+                                return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
+                            }''')
+                            assert stacked, (javascript, width)
+                        hint = page.locator('details.admin-hint').first
+                        summary = hint.locator('summary')
+                        expect(summary).to_be_visible()
+                        summary.focus()
+                        expect(summary).to_be_focused()
+                        if hint.get_attribute('open') is None:
+                            page.keyboard.press('Enter')
+                        expect(hint).to_have_attribute('open', '')
+                        page.keyboard.press('Enter')
                         if width == 1440:
                             assert metric['row'] <= 96
                         expect(page.locator('.admin-statusbar')).to_be_visible()

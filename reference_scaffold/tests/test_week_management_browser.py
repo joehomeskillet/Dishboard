@@ -149,6 +149,23 @@ def test_management_density_keyboard_and_native_actions(
                 })''')
                 assert not bad_targets, bad_targets
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                expect(page.locator('main .btn-primary')).to_have_count(1)
+                expect(page.locator('main .btn-primary')).to_be_visible()
+                if width < 768:
+                    stacked = page.evaluate('''() => {
+                        const table = document.querySelector('.week-table.admin-table--stack');
+                        return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
+                    }''')
+                    assert stacked, (family, javascript, width)
+                hint = page.locator('details.admin-hint').first
+                summary = hint.locator('summary')
+                expect(summary).to_be_visible()
+                summary.focus()
+                expect(summary).to_be_focused()
+                if hint.get_attribute('open') is None:
+                    page.keyboard.press('Enter')
+                expect(hint).to_have_attribute('open', '')
+                page.keyboard.press('Enter')
                 preview.click()
                 assert '/preview?week=' in page.url
                 page.goto(f'/admin/{family}/wochen')

@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, hint, icon %}
 {% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'inventory' %}
 {% set lager_status = [] %}
@@ -23,21 +23,22 @@
 {% block title %}{{ t('navigation.stock.label') }} · Menüplanung{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-lager.css') }}">{% endblock %}
 {% block page_header %}
-{{ page_header(t('navigation.stock.label'), description='Zuordnungen kommen aus Zutaten. Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.', status_items=lager_status) }}
+{{ page_header(t('navigation.stock.label'), description='Ohne Journal und ohne bestätigte Zählung gibt es keinen Saldo 0.', status_items=lager_status) }}
 {% endblock %}
 {% block content %}
+{{ hint('Zuordnungen kommen aus Zutaten. Umbuchung und Zählung stehen unter Weitere Optionen.', 'lager-hint') }}
 {% if slots %}
 <section class="lager-slots" aria-labelledby="lager-slots-heading">
   <h2 class="lager-section-title" id="lager-slots-heading">Zuordnungen</h2>
-  <table class="table lager-table">
-    <thead><tr><th>Zutat</th><th>Lagerort</th><th>Bestand</th><th>Aktion</th></tr></thead>
+  <table class="table lager-table admin-table--stack">
+    <thead><tr><th scope="col">Zutat</th><th scope="col">Lagerort</th><th scope="col">Bestand</th><th scope="col">Aktion</th></tr></thead>
     <tbody>
     {% for slot in slots %}
       {% set current = selected and slot.food_public_id == selected.food_public_id and slot.storage_public_id == selected.storage_public_id %}
       <tr class="lager-row{% if current %} table-active{% endif %}">
         <td data-label="Zutat"><a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=slot.food_public_id) }}">{{ slot.food_name }}</a></td>
         <td data-label="Lagerort">{{ slot.storage_name }}</td>
-        <td data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}<span class="badge bg-warning-lt">Kein Bestand erfasst</span>{% endif %}</td>
+        <td data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}<span class="badge admin-status--warning">{{ icon('alert-triangle') }}<span>Kein Bestand erfasst</span></span>{% endif %}</td>
         <td class="lager-row-action" data-label="Aktion">
           <a class="btn{% if current %} active{% endif %}" href="{{ url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id) }}"{% if current %} aria-current="true"{% endif %}>{{ icon_label('actions.open') }}</a>
         </td>
@@ -50,11 +51,11 @@
 {% if selected %}
 <section class="lager-move" aria-labelledby="lager-move-heading">
   <h2 class="lager-section-title" id="lager-move-heading">Zugang / Abgang</h2>
-  <form method="post" action="{{ url_for('admin.inventory_move') }}" class="lager-form" id="lager-move-form">
+  <form method="post" action="{{ url_for('admin.inventory_move') }}" class="lager-form" id="lager-move-form" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
     <input type="hidden" name="storage_public_id" value="{{ selected.storage_public_id }}">
-    <div class="lager-form-grid">
+    <div class="lager-form-grid admin-option-grid">
       <div>
         <label class="form-label" for="kind">Art</label>
         <select class="form-select" id="kind" name="kind">
@@ -79,11 +80,11 @@
 {% call disclosure_section(title='Weitere Optionen', id='lager-more') %}
 <section class="lager-transfer" aria-labelledby="lager-transfer-heading">
   <h2 class="lager-section-title" id="lager-transfer-heading">Umbuchung</h2>
-  <form method="post" action="{{ url_for('admin.inventory_transfer') }}" class="lager-form" id="lager-transfer-form">
+  <form method="post" action="{{ url_for('admin.inventory_transfer') }}" class="lager-form" id="lager-transfer-form" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
     <input type="hidden" name="source_storage_public_id" value="{{ selected.storage_public_id }}">
-    <div class="lager-form-grid">
+    <div class="lager-form-grid admin-option-grid">
       <div>
         <label class="form-label" for="dest_storage_public_id">Nach Lagerort</label>
         <select class="form-select" id="dest_storage_public_id" name="dest_storage_public_id" required>
@@ -109,11 +110,11 @@
 
 <section class="lager-count" aria-labelledby="lager-count-heading">
   <h2 class="lager-section-title" id="lager-count-heading">Zählung</h2>
-  <form method="post" action="{{ url_for('admin.inventory_count') }}" class="lager-form" id="lager-count-form">
+  <form method="post" action="{{ url_for('admin.inventory_count') }}" class="lager-form" id="lager-count-form" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
     <input type="hidden" name="storage_public_id" value="{{ selected.storage_public_id }}">
-    <div class="lager-form-grid">
+    <div class="lager-form-grid admin-option-grid">
       <div>
         <label class="form-label" for="counted_quantity">Gezählte Menge</label>
         <input class="form-control" id="counted_quantity" name="counted_quantity" required>

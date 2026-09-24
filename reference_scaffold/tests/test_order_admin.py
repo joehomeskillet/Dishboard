@@ -279,6 +279,22 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                         }))
                         assert not basket_metrics['overflow']
                         assert basket_metrics['primaries'] == 1
+                        expect(page.locator('main .btn-primary')).to_be_visible()
+                        if width < 768:
+                            stacked = page.evaluate('''() => {
+                                const table = document.querySelector('.order-lines.admin-table--stack');
+                                return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
+                            }''')
+                            assert stacked, (javascript, width)
+                        hint = page.locator('details.admin-hint').first
+                        summary = hint.locator('summary')
+                        expect(summary).to_be_visible()
+                        summary.focus()
+                        expect(summary).to_be_focused()
+                        if hint.get_attribute('open') is None:
+                            page.keyboard.press('Enter')
+                        expect(hint).to_have_attribute('open', '')
+                        page.keyboard.press('Enter')
                         if width == 1440:
                             heights = page.locator('.order-lines tbody tr').evaluate_all('els => els.map(el => el.getBoundingClientRect().height)')
                             assert all(h <= 96 for h in heights), heights
