@@ -1,6 +1,7 @@
 """Real native full-text search field on `/admin/rezepte` at mobile/desktop sizes,
 without JavaScript (NoJS GET submit)."""
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import parse_qsl
@@ -45,13 +46,18 @@ def test_native_text_search_is_keyboard_operable_ranked_and_no_overflow(
         expect(control).to_be_focused()
         assert control.bounding_box()['height'] >= 44
         control.fill('zauberwort')
-        page.get_by_role('button', name='Suchen', exact=True).focus()
-        expect(page.get_by_role('button', name='Suchen', exact=True)).to_be_focused()
+        page.get_by_role('button', name='Filtern', exact=True).focus()
+        expect(page.get_by_role('button', name='Filtern', exact=True)).to_be_focused()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         assert 'text=zauberwort' in page.url
         expect(page.locator('.recipe-card')).to_have_count(1)
-        expect(page.get_by_role('heading', level=2, name='Zauberwort Auflauf', exact=True)).to_be_visible()
+        expect(page.locator('.admin-list-row')).to_have_count(1)
+        expect(page.locator('.recipe-card .admin-list-name strong')).to_have_text('Zauberwort Auflauf')
+        expect(page.locator('.recipe-card .admin-status--info').first).to_be_visible()
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('form[role="search"] button[type="submit"] use')).to_have_attribute(
+            'href', re.compile(r'#tabler-filter$'))
         assert recipe_ids(page.content()) == [title_hit.public_id]
         expect(page.get_by_text('Sortiert nach Relevanz.', exact=True)).to_be_visible()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -100,7 +106,9 @@ def test_recipe_frame_measurements(search_lab, master_server, tmp_path, javascri
                         page.keyboard.press('Enter')
                         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_be_visible()
                         page.keyboard.press('Enter')
-                        assert page.get_by_role('button', name='Suchen', exact=True).bounding_box()['height'] >= 48
+                        assert page.get_by_role('button', name='Filtern', exact=True).bounding_box()['height'] >= 48
+                        expect(page.locator('.admin-list-row')).to_have_count(2)
+                        expect(page.locator('.admin-list-row .admin-status--info')).to_have_count(2)
             finally:
                 instance.close()
 
