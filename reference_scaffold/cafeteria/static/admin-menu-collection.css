@@ -1,4 +1,5 @@
-.dishboard-menu-table { table-layout: fixed; width: 100%; min-width: var(--app-container-narrow); }
+.dishboard-menu-table { table-layout: fixed; width: 100%; min-width: 0; }
+.dishboard-menu-table.admin-table--stack tbody tr { height: auto; }
 .dishboard-menu-table th:nth-child(1) { width: 28%; }
 .dishboard-menu-table th:nth-child(2) { width: 14%; }
 .dishboard-menu-table th:nth-child(3) { width: 16%; }
@@ -102,27 +103,24 @@
 .dishboard-admin .week-copy summary::-webkit-details-marker { display: none; }
 .dishboard-admin :is(.week-copy, .week-create)[open] > summary .icon:last-child { transform: rotate(90deg); }
 
-/* A stacked semantic table keeps dates, review warnings and opening links together. */
 @media (max-width: 1199.98px) {
-  .dishboard-menu-table { min-width: 0; }
-  .dishboard-menu-table thead {
+  .dishboard-menu-table.admin-table--stack thead {
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
   }
-  .dishboard-menu-table tbody { display: block; }
-  .dishboard-menu-table tr[data-menu-list-id] {
+  .dishboard-menu-table.admin-table--stack tbody { display: block; }
+  .dishboard-menu-table.admin-table--stack tbody tr[data-menu-list-id] {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    height: auto;
     padding: var(--app-space-2); border-bottom: 1px solid var(--app-border);
   }
   .dishboard-admin .dishboard-menu-table tr[data-menu-list-id] > :is(th, td) {
     width: auto; min-width: 0; padding: var(--app-space-1); border: 0;
   }
-  .dishboard-menu-table tr[data-menu-list-id] > th {
-    grid-column: 1 / -1;
-  }
+  .dishboard-menu-table tr[data-menu-list-id] > th { grid-column: 1 / -1; }
   .dishboard-menu-table tr[data-menu-list-id] > td:nth-child(5) { align-self: center; }
+  .dishboard-menu-table.admin-table--stack [data-label]::before { display: none; }
 }
 
 @media (min-width: 768px) {
-  .dishboard-menu-table { min-width: 0; }
   .dishboard-admin .dishboard-menu-table :is(th, td) { padding: var(--app-space-2); }
 }
