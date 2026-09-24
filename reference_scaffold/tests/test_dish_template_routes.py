@@ -189,7 +189,8 @@ def test_accompaniment_create_update_validation_and_reader_view(b3, monkeypatch)
     monkeypatch.setattr(store, 'list_templates', unexpected_list_templates)
     reader = client.get('/admin/gerichtvorlagen')
     assert reader.status_code == 200
-    assert 'data-label="Dazu"' in reader.text and 'Salat' in reader.text and '#tabler-salad' in reader.text
+    dazu_cells = re.findall(r'<td data-label="Dazu">(.*?)</td>', reader.text, flags=re.DOTALL)
+    assert any('Salat' in cell and '#tabler-salad' in cell for cell in dazu_cells), reader.text
     assert 'Vorlage anlegen</a>' not in reader.text and 'name="action"' not in reader.text
 
 

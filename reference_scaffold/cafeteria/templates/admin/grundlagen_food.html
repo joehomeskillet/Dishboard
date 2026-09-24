@@ -25,7 +25,7 @@
 <div class="card-body"><form method="get" action="{{ recipe_search_url }}">
 <div class="row g-3 align-items-end"><div class="col-12 col-lg-8"><label class="form-label" for="recipe_q">Festgeschriebenes Rezept suchen</label><div class="input-group"><span class="input-group-text">{{ icon('search') }}</span><input class="form-control" type="search" id="recipe_q" name="recipe_q" maxlength="200" value="{{ recipe_query }}"></div></div>
 <div class="col-12 col-lg-4"><button class="btn" type="submit">{{ icon('search') }}Suchen</button></div></div>
-{{ hint('Die Suche lädt den gespeicherten Stand. Ungespeicherte Änderungen vorher sichern.', 'recipe-search-save-hint') }}</form>
+{{ hint('Die Suche lädt den gespeicherten Stand. Ungespeicherte Änderungen vorher sichern.', 'recipe-search-save-hint', mode='inline') }}</form>
 {{ pagination(recipe_page, recipe_has_next, recipe_prev_url, recipe_next_url, 'Rezeptauswahlseiten') }}</div></details>
 {% endif %}
 {% if not row %}<details class="card mb-4" open>{{ section_summary('Zutat anlegen', 'plus') }}<div class="card-body">{% else %}<div class="card mb-4"><div class="card-header gap-2">{{ icon('components') }}<h2 class="card-title mb-0">Zutat</h2></div><div class="card-body">{% endif %}
@@ -58,7 +58,7 @@
 {% for revision in prepared_revisions %}{% if values.prepared_recipe_choice == revision.revision_public_id ~ ':' ~ revision.content_hash_sha256 %}{% set selection.found = true %}{% endif %}{% endfor %}
 {% if not selection.found %}<option value="{{ values.prepared_recipe_choice }}" selected>Ursprüngliche Auswahl nicht verfügbar; bitte prüfen oder entfernen</option>{% endif %}
 {% for revision in prepared_revisions %}{% set choice = revision.revision_public_id ~ ':' ~ revision.content_hash_sha256 %}<option value="{{ choice }}"{% if values.prepared_recipe_choice == choice %} selected{% endif %}>{{ revision.title }} · Stand {{ revision.revision_number }} · {{ '{:f}'.format(revision.yield_quantity) }} {{ revision.yield_unit_code }}{% if not revision.recipe_active %} (archiviertes Rezept, bestehende Auswahl){% endif %}</option>{% endfor %}
-</select>{{ hint('Der gewählte festgeschriebene Stand bleibt zugeordnet. Spätere Rezeptänderungen ersetzen ihn nicht. Ausbeute und Basiseinheit müssen zusammenpassen.', 'prepared-hint') }}
+</select>{{ hint('Der gewählte festgeschriebene Stand bleibt zugeordnet. Spätere Rezeptänderungen ersetzen ihn nicht. Ausbeute und Basiseinheit müssen zusammenpassen.', 'prepared-hint', mode='inline') }}
 <a href="{{ url_for('admin.recipes_list') }}">{{ icon('tools-kitchen-2') }}Rezepte öffnen</a></div>
 {% endcall %}
 </div>
@@ -73,7 +73,7 @@
 {% endcall %}
 <div class="admin-compact-toolbar grundlagen-core-actions" data-sticky-form="food-core-form">
 <button class="btn btn-primary" type="submit" form="food-core-form">{{ icon_label('actions.save') }}</button></div>
-{{ hint('Speichert Stammdaten, Lagerorte und Zubereitung.' ~ (' Die folgenden Abschnitte haben eigene Speicheraktionen.' if row else ''), 'food-core-save-hint') }}
+{{ hint('Speichert Stammdaten, Lagerorte und Zubereitung.' ~ (' Die folgenden Abschnitte haben eigene Speicheraktionen.' if row else ''), 'food-core-save-hint', mode='inline') }}
 </form>
 {% else %}<h3>{{ row.name if row else 'Keine Schreibberechtigung' }}</h3>{% if row %}<p>{{ row.base_unit.display_name }}{% if not row.base_unit.active %} (archiviert){% endif %} · {{ row.category.name if row.category else 'Keine Kategorie' }}{% if row.category and not row.category.active %} (archiviert){% endif %}</p><dl><dt>Dichte in g/ml</dt><dd>{{ row.density_g_per_ml if row.density_g_per_ml is not none else 'Nicht erfasst' }}</dd><dt>Stückgewicht in g</dt><dd>{{ row.piece_weight_g if row.piece_weight_g is not none else 'Nicht erfasst' }}</dd></dl><p>{{ row.note }}</p>{% endif %}{% endif %}
 </div>{% if not row %}</details>{% else %}</div>{% endif %}
@@ -107,7 +107,7 @@
 </div>
 </form>
 {% endcall %}
-{{ hint('Speichert eine neue unveränderliche Preisliste. Alte Stände bleiben erhalten.', 'food-price-hint') }}
+{{ hint('Speichert eine neue unveränderliche Preisliste. Alte Stände bleiben erhalten.', 'food-price-hint', mode='inline') }}
 {% endif %}
 </div></section>
 {% endif %}
@@ -129,14 +129,14 @@
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='metadaten') }}">{{ form_start('metadaten') }}
 {{ option_detail_group(allergens, submitted=values, field_prefix='allergen_', choices=[('contains', 'Enthält'), ('may_contain', 'Kann enthalten')], errors={error_field: error} if error and error_purpose == 'metadaten' else {}) }}
 <fieldset class="mb-3 grundlagen-choices"><legend class="h3">Kostformen</legend>{% for label in labels %}<label class="form-check"><input class="form-check-input" type="checkbox" name="labels" value="{{ label.code }}"{% if label.code in values.labels %} checked{% endif %}><span class="form-check-label">{{ label.display_name }} ({{ label.code }})</span></label>{% endfor %}</fieldset>
-{{ hint('Speichert die Allergene und Kostformen dieses Abschnitts. Die Allergenprüfung erfolgt separat.', 'food-meta-save-hint') }}
+{{ hint('Speichert die Allergene und Kostformen dieses Abschnitts. Die Allergenprüfung erfolgt separat.', 'food-meta-save-hint', mode='inline') }}
 <button class="btn" type="submit">{{ icon('device-floppy') }}Angaben speichern</button></form>
 {% else %}{% for code, presence in row.allergens %}<p>{{ code }}: {{ 'Enthält' if presence == 'contains' else 'Kann enthalten' }}</p>{% endfor %}{% for label in row.labels %}<p>{{ label }}</p>{% endfor %}{% endif %}
 </div></details>
 <details class="card mb-4"{% if error_purpose == 'allergenpruefung' %} open{% endif %}>{{ section_summary('Allergenprüfung', 'circle-check' if row.allergen_review_status == 'checked' else 'clipboard-check') }}<div class="card-body">
 <p>{{ 'Gespeicherte Allergenangaben wurden bestätigt.' if row.allergen_review_status == 'checked' else 'Gespeicherte Allergenangaben sind noch nicht bestätigt.' }} Eine leere Liste ist keine Frei-von-Angabe.</p>
 {% if can_write %}<form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='allergenpruefung') }}">{{ form_start('allergenpruefung') }}
-{{ hint('Ändert nur den Prüfstatus der gespeicherten Allergenangaben. Änderungen in anderen Abschnitten vorher dort speichern.', 'food-review-hint') }}
+{{ hint('Ändert nur den Prüfstatus der gespeicherten Allergenangaben. Änderungen in anderen Abschnitten vorher dort speichern.', 'food-review-hint', mode='inline') }}
 <input type="hidden" name="checked" value="{{ 'false' if row.allergen_review_status == 'checked' else 'true' }}"><button class="btn" type="submit">{{ icon('circle-check' if row.allergen_review_status != 'checked' else 'x') }}{{ 'Prüfung zurücknehmen' if row.allergen_review_status == 'checked' else 'Als geprüft bestätigen' }}</button></form>{% endif %}</div></details>
 {% call disclosure_section() %}{{ status_summary() }}{{ status_actions() }}{% endcall %}
 {% endif %}

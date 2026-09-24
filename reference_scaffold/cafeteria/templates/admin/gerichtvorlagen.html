@@ -141,7 +141,7 @@
           <span class="form-check-label">{{ icon('salad') }}Salat (gemischt und grün)</span>
         </label>
       </div>
-      {{ hint('Wird beim Einplanen vorbelegt und kann im Menü geändert werden.', 'accompaniment-hint') }}
+      {{ hint('Wird beim Einplanen vorbelegt und kann im Menü geändert werden.', 'accompaniment-hint', mode='inline') }}
       {% if accompaniment_error %}<div class="invalid-feedback d-block" id="accompaniment-error">{{ accompaniment_error }}</div>{% endif %}
     </fieldset>
     <div class="mb-3">
@@ -151,7 +151,7 @@
         <div class="col-md-auto"><button class="btn" type="submit" name="action" value="recipe_search" formnovalidate>{{ icon('search') }}Rezepte suchen</button></div>
       </div>
       <input type="hidden" name="recipe_offset" value="{{ recipe_choices.offset }}">
-      {{ hint('Suche und Seitenwechsel erhalten Ihre Eingaben. Gespeichert wird erst mit «Speichern».', 'recipe-search-hint') }}
+      {{ hint('Suche und Seitenwechsel erhalten Ihre Eingaben. Gespeichert wird erst mit «Speichern».', 'recipe-search-hint', mode='inline') }}
       <label class="form-label" for="recipe_public_id">Gebundenes Rezept</label>
       <select class="form-select" id="recipe_public_id" name="recipe_public_id">
         <option value="">Keine Bindung</option>
