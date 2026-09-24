@@ -1,5 +1,5 @@
 {# Keys describe presentation only; callers retain URLs, form fields and permissions. #}
-{% from 'admin/_macros.html' import icon, page_header, filter_bar, label %}
+{% from 'admin/_macros.html' import icon, page_header, filter_bar, label, empty_state %}
 {% from '_food_symbols.html' import symbol %}
 
 {% macro sem_icon(key) -%}
@@ -75,12 +75,7 @@
 {%- endmacro %}
 
 {% macro empty_state_sem(key, description_key=none, action_key=none, href=none) -%}
-  <div class="empty" data-semantic="{{ key }}">
-    <div class="empty-icon">{{ sem_icon(key) }}</div>
-    <p class="empty-title">{{ t(sem(key).label_key) }}</p>
-    <p class="empty-subtitle text-secondary">{{ t(sem(description_key).label_key if description_key else sem(key).tooltip_key) }}</p>
-    {% if action_key %}<div class="empty-action">{{ icon_button(action_key, href=href) }}</div>{% endif %}
-  </div>
+  {{ empty_state(key, t(sem(key).label_key), t(sem(description_key).label_key if description_key else sem(key).tooltip_key), action=icon_button(action_key, href=href) if action_key else none, semantic_key=key, icon_name=sem(key).resolved_icon) }}
 {%- endmacro %}
 
 {% macro confirm_dialog(key, consequence_key, confirm_key, id='semantic-confirm', open=false, name=none, value=none, form=none) -%}

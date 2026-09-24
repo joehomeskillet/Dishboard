@@ -167,7 +167,8 @@ def test_polish_stack_table_reflows_without_losing_labels(width, tmp_path):
             assert table.locator('td').first.evaluate('el => getComputedStyle(el, "::before").content') == '"Name"'
         else:
             expect(table).to_have_css('display', 'table')
-            assert table.locator('tbody tr').first.bounding_box()['height'] <= 56
+            # 48px control + shared 8px block padding + one row separator.
+            assert table.locator('tbody tr').first.bounding_box()['height'] <= 65
         page.screenshot(path=str(tmp_path / f'polish-table-{width}.png'), full_page=True)
 
     _run_polish_check(markup, verify, width, javascript=False)

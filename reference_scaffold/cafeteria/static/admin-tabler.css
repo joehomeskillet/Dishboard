@@ -501,9 +501,17 @@
 .dishboard-admin .admin-filter-slots { flex: 1 1 12rem; }
 .dishboard-admin .admin-filter-slots > * { max-width: 100%; }
 .dishboard-admin .admin-filter-more[open] { flex-basis: 100%; }
-.dishboard-admin .admin-list-row { padding: var(--app-space-2) 0; border-bottom: 1px solid var(--app-border); }
+.dishboard-admin .admin-list-row {
+  min-height: var(--app-list-row-min-height);
+  padding: var(--app-list-pad-y) var(--app-list-pad-x);
+  border-bottom: var(--app-list-line-width) solid var(--app-border);
+  font-size: var(--app-list-font-size);
+}
+.dishboard-admin :is(.admin-list-row, .admin-table tbody tr):hover { background: var(--app-list-hover); }
+.dishboard-admin :is(.admin-list-meta, .admin-empty-value) { color: var(--app-text-muted); }
+.dishboard-admin .admin-list-status { margin-inline-start: auto; }
 .dishboard-admin .admin-list-name { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
-.dishboard-admin .admin-list-subtitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--app-text-muted); }
+.dishboard-admin .admin-list-subtitle { overflow-wrap: anywhere; color: var(--app-text-muted); font-size: var(--app-font-size-small); }
 .dishboard-admin .admin-list-actions { margin-inline-start: auto; }
 .dishboard-admin .admin-form-footer { padding: var(--app-space-2) 0; background: var(--app-bg); }
 .dishboard-admin .admin-form-main { margin-inline-start: auto; }
@@ -521,13 +529,19 @@
 .dishboard-admin :is(.form-hint, small, .small) { font-size: calc(var(--app-font-size-small) * var(--app-font-scale)); }
 .dishboard-admin .form-hint { color: var(--app-text-muted); }
 .dishboard-admin .table { --tblr-table-color: var(--app-text); --tblr-table-border-color: var(--app-border); }
-/* R34: shared version of the existing lager/bestellung data-label pattern.
-   56px is the desktop standard, not a content clip: wrapping/zoom may grow rows. */
-.dishboard-admin table.admin-table--stack { width: 100%; }
-.dishboard-admin .admin-table--stack tbody tr { height: var(--app-table-row-height); }
-.dishboard-admin .admin-table--stack :is(th, td) {
-  padding: 0 var(--app-space-3); vertical-align: middle; overflow-wrap: anywhere;
+/* One row metric: 56px minimum; controls plus 8px padding may grow it. */
+.dishboard-admin :is(table.admin-table, table.admin-table--stack) {
+  width: 100%; border-collapse: collapse; font-size: var(--app-list-font-size);
 }
+.dishboard-admin :is(.admin-table, .admin-table--stack) tbody tr { height: var(--app-list-row-min-height); }
+.dishboard-admin :is(.admin-table, .admin-table--stack) :is(th, td) {
+  padding: var(--app-list-pad-y) var(--app-list-pad-x); vertical-align: middle; overflow-wrap: anywhere;
+  border-bottom: var(--app-list-line-width) solid var(--app-border);
+}
+.dishboard-admin .admin-table thead th { color: var(--app-text-muted); background: var(--app-surface-soft); }
+.dishboard-admin .admin-table :is(.admin-table-status, .admin-table-actions) { width: 1%; white-space: nowrap; }
+.dishboard-admin .admin-table-actions { text-align: end; }
+.dishboard-admin .admin-sort-header { display: inline-flex; align-items: center; min-height: var(--app-button-size); gap: var(--app-space-1); }
 @media (max-width: 767.98px) {
   .dishboard-admin table.admin-table--stack,
   .dishboard-admin .admin-table--stack :is(caption, tbody) { display: block; }
@@ -536,8 +550,9 @@
   }
   .dishboard-admin .admin-table--stack tbody tr {
     display: grid; grid-template-columns: minmax(0, 1fr); height: auto;
-    gap: var(--app-space-2); padding: var(--app-space-2) 0;
-    border-bottom: 1px solid var(--app-border);
+    gap: var(--app-space-2); padding: var(--app-list-pad-y) var(--app-list-pad-x);
+    min-height: var(--app-list-row-min-height);
+    border-bottom: var(--app-list-line-width) solid var(--app-border);
   }
   .dishboard-admin .admin-table--stack tbody :is(th, td) {
     display: block; width: auto; min-width: 0; padding: 0; border: 0; white-space: normal;

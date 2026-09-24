@@ -274,15 +274,15 @@
 {%- endif -%}
 {%- endmacro %}
 
-{%- macro empty_state(kind, title, text, action=none) -%}
+{%- macro empty_state(kind, title, text, action=none, semantic_key=none, icon_name=none) -%}
 {%- set action_content = caller() if caller else action -%}
 {%- set icon_map = {
   'none': 'archive-off',
   'no_match': 'search',
   'forbidden': 'alert-triangle'
 } -%}
-{%- set kind_icon = icon_map.get(kind, 'info-circle') -%}
-<div class="empty" data-empty-kind="{{ kind }}">
+{%- set kind_icon = icon_name or icon_map.get(kind, 'info-circle') -%}
+<div class="empty" data-empty-kind="{{ kind }}"{% if semantic_key %} data-semantic="{{ semantic_key }}"{% endif %}>
   <div class="empty-icon">{{ icon(kind_icon) }}</div>
   <p class="empty-title">{{ title }}</p>
   <p class="empty-subtitle text-secondary">{{ text }}</p>
@@ -444,18 +444,28 @@
   <div class="admin-filter-search">{{ field(search_name, 'Suche', search_value, type='search', id=id ~ '-search') }}</div>
   {% if filters %}<div class="admin-filter-slots">{{ filters }}</div>{% endif %}
   {% if more_filters %}<details class="admin-compact-details admin-filter-more"><summary>{{ icon('search') }}Weitere Filter</summary><div class="admin-filter-slots">{{ more_filters }}</div></details>{% endif %}
-  <button class="btn" type="submit">{{ icon('search') }}Filtern</button>
-  {% if active and reset_url %}<a class="btn" href="{{ reset_url }}">{{ icon('x') }}Filter zurücksetzen</a>{% endif %}
+  <button class="btn" type="submit" title="{{ t(sem('view.filter').tooltip_key) }}">{{ icon(sem('view.filter').resolved_icon) }}{{ t(sem('view.filter').label_key) }}</button>
+  {% if active and reset_url %}<a class="btn" href="{{ reset_url }}" title="{{ t(sem('view.reset').tooltip_key) }}">{{ icon(sem('view.reset').resolved_icon) }}{{ t(sem('view.reset').label_key) }}</a>{% endif %}
 </form>
 {%- endmacro %}
 
-{%- macro list_row(name, subtitle, state, action, markings=none, overflow=0, more_actions=none) -%}
+{% set render_actions = actions %}
+{%- macro empty_value() -%}<span class="admin-empty-value">—</span>{%- endmacro %}
+
+{%- macro sort_header(label, key, current, direction, url) -%}
+<th scope="col" aria-sort="{{ ('descending' if direction == 'desc' else 'ascending') if key == current else 'none' }}"><a class="admin-sort-header" href="{{ url }}">{{ label }}{% if key == current %}{{ icon('chevron-down' if direction == 'desc' else 'chevron-up') }}{% endif %}</a></th>
+{%- endmacro %}
+
+{%- macro list_row(name=none, subtitle=none, state=none, action=none, markings=none, overflow=0, more_actions=none, primary=none, secondary=none, meta=none, status=none, actions=none) -%}
+{%- set primary_content = primary if primary is not none else name -%}
+{%- set secondary_content = secondary if secondary is not none else subtitle -%}
 <div class="admin-list-row">
-  <div class="admin-list-name"><strong>{{ name }}</strong><div class="admin-list-subtitle" title="{{ subtitle }}">{{ subtitle }}</div></div>
-  {{ status_badge(state) }}
-  {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}<span class="badge" aria-label="{{ overflow }} weitere Kennzeichnungen">+{{ overflow }}</span>{% endif %}</div>{% endif %}
+  <div class="admin-list-name"><strong>{{ empty_value() if primary_content is none or primary_content == '' else primary_content }}</strong>{% if secondary_content is not none %}<div class="admin-list-subtitle" title="{{ secondary_content|striptags }}">{{ secondary_content }}</div>{% endif %}</div>
+  {% if meta is not none %}<div class="admin-list-meta">{{ empty_value() if meta == '' else meta }}</div>{% endif %}
+  {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}{{ label('+' ~ overflow, detail=overflow ~ ' weitere Kennzeichnungen') }}{% endif %}</div>{% endif %}
+  <div class="admin-list-status">{{ status if status is not none and status != '' else status_badge(state) if state is not none and state != '' else empty_value() }}</div>
   <div class="admin-list-actions">
-    {{ actions(secondary=[action]) }}
+    {% if actions is not none %}{{ actions }}{% elif action %}{{ render_actions(secondary=[action]) }}{% endif %}
     {% if more_actions %}<details class="admin-compact-actions"><summary>{{ icon(sem('actions.more').resolved_icon) }}{{ t(sem('actions.more').label_key) }}</summary>{{ more_actions }}</details>{% endif %}
   </div>
 </div>

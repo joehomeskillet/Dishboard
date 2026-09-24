@@ -80,10 +80,10 @@
     "local_filters": 0
   },
   "admin/_macros.html": {
-    "literal_buttons": 3,
-    "long_labels": 1,
-    "legacy_labels": 1,
-    "wrong_icons": 1,
+    "literal_buttons": 1,
+    "long_labels": 0,
+    "legacy_labels": 0,
+    "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0
   },

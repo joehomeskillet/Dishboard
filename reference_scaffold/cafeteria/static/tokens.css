@@ -184,6 +184,12 @@
   --app-button-size-large: 56px;
   --app-button-icon-gap: var(--app-space-2);
   --app-table-row-height: 56px;
+  --app-list-row-min-height: var(--app-table-row-height);
+  --app-list-pad-x: var(--app-space-3);
+  --app-list-pad-y: var(--app-space-2);
+  --app-list-line-width: 1px;
+  --app-list-font-size: var(--app-font-size-label);
+  --app-list-hover: var(--app-surface-soft);
   --app-label-min-height: var(--app-space-8);
   --app-label-pad-x: var(--app-space-2);
   --app-label-pad-y: var(--app-space-1);
