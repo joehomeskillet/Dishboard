@@ -49,7 +49,7 @@
 </figure>{% endfor %}
 </div></section>{% endif %}
 <details class="recipe-originals mt-3">
-<summary class="btn" title="Originalmengen ansehen">{{ icon_label('recipe.quantity') }}</summary>
+<summary class="btn" title="Originalmengen ansehen" aria-label="Originalmengen ansehen">{{ icon_label('recipe.quantity') }}</summary>
 <p class="mt-2">Originalausbeute: {{ doc.yield.original_amount }} {{ doc.yield.unit }}</p>
 <ul>{% for row in doc.ingredients %}<li>{{ row.text }}: {{ row.original_amount if row.original_amount is not none else 'Menge nicht erfasst' }} {{ row.unit or 'Einheit nicht erfasst' }}</li>{% endfor %}</ul>
 </details>

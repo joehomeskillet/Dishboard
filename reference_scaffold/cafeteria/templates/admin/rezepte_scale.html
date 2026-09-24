@@ -1,5 +1,5 @@
 {% from 'admin/_macros.html' import page_header, icon, hint, empty_value %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% macro amount_form(calculated, action, error=none, target_value=none, converts_units=false, mode=none) %}
 {% if error %}<div class="alert alert-danger error-region" id="yield-error" role="alert">{{ error }}</div>{% endif %}
 <form method="get" action="{{ action }}" class="row g-3 align-items-end mb-3" data-loading>
@@ -20,8 +20,8 @@
 {% extends 'admin/base_tabler.html' %}
 {% block title %}Mengen berechnen · {{ payload.title }}{% endblock %}
 {% block page_header %}{% call page_header(t('navigation.recipes.label'), payload.title, status_items=[{'label': t('recipe.quantity.label'), 'value': calculated.target ~ ' ' ~ calculated.unit, 'variant': 'neutral'}, {'label': t('recipe.recipe.label'), 'value': t('status.readonly.label'), 'variant': 'neutral'}]) %}
-<a class="btn" href="{{ read_url }}">{{ icon_label('actions.open') }}</a>
-{% if revision is defined %}<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target) }}" data-semantic="actions.print" aria-label="PDF öffnen">{{ icon_label('actions.print') }}</a>{% endif %}
+{{ icon_button('actions.open', href=read_url, icon_only=true, aria_label='Rezept ansehen') }}
+{% if revision is defined %}{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target), aria_label='Drucken · PDF öffnen') }}{% endif %}
 {% endcall %}{% endblock %}
 {% block content %}
 <div class="alert alert-info" role="status">{% if revision is defined %}Gespeicherter Stand {{ revision.revision_number }} · unverändert{% else %}Gespeicherter Entwurf{% if not recipe.active %} · Archiviert{% endif %}{% endif %}. Diese Ansicht verändert das Rezept nicht.</div>

@@ -1258,16 +1258,18 @@ Kontexte und Rollenbedingungen bleiben unverändert. Nachweise:
 Rezeptsuche, Import-Browsertests und unveränderliche Revisions-DB-Tests.
 
 **Polish P4: Rezepte (2026-09-24).** Übersicht, Editor, Dokument, Import, Bilder,
-History, Skalierung und Vorlagenwahl nutzen R43–R48 / M64–M68: `icon_button` /
-`icon_label` mit Registry-Kurzlabels, `label()` für Entwurf/Archiv/Importstatus,
-`list_row` für die Rezeptliste und übernommene Importzeilen, `filter_bar_sem`
-für die Rezeptsuche (`name=text` plus Kennzeichnung, Titel, Zutat, Archiv),
-`admin-table` + `admin-table--stack` für Bilder, History, Skalierung und
-Importstapel. Inhaltslisten im Rezeptblatt (Zutaten, Schritte, Herkunft) und
-GET-Auswahlformulare ohne Suchfeld (Vorlage, Revision) bleiben fachliche
-Sonderfälle. Formularnamen, CSRF, CAS und Submitter unverändert. Nachweise:
-`test_recipe_search_browser.py`, `test_recipe_filters_browser.py`,
-`test_recipe_import_browser.py`.
+History, Skalierung und Vorlagenwahl nutzen R43–R48 / M64–M68 und die P2c-Kontextverträge:
+`icon_button`/`row_actions` mit `text`/`aria_label`/`title`/`emphasis`/`attrs`,
+`label()` für Entwurf/Archiv/Importstatus, `list_row` für die Rezeptliste und
+übernommene Importzeilen. Die Rezeptsuche behält `id=text`, `maxlength=200`,
+`aria-describedby`, `data-loading` und offene Zusatzfilter; die Vorlagenwahl-Suche
+`q` behält `maxlength=200` über `filter_bar_sem`. Pro Zustand genau eine
+`btn-primary` (Anlegen, Leser-Filtern, Bearbeiten, Festhalten, Drucken). Zeilen
+entfernen als `actions.delete` mit `btn-danger`, `formaction` und `formnovalidate`.
+History-Zeilen nutzen `row_actions`. Inhaltslisten im Rezeptblatt und GET-Selects
+ohne Suchfeld bleiben fachliche Sonderfälle. Formularnamen, CSRF, CAS und Submitter
+unverändert. Nachweise: `test_recipe_search_browser.py`, `test_recipe_filters_browser.py`,
+`test_recipe_import_browser.py`, `test_recipe_view_print_browser.py`.
 
 #### M03 — Rezeptzutat: nur die benötigten Details öffnen
 

@@ -24,10 +24,10 @@
       {{ selected_fields() }}
       <div><label class="form-label" for="recipe-archived">Rezeptstatus</label><select class="form-select" id="recipe-archived" name="archived"><option value="0">Verfügbare Rezepte</option><option value="1" {% if arguments.get('archived') == '1' %}selected{% endif %}>Auch archivierte Rezepte</option></select></div>
     {% endset %}
-    {{ filter_bar_sem(url_for('admin.recipe_print_template_editor'), search_name='q', search_value=arguments.get('q', ''), filters=recipe_filters, active='q' in arguments or arguments.get('archived') == '1', id='recipe') }}
+    {{ filter_bar_sem(url_for('admin.recipe_print_template_editor'), search_name='q', search_value=arguments.get('q', ''), filters=recipe_filters, active='q' in arguments or arguments.get('archived') == '1', id='recipe', maxlength=200) }}
     {% if recipe_rows %}
       {% for item in recipe_rows %}
-      {% set pick %}<a class="btn" href="{{ recipe_url(recipe=item.public_id, recipe_revision=none, revision=revision.id, yield=none) }}" data-semantic="data.revision" aria-label="Gespeicherte Stände für {{ item.payload.title }} auswählen">{{ icon_label('data.revision') }}</a>{% endset %}
+      {% set pick %}{{ icon_button('data.revision', href=recipe_url(recipe=item.public_id, recipe_revision=none, revision=revision.id, yield=none), icon_only=true, aria_label='Gespeicherte Stände für ' ~ item.payload.title ~ ' auswählen') }}{% endset %}
       {{ list_row(primary=item.payload.title, secondary='Archiviert' if not item.active else none, actions=pick) }}
       {% endfor %}
     {% else %}{{ empty_state('no_match', 'Keine Rezepte für diese Suche vorhanden.', 'Suche ändern oder zurücksetzen.') }}{% endif %}
@@ -42,10 +42,10 @@
       <div class="col-12 col-md-8"><label class="form-label" for="recipe-revision">Gespeicherter Rezeptstand</label><select class="form-select" id="recipe-revision" name="recipe_revision" required><option value="">Bitte gespeicherten Stand wählen</option>
         {% if recipe_revision and recipe_revision.public_id not in recipe_revisions|map(attribute='public_id')|list %}<option value="{{ recipe_revision.public_id }}" selected>Gespeicherter Stand {{ recipe_revision.revision_number }} · {{ recipe_revision.created_at|datetime_short }}</option>{% endif %}
         {% for saved in recipe_revisions %}<option value="{{ saved.public_id }}" {% if arguments.get('recipe_revision') == saved.public_id %}selected{% endif %}>Gespeicherter Stand {{ saved.revision_number }} · {{ saved.created_at|datetime_short }}</option>{% endfor %}
-      </select></div><div class="col-12 col-md-4"><button class="btn" type="submit" aria-label="Gespeicherten Stand verwenden">{{ icon_label('actions.confirm') }}</button></div>
+      </select></div><div class="col-12 col-md-4">{{ icon_button('actions.apply', text='Verwenden', aria_label='Gespeicherten Stand verwenden') }}</div>
     </form>{% else %}<p>Noch kein gespeicherter Stand vorhanden. Die Druckvorlage bleibt bearbeitbar.</p>{% endif %}
     {{ pagination(revision_page, revision_has_next, recipe_url(revision_page=revision_page-1, revision=revision.id), recipe_url(revision_page=revision_page+1, revision=revision.id), 'Seiten der gespeicherten Rezeptstände') }}
-    <a class="btn mt-3" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe.public_id) }}" data-semantic="data.history" aria-label="Rezept-History öffnen">{{ icon_label('data.history') }}</a>
+    {{ icon_button('actions.history', href=url_for('admin.recipe_revisions', recipe_id=recipe.public_id), icon_only=true, aria_label='Rezept-History öffnen', title='Rezeptverlauf öffnen', class='mt-3') }}
     </details>
     {% endif %}
     {% if recipe_revision %}
@@ -53,7 +53,7 @@
       <form method="get" action="{{ url_for('admin.recipe_print_template_editor') }}" class="row g-3 align-items-end">
         {{ selected_fields(['yield']) }}
         <div class="col-12 col-sm-6"><label class="form-label" for="recipe-yield">Gewünschte Ausbeute</label><input class="form-control" id="recipe-yield" name="yield" inputmode="decimal" maxlength="40" required value="{{ arguments.get('yield', recipe_revision.snapshot.recipe.servings) }}"><p class="form-hint">Original: {{ recipe_revision.snapshot.recipe.servings }} {{ recipe_revision.snapshot.recipe.servings_unit_code }}. Zutaten ohne Menge bleiben ohne Menge.</p></div>
-        <div class="col-12 col-sm-auto"><button class="btn" type="submit" aria-label="Ausbeute anwenden">{{ icon_label('actions.confirm') }}</button></div>
+        <div class="col-12 col-sm-auto">{{ icon_button('actions.apply', text='Anwenden', aria_label='Ausbeute anwenden') }}</div>
       </form><a class="btn mt-3" href="{{ recipe_url(yield=none, revision=revision.id) }}" data-semantic="actions.refresh" aria-label="Originalausbeute verwenden">{{ icon_label('actions.refresh') }}</a>
     </div>{% endif %}
     </div>
