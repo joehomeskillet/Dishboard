@@ -1,4 +1,13 @@
 {
+  "actions.activate.label": "Activate",
+  "actions.activate.tooltip": "Activate",
+  "actions.activate.aria": "Activate",
+  "actions.apply.label": "Apply",
+  "actions.apply.tooltip": "Apply",
+  "actions.apply.aria": "Apply",
+  "actions.history.label": "History",
+  "actions.history.tooltip": "History",
+  "actions.history.aria": "History",
   "actions.add.label": "Create",
   "actions.add.tooltip": "Create",
   "actions.add.aria": "Create",

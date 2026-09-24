@@ -459,6 +459,11 @@ einzige Symbolquelle für semantische Aktionen. Vorhandene Schlüssel wiederverw
 `view.search` (Suchen), `view.filter` (Filtern), `admin.settings` (Einstellungen),
 `actions.more` (Mehr). Keine lokalen Alternativsymbole oder zusätzlichen Alias-Keys.
 
+P2c ergänzt drei eigenständige Aktionen: `actions.activate` (Aktivieren/Activate,
+`circle-check`), `actions.apply` (Übernehmen/Apply, `check`) und `actions.history`
+(Verlauf/History, `history`). Alle neutral; nur Verlauf erlaubt Icon-only.
+Aktivieren ist kein Bereitschaftsstatus, Übernehmen ist nicht Kopieren.
+
 ### R44 — Kurze Aktionen und sichere Icon-only-Bedienung
 
 Sichtbare Buttonlabels höchstens zwei Wörter und 18 Zeichen. Erklärung bleibt
@@ -468,6 +473,13 @@ Umbruchprüfung länger sein. Primär- und destruktive Aktionen behalten Text;
 hat immer `title` und `aria-label`, sichtbaren Fokus und quadratische 48-px-Ziele
 (strenger als die 44-px-Untergrenze). Grössen ausschliesslich über Tokens.
 
+P2c: Wiederholzeilen sollen `aria_label` mit Datensatzkontext übergeben, etwa
+«Vorlage X bearbeiten». Ohne expliziten `title` wird dieser Name bei Icon-only
+auch Tooltip. Bei sichtbarem Text muss ein zusätzlicher zugänglicher Name diesen
+Text enthalten (Label in Name); abweichende Namen sind Renderfehler.
+Zielspezifisches `text` bleibt auf zwei Wörter/18 Zeichen begrenzt und behält das
+Registry-Symbol. Registry-Defaults und Pseudo-Locale bleiben unverändert.
+
 ### R45 — Eine Direktaktion pro Zeile
 
 `row_actions(items)` zeigt höchstens das erste Element direkt. Alle weiteren
@@ -475,6 +487,12 @@ liegen in `action_menu`, geschlossenem nativem `details` mit «⋯ Mehr».
 Tastaturbedienung über Tab, Enter und Space funktioniert ohne JavaScript.
 Reihenfolge, Berechtigungen, URLs, CSRF und native Formularzuordnung gehören
 weiterhin dem Aufrufer. Keine automatische Änderung von Submit-Verträgen.
+
+Direkt- und Menüaktionen reichen dieselben Kontextparameter durch (M64).
+Pro Kontext eine Primäraktion: `emphasis='secondary'` stuft zusätzliche
+Anlegen-Aktionen zurück; `emphasis='primary'` hebt etwa Bearbeiten im Kopf hervor.
+Destruktive Registry-Aktionen lassen sich nicht herabstufen und behalten Text
+und Konsequenz. Auch eine explizite Danger-Variante verlangt beides.
 
 ### R46 — Ein Label-System
 
@@ -506,14 +524,29 @@ geprüfter Migration die Baseline und aktualisiert den Markdown-Report; Anstiege
 werden abgewiesen. Dynamische Labels und Laufzeitverzweigungen brauchen Browserprüfung.
 Öffentliche/Signage-Templates stehen im Inventar, daraus folgt keine Migrationsfreigabe.
 
+P2c erweitert Verträge, migriert aber keine Modul-Templates und erhöht keine
+Inventar-Baseline. Neue Optionen ersetzen keine modulbezogenen Nachweise aus P4;
+R46/R47 und ihre gemeinsamen Metriken gelten unverändert.
+
 ### M64 — Button- und Aktionsvertrag
 
-In `templates/ui/_semantic.html`: bisherige Signatur von `icon_button` bleibt,
-ergänzt um `size='default'` (`large` optional). Klassen `.ui-sem-control`,
+In `templates/ui/_semantic.html`: bisherige Positionsparameter von `icon_button`
+bleiben, einschliesslich `size='default'` (`large` optional). P2c ergänzt
+`text=none, aria_label=none, title=none, class='', emphasis=none, attrs=none`.
+Ohne neue Parameter bleibt die bisherige Ausgabe bytegleich. `emphasis=none`
+nutzt die Registry-Rolle; `primary`, `secondary`, `danger` wählen die Variante.
+Zusatzklassen ergänzen Basisklassen; `dropdown-item` bleibt über volle Menübreite
+links ausgerichtet. Klassen `.ui-sem-control`,
 `.ui-sem-control--icon-only`, `.ui-sem-control--large`, `.admin-row-actions`.
 `row_actions(items)` erwartet geordnete Mappings mit `key`, optional `href`,
-`name`, `value`, `type`, `form`, `id`, `icon_only`, `consequence_key` für Direktaktion;
-Menüaktionen behalten den bestehenden `action_menu(items)`-Vertrag.
+`name`, `value`, `type`, `form`, `id`, `icon_only`, `consequence_key` sowie sämtliche
+neuen Kontextparameter für Direkt- und Menüaktionen in `action_menu(items)`.
+`attrs` erlaubt ausschliesslich
+`^(data-[a-z0-9-]+|aria-(describedby|controls|expanded|current)|formaction|formmethod|formnovalidate|disabled|target|rel|tabindex|hidden)$`.
+Andere Schlüssel verursachen `SemanticError` beim Rendern. Werte werden escaped;
+`disabled`, `hidden`, `formnovalidate` verlangen boolesche Werte, true gibt das
+Attribut ohne Wert aus, false lässt es weg. ARIA-/Data-Booleans bleiben Texte.
+`target='_blank'` ergänzt `noopener` unter Erhalt bestehender `rel`-Tokens.
 Tokens: `--app-button-size` 48 px, `--app-button-size-large` 56 px,
 `--app-button-icon-gap` 8 px. DE/EN-Kurzlabels bleiben übersetzt.
 
@@ -552,6 +585,15 @@ Bestehende `filter_bar` und `pagination` bleiben gemeinsame Varianten.
 `semantic_key` und `icon_name`; `empty_state_sem` delegiert auf diese Darstellung.
 Keine parallelen Strukturen für dieselbe Semantik.
 
+P2c ergänzt `maxlength=none`, `describedby=none`, `loading=none`, `open=false`
+an beiden Filtermakros. Die ersten beiden gehen an das Suchfeld (`field` unterstützt
+sie ebenfalls), `loading` setzt `data-loading` am Formular. `describedby` ergänzt
+vorhandene Hint-/Fehler-IDs. Der Aufrufer übergibt `open=has_active_extra_filters`,
+damit aktive Zusatzfilter sichtbar bleiben. `active` steuert weiterhin allein
+den Reset-Link; ohne `open` bleibt altes Markup bytegleich. Feldnamen/-werte und
+GET-Ziele ändern sich nicht. Für eine sekundäre Leerzustandsaktion kann der
+bestehende `empty_state(action=icon_button(..., emphasis='secondary'))`-Slot dienen.
+
 ### M68 — Nachweise und P4-Arbeitsliste
 
 Browser: `test_p2b_labels_rows_actions_and_sorting_without_js` nutzt eigenen
@@ -560,6 +602,14 @@ Playwright-Lebenszyklus, 360/390/768/1024/1440/1920 px, No-JS, Tastatur, Fokus,
 Escaping, Nullwerte, Sortierzustände, Kurzlabels und native Formulardaten.
 Statische Arbeitsliste: `docs/ui-consistency-inventory.md`; pro Modul migrieren,
 danach Ratsche senken und gerenderte Zustände prüfen.
+
+P2c: `test_p2c_legacy_bytes` prüft sechs unveränderte UTF-8-Snapshots aus Release 11
+`d2e66fe` für `icon_button`, `row_actions`, `action_menu`, beide Filtermakros und
+`field`. Weitere Unit-Tests prüfen neue Parameter, Renderfehler, Escaping,
+Native-Attribute, Varianten und drei neue DE-/EN-Aktionen (Runtime 205→208,
+Designquelle 184→187). `test_p2c_context_actions_dropdown_and_active_filters`
+prüft Kontextnamen, Tooltip, Tab/Enter, Dropdown-Masse und offene Zusatzfilter
+ohne JavaScript in DE/EN/xx bei 360/390/768/1024/1440/1920 px.
 
 ### A51 — Lokale Alternativsymbole für kanonische Aktionen
 Verboten; Registry und `icon_button`/`icon_label` verwenden.
@@ -643,7 +693,9 @@ ist ein separates Paket mit Herkunfts-/Lizenznachweis.
 sem_icon(key)
 icon_label(key)
 icon_button(key, href=none, name=none, value=none, icon_only=false,
-            type='submit', id=none, form=none, consequence_key=none)
+            type='submit', id=none, form=none, consequence_key=none,
+            size='default', text=none, aria_label=none, title=none,
+            class='', emphasis=none, attrs=none)
 status_badge_sem(key)
 symbol_row(diets=[], allergens=[], properties=[], status=[])
 diet_icon(key)
@@ -654,7 +706,8 @@ confirm_dialog(key, consequence_key, confirm_key, id='semantic-confirm',
                open=false, name=none, value=none, form=none)
 status_bar(title_key, items=[], description_key=none, actions=none)
 filter_bar_sem(action, search_name='q', search_value='', filters=none,
-               more_filters=none, active=false, reset_url=none, id='filters')
+               more_filters=none, active=false, reset_url=none, id='filters',
+               maxlength=none, describedby=none, loading=none, open=false)
 ```
 
 StatusBar delegiert an `page_header(status_items=…)`, FilterBar an `filter_bar`.
@@ -2342,6 +2395,12 @@ Kompakte Verwaltungsliste; Zielmodell SDD v2 §5.3.
 
 ##### Modul Wochenübersicht (Tabelle der gespeicherten Wochen) (2026-09-20)
 
+**Polish P4:** `admin-table admin-table--stack`, gemeinsame Status-/Aktionsspalten,
+`label()` und `empty_value()` vereinheitlichen die gespeicherten Wochen.
+Registry-Kurzlabels «Anlegen», «Öffnen», «Mehr», «Kopieren» ersetzen Langtexte.
+Publikations- und Kopierhinweise bleiben inline; native Bereichslinks behalten
+`active`/`aria-current` im gemeinsamen `admin-filter-bar`-Muster.
+
 M28 konkretisiert: KW/Zeitraum, Titel, Status und Aktionen. Die Seite zeigt genau
 einen Bereich; daher keine redundante Bereichsspalte. Offene Punkte pro Woche
 fehlen im vorhandenen Kontext und werden nicht erfunden. Cafeteria/Patienten sind
@@ -2436,6 +2495,23 @@ Operativer Arbeitsplatz für einen einzelnen Tag; Zielmodell SDD v2 §6.
 **Responsive:** Meal-Gruppen untereinander; Add-Karten und Primäraktionen bleiben tastaturbedienbar.
 
 ##### Modul Wochenplan-Kern: Cafeteria-Woche, Patienten-Raster, gemeinsame Wochen-Partials (2026-09-20)
+
+**Polish P4:** Gänge, Menüdeklarationen und Prüfstatus nutzen gemeinsame Labels;
+Allergene und fehlende Angaben bleiben vollständig inline. Registry-Symbole und
+Kurzlabels ersetzen lokale Aktionsdarstellungen. Unterformulare speichern neutral,
+damit die Wochenhauptaktion allein primär bleibt. Native Hüllen erhalten Modal-,
+Disabled-, Fokusziel- und Formularattribute, die `icon_button` nicht unterstützt.
+Wochenprüfung verwendet `list_row` für Ausgabeangaben und «Bestätigen»;
+Kopieren verwendet «Kopieren» mit unverändertem sichtbarem Übernahmehinweis.
+Gangsuche behält Feldnamen, `maxlength`, Pagination-Submitter und Warnhinweis im
+gemeinsamen Filtermuster. Inhalts- und Fehleraufzählungen bleiben semantische Listen.
+Nicht übernommen (Release 12, Judge-Befunde): Wochensteuerung (Veröffentlichen,
+Prüfen, Wochenvorgaben), «Zum ersten Slot», «Suppe/Dessert planen» und der Vorlagen-Link der
+Menükarte behalten ihre zielspezifischen Texte, bis `icon_button` Kontexttext (`text=`,
+`aria_label=`) und die Schlüssel «Übernehmen»/«Aktivieren»/«Verlauf» kennt (P2c). Regel: eine
+Aktion mit eigener Wirkung (Veröffentlichen, Einplanen, Festhalten) wird nie auf ein generisches
+Registry-Verb («Bestätigen», «Öffnen», «Kopieren») abgebildet; sichtbarer Text muss im
+zugänglichen Namen enthalten sein.
 
 **Polish P3: editoren (2026-09-24).** Cafeteria verschiebt die optionale Erklärung
 zum Wochenendbetrieb in native Hinweisdetails und verwendet für ungespeicherte Tagesvorgaben

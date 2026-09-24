@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, pagination, field, empty_state, disclosure_section, hint, icon %}
-{% from 'ui/_semantic.html' import sem_icon, icon_label %}
+{% from 'admin/_macros.html' import page_header, pagination, field, empty_state, disclosure_section, hint, icon, label, empty_value %}
+{% from 'ui/_semantic.html' import sem_icon, icon_label, icon_button, status_badge_sem %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenübersicht · {{ area_names[profile] }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-wochenuebersicht.css') }}">{% endblock %}
@@ -19,7 +19,7 @@
 {% call page_header('Wochenübersicht', 'Gespeicherte Woche öffnen oder eine neue vorbereiten.', status_items=status_items) %}
         {% if can_write %}
         <details class="week-create"{% if error or values.shared_note %} open{% endif %}>
-          <summary class="btn btn-primary" id="new-week-title">{{ sem_icon('actions.add') }}Neue Woche anlegen</summary>
+          <summary class="btn btn-primary ui-sem-control" id="new-week-title">{{ icon_label('actions.add') }}</summary>
           <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form" data-loading aria-labelledby="new-week-title"{% if error %} aria-describedby="new-week-error"{% endif %}>
             <div class="card-body">
               {% if error %}<div class="alert alert-danger error error-region" id="new-week-error" role="alert" tabindex="-1">{{ sem_icon('status.warning') }} {{ error }}</div>{% endif %}
@@ -41,7 +41,7 @@
               </div>
             </div>
             <div class="card-footer d-flex">
-              <div class="btn-list ms-auto"><button type="submit" class="btn">{{ sem_icon('actions.add') }}Woche anlegen</button></div>
+              <div class="btn-list ms-auto"><button type="submit" class="btn ui-sem-control">{{ icon_label('actions.add') }}</button></div>
             </div>
           </form>
         </details>
@@ -50,7 +50,7 @@
 {% endblock %}
 {% block content %}
         {{ hint('Öffnen zeigt den Wochenplan. Kopieren und Vorschau liegen unter Weitere Aktionen.', 'week-list-hint') }}
-        <div class="week-filter btn-group mb-3" role="group" aria-label="{{ t('admin.area.label') }}">
+        <div class="admin-filter-bar week-filter mb-3" role="group" aria-label="{{ t('admin.area.label') }}">
           <a class="btn{% if family == 'cafeteria' %} active{% endif %}"{% if family == 'cafeteria' %} aria-current="true"{% endif %} href="{{ url_for('admin.week_management', family='cafeteria') }}">Cafeteria</a>
           <a class="btn{% if family == 'patienten' %} active{% endif %}"{% if family == 'patienten' %} aria-current="true"{% endif %} href="{{ url_for('admin.week_management', family='patienten') }}">Patienten</a>
         </div>
@@ -58,7 +58,7 @@
           <h2 class="visually-hidden" id="saved-weeks-title">Gespeicherte Wochen</h2>
           <div class="week-list"{% if rows or has_next or page > 1 %} role="region" aria-label="Wochenliste" tabindex="0"{% endif %}>
           {% if rows %}
-          <table class="table table-vcenter card-table week-table admin-table--stack">
+          <table class="table table-vcenter card-table week-table admin-table admin-table--stack">
             <thead>
               <tr><th scope="col">Kalenderwoche</th><th scope="col">Titel</th><th scope="col">Status</th><th scope="col">Aktionen</th></tr>
             </thead>
@@ -69,8 +69,8 @@
                   <strong><time datetime="{{ row.week_start.isoformat() }}">{{ row.week_start.strftime('%d.%m.%Y') }}</time>{% if row.next_week %} – <time datetime="{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).isoformat() }}">{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).strftime('%d.%m.%Y') }}</time>{% endif %}</strong>
                   <div class="text-secondary">KW {{ row.week_start.isocalendar().week }} / {{ row.week_start.isocalendar().year }}{% if not row.next_week %} · Wochenbeginn{% endif %}</div>
                 </td>
-                <td data-label="Titel" class="text-break">{{ row.title }}</td>
-                <td data-label="Status">
+                <td data-label="Titel" class="text-break">{{ row.title or empty_value() }}</td>
+                <td data-label="Status" class="admin-table-status">
                   {% set week_status_variant = {
                     'live': 'success', 'review_open': 'warning', 'changed': 'warning',
                     'ready': 'info', 'incomplete': 'warning', 'empty': 'neutral'
@@ -87,22 +87,22 @@
                     'incomplete': 'Unvollständig',
                     'empty': 'Noch keine Menüs erfasst'
                   } %}
-                  <span class="badge admin-status--{{ week_status_variant }}">{{ icon(week_status_icon) }}<span>{{ week_status_label }}</span></span>
+                  {{ label(week_status_label, week_status_variant, icon=week_status_icon) }}
                   {# Publication state explanations stay visible (polish rule: no safety/publication hints in tooltips). #}
                   <p class="text-secondary small mb-0">{{ status_descriptions.get(row.status, '') }}</p>
-                  {% if row.workflow_state == 'archived' %}<div class="mt-1"><span class="badge admin-status--neutral">{{ icon('archive') }}<span>Archiviert</span></span></div>{% endif %}
+                  {% if row.workflow_state == 'archived' %}<div class="mt-1">{{ label('Archiviert', 'neutral', icon=sem('actions.archive').resolved_icon) }}</div>{% endif %}
                 </td>
-                <td data-label="Aktionen">
-                  <div class="week-actions">
-                    <a class="btn week-action-primary" href="{{ url_for('admin.' ~ family, week=row.week_start.isoformat()) }}">{{ icon_label('actions.open') }}</a>
+                <td data-label="Aktionen" class="admin-table-actions">
+                  <div class="admin-row-actions week-actions">
+                    {{ icon_button('actions.open', href=url_for('admin.' ~ family, week=row.week_start.isoformat())) }}
                     {% if can_preview or (can_write and row.next_week) %}
                     <details class="week-more">
-                      <summary class="btn">{{ icon_label('actions.more') }}</summary>
+                      <summary class="btn ui-sem-control">{{ icon_label('actions.more') }}</summary>
                       <div class="week-more-content">
                       {% if can_preview %}<a class="btn" href="{{ url_for('admin.preview', family=family, week=row.week_start.isoformat()) }}" aria-label="Vorschau für Woche ab {{ row.week_start.strftime('%d.%m.%Y') }}">{{ icon_label('actions.preview') }}</a>{% endif %}
                       {% if can_write and row.next_week %}
                       <p class="text-secondary small my-2" id="copy-{{ row.id }}">Quelle: {{ row.week_start.strftime('%d.%m.%Y') }} → Ziel: {{ row.next_week.strftime('%d.%m.%Y') }}. Kopieren wird im nächsten Schritt bestätigt; Ziel muss leer und unveröffentlicht sein.</p>
-                      <a class="btn btn-outline-secondary text-wrap" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}" aria-describedby="copy-{{ row.id }}">{{ sem_icon('actions.copy') }}Kopieren vorbereiten</a>
+                      <a class="btn ui-sem-control" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}" aria-describedby="copy-{{ row.id }}">{{ icon_label('actions.copy') }}</a>
                       {% endif %}
                       </div>
                     </details>

@@ -1,4 +1,6 @@
 {% from '_food_symbols.html' import symbol, allergen_text %}
+{% from 'admin/_macros.html' import label as ui_label %}
+{% from 'ui/_semantic.html' import icon_label, status_badge_sem %}
 {% set hint_len = (cell.description|default('') ~ cell.note|default(''))|length %}
 <div class="col-12 col-md-6">
   <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
@@ -38,22 +40,26 @@
         {% endif %}
         <div class="labels badge-list">
           {% for label in cell.labels if label.code|lower in ('vegan', 'vegetarian') %}
-          <span class="label green badge bg-green-lt mw-100 text-wrap text-break">{{ symbol('labels', label.code, true) }}{{ label.name }}</span>
+          {% set declaration %}{{ symbol('labels', label.code, true) }}{{ label.name }}{% endset %}
+          {{ ui_label(declaration, 'category', class='label') }}
           {% endfor %}
           {% for allergen in cell.allergens %}
-          <span class="label amber badge bg-yellow-lt mw-100 text-wrap text-start">{{ symbol('allergens', allergen.code, true) }}<span class="text-break">{{ allergen_text(allergen) }}</span></span>
+          {% set declaration %}{{ symbol('allergens', allergen.code, true) }}<span class="text-break">{{ allergen_text(allergen) }}</span>{% endset %}
+          {{ ui_label(declaration, 'warning', class='label') }}
           {% endfor %}
           {% for label in cell.labels if label.code|lower not in ('vegan', 'vegetarian') %}
-          <span class="label green badge bg-green-lt mw-100 text-wrap text-break">{{ symbol('labels', label.code, true) }}{{ label.name }}</span>
+          {% set declaration %}{{ symbol('labels', label.code, true) }}{{ label.name }}{% endset %}
+          {{ ui_label(declaration, 'category', class='label') }}
           {% endfor %}
           {% for origin in cell.origins %}
-          <span class="label badge bg-secondary-lt mw-100 text-wrap text-start">{{ symbol('countries', origin.country_code, true) }}<span class="text-break">{{ origin.text }}</span></span>
+          {% set declaration %}{{ symbol('countries', origin.country_code, true) }}<span class="text-break">{{ origin.text }}</span>{% endset %}
+          {{ ui_label(declaration, 'neutral', class='label') }}
           {% endfor %}
         </div>
       </div>
       {% endif %}
       <p class="admin-week-review-line">
-        <span class="slot-badge badge bg-{{ 'yellow' if cell.review_open else 'green' }}-lt" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ 'Prüfung offen' if cell.review_open else 'Geprüft' }}</span>
+        <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ status_badge_sem('review.pending' if cell.review_open else 'review.approved') }}</span>
         {% if not cell.review_open %}
         <small>gespeicherter Stand bestätigt</small>
         {% endif %}
@@ -68,7 +74,7 @@
       </p>
       {% endif %}
       <div class="admin-week-card-action">
-        <a class="btn" href="{{ cell.edit_url }}" aria-label="Bearbeiten: {{ cell.day_label }}, {{ cell.day_short }}, {{ cell.meal_label }}, {{ cell.option_label }} – {{ cell.title if cell.title else 'Noch kein Gericht' }}">{{ icon('pencil') }}{{ 'Bearbeiten' if cell.title else 'Anlegen' }}</a>
+        <a class="btn ui-sem-control" href="{{ cell.edit_url }}" aria-label="Bearbeiten: {{ cell.day_label }}, {{ cell.day_short }}, {{ cell.meal_label }}, {{ cell.option_label }} – {{ cell.title if cell.title else 'Noch kein Gericht' }}">{{ icon_label('actions.edit' if cell.title else 'actions.add') }}</a>
       </div>
       {% if family == 'cafeteria' and cell.title and admin_menu_images|default('show') != 'hide' %}
         {% set image_file = cell|menu_image %}

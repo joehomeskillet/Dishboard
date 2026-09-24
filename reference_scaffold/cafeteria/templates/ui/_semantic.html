@@ -14,11 +14,53 @@
   <span class="ui-sem-label" data-semantic="{{ key }}">{{ sem_icon(key) }}<span>{{ t(sem(key).label_key) }}</span></span>
 {%- endmacro %}
 
-{% macro icon_button(key, href=none, name=none, value=none, icon_only=false, type='submit', id=none, form=none, consequence_key=none, size='default') -%}
+{# Keep validation local to this presentation contract. sem rejects an invalid
+   contract with SemanticError, including the diagnostic in its key. #}
+{% macro action_contract_error(message) -%}{{ sem('icon_button: ' ~ message) }}{%- endmacro %}
+
+{% macro action_attrs(attrs) -%}
+  {%- if attrs is not none and attrs is not mapping -%}
+    {{- action_contract_error('attrs must be a mapping') -}}
+  {%- endif -%}
+  {%- set attrs = attrs if attrs is not none else {} -%}
+  {%- set blank = attrs.get('target', '')|lower == '_blank' -%}
+  {%- for attr, value in attrs.items() -%}
+    {%- if attr is not string -%}{{ action_contract_error('invalid attribute name') }}{%- endif -%}
+    {%- if attr.startswith('data-') and attr|length > 5 -%}
+      {%- for char in attr[5:] if char not in 'abcdefghijklmnopqrstuvwxyz0123456789-' -%}
+        {{- action_contract_error('forbidden attribute ' ~ attr) -}}
+      {%- endfor -%}
+    {%- elif attr not in ['aria-describedby', 'aria-controls', 'aria-expanded', 'aria-current', 'formaction', 'formmethod', 'formnovalidate', 'disabled', 'target', 'rel', 'tabindex', 'hidden'] -%}
+      {{- action_contract_error('forbidden attribute ' ~ attr) -}}
+    {%- endif -%}
+    {%- if attr in ['formnovalidate', 'disabled', 'hidden'] -%}
+      {%- if value is not boolean -%}{{ action_contract_error(attr ~ ' must be boolean') }}{%- endif -%}
+      {%- if value -%}{{ ' ' ~ attr }}{%- endif -%}
+    {%- elif attr == 'rel' and blank -%}
+      {{- ' ' }}rel="{{ (value|string ~ ' noopener') if value is not none and 'noopener' not in (value|string).lower().split() else 'noopener' if value is none else value }}"
+    {%- elif value is not none -%}
+      {{- ' ' }}{{ attr }}="{{ 'true' if value is sameas true else 'false' if value is sameas false else value }}"
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if blank and 'rel' not in attrs -%}{{ ' ' }}rel="noopener"{%- endif -%}
+{%- endmacro %}
+
+{% macro icon_button(key, href=none, name=none, value=none, icon_only=false, type='submit', id=none, form=none, consequence_key=none, size='default', text=none, aria_label=none, title=none, class='', emphasis=none, attrs=none) -%}
   {{- require_icon_only(key, icon_only) -}}{{- require_consequence(key, consequence_key) -}}
   {%- set item = sem(key) -%}
-  {%- set variant = 'btn-primary' if item.role == 'primary' else 'btn-danger' if item.role == 'danger' else '' -%}
-  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}{% if icon_only %} ui-sem-control--icon-only{% endif %}{% if size == 'large' %} ui-sem-control--large{% endif %}" data-semantic="{{ key }}" title="{{ t(item.tooltip_key) }}"{% if icon_only %} aria-label="{{ t(item.aria_key) }}"{% endif %}{% if id %} id="{{ id }}"{% endif %}{% if href is not none %} href="{{ href }}"{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}>{{ sem_icon(key) }}{% if not icon_only %}<span>{{ t(item.label_key) }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>
+  {%- if emphasis not in [none, 'primary', 'secondary', 'danger'] -%}{{ action_contract_error('invalid emphasis') }}{%- endif -%}
+  {%- if item.role == 'danger' and emphasis not in [none, 'danger'] -%}{{ action_contract_error('destructive emphasis cannot be downgraded') }}{%- endif -%}
+  {%- set role = emphasis if emphasis is not none else item.role -%}
+  {%- if role == 'danger' -%}{{ require_icon_only('actions.delete', icon_only) }}{{ require_consequence('actions.delete', consequence_key) }}{%- endif -%}
+  {%- if role == 'primary' and icon_only -%}{{ action_contract_error('primary action requires visible text') }}{%- endif -%}
+  {%- if text is not none and (text is not string or not text|trim or text|length > 18 or text.split()|length > 2) -%}{{ action_contract_error('text must contain at most 2 words and 18 characters') }}{%- endif -%}
+  {%- set visible_text = t(item.label_key) if text is none else text -%}
+  {%- if aria_label is not none and (aria_label is not string or not aria_label|trim) -%}{{ action_contract_error('aria_label must be nonempty text') }}{%- endif -%}
+  {%- if aria_label is not none and not icon_only and visible_text|lower not in aria_label|lower -%}{{ action_contract_error('aria_label must contain visible text') }}{%- endif -%}
+  {%- set tooltip = title if title is not none else aria_label if icon_only and aria_label is not none else t(item.tooltip_key) -%}
+  {%- if title is not none and (title is not string or not title|trim) -%}{{ action_contract_error('title must be nonempty text') }}{%- endif -%}
+  {%- set variant = 'btn-primary' if role == 'primary' else 'btn-danger' if role == 'danger' else '' -%}
+  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}{% if icon_only %} ui-sem-control--icon-only{% endif %}{% if size == 'large' %} ui-sem-control--large{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" title="{{ tooltip }}"{% if icon_only or aria_label is not none %} aria-label="{{ aria_label if aria_label is not none else t(item.aria_key) }}"{% endif %}{% if id %} id="{{ id }}"{% endif %}{% if href is not none %} href="{{ href }}"{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}{{ action_attrs(attrs) }}>{{ sem_icon(key) }}{% if not icon_only %}<span>{{ visible_text }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>
   {% if consequence_key %}<p class="ui-sem-consequence">{{ t(sem(consequence_key).label_key) }}</p>{% endif %}
 {%- endmacro %}
 
@@ -57,7 +99,7 @@
   <details class="ui-sem-actions">
     <summary class="btn btn-ghost ui-sem-control" title="{{ t(sem('actions.more').tooltip_key) }}">{{ icon_label('actions.more') }}</summary>
     <div class="ui-sem-action-items">
-      {% for item in items %}{{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), form=item.form|default(none), consequence_key=item.consequence_key|default(none)) }}{% endfor %}
+      {% for item in items %}{{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), form=item.form|default(none), consequence_key=item.consequence_key|default(none), id=item.id|default(none), icon_only=item.icon_only|default(false), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none)) }}{% endfor %}
     </div>
   </details>
 {%- endmacro %}
@@ -68,7 +110,7 @@
   <div class="admin-row-actions">
     {% if items %}
       {% set item = items[0] %}
-      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), icon_only=item.icon_only|default(false), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none)) }}
+      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), icon_only=item.icon_only|default(false), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none)) }}
       {% if items|length > 1 %}{{ action_menu(items[1:]) }}{% endif %}
     {% endif %}
   </div>
@@ -100,7 +142,7 @@
   {{ page_header(t(sem(title_key).label_key), description=t(sem(description_key).label_key) if description_key else none, actions=actions, status_items=translated) }}
 {%- endmacro %}
 
-{% macro filter_bar_sem(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters') -%}
+{% macro filter_bar_sem(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false) -%}
   {# Existing filter labels remain German until the owner migrates the shared macro. #}
-  {{ filter_bar(action, search_name=search_name, search_value=search_value, filters=filters, more_filters=more_filters, active=active, reset_url=reset_url, id=id) }}
+  {{ filter_bar(action, search_name=search_name, search_value=search_value, filters=filters, more_filters=more_filters, active=active, reset_url=reset_url, id=id, maxlength=maxlength, describedby=describedby, loading=loading, open=open) }}
 {%- endmacro %}

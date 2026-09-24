@@ -66,7 +66,7 @@ def test_week_creation_and_tablet_layout(page_context):
     expect(page.locator('#new-week-date')).to_be_visible()
     page.get_by_label('Wochenbeginn (Montag)').fill('2027-01-04')
     page.get_by_label('Wochentitel', exact=True).fill('Tabletwoche')
-    page.get_by_role('button', name='Woche anlegen').click()
+    page.get_by_role('button', name='Anlegen').click()
     assert '/admin/patienten?week=2027-01-04' in page.url
     page.goto('/admin/patienten/wochen')
     expect(page.get_by_text('Tabletwoche', exact=True)).to_be_visible()
@@ -128,7 +128,10 @@ def test_management_density_keyboard_and_native_actions(
                 expect(page.locator('.week-filter .active')).to_have_attribute('href', f'/admin/{family}/wochen')
                 first = rows.first
                 expect(first.get_by_role('link', name='Öffnen', exact=True)).to_be_visible()
-                expect(first.get_by_role('link', name='Kopieren vorbereiten', exact=True)).to_be_hidden()
+                expect(first.get_by_role('link', name='Öffnen', exact=True).locator('use')).to_have_attribute('href', re.compile(r'#tabler-chevron-right$'))
+                expect(first.locator('.admin-table-status .admin-label')).to_have_class(re.compile(r'admin-status--neutral'))
+                expect(page.locator('.week-filter')).to_have_class(re.compile(r'admin-filter-bar'))
+                expect(first.get_by_role('link', name='Kopieren', exact=True)).to_be_hidden()
                 more = first.locator('summary')
                 more.focus()
                 page.keyboard.press('Shift+Tab')
@@ -137,7 +140,7 @@ def test_management_density_keyboard_and_native_actions(
                 assert more.evaluate('e => getComputedStyle(e).outlineStyle') == 'solid'
                 assert more.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
                 page.keyboard.press('Enter')
-                expect(first.get_by_role('link', name='Kopieren vorbereiten', exact=True)).to_be_visible()
+                expect(first.get_by_role('link', name='Kopieren', exact=True)).to_be_visible()
                 preview = first.locator('a[href*="/preview?"]')
                 expect(preview).to_be_visible()
                 page.keyboard.press('Tab')
@@ -170,7 +173,7 @@ def test_management_density_keyboard_and_native_actions(
                 assert '/preview?week=' in page.url
                 page.goto(f'/admin/{family}/wochen')
                 rows.first.locator('summary').click()
-                rows.first.get_by_role('link', name='Kopieren vorbereiten', exact=True).click()
+                rows.first.get_by_role('link', name='Kopieren', exact=True).click()
                 expect(page.locator('main')).to_have_attribute('data-source-week', str(WEEK + timedelta(weeks=3)))
                 expect(page.locator('main')).to_have_attribute('data-target-week', str(WEEK + timedelta(weeks=4)))
                 page.goto(f'/admin/{family}/wochen')
