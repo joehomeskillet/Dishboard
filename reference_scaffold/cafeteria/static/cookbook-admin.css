@@ -15,7 +15,6 @@
 .cookbook-list-row .badge { white-space: normal; text-align: start; }
 .cookbook-recipe-count { white-space: nowrap; }
 .cookbook-list .empty { padding: var(--app-space-4); }
-.cookbook-assignment-table :is(th, td) { padding-block: var(--app-space-2); }
 .cookbook-section-action { margin-top: var(--app-space-3); }
 @media (max-width: 767.98px) {
   .cookbook-list-name { flex-basis: 100%; }
