@@ -178,7 +178,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         page.get_by_label('Name', exact=True).fill('Mein erhaltener Entwurf')
         page.get_by_label('Testlager', exact=True).check()
         note = page.get_by_label('Notiz', exact=True)
-        note.locator('xpath=ancestor::details[1]').locator('summary').click()
+        note.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
         # Follow the control after responsive layout instead of a stale wheel offset.
         note.focus()
         note.scroll_into_view_if_needed()

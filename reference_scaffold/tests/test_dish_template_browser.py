@@ -182,15 +182,15 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
         page.get_by_role('button', name='Speichern').click()
         expect(page.get_by_role('link', name='Browser Vorlage')).to_be_visible()
         for column in COLUMNS:
-            if width >= 768 or column == 'Titel':
+            if width >= 768:
                 expect(page.get_by_role('columnheader', name=column)).to_be_visible()
             else:
-                expect(page.get_by_role('columnheader', name=column)).to_have_count(0)
-        if width >= 768:
-            expect(page.get_by_text('Menü 1', exact=True)).to_be_visible()
-            expect(page.get_by_text('Gemeinsam', exact=True)).to_be_visible()
-        else:
-            expect(page.get_by_text('Menü 1 · Gemeinsam', exact=True)).to_be_visible()
+                expect(page.locator(f'table.admin-table--stack [data-label="{column}"]').first).to_be_visible()
+        expect(page.get_by_text('Menü 1', exact=True)).to_be_visible()
+        expect(page.get_by_text('Gemeinsam', exact=True)).to_be_visible()
+        if width < 768:
+            assert page.locator('table.admin-table--stack tbody tr').first.evaluate(
+                "e => getComputedStyle(e).display") == 'grid'
         expect(page.locator('.badge:visible').filter(has_text='Aktiv')).to_have_count(1)
         page.get_by_role('link', name='Browser Vorlage').click()
         expect(page.get_by_label('Status', exact=True)).to_be_visible()
@@ -272,7 +272,7 @@ def test_accompaniment_radio_is_native_keyboard_operable_and_visible(
         if width >= 768:
             expect(page.get_by_role('columnheader', name='Dazu', exact=True)).to_be_visible()
         else:
-            expect(page.get_by_text('Dazu: Salat', exact=True)).to_be_visible()
+            expect(page.locator('td[data-label="Dazu"]').filter(has_text='Salat')).to_be_visible()
         expect(page.locator('use[href$="#tabler-salad"]')).to_have_count(1)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         shot = EVIDENCE / f'accompaniment-{width}x{height}-js-{javascript}.png'
@@ -399,3 +399,32 @@ def test_shared_layout_viewports(b3, master_server, browser, width, height, tmp_
         page.get_by_role('link', name=f'Liste {width}', exact=True).click()
         targets(page)
         _accessible_capture(page, f'gerichtvorlagen-form-{width}', methods=['GET'])
+
+
+def test_p3_polish_dish_templates_primary_stack_hint(b3, master_server, browser):  # noqa: F811
+    _, _, client, _ = b3
+    path = create(client, title='Polish Vorlage', menu_type_code='MENU_1', profile_scope='common')
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': 360, 'height': 800}, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        _open(page, base)
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        stacked = page.locator('table.admin-table--stack tbody tr').first
+        assert stacked.evaluate("e => getComputedStyle(e).display") == 'grid'
+        expect(page.locator('td[data-label="Menüart"]').first).to_be_visible()
+        _open(page, base, path)
+        trigger = page.locator('summary[aria-describedby="accompaniment-hint"]')
+        trigger.focus()
+        expect(trigger).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('#accompaniment-hint')).to_be_visible()
+        _open(page, base, path + '/einplanen')
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        plan_hint = page.locator('summary[aria-describedby="planning-refresh-hint"]')
+        plan_hint.focus()
+        expect(plan_hint).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('#planning-refresh-hint')).to_be_visible()
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')

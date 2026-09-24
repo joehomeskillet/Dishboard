@@ -226,13 +226,13 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
         expect(row).to_contain_text('verwendet in 0 Gerichten')
         edit_link = row.get_by_role('link', name='Bearbeiten', exact=True)
         expect(edit_link).to_be_visible()
-        if width < 992:
-            expect(page.locator('.dishboard-component-table thead')).to_be_hidden()
+        if width < 768:
             assert row.evaluate('e => getComputedStyle(e).display') == 'grid'
+            expect(row.locator('[data-label="Kategorie"]')).to_be_visible()
             assert row.evaluate('''e => e.querySelector('.component-row-name').getBoundingClientRect().width
                 >= e.getBoundingClientRect().width - 36''')
         else:
-            expect(page.locator('.dishboard-component-table thead')).to_be_visible()
+            expect(page.locator('.dishboard-component-table thead th').first).to_be_visible()
             assert row.evaluate('e => getComputedStyle(e).display') == 'table-row'
             edit_box = edit_link.bounding_box()
             assert edit_box is not None and edit_box['height'] <= 52

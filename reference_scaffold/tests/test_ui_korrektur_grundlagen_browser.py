@@ -89,7 +89,7 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                         assert next(form for form in forms if form['action'].endswith('/allergenpruefung'))['fields'][-1] == ['checked', 'true']
                         if width == 360 and not javascript:
                             print('WP06_FIELDS', json.dumps(forms, ensure_ascii=False))
-                        summary = page.locator('#food-core-form details summary').last
+                        summary = page.locator('#food-core-form details.admin-disclosure > summary').last
                         summary.focus()
                         page.keyboard.press('Enter')
                         expect(page.get_by_label('Notiz', exact=True)).to_be_visible()
@@ -99,7 +99,7 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                         assert focus[0] != 'none' or focus[1] != 'none'
                         price = page.locator('form[action$="/preis"]')
                         expect(price.get_by_label('CHF je Einheit', exact=True)).not_to_be_visible()
-                        price.locator('xpath=ancestor::details[1]').locator('summary').click()
+                        price.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
                         expect(price.get_by_label('CHF je Einheit', exact=True)).to_be_visible()
                         expect(price.get_by_role('button', name='Speichern', exact=True)).not_to_have_class(re.compile('btn-primary'))
                         for control in price.locator('.form-control, .btn').all():
@@ -361,3 +361,30 @@ def test_ingredient_statuses_and_secondary_actions_stay_separate(
 
         _prepare_evidence()
         _screenshot(page, 'zutat-status-mobile-390x844.png')
+
+
+def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser):  # noqa: F811
+    _, _, client, _ = b3
+    path = urlsplit(create(client, name='Polish Zutat')).path
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': 360, 'height': 800}, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        page.goto(base + '/admin/grundlagen')
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        _assert_no_horizontal_scroll(page)
+        expect(page.locator('.badge.admin-status--active').first).to_be_visible()
+        page.goto(base + path)
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        trigger = page.locator('summary[aria-describedby="food-core-save-hint"]')
+        trigger.focus()
+        expect(trigger).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('#food-core-save-hint')).to_be_visible()
+        _assert_no_horizontal_scroll(page)
+        page.get_by_role('link', name='Lagerorte').click()
+        storage_hint = page.locator('summary[aria-describedby="storage-list-hint"]')
+        storage_hint.focus()
+        expect(storage_hint).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('#storage-list-hint')).to_be_visible()

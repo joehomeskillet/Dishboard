@@ -266,7 +266,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         page.set_content(_editor_html(_book(), status_action='cookbook.archive', status_token='status-token'))
         expect(page.get_by_role('heading', level=2, name='Kochbuch archivieren')).to_be_visible()
         confirm = page.get_by_role('button', name='Archivieren', exact=True)
-        assert 'btn-outline-danger' in (confirm.get_attribute('class') or '').split()
+        assert 'btn-danger' in (confirm.get_attribute('class') or '').split()
         assert _symbol(confirm) == 'archive'
         assert _symbol(page.get_by_role('link', name='Abbrechen', exact=True)) == 'x'
         assert page.get_by_role('link', name='Archivieren', exact=True).count() == 0
@@ -740,3 +740,29 @@ def test_cookbook_frame_viewports_statusbar_and_no_overflow(cookbook_server):  #
 
     with ThreadPoolExecutor(max_workers=1) as worker:
         worker.submit(inspect).result()
+
+
+def test_p3_polish_cookbook_editor_primary_stack_hint(cookbook_server, browser):  # noqa: F811
+    path = _create_book(cookbook_server, 'Polishbuch')
+    _assign(cookbook_server, path, [cookbook_server['first']])
+    context = _context(browser, cookbook_server, 360, 800)
+    page = context.new_page()
+    try:
+        page.goto(cookbook_server['base'] + path)
+        expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+        _assert_page_width(page, 360)
+        row = page.locator('table.admin-table--stack tbody tr').first
+        assert row.evaluate("e => getComputedStyle(e).display") == 'grid'
+        expect(page.locator('td[data-label="Position"]').first).to_be_visible()
+        page.goto(cookbook_server['base'] + path + '/status')
+        page.get_by_role('button', name='Archivieren', exact=True).click()
+        page.goto(cookbook_server['base'] + path)
+        trigger = page.locator('summary[aria-describedby="cookbook-readonly-hint"]')
+        trigger.focus()
+        expect(trigger).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('#cookbook-readonly-hint')).to_be_visible()
+        _assert_page_width(page, 360)
+    finally:
+        page.close()
+        context.close()
