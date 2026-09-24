@@ -420,6 +420,138 @@ Verbleibende Inkonsistenzen vor Merge selbst beheben oder als P1-Fund dokumentie
 
 Kein neues Frontend-Framework, keine technische Migration, keine fachlichen Änderungen, keine Datenbankmigration, kein Ersetzen der v2- oder Semantic-Pakete — nur Vereinheitlichung und Verdichtung im bestehenden Tabler/Flask-Stack.
 
+## Auftraggeber-Ergänzung Buttons, Listen, Labels (2026-09-24)
+
+Quelle: `uiux-polish-2026-09-23/01_ERGAENZUNG_Buttons_Listen_Labels.md` und
+Einordnung in `IMPORT_NOTES.md`. P2b besitzt gemeinsame Komponenten; P4 migriert
+Module anhand von `docs/ui-consistency-inventory.md`. Keine Fach-, Rechte-,
+Formular- oder Palettenänderung. Höchste bestehende Nummern: R42/M63/A50
+(Polish-Tabellen zusätzlich zur Überschriften-Suche berücksichtigt).
+
+### R43 — Gleiche Bedeutung, gleiche Darstellung
+
+Gleiche Bedeutung → gleiches Aussehen/Symbol/Position/Interaktion. Registry ist
+einzige Symbolquelle für semantische Aktionen. Vorhandene Schlüssel wiederverwenden:
+`view.search` (Suchen), `view.filter` (Filtern), `admin.settings` (Einstellungen),
+`actions.more` (Mehr). Keine lokalen Alternativsymbole oder zusätzlichen Alias-Keys.
+
+### R44 — Kurze Aktionen und sichere Icon-only-Bedienung
+
+Sichtbare Buttonlabels höchstens zwei Wörter und 18 Zeichen. Erklärung bleibt
+im übersetzten `title` oder verknüpften Hilfetext. Pseudo-Locale darf zur
+Umbruchprüfung länger sein. Primär- und destruktive Aktionen behalten Text;
+`require_icon_only` und `require_consequence` bleiben verbindlich. Icon-only
+hat immer `title` und `aria-label`, sichtbaren Fokus und quadratische 48-px-Ziele
+(strenger als die 44-px-Untergrenze). Grössen ausschliesslich über Tokens.
+
+### R45 — Eine Direktaktion pro Zeile
+
+`row_actions(items)` zeigt höchstens das erste Element direkt. Alle weiteren
+liegen in `action_menu`, geschlossenem nativem `details` mit «⋯ Mehr».
+Tastaturbedienung über Tab, Enter und Space funktioniert ohne JavaScript.
+Reihenfolge, Berechtigungen, URLs, CSRF und native Formularzuordnung gehören
+weiterhin dem Aufrufer. Keine automatische Änderung von Submit-Verträgen.
+
+### R46 — Ein Label-System
+
+Neutral, info, active, success, warning, danger und category verwenden identische
+Metriken: Höhe, Padding, Radius, Schrift, Icon und Abstand aus Label-Tokens.
+Textkontrast mindestens 4.5:1. Details werden als `title` und visuell verborgener
+Text ausgegeben, niemals unescaped HTML. Lange Sicherheitsinformationen bleiben
+erreichbar; keine Abschneidung. Legacy-`.badge.bg-*-lt` erhält dieselben Metriken.
+
+### R47 — Eine Listensprache
+
+Primärinhalt → optionale Sekundärinfo/Metadaten → Status → Aktionen rechts.
+`list_row` und `.admin-table` teilen 56 px Mindesthöhe, 12 px horizontales und
+8 px vertikales Padding, Typografie, Trennlinie und Hover. Inhalt darf wachsen:
+48-px-Button plus Padding und Trennlinie ergibt rund 65 px, keine feste 56-px-Klemme.
+`empty_value()` liefert einheitlich «—»; numerische Null bleibt Null.
+`.admin-table--stack` ist mobile Ausprägung derselben Komponente mit `data-label`
+an Zellen. Sortierung liegt als Link in einem `th[scope=col][aria-sort]`.
+
+### R48 — Konsistenz ist eine Ratsche
+
+`tools/ui_consistency_inventory.py` zählt pro Template sechs statische Kategorien:
+literale Buttons, lange Labels, alte Badges, falsche kanonische Icons, lokale
+Tabellen/Zeilenlisten und Filter-/Suchformulare. Kopierte Klassen ersetzen keinen
+Makroaufruf. `tests/test_ui_consistency_ratchet.py` lässt keinen Anstieg gegenüber
+`tests/ui_consistency_baseline.json` zu; neue Templates starten bei null.
+`rtk python3 tools/ui_consistency_inventory.py --update-baseline` senkt nach
+geprüfter Migration die Baseline und aktualisiert den Markdown-Report; Anstiege
+werden abgewiesen. Dynamische Labels und Laufzeitverzweigungen brauchen Browserprüfung.
+Öffentliche/Signage-Templates stehen im Inventar, daraus folgt keine Migrationsfreigabe.
+
+### M64 — Button- und Aktionsvertrag
+
+In `templates/ui/_semantic.html`: bisherige Signatur von `icon_button` bleibt,
+ergänzt um `size='default'` (`large` optional). Klassen `.ui-sem-control`,
+`.ui-sem-control--icon-only`, `.ui-sem-control--large`, `.admin-row-actions`.
+`row_actions(items)` erwartet geordnete Mappings mit `key`, optional `href`,
+`name`, `value`, `type`, `form`, `id`, `icon_only`, `consequence_key` für Direktaktion;
+Menüaktionen behalten den bestehenden `action_menu(items)`-Vertrag.
+Tokens: `--app-button-size` 48 px, `--app-button-size-large` 56 px,
+`--app-button-icon-gap` 8 px. DE/EN-Kurzlabels bleiben übersetzt.
+
+### M65 — Label-Vertrag
+
+`label(text, variant='neutral', icon=none, detail=none, semantic_key=none,
+status=none, class='')` in `admin/_macros.html`; öffentliche Hauptparameter sind
+Text, Variante, Sprite-Icon und Detail. Zusatzparameter erhalten bestehende
+`data-semantic`, `data-status` und CSS-Hooks. `status_badge(value, mapping=none,
+label=none, detail=none)` und `status_badge_sem(key, detail=none)` delegieren darauf.
+Klassen `.badge.admin-label.admin-status--<variant>`. Tokens:
+`--app-label-min-height` 32 px, `--app-label-pad-x/y` 8/4 px,
+`--app-label-radius`, `--app-label-font-size` 14 px, `--app-label-font-weight` 600,
+`--app-label-line-height` 1.4, `--app-label-icon-size` 16 px, `--app-label-gap` 4 px.
+Lange Texte dürfen die Mindesthöhe erweitern; kurze Varianten sind gleich hoch.
+
+### M66 — Listen- und Tabellenvertrag
+
+`list_row(name=none, subtitle=none, state=none, action=none, markings=none,
+overflow=0, more_actions=none, primary=none, secondary=none, meta=none,
+status=none, actions=none)`: alte Positionsparameter bleiben gültig. Neue Slots
+nehmen Text oder sicher gerendertes Makro-Markup; `status=label(...)`,
+`actions=row_actions(...)`. Bestehende Legacy-Aktions-Mappings bleiben bis P4 erhalten.
+`empty_value()` und `sort_header(label, key, current, direction, url)` ergänzen
+den Vertrag; Richtung `asc`/`desc`, Headerzustand `none`/`ascending`/`descending`.
+Klassen `.admin-list-meta`, `.admin-list-status`, `.admin-table`,
+`.admin-table-status`, `.admin-table-actions`, `.admin-sort-header`.
+Tokens `--app-list-row-min-height`, `--app-list-pad-x/y`, `--app-list-line-width`,
+`--app-list-font-size`, `--app-list-hover`. Status-/Aktionsspalten hinten,
+Aktionsgruppen rechtsbündig; mobil wachsen Inhalte ohne Seitenüberlauf.
+
+### M67 — Filter, Pagination und Leerzustände
+
+Bestehende `filter_bar` und `pagination` bleiben gemeinsame Varianten.
+`filter_bar_sem` delegiert auf `filter_bar`. `empty_state` erhält optional
+`semantic_key` und `icon_name`; `empty_state_sem` delegiert auf diese Darstellung.
+Keine parallelen Strukturen für dieselbe Semantik.
+
+### M68 — Nachweise und P4-Arbeitsliste
+
+Browser: `test_p2b_labels_rows_actions_and_sorting_without_js` nutzt eigenen
+Playwright-Lebenszyklus, 360/390/768/1024/1440/1920 px, No-JS, Tastatur, Fokus,
+200-%-Zoom, Kontrast, Label-/Listenmetriken und Screenshots. Unit-Tests prüfen
+Escaping, Nullwerte, Sortierzustände, Kurzlabels und native Formulardaten.
+Statische Arbeitsliste: `docs/ui-consistency-inventory.md`; pro Modul migrieren,
+danach Ratsche senken und gerenderte Zustände prüfen.
+
+### A51 — Lokale Alternativsymbole für kanonische Aktionen
+Verboten; Registry und `icon_button`/`icon_label` verwenden.
+
+### A52 — Mehrere dauernd sichtbare Zeilenaktionen
+Verboten; höchstens eine Direktaktion, Rest natives «Mehr».
+
+### A53 — Individuelle Badge-Metriken oder abgeschnittene Warntexte
+Verboten; Label-Basis, kurze Aussage und zugängliches Detail verwenden.
+
+### A54 — Tabellen und Listen mit getrennten Metriken
+Verboten; gemeinsame Tokens, Status-/Aktionsspalten und mobile Stack-Darstellung.
+
+### A55 — Baseline-Erhöhung statt Migration
+Verboten; Anstiege korrigieren. Statische Null ist kein Beweis für gerenderte Konsistenz.
+
 ## Auftraggeber-Paket Semantic UI Language (2026-09-20)
 
 Verbindliche Quelle: `docs/design/semantic-ui-language-2026-09-20/`, einschliesslich
