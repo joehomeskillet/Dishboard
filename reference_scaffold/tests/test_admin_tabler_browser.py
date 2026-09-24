@@ -95,6 +95,11 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
                 else:
                     page.locator('#new-week-title').click()
                 expect(page.locator('details[open] #new-week-date')).to_be_visible()
+                # The optional week note sits in a closed «Weitere Optionen» disclosure; open it natively before measuring.
+                note = page.locator('details:has(#new-week-note):not([open])')
+                if note.count():
+                    note.last.evaluate('el => { el.open = true; }')
+                expect(page.locator('#new-week-note')).to_be_visible()
             for control in page.locator('input[type="date"], input[name="title"], textarea, button[type="submit"]').all():
                 assert control.bounding_box()['height'] >= 48, (width, control.evaluate('(el) => el.outerHTML'))
             for link in page.get_by_role('navigation', name='Backend').get_by_role('link').all():

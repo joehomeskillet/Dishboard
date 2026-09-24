@@ -8,6 +8,7 @@ from flask import Flask
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, nodes
 
 from cafeteria.template_filters import register_template_filters
+from cafeteria.ui import register_ui
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -230,7 +231,10 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
     cafeteria = _template("admin/cafeteria.html")
     weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
     application = Flask(__name__)
+    application.config.update(TESTING=True, UI_LOCALE='de')
     register_template_filters(application)
+    # Shared macros resolve icons and labels through the semantic UI layer (t/sem).
+    register_ui(application)
     environment = application.jinja_env
     environment.loader = FileSystemLoader(str(TEMPLATE_ROOT))
     environment.undefined = StrictUndefined
@@ -294,8 +298,9 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
         "menu-images.css",
     ]
     for template in (patient, cafeteria):
+        # Week plan core (WP21) adds its compact day layout after the week adapter.
         assert re.findall(r"filename=['\"]([^'\"]+\.css)['\"]", template) == [
-            "admin-week-tabler.css"
+            "admin-week-tabler.css", "admin-wochenplan-kern.css"
         ]
 
     admin_css = _compact(
