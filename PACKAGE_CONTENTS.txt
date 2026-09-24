@@ -634,6 +634,7 @@ docs/superpowers/plans/2026-09-13-sdd-work-package-register.md
 docs/superpowers/specs/2026-09-02-dishboard-admin-redesign-design.md
 docs/superpowers/specs/2026-09-05-dishboard-api-mcp-fhir-design.md
 docs/superpowers/ui003-delivery-0906.md
+docs/ui-consistency-inventory.md
 docs/ui-semantic-audit.md
 entra/app-roles-manifest.json
 entra/configure-entra-app.ps1
@@ -796,6 +797,8 @@ reference_scaffold/cafeteria/static/admin-kitchen-calendar.css
 reference_scaffold/cafeteria/static/admin-lager.css
 reference_scaffold/cafeteria/static/admin-menu-collection.css
 reference_scaffold/cafeteria/static/admin-menu-editor.css
+reference_scaffold/cafeteria/static/admin-nav.css
+reference_scaffold/cafeteria/static/admin-nav.js
 reference_scaffold/cafeteria/static/admin-preview.css
 reference_scaffold/cafeteria/static/admin-screens.css
 reference_scaffold/cafeteria/static/admin-settings-benutzer.css
@@ -1314,6 +1317,7 @@ reference_scaffold/tests/test_admin_local_users_browser.py
 reference_scaffold/tests/test_admin_local_users_routes.py
 reference_scaffold/tests/test_admin_menu_editor_browser.py
 reference_scaffold/tests/test_admin_menu_save_back_browser.py
+reference_scaffold/tests/test_admin_nav_browser.py
 reference_scaffold/tests/test_admin_operations_browser.py
 reference_scaffold/tests/test_admin_operations_routes.py
 reference_scaffold/tests/test_admin_output_hubs.py
@@ -1613,6 +1617,7 @@ reference_scaffold/tests/test_supplier_store_db.py
 reference_scaffold/tests/test_swagger_ui_assets.py
 reference_scaffold/tests/test_tabler_package_verification.py
 reference_scaffold/tests/test_ui_brand_ops_browser.py
+reference_scaffold/tests/test_ui_consistency_ratchet.py
 reference_scaffold/tests/test_ui_contracts.py
 reference_scaffold/tests/test_ui_fullwidth_pages_a_browser.py
 reference_scaffold/tests/test_ui_fullwidth_pages_b_browser.py
@@ -1668,6 +1673,7 @@ reference_scaffold/tests/test_workflow_partial_store_db.py
 reference_scaffold/tests/test_workflow_review_migration_db.py
 reference_scaffold/tests/test_workflow_review_receipts_db.py
 reference_scaffold/tests/test_workflow_weekend_contract.py
+reference_scaffold/tests/ui_consistency_baseline.json
 reference_scaffold/wsgi.py
 review/Grok_Kritik_original.txt
 site/.nojekyll
@@ -1704,6 +1710,7 @@ tools/import_dish_templates.py
 tools/recipe_draft_apply.py
 tools/recipe_example_validation.py
 tools/rotate_admin_password.py
+tools/ui_consistency_inventory.py
 tools/validate_package.py
 tools/validate_recipe_examples.py
 tools/vendor_food_symbols.py
