@@ -10630,7 +10630,7 @@
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
-      "sha256": "0292bb3b8154d71f1c8f2caf40d387e384e60b6d85e7d69c428f1be40b22df16",
+      "sha256": "3de5a9baf875fe551cb313c665eb770011b259baa01ed49bdb6cd5bd5a1d2a4c",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -10790,7 +10790,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "040930c85581452e0a17dac8313d21afd8b05922a61c4b8e6490f9f971a32247",
+      "sha256": "66f1b6032ccc232f0327a200c28f46b8d04b80f60a0b195b05351c91f164ad4c",
       "used_by_endpoints": [
         "admin.component_detail"
       ],
@@ -10814,7 +10814,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "eea2ede33410ab5f64dd09558b17ad48a927c0e7ab9361e1a27223b06f07120a",
+      "sha256": "c2713dabfc6474a905cce4471907e07b7e4df03a3979fabc194be6b681cf4fa8",
       "used_by_endpoints": [
         "admin.components_get"
       ],
@@ -10882,7 +10882,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "91b1d10f314ab4f1b28e2597ebcca80e9a6b5e5e0fc4ecfbe87088583a4b6b1c",
+      "sha256": "6b1ce96e30dc482ac5d4d859104fae4a9ce663c31a1ad758401c060dd19124ff",
       "used_by_endpoints": [
         "admin.dish_template_plan",
         "admin.dish_template_plan_post"
@@ -10906,7 +10906,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "cf0ea9cfd1469873d46844a665f996694de057ff7cebb3b1928b692328096c65",
+      "sha256": "af7a2b14a4460f86ca4367a61c02a743f40f63fe46132df5660f9ceb35184f5a",
       "used_by_endpoints": [
         "admin.dish_template_create",
         "admin.dish_template_edit",
@@ -10931,7 +10931,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "abc078aab7aedab9ad802cd2d13ab5e785255077095fb5415a9cdbef635f19da",
+      "sha256": "2716dd74dd619c651196454dba054779594c5a235a84f26fb175e00dc80a279d",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -10955,7 +10955,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "04df0235fdb10151f989f24c066c7bc81dab365bc13a4a093f27c71c39c8572c",
+      "sha256": "9f90b223f7bb6ab6080ce943e2903281f3ed1e7ad99990c4867130462e49931e",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11090,7 +11090,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "e5f2566fd3b688872671c21227f2035b7e1dd13ed1cd53bdea694ff1482b7e0d",
+      "sha256": "59bc3f8c520b8e7504c4ebb06895c0d08b92b1b0c6bc01f624f7ba44d9d318fa",
       "used_by_endpoints": [
         "admin.cookbook_edit",
         "admin.cookbook_new",
@@ -11314,7 +11314,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "162b5cbd32aff35437feda5f33d5ed9b2fe7ccdc201eeb0607ba2485bb6000fb",
+      "sha256": "fd4d55ae1d9eaffb3fdadaf576a0bb88ba8dd73d929880a5b886d9d9feeab0aa",
       "used_by_endpoints": [
         "admin.menu_get"
       ],
@@ -11411,7 +11411,7 @@
         "admin/_macros.html",
         "admin/_recipe_template_selection.html"
       ],
-      "sha256": "2cbcf1750370641358a22749c46bcc8bf097c00ce4975a8f37950a2afe436107",
+      "sha256": "72e9ecb3f39c440c1f6ba5e6e88366d081959295f6879e15b3f8452584c3885b",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -11758,7 +11758,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "877582a4ad2ea9519357457a7ecf2fdb1d4a4b8605007938e7dca9d208e2208a",
+      "sha256": "e71c72f8412c3461081633ae671e410af1d5e78e5f51a054904f68de47fad128",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],
