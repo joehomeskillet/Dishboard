@@ -59,8 +59,8 @@
   <dt class="col-12 col-md-4">Passwort zuletzt geändert</dt><dd class="col-12 col-md-8">{{ format_time(account.password_changed_at) }}</dd>
 </dl>
 <nav class="btn-list mt-3" aria-label="Kontoverlauf">
-{{ icon_button('data.history', href=url_for('admin.local_user_events', target=account.public_id)) }}
-{{ icon_button('data.history', href=url_for('admin.access_history')) }}
+{{ icon_button('actions.history', href=url_for('admin.local_user_events', target=account.public_id), text='Kontoereignisse', title='Kontoereignisse öffnen') }}
+{{ icon_button('actions.history', href=url_for('admin.access_history'), text='Zugriffsverlauf', title='Zugriffsverlauf öffnen') }}
 </nav>
 </details>
 {% endblock %}

@@ -99,7 +99,7 @@
       <div class="brand-preview-actions">
         <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="activate" data-confirm="Version {{ selected.id }} «{{ selected.name }}» als öffentliches Erscheinungsbild aktivieren?">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-          <button class="btn ui-sem-control" type="submit" name="action" value="activate" data-semantic="publish.ready" title="{{ t(sem('publish.ready').tooltip_key) }}" aria-label="Version {{ selected.id }} aktivieren"{% if selected_is_active %} disabled{% endif %}>{{ sem_icon('publish.ready') }}<span>{{ t(sem('publish.ready').label_key) }}</span></button>
+          {{ icon_button('actions.activate', name='action', value='activate', title='Öffentliche Marke aktivieren', aria_label='Version ' ~ selected.id ~ ' aktivieren', attrs={'disabled': selected_is_active}) }}
         </form>
         {% if selected_is_active %}
         <span class="text-success small d-inline-flex align-items-center gap-1">{{ icon('check') }}{{ t('status.active.label') }}</span>
@@ -113,7 +113,7 @@
   <h3 class="h4 d-flex align-items-center gap-2 mb-2" id="brand-history-title">{{ icon('copy') }}<span>Ausgewählten Stand übernehmen</span></h3>
   <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="restore">
     <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-    <button class="btn ui-sem-control" type="submit" name="action" value="restore" data-semantic="actions.restore" title="{{ t(sem('actions.restore').tooltip_key) }}" aria-label="Version {{ selected.id }} als neuen Entwurf übernehmen">{{ icon_label('actions.restore') }}</button>
+    {{ icon_button('actions.apply', name='action', value='restore', title='Ausgewählten Stand übernehmen', aria_label='Version ' ~ selected.id ~ ' als neuen Entwurf übernehmen') }}
   </form>
   <h3 class="h4 pt-3 mb-2 d-flex align-items-center gap-2">{{ icon('history') }}<span>Version auswählen</span></h3>
   <div class="list-group list-group-flush brand-history-list">
@@ -126,7 +126,7 @@
   </div>
   <form class="pt-3" method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="reset" data-confirm="Südhang Standard als neuen Entwurf anlegen?">
     <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
-    <button class="btn ui-sem-control" type="submit" name="action" value="reset" data-semantic="view.reset" title="{{ t(sem('view.reset').tooltip_key) }}" aria-label="Südhang Standard als Entwurf">{{ icon_label('view.reset') }}</button>
+    {{ icon_button('view.reset', name='action', value='reset', text='Südhang Standard', title='Südhang Standard als Entwurf', aria_label='Südhang Standard als Entwurf') }}
   </form>
 </section>
 {% endcall %}

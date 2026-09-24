@@ -6,7 +6,7 @@
 {% block title %}Zugriffsverlauf · Benutzer & Zugriff{% endblock %}
 {% block page_header %}{% call page_header('Benutzer & Zugriff', 'Zugriffsverlauf') %}
 {{ icon_button('actions.back', href=url_for('admin.local_users_list')) }}
-<nav class="btn-list" aria-label="Kontoverlauf"><a class="btn" href="{{ url_for('admin.local_user_events') }}">{{ icon_label('data.history') }}</a></nav>
+<nav class="btn-list" aria-label="Kontoverlauf">{{ icon_button('actions.history', href=url_for('admin.local_user_events'), text='Kontoereignisse', title='Kontoereignisse öffnen') }}</nav>
 {% endcall %}{% endblock %}
 {% block content %}
 <form method="get" class="admin-filter-bar" aria-label="Zugriffsverlauf filtern" data-dirty-tracking="off">

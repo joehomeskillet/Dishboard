@@ -5,13 +5,13 @@
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-benutzer.css') }}">{% endblock %}
 {% block title %}Kontoereignisse · Benutzer & Zugriff{% endblock %}
 {% block page_header %}{% call page_header('Benutzer & Zugriff', 'Kontoereignisse') %}
-<a class="btn btn-primary ui-sem-control" href="{{ url_for('admin.local_users_list') }}" data-semantic="actions.back" title="{{ t(sem('actions.back').tooltip_key) }}">{{ icon_label('actions.back') }}</a>
-<nav class="btn-list" aria-label="Kontoverlauf">{{ icon_button('data.history', href=url_for('admin.access_history')) }}</nav>{% endcall %}{% endblock %}
+{{ icon_button('actions.back', href=url_for('admin.local_users_list'), emphasis='primary') }}
+<nav class="btn-list" aria-label="Kontoverlauf">{{ icon_button('actions.history', href=url_for('admin.access_history'), text='Zugriffsverlauf', title='Zugriffsverlauf öffnen') }}</nav>{% endcall %}{% endblock %}
 {% block content %}
 <section class="card admin-users-history" aria-labelledby="events-title"><h2 class="visually-hidden" id="events-title">Kontoereignisse</h2>
 {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table admin-table admin-table--stack"><thead><tr><th scope="col">Zeitpunkt</th><th scope="col">Konto</th><th scope="col">Ereignis</th><th scope="col">Ausgeführt von</th></tr></thead><tbody>
 {% for item in rows %}<tr><td data-label="Zeitpunkt">{{ format_time(item.occurred_at) }}</td><td data-label="Konto" class="text-break">{{ item.target_display_name }}</td><td data-label="Ereignis">{{ item.summary }}</td><td data-label="Ausgeführt von" class="text-break">{{ item.actor_display_name or 'Anmeldeschutz' }}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<div class="card-body py-3"><p class="mb-2">{% if page == 1 %}Noch keine Kontoereignisse{% else %}Keine Kontoereignisse auf dieser Seite{% endif %}</p><p class="text-secondary mb-0">Erfolgreiche Kontoaktionen erscheinen hier automatisch.</p></div>{% endif %}
+</tbody></table></div>{% else %}{{ empty_state('none', 'Noch keine Kontoereignisse' if page == 1 else 'Keine Kontoereignisse auf dieser Seite', 'Erfolgreiche Kontoaktionen erscheinen hier automatisch.') }}{% endif %}
 <div class="card-footer text-secondary small">{{ hint('Lokale Kontoänderungen und vorübergehende Anmeldesperren · Zeitangaben Schweiz. Anmeldungen und Abmeldungen stehen im Zugriffsverlauf.', 'account-events-hint') }}</div></section>
 {{ pagination(page,has_next,prev_url,next_url,'Ereignisseiten') }}
 {% endblock %}

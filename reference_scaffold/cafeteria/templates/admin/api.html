@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state %}
-{% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button, status_badge_sem, row_actions %}
+{% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button, status_badge_sem %}
 {% block title %}Schnittstellen{% endblock %}
 {% set workflow_nav = 'api' %}
 {% block main_attributes %}data-page="api"{% endblock %}
@@ -52,24 +52,29 @@
                 </td>
                 <td data-label="Aktionen" class="admin-table-actions">
                   <div class="admin-row-actions">
-                    <details class="admin-compact-details admin-api-key-details">
-                      <summary class="btn btn-outline-secondary btn-icon" aria-label="Details zu {{ key.label }}">{{ sem_icon('ui.disclosure.details') }}</summary>
-                      <dl class="mb-0 mt-2">
-                        <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
-                        <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
-                        <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</dd>
-                      </dl>
-                    </details>
                     {% if key.state == 'active' %}
                     <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="d-inline" data-confirm="Schlüssel wirklich widerrufen?">
                       <input type="hidden" name="_csrf" value="{{ csrf }}">
                       <details class="admin-compact-details">
-                        <summary class="btn btn-outline-danger btn-icon" aria-label="{{ t(sem('actions.delete').aria_key) }}">{{ sem_icon('actions.delete') }}</summary>
-                        <p class="my-2">Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.</p>
+                        <summary class="btn btn-danger ui-sem-control" data-semantic="actions.delete" title="Schlüssel {{ key.label }} widerrufen" aria-label="Schlüssel {{ key.label }} widerrufen">{{ sem_icon('actions.delete') }}<span>{{ 'Widerrufen' }}</span></summary>
+                        <p class="my-2 ui-sem-consequence">Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.</p>
                         <button type="submit" class="btn btn-danger ui-sem-control" data-semantic="actions.confirm" title="{{ t(sem('actions.confirm').tooltip_key) }}">{{ icon_label('actions.confirm') }}</button>
                       </details>
                     </form>
                     {% endif %}
+                    <details class="ui-sem-actions">
+                      <summary class="btn btn-ghost ui-sem-control" title="{{ t(sem('actions.more').tooltip_key) }}">{{ icon_label('actions.more') }}</summary>
+                      <div class="ui-sem-action-items">
+                        <details class="admin-compact-details admin-api-key-details">
+                          <summary class="btn ui-sem-control" title="Details zu {{ key.label }}" aria-label="Details zu {{ key.label }}">{{ icon_label('ui.disclosure.details') }}</summary>
+                          <dl class="mb-0 mt-2">
+                            <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
+                            <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
+                            <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</dd>
+                          </dl>
+                        </details>
+                      </div>
+                    </details>
                   </div>
                 </td>
               </tr>
@@ -78,7 +83,7 @@
           </table>
           {% else %}
           <div class="card-body py-3">
-            {% call empty_state('none', 'Noch keine API-Schlüssel vorhanden.', 'Legen Sie einen Schlüssel mit Vorschauzugriff an.') %}<a class="btn ui-sem-control" href="#api-key-label" data-semantic="actions.add">{{ icon_label('actions.add') }}</a>{% endcall %}
+            {% call empty_state('none', 'Noch keine API-Schlüssel vorhanden.', 'Legen Sie einen Schlüssel mit Vorschauzugriff an.') %}{{ icon_button('actions.add', href='#api-key-label', emphasis='secondary') }}{% endcall %}
           </div>
           {% endif %}
         </section>
@@ -143,9 +148,9 @@
           <h2 class="card-title" id="api-interfaces-title">Technische Endpunkte</h2>
             <p>Vorschauen benötigen einen API-Schlüssel mit <code>preview.read</code> und einer Berechtigung für den jeweiligen Kanal.</p>
             <div class="btn-list mb-2">
-              {{ icon_button('actions.preview', href='/api/v1/docs') }}
-              {{ icon_button('actions.open', href='/api/v1/openapi.json') }}
-              {{ icon_button('actions.open', href='/fhir/metadata') }}
+              {{ icon_button('actions.preview', href='/api/v1/docs', text='Swagger UI', title='Swagger UI öffnen', attrs={'target': '_blank', 'rel': 'noopener'}) }}
+              {{ icon_button('actions.open', href='/api/v1/openapi.json', text='OpenAPI', title='OpenAPI öffnen') }}
+              {{ icon_button('actions.open', href='/fhir/metadata', text='FHIR', title='FHIR öffnen') }}
             </div>
             <p class="text-secondary mb-0">Technische Details und Beispiele: <code>docs/API.md</code>.</p>
         </section>
