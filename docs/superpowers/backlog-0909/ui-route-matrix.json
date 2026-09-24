@@ -11136,7 +11136,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "4ce87dcfd6558382d436208054ae953d5e9c773f687ada5935bc40b521871d14",
+      "sha256": "c88605ebae922d1ce63a43a7164e936cb37961c2e7946ae551fdfa9744a44722",
       "used_by_endpoints": [
         "admin.kitchen_calendar"
       ],
@@ -11291,7 +11291,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "ea31d28bdeacfe7d4e1162cdf6174173c970df817406ecb385a5c048a24f0d58",
+      "sha256": "356db5b5732efab9db32394e24f12fbf1010a578859b9134509d8853c5e01265",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],
@@ -11779,7 +11779,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "94aa9e4d2c7be42064d2f334d8a3c9f44529882a00870ca9b3e1fa3f3ad50cdf",
+      "sha256": "a85221303e403d73f16d04f14967a4e619bdce6711fd2298f4a0957b93225990",
       "used_by_endpoints": [
         "admin.week_management"
       ],
@@ -12303,7 +12303,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "e7d33dfd420a3c91b2c62f957bb59938edc58365988be352ed5b6d8030576afb",
+      "sha256": "a3193fea94e2c326914949d4283ef0b16c3bc06f61130174e6761836c9341f51",
       "used_by_endpoints": [
         "admin.shopping_list_compute",
         "admin.shopping_list_detail",
@@ -12402,7 +12402,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "64936f068ac812780e0e6edc5423ff6df3314e6dd8b8e799c29b23d126c8ff35",
+      "sha256": "cd706aad28d673a34829cc5336db576ac8888aa15d02c6cbbf73f296da47e251",
       "used_by_endpoints": [
         "admin.order_basket"
       ],
@@ -12417,7 +12417,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "0352e385f3400682ca0757d2ae7ed4ef7402d669bc5e3c732254103214c1a514",
+      "sha256": "364158d78217fed5a614680e860096035af71d422529830bc6f7c03d25a417fd",
       "used_by_endpoints": [
         "admin.cost_home",
         "admin.cost_preview"
@@ -12433,7 +12433,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "5638fe35990e0ac6b2f65ccb9d5b3f4be9dc5166b102bbcbbe7648eb41135edd",
+      "sha256": "a4e48dc875d365d5f471f52e4f253bf25dfa35d352a4b611f638869bc2cde780",
       "used_by_endpoints": [
         "admin.inventory_home"
       ],
