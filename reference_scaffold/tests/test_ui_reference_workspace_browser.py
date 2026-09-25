@@ -213,7 +213,7 @@ def test_workspace_header_conflict_nojs_returns_409(
         )
         header.locator('[name="title"]').fill('Ungespeicherte Eingabe')
         with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-            header.get_by_role('button', name='Wochenangaben speichern').click()
+            header.get_by_role('button', name='Speichern', exact=True).click()
         assert saved.value.status == 409
     finally:
         context.close()

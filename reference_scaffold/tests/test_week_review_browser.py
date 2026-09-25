@@ -23,7 +23,7 @@ from test_admin_ux_browser import (  # noqa: F401
 )
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
-CONFIRM = 'Bestätigen'
+CONFIRM = 'Wochenkopf und alle Ausgabehinweise als geprüft bestätigen'
 
 
 def _values(profile: str, *, closed: bool = False) -> dict:

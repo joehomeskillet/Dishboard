@@ -285,7 +285,7 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
             copy.locator('summary').press('Enter')
             expect(copy.locator('p')).to_contain_text('Quelle: 31.08.2026 → Ziel: 07.09.2026')
             expect(copy.locator('p')).to_contain_text('Ziel muss leer und unveröffentlicht sein')
-            expect(copy.get_by_role('link', name='Kopieren vorbereiten')).to_have_attribute(
+            expect(copy.get_by_role('link', name='Kopieren', exact=True)).to_have_attribute(
                 'href', f'/admin/{family}/copy?week=2026-09-07')
             if width in (390, 1440):
                 _shot(page, f'{family}-wochen-copy-{width}x{height}')
@@ -321,7 +321,7 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         # Submit invalid date to trigger error state
         page.locator('#new-week-date').fill('2026-09-02')  # Not a Monday
         page.locator('#new-week-name').fill('Ungültige Woche')
-        page.get_by_role('button', name='Woche anlegen').click()
+        details.locator('form').get_by_role('button', name='Anlegen', exact=True).click()
 
         # Error state preserves input and leaves details open
         expect(page.locator('#new-week-error')).to_be_visible()
@@ -343,13 +343,13 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         with database_engine.connect() as connection:
             before_copy = connection.execute(text('SELECT id,row_version FROM cafeteria.menu_weeks ORDER BY id')).all()
         row.locator('.week-more summary').click()
-        row.get_by_role('link', name='Kopieren vorbereiten').click()
+        row.get_by_role('link', name='Kopieren', exact=True).click()
         expect(page.locator('main')).to_have_attribute('data-source-week', '2026-08-31')
         expect(page.locator('main')).to_have_attribute('data-target-week', '2026-09-07')
         expect(page.locator('input[name="source_week"]')).to_have_value('2026-08-31')
         expect(page.locator('input[name="target_week"]')).to_have_value('2026-09-07')
         assert page.locator('.admin-copy-actions input[name="_csrf"]').input_value()
-        expect(page.get_by_role('button', name='Vorwoche kopieren')).to_be_visible()
+        expect(page.get_by_role('button', name='Vorwoche kopieren', exact=True)).to_be_visible()
         assert requests and set(requests) == {'GET'}
         with database_engine.connect() as connection:
             assert before_copy == connection.execute(text('SELECT id,row_version FROM cafeteria.menu_weeks ORDER BY id')).all()

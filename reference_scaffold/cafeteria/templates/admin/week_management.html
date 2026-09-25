@@ -94,7 +94,7 @@
                 </td>
                 <td data-label="Aktionen" class="admin-table-actions">
                   <div class="admin-row-actions week-actions">
-                    {{ icon_button('actions.open', href=url_for('admin.' ~ family, week=row.week_start.isoformat())) }}
+                    {{ icon_button('actions.open', href=url_for('admin.' ~ family, week=row.week_start.isoformat()), class='week-action-primary') }}
                     {% if can_preview or (can_write and row.next_week) %}
                     <details class="week-more">
                       <summary class="btn ui-sem-control">{{ icon_label('actions.more') }}</summary>

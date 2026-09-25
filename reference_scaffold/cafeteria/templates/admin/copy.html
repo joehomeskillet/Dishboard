@@ -13,7 +13,7 @@
   {'label': 'Quellwoche', 'value': 'KW ' ~ source.isocalendar().week ~ ' / ' ~ source.isocalendar().year, 'detail': source.strftime('%d.%m.%Y')},
   {'label': 'Zielwoche', 'value': 'KW ' ~ target.isocalendar().week ~ ' / ' ~ target.isocalendar().year, 'detail': target.strftime('%d.%m.%Y')}
 ]) %}
-<button type="submit" form="week-copy-form" class="btn btn-primary ui-sem-control">{{ icon_label('actions.copy') }}</button>
+{{ icon_button('actions.copy', form='week-copy-form', emphasis='primary', text='Vorwoche kopieren') }}
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -35,7 +35,7 @@
       <input type="hidden" name="source_week" value="{{ source.isoformat() }}">
       <input type="hidden" name="target_week" value="{{ target.isoformat() }}">
       <input type="hidden" name="target_row_version" value="{{ target_row_version }}">
-      {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=target.isoformat()), icon_only=true) }}
+      {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=target.isoformat()), icon_only=true, aria_label='Zurück zur Wochenübersicht') }}
     </form>
    </div>
   </section>

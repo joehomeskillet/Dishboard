@@ -519,7 +519,7 @@ def test_import_copy_review_disclosures_keep_payloads_and_keyboard(site) -> None
             review_fields = review.evaluate('form => Object.fromEntries(new FormData(form))')
             assert set(review_fields) == {'_csrf', 'week', 'context_version'}
             assert review_fields['week'] == WEEK.isoformat()
-            expect(page.locator('.admin-compact-row h3').first).to_be_visible()
+            expect(page.locator('.admin-list-row h3').first).to_be_visible()  # shared list row (P4)
             _assert_full_width(page, 390)
             _screenshot(page, f'disclosure-nojs-{javascript}', 390, 844)
         finally:

@@ -12,8 +12,8 @@
   {'label': 'Woche ab', 'value': week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]},
   {'label': 'Prüfstatus', 'value': 'Geprüft' if review.receipt else 'Noch zu prüfen', 'variant': 'success' if review.receipt else 'warning'}
 ]) %}
-  {% if not review.receipt and can_write %}{{ icon_button('actions.confirm', form='week-review-form') }}{% endif %}
-  {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=week), icon_only=true) }}
+  {% if not review.receipt and can_write %}<button class="btn btn-primary text-wrap" type="submit" form="week-review-form">{{ icon('check') }}Wochenkopf und alle Ausgabehinweise als geprüft bestätigen</button>{% endif %}
+  {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=week), icon_only=true, aria_label='Zur Wochenübersicht') }}
 {% endcall %}
 </div>
 {% endblock %}

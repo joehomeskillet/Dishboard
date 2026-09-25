@@ -14,6 +14,7 @@ from cafeteria.admin import week_review_routes as routes
 from cafeteria.admin import workflow_routes
 from cafeteria.admin import rendering
 from cafeteria.admin.rendering import _cells
+from cafeteria.ui import register_ui
 from cafeteria.component_catalog_store import AdminScope
 from cafeteria.workflow_review_context import context_token, review_week_context
 
@@ -41,6 +42,7 @@ def review_client(monkeypatch):
     app = Flask(__name__)
     app.config.update(TESTING=True, SECRET_KEY='test-week-review')
     app.extensions['cafeteria_db'] = object()
+    register_ui(app)  # templates use the shared semantic macros (icon_button)
     monkeypatch.setattr(rendering, 'get_area_names', lambda _: {
         'staff_guest': 'Mitarbeitende und externe Gäste', 'patient': 'Patientinnen und Patienten',
     })

@@ -34,7 +34,7 @@ BASE = 'cbed49229d3dbd041542d86af41d6d3e735ea0c1'
 ROOT = Path(__file__).resolve().parents[2]
 VIEWPORTS = ((1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080))
 CORE = ((1440, 900), (390, 844))
-CONFIRM = 'Bestätigen'
+CONFIRM = 'Wochenkopf und alle Ausgabehinweise als geprüft bestätigen'
 
 
 @pytest.fixture(params=[(family, profile, js) for family, profile in

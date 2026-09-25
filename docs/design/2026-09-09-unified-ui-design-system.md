@@ -2501,8 +2501,11 @@ Allergene und fehlende Angaben bleiben vollständig inline. Registry-Symbole und
 Kurzlabels ersetzen lokale Aktionsdarstellungen. Unterformulare speichern neutral,
 damit die Wochenhauptaktion allein primär bleibt. Native Hüllen erhalten Modal-,
 Disabled-, Fokusziel- und Formularattribute, die `icon_button` nicht unterstützt.
-Wochenprüfung verwendet `list_row` für Ausgabeangaben und «Bestätigen»;
-Kopieren verwendet «Kopieren» mit unverändertem sichtbarem Übernahmehinweis.
+Wochenprüfung verwendet `list_row` für Ausgabeangaben; die Prüfbestätigung behält ihren
+vollständigen Text «Wochenkopf und alle Ausgabehinweise als geprüft bestätigen»
+(sicherheitsrelevant, Abnahmevertrag). Die Kopieren-Seite nutzt `icon_button('actions.copy',
+text='Vorwoche kopieren', emphasis='primary')`; die Zeilenaktion der Wochenübersicht heisst
+«Kopieren», der sichtbare Übernahmehinweis daneben bleibt unverändert.
 Gangsuche behält Feldnamen, `maxlength`, Pagination-Submitter und Warnhinweis im
 gemeinsamen Filtermuster. Inhalts- und Fehleraufzählungen bleiben semantische Listen.
 Nicht übernommen (Release 12, Judge-Befunde): Wochensteuerung (Veröffentlichen,

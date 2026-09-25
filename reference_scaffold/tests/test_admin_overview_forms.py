@@ -29,7 +29,7 @@ def test_overview_header_submits_native_form_and_reloads_saved_values(
     form.locator('[name="title"]').fill('Wochenangebot September')
     form.locator('[name="shared_note"]').fill('Hinweis für alle Tage')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        form.get_by_role('button', name='Wochenangaben speichern', exact=True).click()
+        form.get_by_role('button', name='Speichern', exact=True).click()
     assert saved.value.status == 303
     page.wait_for_url(f'**/admin/{family}?week={DAY}')
     assert form.locator('[name="row_version"]').input_value() == '1'
@@ -84,7 +84,7 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
                 f'.menu-slot[data-day="{DAY}"][data-meal="LUNCH"][data-option="MENU_1"]',
             ).get_attribute('data-row-version') == '2'
         with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-            form.get_by_role('button', name='Ausgabeangaben speichern', exact=True).click()
+            form.get_by_role('button', name='Speichern', exact=True).click()
         assert saved.value.status == 303
         page.wait_for_url(f'**/admin/{family}?week={DAY}')
         page.locator('details.admin-week-service').evaluate_all(
