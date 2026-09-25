@@ -205,6 +205,8 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     else:
         expect(toggle).to_be_hidden()
         expect(nav).to_be_visible()
+    page.locator('details.admin-week-more > summary').click()
+    expect(page.locator('.admin-week-more-menu')).to_be_visible()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), width
     for control in page.locator(
         '.admin-week-controls .btn, .admin-overview-form .form-control, .admin-overview-form .btn, '

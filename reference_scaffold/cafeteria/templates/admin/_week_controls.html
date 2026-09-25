@@ -1,4 +1,5 @@
 {# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, week_row_version, schedule_defaults_csrf. #}
+{% from 'ui/_semantic.html' import icon_button, sem_icon, icon_label %}
 {% set allergen_stats = namespace(missing=0, review_open=0) %}
 {% for cell in cells if cell.row_version > 0 and cell.title %}
   {% if not cell.allergens %}
@@ -56,9 +57,13 @@
   {% endif %}
   {% call page_header(heading, description, status_items=items) %}
     {% if publish_blocked and status == 'review_open' %}
-    <a class="btn btn-primary" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}#week-review-form">{{ icon('clipboard-check') }}Offene Punkte prüfen</a>
+    <a class="btn btn-primary" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}#week-review-form">{{ sem_icon('actions.confirm') }}Offene Punkte prüfen</a>
     {% else %}
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
+    {% if publish_label|length > 18 %}
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#week-publish-modal"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ sem_icon('actions.confirm') }}{{ publish_label }}</button>
+    {% else %}
+    {{ icon_button('actions.confirm', type='button', text=publish_label, title=publish_label, emphasis='primary', attrs={'data-bs-toggle': 'modal', 'data-bs-target': '#week-publish-modal', 'disabled': publish_blocked, 'aria-describedby': 'week-publish-guidance' if publish_blocked else none}) }}
+    {% endif %}
     {% endif %}
   {% endcall %}
 {% endmacro %}
@@ -66,13 +71,13 @@
 <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
   <div class="admin-actions btn-list" data-sticky>
     {% if publish_blocked and status == 'review_open' %}
-    <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#week-publish-modal" disabled aria-describedby="week-publish-guidance">{{ publish_label }}</button>
+    {{ icon_button('actions.confirm', type='button', text=publish_label, title=publish_label, emphasis='secondary', attrs={'data-bs-toggle': 'modal', 'data-bs-target': '#week-publish-modal', 'disabled': true, 'aria-describedby': 'week-publish-guidance'}) }}
     {% endif %}
-    <a class="btn" href="/admin/{{ family }}/preview?week={{ week_value }}" target="_blank" rel="noopener">{{ icon('eye') }}Vorschau</a>
-    <a class="btn admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ icon('clipboard-check') }}Wochenangaben prüfen</a>
+    {{ icon_button('actions.preview', href='/admin/' ~ family ~ '/preview?week=' ~ week_value, attrs={'target': '_blank', 'rel': 'noopener'}) }}
+    <a class="btn admin-week-review-link" href="/admin/{{ family }}/wochen/pruefung?week={{ week_value }}">{{ sem_icon('actions.confirm') }}Wochenangaben prüfen</a>
     {% if course_issues is defined and course_issues['items'] %}
     <details id="course-issues" class="admin-week-issues">
-      <summary class="btn">{{ icon('clipboard-check') }}Gangangaben prüfen</summary>
+      <summary class="btn">{{ sem_icon('actions.confirm') }}Gangangaben prüfen</summary>
       <ul class="list-unstyled mb-0">
         {% for item in course_issues['items'] %}
         <li>
@@ -83,15 +88,15 @@
     </details>
     {% endif %}
     <details class="admin-week-more">
-      <summary class="btn">Weitere Aktionen</summary>
+      <summary class="btn">{{ icon_label('actions.more') }}</summary>
       <div class="admin-week-more-menu">
-        <a class="dropdown-item" href="{{ url_for('admin.export_csv', profile_code=csv_profile) }}">{{ icon('file-import') }}CSV exportieren</a>
-        <a class="dropdown-item" href="/admin/{{ family }}/copy?week={{ week_value }}">{{ icon('copy') }}Vorwoche kopieren</a>
+        {{ icon_button('actions.export', href=url_for('admin.export_csv', profile_code=csv_profile), text='CSV exportieren', title='CSV exportieren', class='dropdown-item') }}
+        {{ icon_button('actions.copy', href='/admin/' ~ family ~ '/copy?week=' ~ week_value, text='Vorwoche kopieren', title='Vorwoche kopieren', class='dropdown-item') }}
         {% if week_row_version > 0 %}
         <form method="post" action="{{ url_for('admin.schedule_defaults', family=family) }}" id="schedule-defaults">
           <input type="hidden" name="_csrf" value="{{ schedule_defaults_csrf }}">
           <input type="hidden" name="week" value="{{ week_value }}"><input type="hidden" name="row_version" value="{{ week_row_version }}">
-          <button class="dropdown-item" type="submit">{{ icon('calendar-cog') }}Wochenvorgaben übernehmen</button>
+          {{ icon_button('actions.apply', text='Übernehmen', aria_label='Wochenvorgaben übernehmen', title='Wochenvorgaben übernehmen', class='dropdown-item') }}
           <div class="dropdown-item-text">Ergänzt fehlende Services und offene Services ohne Zeiten. Vorhandene Menüs bleiben erhalten.</div>
         </form>
         {% endif %}
@@ -107,7 +112,11 @@
   <details class="admin-week-nojs-publish">
     <summary>Veröffentlichung bestätigen</summary>
     <p>Gespeicherte Woche: KW {{ iso_week }} · {{ title }}. Bitte prüfen, ob alle Angaben korrekt sind.</p>
-    <button type="submit" form="week-publish-form" class="btn"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ publish_label }}</button>
+    {% if publish_label|length > 18 %}
+    <button type="submit" form="week-publish-form" class="btn"{% if publish_blocked %} disabled aria-describedby="week-publish-guidance"{% endif %}>{{ sem_icon('actions.confirm') }}{{ publish_label }}</button>
+    {% else %}
+    {{ icon_button('actions.confirm', form='week-publish-form', text=publish_label, title=publish_label, emphasis='secondary', attrs={'disabled': publish_blocked, 'aria-describedby': 'week-publish-guidance' if publish_blocked else none}) }}
+    {% endif %}
   </details>
 </noscript>
 
@@ -133,8 +142,12 @@
         </ul>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>
-        <button type="submit" class="btn"{% if publish_blocked %} disabled{% endif %}>{{ icon('check') }}{{ publish_label }}</button>
+        {{ icon_button('actions.cancel', type='button', attrs={'data-bs-dismiss': 'modal'}) }}
+        {% if publish_label|length > 18 %}
+        <button type="submit" class="btn"{% if publish_blocked %} disabled{% endif %}>{{ sem_icon('actions.confirm') }}{{ publish_label }}</button>
+        {% else %}
+        {{ icon_button('actions.confirm', text=publish_label, title=publish_label, emphasis='secondary', attrs={'disabled': publish_blocked}) }}
+        {% endif %}
       </div>
     </form>
   </div>

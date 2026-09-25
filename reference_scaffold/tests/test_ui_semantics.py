@@ -42,6 +42,64 @@ def semantic_app():
     return app
 
 
+@pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
+@pytest.mark.parametrize(('status', 'blocked', 'publish_label'), (
+    ('empty', True, 'Veröffentlichen'),
+    ('incomplete', True, 'Veröffentlichen'),
+    ('review_open', True, 'Veröffentlichen'),
+    ('ready', False, 'Veröffentlichen'),
+    ('live', False, 'Erneut veröffentlichen'),
+    ('changed', False, 'Änderungen veröffentlichen'),
+))
+def test_week_actions_keep_publish_labels_and_native_contracts(
+    semantic_app, family, status, blocked, publish_label,
+):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context('/'):
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import page_header %}"
+            "{% include 'admin/_week_controls.html' %}"
+            "{% from 'admin/_week_controls.html' import overview_header with context %}"
+            "{{ overview_header('Wochenplan', '') }}",
+            family=family, status=status, status_label=status, publish_blocked=blocked,
+            week_value='2026-08-31', week_csrf='test-publish',
+            schedule_defaults_csrf='test-defaults', week_row_version=3,
+            iso_week=36, title='', date_range='', cells=[], filled_slots=0, open_checks=0,
+            url_for=lambda endpoint, **kwargs: '/test/' + endpoint,
+        )
+    doc = BeautifulSoup(html, 'html.parser')
+    trigger = doc.select_one('[data-bs-target="#week-publish-modal"]')
+    submit = doc.select_one('#week-publish-form button[type="submit"]')
+    nojs = doc.select_one('noscript button')
+    for button in (trigger, submit, nojs):
+        assert button.get_text(strip=True) == publish_label
+        assert button.has_attr('disabled') is blocked
+    assert trigger['data-bs-toggle'] == 'modal'
+    assert nojs['form'] == 'week-publish-form'
+    for button in (trigger, nojs):
+        assert button.get('aria-describedby') == ('week-publish-guidance' if blocked else None)
+    primary = doc.select('.btn-primary')
+    assert len(primary) == 1
+    assert primary[0].get_text(strip=True) == (
+        'Offene Punkte prüfen' if status == 'review_open' else publish_label
+    )
+    form = doc.select_one('#week-publish-form')
+    assert form['method'] == 'post'
+    assert form['action'] == f'/admin/{family}/publish'
+    assert [(field['name'], field['value']) for field in form.select('input')] == [
+        ('_csrf', 'test-publish'), ('week', '2026-08-31'), ('row_version', '3'),
+    ]
+    defaults = doc.select_one('#schedule-defaults')
+    assert [(field['name'], field['value']) for field in defaults.select('input')] == [
+        ('_csrf', 'test-defaults'), ('week', '2026-08-31'), ('row_version', '3'),
+    ]
+    assert defaults.select_one('button')['data-semantic'] == 'actions.apply'
+    assert [item.get_text(strip=True) for item in doc.select('.admin-week-more-menu .dropdown-item')] == [
+        'CSV exportieren', 'Vorwoche kopieren', 'Übernehmen',
+    ]
+
+
 def test_registry_source_schema_and_frozen_resolution():
     registry = load_registry()
     source = Path(__file__).resolve().parents[2] / 'docs/design/semantic-ui-language-2026-09-20'

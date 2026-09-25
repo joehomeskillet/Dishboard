@@ -2501,6 +2501,7 @@ Allergene und fehlende Angaben bleiben vollständig inline. Registry-Symbole und
 Kurzlabels ersetzen lokale Aktionsdarstellungen. Unterformulare speichern neutral,
 damit die Wochenhauptaktion allein primär bleibt. Native Hüllen erhalten Modal-,
 Disabled-, Fokusziel- und Formularattribute, die `icon_button` nicht unterstützt.
+M1 migriert die Wochensteuerung auf gemeinsame Aktionen mit unverändertem Veröffentlichungstext und «prüfen», zielspezifischem CSV-Export und Vorwochenkopieren sowie `actions.apply` mit sichtbarem «Übernehmen» und Kontext «Wochenvorgaben übernehmen»; lange Fachtexte behalten native Hüllen und sämtliche Formularverträge bleiben erhalten.
 Wochenprüfung verwendet `list_row` für Ausgabeangaben; die Prüfbestätigung behält ihren
 vollständigen Text «Wochenkopf und alle Ausgabehinweise als geprüft bestätigen»
 (sicherheitsrelevant, Abnahmevertrag). Die Kopieren-Seite nutzt `icon_button('actions.copy',
