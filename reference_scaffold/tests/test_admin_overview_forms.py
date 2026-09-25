@@ -126,8 +126,11 @@ def test_copy_link_on_empty_week_submits_exact_native_form(
     assert fields['source_week'] == DAY
     assert fields['target_week'] == target
     assert fields['target_row_version'] == '0'
+    copy = page.get_by_role('button', name='Vorwoche kopieren', exact=True)
+    assert copy.get_attribute('form') == form.get_attribute('id') == 'week-copy-form'
+    assert copy.evaluate('button => button.form.action') == form.evaluate('form => form.action')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        form.get_by_role('button', name='Vorwoche kopieren', exact=True).click()
+        copy.click()
     assert saved.value.status == 303
     page.wait_for_url(f'**/admin/{family}?week={target}')
     assert page.locator(
