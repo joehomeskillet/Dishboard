@@ -416,7 +416,7 @@ def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(pa
     link.click()
     assert origin.get_attribute('open') is not None
     expect(field).to_be_focused()
-    expect(summary.locator('button', has_text='Erneut')).to_be_visible()
+    expect(summary.locator('button', has_text='Erneut versuchen')).to_be_visible()
 
 
 def test_modes_and_accordion_state_survive_save_and_reload(page_context: Page) -> None:  # noqa: F811
