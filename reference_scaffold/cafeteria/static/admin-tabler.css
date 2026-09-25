@@ -552,6 +552,7 @@
 .dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
   :where(a, span, div, p, small, strong, b, em, i, time, code, h2, h3, h4, h5, h6):not(:where(thead *, .badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *, button, button *, summary, summary *, .form-control, .form-select)) {
   font-size: var(--app-list-meta-size) !important;
+  line-height: var(--app-list-line-height) !important;
   font-weight: var(--app-list-meta-weight) !important;
   color: var(--app-text) !important;
   font-style: normal !important;
@@ -565,6 +566,7 @@
 .dishboard-admin .admin-list-primary :where(a, span, strong, b, em, i, time, code),
 .dishboard-admin .admin-list-name > strong :where(a, span, strong, b, em, i, time, code) {
   font-size: var(--app-list-primary-size) !important;
+  line-height: var(--app-list-line-height) !important;
   font-weight: var(--app-list-primary-weight) !important;
   color: var(--app-text) !important;
   font-style: normal !important;
@@ -574,6 +576,7 @@
 .dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
   :is(.admin-list-secondary, .admin-list-subtitle, .text-secondary, .print-tpl-meta) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)) {
   font-size: var(--app-list-secondary-size) !important;
+  line-height: var(--app-list-line-height) !important;
   font-weight: var(--app-list-secondary-weight) !important;
   color: var(--app-text-muted) !important;
   font-style: normal !important;
@@ -699,6 +702,11 @@
 .dishboard-admin .display-preview[data-content-width="full"] { max-width: none; }
 @media (max-width: 991.98px) {
   .dishboard-admin { --app-heading-size: var(--app-font-size-h1-mobile); --app-page-padding: var(--app-space-6); }
+  /* Integer header lines keep native scroll targets inside the mobile viewport. */
+  .dishboard-admin .admin-page-header .page-title {
+    line-height: round(up, calc(1em * var(--app-line-height-h1)), 1px);
+  }
+  .dishboard-admin .admin-statusbar-label { line-height: var(--app-list-line-height); }
 }
 @media (max-width: 767.98px) {
   .dishboard-admin { --app-page-padding: var(--app-space-4); }

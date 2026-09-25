@@ -13,6 +13,17 @@ Diese Quellenzählung unterscheidet bewusst nicht zwischen wirksamen und überst
 Aktualisieren: `rtk python3 tools/ui_consistency_inventory.py --update-baseline`.
 Bestehende Obergrenzen dürfen nur sinken; neue Dateien starten bei null.
 
+## P5a-Fixup: ganzzahlige Zeilenhöhen (2026-09-26)
+
+`/admin/{cafeteria,patienten}/komponenten`, Admin mit Daten, 390×844 und
+1440×1100: gemeinsame Listenrollen (M66/R47) erhalten 20-px-Zeilenhöhen.
+Mobile Titel-/Statuslabel-Zeilen werden ebenfalls ganzzahlig; Aktionsunterkante
+nach nativem Scrollen 844,09375 → 844 px. Desktop-Katalogzeile bleibt 56,5 px.
+Gate: `1 failed, 52 passed in 306.30s (0:05:06)`; Shell, Master-Tokens und
+Katalog bestehen. Globaler Typografienachweis offen: Messtest sucht bei Benutzer
+die bereits durch `list_row()` ersetzte `.admin-users-row`. Keine Baselineänderung.
+OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/pytest-2310/`.
+
 | Quelle | literal_buttons | long_labels | legacy_labels | wrong_icons | local_lists | local_filters | list_typography_overrides |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | _brand_logo.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
