@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state %}
+{% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state, empty_value %}
 {% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button, status_badge_sem %}
 {% block title %}Schnittstellen{% endblock %}
 {% set workflow_nav = 'api' %}
@@ -37,14 +37,14 @@
             <tbody>
               {% for key in keys %}
               <tr data-key-id="{{ key.public_id }}" data-key-state="{{ key.state }}">
-                <td data-label="Bezeichnung" class="text-wrap text-break">
-                  <strong>{{ key.label }}</strong>
+                <td data-label="Bezeichnung" class="admin-list-primary text-wrap text-break">
+                  {{ key.label }}
                 </td>
                 <td data-label="Scopes / Kanäle" class="admin-api-key-scopes">
                   {% for scope in key.scopes %}{{ label(scope, 'neutral', semantic_key='status.info') }}{% endfor %}
-                  <span class="text-secondary">{% for channel in key.channels %}{% if not loop.first %}, {% endif %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% endfor %}</span>
+                  <span class="admin-list-secondary">{% for channel in key.channels %}{% if not loop.first %}, {% endif %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% endfor %}</span>
                 </td>
-                <td data-label="Läuft ab" class="text-secondary text-wrap">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
+                <td data-label="Läuft ab" class="text-wrap">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
                 <td data-label="Status" class="admin-table-status">
                   {% if key.state == 'active' %}<span data-status="live">{{ status_badge_sem('status.active') }}</span>
                   {% elif key.state == 'expired' %}<span data-status="incomplete">{{ label('Abgelaufen', 'warning', icon='clock', detail='Schlüssel abgelaufen') }}</span>
@@ -70,7 +70,7 @@
                           <dl class="mb-0 mt-2">
                             <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
                             <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
-                            <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</dd>
+                            <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}{{ empty_value() }}{% endif %}</dd>
                           </dl>
                         </details>
                       </div>
@@ -135,9 +135,9 @@
                 <td data-label="Veröffentlicht">
                   {% if channel.published %}<span data-status="live">{{ status_badge_sem('publish.published') }}</span>{% else %}<span data-status="incomplete">{{ label('Nicht veröffentlicht', 'warning', icon='alert-triangle') }}</span>{% endif %}
                 </td>
-                <td data-label="Revision" class="text-secondary">{{ channel.revision_id or '—' }}</td>
-                <td data-label="Woche" class="text-secondary">
-                  {% if channel.week_start and channel.week_end %}{{ channel.week_start }} – {{ channel.week_end }}{% else %}—{% endif %}
+                <td data-label="Revision">{{ channel.revision_id or empty_value() }}</td>
+                <td data-label="Woche">
+                  {% if channel.week_start and channel.week_end %}{{ channel.week_start }} – {{ channel.week_end }}{% else %}{{ empty_value() }}{% endif %}
                 </td>
               </tr>
               {% endfor %}

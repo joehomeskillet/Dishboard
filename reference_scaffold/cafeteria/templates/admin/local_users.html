@@ -20,10 +20,10 @@
 <h2 class="visually-hidden" id="users-title">Lokale Konten</h2>
 {% if rows %}<div class="admin-users-list">
 {% for account in rows %}
-{% set role_meta %}{% for role in account.roles %}<div class="small">{{ role_labels[role] }}</div>{% endfor %}{% endset %}
+{% set role_meta %}{% for role in account.roles %}<span class="admin-list-meta">{{ role_labels[role] }}</span>{% endfor %}{% endset %}
 {% set account_status %}{% if account.disabled_at %}{{ label('Deaktiviert', 'warning') }}{% endif %}{% endset %}
 {% set more_info %}
-<div class="pt-2 small">{% if not (account.locked_until and account.locked_until > now) %}<p class="mb-1">Keine vorübergehende Anmeldesperre</p>{% endif %}<p class="mb-0">Letzte lokale Passwortprüfung: {{ format_time(account.last_login_at) }}</p></div>
+<div class="pt-2">{% if not (account.locked_until and account.locked_until > now) %}<p class="admin-list-secondary mb-1">Keine vorübergehende Anmeldesperre</p>{% endif %}<p class="admin-list-secondary mb-0">Letzte lokale Passwortprüfung: {{ format_time(account.last_login_at) }}</p></div>
 {% endset %}
 <div data-account-row{% if account.locked_until and account.locked_until > now %} class="admin-users-row-locked"{% endif %}>
 {{ list_row(account.display_name, account.username, 'active' if not account.disabled_at else none, meta=role_meta, status=account_status if account.disabled_at else none, actions=row_actions([{'key': 'actions.edit' if can_mutate else 'actions.open', 'href': url_for('admin.local_user_detail', public_id=account.public_id, page=page, status=status), 'icon_only': true, 'aria_label': 'Konto ' ~ account.username ~ (' bearbeiten' if can_mutate else ' öffnen')}]), more_actions=more_info) }}

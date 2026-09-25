@@ -116,6 +116,16 @@ def test_wp19_measured_page_frame(live_accounts, browser, javascript):
                     assert primary.evaluate('el => getComputedStyle(el).backgroundColor') != page.locator('main .btn').first.evaluate('el => getComputedStyle(el).backgroundColor')
                 if name == 'list':
                     assert metric['row'] <= (144 if width < 1024 else 96), metric
+                    row = page.locator('[data-account-row]').first
+                    for selector, size, weight in (
+                        ('.admin-list-primary', '14px', '600'),
+                        ('.admin-list-subtitle', '13px', '400'),
+                        ('.admin-list-meta > .admin-list-meta', '14px', '400'),
+                    ):
+                        text_role = row.locator(selector).first
+                        expect(text_role).to_have_css('font-size', size)
+                        expect(text_role).to_have_css('font-weight', weight)
+                        expect(text_role).to_have_css('font-style', 'normal')
                 if name == 'events' and width < 1024:
                     assert metric['row'] < 200, metric
                 measurements.append(dict(page=name, javascript=javascript, **metric))
