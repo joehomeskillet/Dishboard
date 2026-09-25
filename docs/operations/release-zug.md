@@ -47,6 +47,10 @@ geteilten Haupt-Tree. Neue Dateien vorher mit `git add` erfassen.
 Das Gate (Schritt 6) läuft in vier Teilen parallel auf eigenen Pools (A Signage/Public, B Shell/Woche,
 C Routen/Stores/Semantik, D Paket- und Label-Treffer) und wertet die JUnit-Dateien gegen
 `tools/release/known_red.txt` aus. Danach Ledger-Eintrag: Revision, Deploy-Zeit, Inhalt, Gate-Zahlen.
+Teil D läuft als D1 (eigene `sync_playwright(`-Starter oder direkte Imports aus solchen Testmodulen,
+eine Ebene tief) und D2 (übrige Dateien) nacheinander in getrennten pytest-Prozessen auf `POOL_D`, mit
+eigenen Logs und JUnit-Dateien `d1.xml`/`d2.xml`; beide gehen in die Auswertung ein.
+`RELEASE_GATE_DRY_RUN=1` vor dem Gate-Befehl zeigt nur die Gruppen, ohne Pools oder Tests zu starten.
 
 ## 4. Entscheidungsregeln
 
