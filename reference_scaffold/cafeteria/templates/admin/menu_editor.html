@@ -305,7 +305,7 @@
       </details>
       </section>
 
-      {% call disclosure_section(id='sec-output-texts', has_content=submitted.get('description') or submitted.get('note') or submitted.get('internal_chf') or submitted.get('external_chf'), has_error=errors.get('description') or errors.get('note') or errors.get('internal_chf') or errors.get('external_chf')) %}
+      {% call disclosure_section(id='sec-output-texts', open=(profile == 'staff_guest'), has_content=submitted.get('description') or submitted.get('note') or submitted.get('internal_chf') or submitted.get('external_chf'), has_error=errors.get('description') or errors.get('note') or errors.get('internal_chf') or errors.get('external_chf')) %}
           <div class="row g-2">
             <div class="col-12 col-lg-6">
               <label class="form-label" for="f-desc">Beschreibung (auf dem Speiseplan sichtbar)</label>

@@ -348,6 +348,7 @@ def test_cafeteria_has_both_prices_patient_has_none(
     prices = page.locator('[name="internal_chf"], [name="external_chf"]')
     if family == 'cafeteria':
         expect(prices).to_have_count(2)
+        expect(page.locator('#f-int')).to_be_visible()
         expect(page.get_by_label('Mitarbeitende CHF', exact=True)).to_be_visible()
         expect(page.get_by_label('Preis für externe Gäste CHF', exact=True)).to_be_visible()
         return
