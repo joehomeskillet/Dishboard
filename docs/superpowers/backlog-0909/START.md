@@ -1,5 +1,10 @@
 # Startauftrag für jedes Coding-Tool
 
+> **Release-Zug (verbindlich, seit 2026-09-25):** Orchestratoren liefern nach
+> `docs/operations/release-zug.md` aus — spätestens alle 2 Stunden ein Deploy, Mikro-Pakete
+> (höchstens 3 Templates / ~1 h), Judge sofort je Paket, Werkzeuge in `tools/release/`.
+> Worker führen vor ihrem Gate `tools/release/label_grep.py` aus und nehmen die Trefferdateien auf.
+
 Dieser Start braucht keine vorangegangene Unterhaltung. Der Orchestrator setzt
 die fünf Werte ein: **MP-ID, WP-Datei, vollständiger Basiscommit, eigener Worktree,
 Routing-WP-ID**. Bei DB-/Browserarbeit gehört eine aktuelle exklusive Testumgebung

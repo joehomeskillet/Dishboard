@@ -7,3 +7,53 @@
 # Zeilen mit # sind Kommentare. Vor jeder ID eine Kommentarzeile: Datum, Grund, belegender Commit
 # (git log -S '<assertierter Text>'). Meldet das Gate «BEKANNT ROT, JETZT GRÜN», die Zeile löschen.
 # Gesperrte Abnahmetests (*_accept.py) stehen nie hier: Wenn sie rot sind, ist das Produkt falsch.
+
+# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
+tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport0-cafeteria-staff_guest-Mitarbeitende
+tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport0-patienten-patient-Patientinnen
+tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport1-cafeteria-staff_guest-Mitarbeitende
+tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport1-patienten-patient-Patientinnen
+# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
+tests/test_admin_overview_forms.py::test_copy_link_on_empty_week_submits_exact_native_form[viewport0-cafeteria-staff_guest]
+tests/test_admin_overview_forms.py::test_copy_link_on_empty_week_submits_exact_native_form[viewport0-patienten-patient]
+tests/test_admin_overview_forms.py::test_copy_link_on_empty_week_submits_exact_native_form[viewport1-cafeteria-staff_guest]
+tests/test_admin_overview_forms.py::test_copy_link_on_empty_week_submits_exact_native_form[viewport1-patienten-patient]
+# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
+tests/test_ui_korrektur_tools_browser.py::test_tool_pages_put_primary_content_before_administration
+tests/test_ui_korrektur_tools_browser.py::test_api_density_viewports_and_publication_truth
+tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[True-1440]
+tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[False-1440]
+tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[True-390]
+tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[False-390]
+tests/test_ui_korrektur_tools_browser.py::test_tool_pages_fit_required_viewports_and_capture_evidence
+tests/test_ui_korrektur_tools_browser.py::test_owned_import_copy_review_fit_density_viewports
+tests/test_ui_korrektur_tools_browser.py::test_import_checked_result_is_not_relabeled_after_new_selection
+tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[False-320-844]
+tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[False-2560-1440]
+tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[True-320-844]
+tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[True-2560-1440]
+# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
+tests/test_ui_reference_workspace_browser.py::test_workspace_page_header_and_layout_variant[cafeteria]
+tests/test_ui_reference_workspace_browser.py::test_workspace_page_header_and_layout_variant[patienten]
+# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Veraltet seit df4ca2f3 (2026-09-23, Darstellung im Seitenrahmen) und de89404c (2026-09-21); Nachzug im P4-Paket vorlagen.
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1366-768-True]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1920-1080-True]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[768-1024-True]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[390-844-True]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1440-900-True]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1024-768-True]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[2560-1440-True]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[320-844-True]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1440-900-False]
+tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[390-844-False]
+tests/test_ui_korrektur_screens_browser.py::test_native_form_targets_and_payloads_stay_complete[js]
+tests/test_ui_korrektur_screens_browser.py::test_native_form_targets_and_payloads_stay_complete[nojs]
+tests/test_ui_korrektur_screens_browser.py::test_assignment_conflict_opens_details_preserves_values_and_focuses_error[js]
+tests/test_ui_korrektur_screens_browser.py::test_assignment_conflict_opens_details_preserves_values_and_focuses_error[nojs]
+tests/test_ui_korrektur_screens_browser.py::test_empty_and_unavailable_states_have_scoped_messages_and_evidence[1440-900-js]
+tests/test_ui_korrektur_screens_browser.py::test_empty_and_unavailable_states_have_scoped_messages_and_evidence[1440-900-nojs]
+tests/test_ui_korrektur_screens_browser.py::test_empty_and_unavailable_states_have_scoped_messages_and_evidence[390-844-js]
+tests/test_ui_korrektur_screens_browser.py::test_empty_and_unavailable_states_have_scoped_messages_and_evidence[390-844-nojs]
+tests/test_ui_korrektur_screens_browser.py::test_required_pages_have_no_overflow_at_200_percent_zoom
+tests/test_ui_korrektur_screens_browser.py::test_native_disclosure_and_assignment_preview_are_keyboard_reachable[js]
+tests/test_ui_korrektur_screens_browser.py::test_native_disclosure_and_assignment_preview_are_keyboard_reachable[nojs]
