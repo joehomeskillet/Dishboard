@@ -71,7 +71,9 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         edit = card.get_by_role('link', name='Suppe bearbeiten', exact=True)
         card.locator('.admin-compact-actions > summary').click()
         view = card.get_by_role('link', name='Suppe ansehen', exact=True)
-        pdf = card.get_by_role('link', name='Drucken · Stand 1 · Suppe', exact=True)
+        pdf = card.get_by_role('link', name='PDF öffnen · Stand 1 · Suppe', exact=True)
+        expect(pdf).to_have_text('PDF öffnen')
+        expect(pdf).to_have_accessible_name('PDF öffnen · Stand 1 · Suppe')
         assert len({view.get_attribute('href'), edit.get_attribute('href'), pdf.get_attribute('href')}) == 3
         response = client.get(pdf.get_attribute('href'))
         assert response.status_code == 200 and response.data.startswith(b'%PDF-')
@@ -142,8 +144,8 @@ def test_reader_view_print_without_write_actions(view_print, recipe_editor, reci
             elif label == 'view':
                 back = page.locator('main .btn-primary')
                 expect(back).to_have_attribute('data-semantic', 'actions.back')
-                expect(back).to_contain_text('Zurück')
-                expect(back).to_have_attribute('aria-label', 'Zurück zur Rezeptliste')
+                expect(back).to_have_text('Zur Liste')
+                expect(back).to_have_accessible_name('Zur Liste der Rezepte')
             accessibility._accessible_capture(page, f'{label}-reader-{width}-js{javascript}', methods=['GET'])
     assert state(recipe_editor[1]) == before
 

@@ -10,7 +10,7 @@
 {% set status_items = [{'label': t('actions.import.label'), 'value': t('actions.preview.label') if not batch else ('Übernommen' if batch.status == 'imported' else ('Verworfen' if batch.status == 'cancelled' else t('publish.draft.label'))), 'variant': 'success' if batch and batch.status == 'imported' else 'neutral'}] %}
 {% if error %}{% set ignored = status_items.append({'label': t('actions.save.label'), 'value': t('status.error.label'), 'variant': 'danger'}) %}{% elif batch and batch.status == 'draft' %}{% set ignored = status_items.append({'label': t('actions.confirm.label'), 'value': t('status.done.label') if batch.confirmation_hash_sha256 else t('status.pending.label'), 'variant': 'neutral' if batch.confirmation_hash_sha256 else 'warning'}) %}{% endif %}
 {% call page_header(t('navigation.recipes.label'), 'CSV- oder JSON-Rezepte als standortgebundenen Entwurf speichern.', status_items=status_items) %}
-{{ icon_button('actions.back', href=url_for('admin.recipes_list'), text='Zurück', aria_label='Zurück zu den Rezepten', title='Zurück zu den Rezepten', emphasis='primary' if batch and batch.status != 'draft' else none) }}
+{{ icon_button('actions.back', href=url_for('admin.recipes_list'), text='Zu Rezepten', aria_label='Zu Rezepten', title='Zu Rezepten', emphasis='primary' if batch and batch.status != 'draft' else none) }}
 {% endcall %}
 {% endblock %}
 {% block content %}

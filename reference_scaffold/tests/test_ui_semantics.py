@@ -560,20 +560,22 @@ def test_p2c_canonical_actions(semantic_app, locale, labels):
 
 @pytest.mark.parametrize('locale', ['de', 'en'])
 @pytest.mark.parametrize('key,text,aria', [
-    ('actions.save', 'Festhalten', 'Gespeicherten Stand festhalten'),
+    ('data.revision', 'Festhalten', 'Gespeicherten Stand festhalten'),
     ('recipe.quantity', 'Berechnen', 'Mengen berechnen'),
     ('recipe.quantity', 'Originalmengen', 'Originalmengen ansehen'),
     ('actions.refresh', 'Originalausbeute', 'Originalausbeute verwenden'),
-    ('actions.restore', 'Reaktivieren', 'Rezept reaktivieren'),
+    ('actions.activate', 'Aktivieren', 'Rezept aktivieren'),
     ('actions.history', 'Rezept-History', 'Rezept-History'),
-    ('actions.back', 'Zurück', 'Zurück zur Rezeptliste'),
-    ('actions.back', 'Zurück', 'Zurück zum Rezept'),
-    ('actions.back', 'Zurück', 'Zurück zu den Rezepten'),
+    ('actions.back', 'Zur Liste', 'Zur Liste der Rezepte'),
+    ('actions.back', 'Zum Rezept', 'Zum Rezept'),
+    ('actions.back', 'Zu Rezepten', 'Zu Rezepten'),
     ('actions.delete', 'Verwerfen', 'Stapel verwerfen'),
     ('actions.delete', 'Verwerfen', 'Verwerfen bestätigen'),
     ('actions.apply', 'Übernehmen', 'Importstapel übernehmen'),
     ('actions.preview', 'Vorschau speichern', 'Vorschau speichern'),
     ('actions.print', 'Drucken', 'Drucken · PDF öffnen'),
+    ('actions.print', 'PDF öffnen', 'PDF öffnen · Stand 1 · Suppe'),
+    ('actions.history', 'Verlauf', 'Verlauf · Suppe'),
 ])
 def test_p4_recipe_context_labels_survive_en_and_keep_name(semantic_app, locale, key, text, aria):
     semantic_app.config['UI_LOCALE'] = locale
@@ -583,6 +585,44 @@ def test_p4_recipe_context_labels_survive_en_and_keep_name(semantic_app, locale,
     assert control.span.text == text
     assert text.lower() in control['aria-label'].lower()
     assert control['aria-label'] == aria == control['title']
+
+
+@pytest.mark.parametrize('template,key,text,aria,icon', [
+    ('rezepte_revisionen.html', 'data.revision', 'Festhalten', 'Gespeicherten Stand festhalten', 'versions'),
+    ('rezepte_import.html', 'actions.apply', 'Übernehmen', 'Importstapel übernehmen', 'check'),
+    ('rezepte_editor.html', 'actions.back', 'Zur Liste', 'Zur Liste der Rezepte', 'arrow-left'),
+    ('rezepte_ansicht.html', 'actions.back', 'Zur Liste', 'Zur Liste der Rezepte', 'arrow-left'),
+    ('rezepte_images.html', 'actions.back', 'Zum Rezept', 'Zum Rezept', 'arrow-left'),
+    ('rezepte_import.html', 'actions.back', 'Zu Rezepten', 'Zu Rezepten', 'arrow-left'),
+    ('rezepte.html', 'actions.print', 'PDF öffnen', 'PDF öffnen · Stand 1 · Suppe', 'printer'),
+    ('rezepte.html', 'actions.history', 'Verlauf', 'Verlauf · Suppe', 'history'),
+    ('rezepte_editor.html', 'actions.activate', 'Aktivieren', 'Rezept aktivieren', 'circle-check'),
+])
+def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key, text, aria, icon):
+    """Exercise the actual action calls for all five judge findings."""
+    from types import SimpleNamespace
+
+    from bs4 import BeautifulSoup
+
+    source = (ROOT.parent / 'templates/admin' / template).read_text(encoding='utf-8')
+    calls = re.findall(r'\{\{\s*(icon_button\(.*?)\s*\}\}', source, re.S)
+    matching = [call for call in calls if call.startswith(f"icon_button('{key}',")
+                and f"text='{text}'" in call]
+    assert len(matching) == 1
+    recipe = SimpleNamespace(public_id='r1', active=False, payload=SimpleNamespace(title='Suppe'))
+    semantic_app.jinja_env.globals['url_for'] = lambda endpoint, **kwargs: '/target'
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'ui/_semantic.html' import icon_button %}{{ " + matching[0] + ' }}',
+            recipe=recipe, item=recipe, recipe_id='r1', can_write=False, token='token', batch=None,
+            links=SimpleNamespace(latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
+    control = BeautifulSoup(html, 'html.parser').select_one('a, button')
+    assert (control.get_text(strip=True), control['aria-label']) == (text, aria)
+    assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
+    assert control['title'] == aria
+    assert control.select_one('use')['href'].endswith('#tabler-' + icon)
+    if key == 'data.revision':
+        assert (control['type'], control['form']) == ('submit', 'recipe-freeze-form')
 
 
 def test_p4_german_aria_without_text_fails_in_en(semantic_app):

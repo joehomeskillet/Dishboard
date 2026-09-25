@@ -207,7 +207,10 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         (tmp_path / f'image-document-{width}-js{javascript}.json').write_text(json.dumps(viewer, indent=2))
         page.screenshot(path=str(tmp_path / f'image-document-{width}-js{javascript}.png'))
         page.go_back()
-        page.get_by_role('link', name='Zurück zum Rezept', exact=True).click()
+        back = page.get_by_role('link', name='Zum Rezept', exact=True)
+        expect(back).to_have_text('Zum Rezept')
+        expect(back).to_have_accessible_name('Zum Rezept')
+        back.click()
         page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
         page.get_by_role('link', name='Rezept-History', exact=True).click()
         active(page, 'Rezepte')
@@ -261,7 +264,7 @@ def test_navigation_respects_read_capability_without_granting_writes(navigation,
     listing = client.get('/admin/rezepte').text
     assert f'href="/admin/rezepte/{public_id}/ansicht"' in listing
     assert f'href="/admin/rezepte/{public_id}"' not in listing
-    assert 'Drucken · Stand 1' in listing
+    assert 'PDF öffnen · Stand 1' in listing
     assert client.post('/admin/rezepte/neu', data={}).status_code == 403
     assert client.post('/admin/kochbuecher/neu', data={}).status_code == 403
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', set())
