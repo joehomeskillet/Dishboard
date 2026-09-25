@@ -56,8 +56,9 @@
   {%- if text is not none and (text is not string or not text|trim or text|length > 18 or text.split()|length > 2) -%}{{ action_contract_error('text must contain at most 2 words and 18 characters') }}{%- endif -%}
   {%- set visible_text = t(item.label_key) if text is none else text -%}
   {%- if aria_label is not none and (aria_label is not string or not aria_label|trim) -%}{{ action_contract_error('aria_label must be nonempty text') }}{%- endif -%}
-  {%- if aria_label is not none and not icon_only and visible_text|lower not in aria_label|lower -%}{{ action_contract_error('aria_label must contain visible text') }}{%- endif -%}
-  {%- set tooltip = title if title is not none else aria_label if icon_only and aria_label is not none else t(item.tooltip_key) -%}
+  {%- set compose_name = aria_label is not none and not icon_only and visible_text|lower not in aria_label|lower -%}
+  {%- if compose_name -%}{%- set aria_label = visible_text ~ ': ' ~ aria_label -%}{%- endif -%}
+  {%- set tooltip = title if title is not none else aria_label if (icon_only or compose_name) and aria_label is not none else t(item.tooltip_key) -%}
   {%- if title is not none and (title is not string or not title|trim) -%}{{ action_contract_error('title must be nonempty text') }}{%- endif -%}
   {%- set variant = 'btn-primary' if role == 'primary' else 'btn-danger' if role == 'danger' else '' -%}
   <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}{% if icon_only %} ui-sem-control--icon-only{% endif %}{% if size == 'large' %} ui-sem-control--large{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" title="{{ tooltip }}"{% if icon_only or aria_label is not none %} aria-label="{{ aria_label if aria_label is not none else t(item.aria_key) }}"{% endif %}{% if id %} id="{{ id }}"{% endif %}{% if href is not none %} href="{{ href }}"{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}{{ action_attrs(attrs) }}>{{ sem_icon(key) }}{% if not icon_only %}<span>{{ visible_text }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>

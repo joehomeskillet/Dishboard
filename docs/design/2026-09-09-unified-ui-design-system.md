@@ -475,8 +475,12 @@ hat immer `title` und `aria-label`, sichtbaren Fokus und quadratische 48-px-Ziel
 
 P2c: Wiederholzeilen sollen `aria_label` mit Datensatzkontext übergeben, etwa
 «Vorlage X bearbeiten». Ohne expliziten `title` wird dieser Name bei Icon-only
-auch Tooltip. Bei sichtbarem Text muss ein zusätzlicher zugänglicher Name diesen
-Text enthalten (Label in Name); abweichende Namen sind Renderfehler.
+auch Tooltip. Bei sichtbarem Text bleibt `aria_label` unverändert, wenn es diesen
+Text ohne Beachtung der Gross-/Kleinschreibung enthält (Label in Name, WCAG 2.5.3).
+Andernfalls setzt der Baustein den Namen als «sichtbarer Text: aria_label» zusammen,
+statt das Rendern abzubrechen; ohne expliziten `title` wird dieser zusammengesetzte
+Name auch Tooltip. Bei Icon-only bleibt `aria_label` unverändert. Fehlende oder
+bereits passende Namen behalten die bisherige Ausgabe einschliesslich Tooltip.
 Zielspezifisches `text` bleibt auf zwei Wörter/18 Zeichen begrenzt und behält das
 Registry-Symbol. Registry-Defaults und Pseudo-Locale bleiben unverändert.
 
