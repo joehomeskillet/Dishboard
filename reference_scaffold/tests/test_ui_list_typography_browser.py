@@ -24,7 +24,7 @@ PAGES = (
     ('Zutaten', '/admin/grundlagen', '.admin-list-row', '.admin-list-name strong', '.admin-list-subtitle', None),
     ('Einkaufslisten', '/admin/einkaufslisten', '.admin-list-row', '.admin-list-name strong', '.admin-list-subtitle', None),
     ('Bestellung', '/admin/bestellung', '#lieferanten .admin-list-row', '.admin-list-name strong', '.admin-list-subtitle', None),
-    ('Benutzer', '/admin/benutzer', '.admin-users-row', 'strong', '.text-secondary', '.small'),
+    ('Benutzer', '/admin/benutzer', '[data-account-row] .admin-list-row', '.admin-list-primary', '.admin-list-secondary', '.admin-list-meta .small'),
     ('API-Schlüssel', '/admin/api', 'tbody tr', 'td:first-child strong', '.text-secondary', 'td:nth-child(2) > div'),
     ('Druckvorlagen', '/admin/vorlagen', '[data-current-template]', 'h3', '.print-tpl-meta', None),
     ('Kalkulation', '/admin/kalkulation', '.cost-lines tbody tr', 'td:first-child', None, 'td:nth-child(2)'),
