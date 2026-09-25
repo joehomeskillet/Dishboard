@@ -147,7 +147,9 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
         assert saved['row_version'] == ['0']
         assert saved['recipe_revision_public_id'] == [revision['public_id']]
         expect(page.get_by_text('Menü «Rösti für den Wochenplan» aus Vorlage «Rösti»', exact=False)).to_be_visible()
-        expect(page.get_by_text('Aus Vorlage «Rösti»', exact=True)).to_be_visible()
+        template_link = page.get_by_role('link', name='Aus Vorlage «Rösti»', exact=True)
+        template_link.locator('xpath=ancestor::details[1]').locator('summary').click()
+        expect(template_link).to_be_visible()
         assert failures == []
     finally:
         context.close()
