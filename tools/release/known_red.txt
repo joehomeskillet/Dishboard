@@ -87,3 +87,6 @@ tests/test_ui_korrektur_recipes_browser.py::test_recipe_pages_follow_correction_
 tests/test_ui_korrektur_vorlagen_browser.py::test_recipe_editor_density_matrix
 tests/test_ui_korrektur_vorlagen_browser.py::test_save_activate_and_load_version_keep_native_requests[js]
 tests/test_ui_korrektur_vorlagen_browser.py::test_save_activate_and_load_version_keep_native_requests[nojs]
+# 2026-09-26 rot auf Produktion R11 d2e66fe (Baseline-Lauf): PDF-Paint bei 1440/JS und 390/noJS - Ursache noch nicht klassifiziert.
+tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[1440-True]
+tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[390-False]
