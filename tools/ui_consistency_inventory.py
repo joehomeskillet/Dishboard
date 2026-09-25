@@ -18,7 +18,8 @@ TEMPLATES = ROOT / 'reference_scaffold/cafeteria/templates'
 BASELINE = ROOT / 'reference_scaffold/tests/ui_consistency_baseline.json'
 REPORT = ROOT / 'docs/ui-consistency-inventory.md'
 CATEGORIES = ('literal_buttons', 'long_labels', 'legacy_labels', 'wrong_icons',
-              'local_lists', 'local_filters')
+              'local_lists', 'local_filters', 'list_typography_overrides')
+STATIC = TEMPLATES.parent / 'static'
 JINJA = re.compile(r'{#.*?#}|{%.*?%}|{{.*?}}', re.S)
 TOKEN = re.compile(r'JINJATOKEN(\d+)END')
 VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
@@ -173,11 +174,46 @@ def _inside(child, parent):
     return False
 
 
-def inventory(templates=TEMPLATES):
+def list_typography_overrides(source):
+    """Zählt Deklarationen, nicht Selektoren; verschachtelte @media bleiben sichtbar.
+
+    Kommentare und Zeichenketten werden längentreu maskiert, damit Zeilennummern
+    stimmen und etwa content: 'td { color: red }' keinen Treffer erzeugt.
+    """
+    masked = re.sub(r'/\*.*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'',
+                    lambda m: ''.join('\n' if c == '\n' else ' ' for c in m[0]),
+                    source, flags=re.S)
+    selector = re.compile(r'admin-list|admin-table|list-row|table|(?<![\w-])(?:tr|td|th)(?![\w-])|-row|-list')
+    declaration = re.compile(r'^\s*(font-size|font-weight|color)\s*:', re.I)
+    stack = []
+    start = 0
+    hits = []
+    for match in re.finditer(r'[{};]', masked):
+        chunk = masked[start:match.start()]
+        if match[0] == '{':
+            stack.append(bool(selector.search(chunk)) and not chunk.lstrip().startswith('@'))
+        else:
+            prop = declaration.match(chunk)
+            if stack and stack[-1] and prop:
+                offset = start + prop.start(1)
+                hits.append({'line': source.count('\n', 0, offset) + 1, 'property': prop[1].lower()})
+            if match[0] == '}' and stack:
+                stack.pop()
+        start = match.end()
+    return hits
+
+
+def inventory(templates=TEMPLATES, static=STATIC):
     icons = canonical_icons()
-    return {p.relative_to(templates).as_posix(): count_template(
+    current = {p.relative_to(templates).as_posix(): count_template(
                 p.read_text(), icons, shared=p.relative_to(templates).as_posix() == 'admin/_macros.html')
             for p in sorted(templates.rglob('*.html'))}
+    paths = set(static.glob('admin-*.css')) | set(static.glob('recipe-*.css'))
+    paths |= set(static.glob('cookbook-admin.css'))
+    for path in sorted(paths):
+        current['static/' + path.name] = dict.fromkeys(CATEGORIES, 0) | {
+            'list_typography_overrides': len(list_typography_overrides(path.read_text()))}
+    return current
 
 
 def regressions(current, baseline):
@@ -188,15 +224,18 @@ def regressions(current, baseline):
 
 def markdown(current):
     totals = {c: sum(row[c] for row in current.values()) for c in CATEGORIES}
-    lines = ['# UI consistency inventory — P4 migration queue', '',
-             'Static source counts across all templates; runtime branches and dynamic labels',
-             'need rendered review. Public/signage entries are inventory, not migration permission.',
-             'Zero rows retained so every template is accounted for.', '',
-             'Categories: literal buttons, long labels (>2 words or >18 characters), legacy labels,',
-             'wrong canonical icons, local tables/row lists, local filter/search forms.', '',
-             'Update after reviewed reductions: `rtk python3 tools/ui_consistency_inventory.py --update-baseline`.',
-             'Existing ceilings only decrease; regressions refuse the update. New templates start at zero.', '',
-             '| Template | ' + ' | '.join(CATEGORIES) + ' |',
+    lines = ['# UI-Konsistenzinventar — Migrationsliste P4/P5', '',
+             'Statische Quellenzählung aller Templates; Laufzeitzweige und dynamische Labels',
+             'brauchen Browserprüfung. Öffentliche/Signage-Einträge erteilen keine Migrationsfreigabe.',
+             'Nullzeilen bleiben erhalten, damit jede Quelle erfasst ist.', '',
+             'Kategorien: literale Buttons, lange Labels (>2 Wörter oder >18 Zeichen), alte Labels,',
+             'abweichende Icons, lokale Listen/Tabellen, lokale Filter/Suchformulare.',
+             '`list_typography_overrides` zählt font-size, font-weight und color in Listen-/Tabellenregeln',
+             'von admin-*.css, cookbook-admin.css und recipe-*.css, einschliesslich zentralem admin-tabler.css.',
+             'Diese Quellenzählung unterscheidet bewusst nicht zwischen wirksamen und überstimmten Regeln.', '',
+             'Aktualisieren: `rtk python3 tools/ui_consistency_inventory.py --update-baseline`.',
+             'Bestehende Obergrenzen dürfen nur sinken; neue Dateien starten bei null.', '',
+             '| Quelle | ' + ' | '.join(CATEGORIES) + ' |',
              '|---|' + '---:|' * len(CATEGORIES)]
     lines += ['| ' + name + ' | ' + ' | '.join(str(row[c]) for c in CATEGORIES) + ' |'
               for name, row in current.items()]
@@ -211,7 +250,12 @@ def main():
     current = inventory()
     if args.update_baseline:
         if BASELINE.exists():
-            failures = regressions(current, json.loads(BASELINE.read_text()))
+            baseline = json.loads(BASELINE.read_text())
+            # Einmalige Aufnahme einer neuen Kategorie; bestehende Zahlen bleiben geschützt.
+            if not any('list_typography_overrides' in row for row in baseline.values()):
+                for name, counts in current.items():
+                    baseline.setdefault(name, {})['list_typography_overrides'] = counts['list_typography_overrides']
+            failures = regressions(current, baseline)
             if failures:
                 parser.error('Baseline cannot increase:\n' + '\n'.join(failures))
         BASELINE.write_text(json.dumps(current, indent=2, ensure_ascii=False) + '\n')

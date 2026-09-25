@@ -507,7 +507,7 @@
   font-size: var(--app-list-font-size);
 }
 .dishboard-admin :is(.admin-list-row, .admin-table tbody tr):hover { background: var(--app-list-hover); }
-.dishboard-admin :is(.admin-list-meta, .admin-empty-value) { color: var(--app-text-muted); }
+.dishboard-admin .admin-empty-value { color: var(--app-text-muted); }
 .dishboard-admin .admin-list-status { margin-inline-start: auto; }
 .dishboard-admin .admin-list-name { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
 .dishboard-admin .admin-list-subtitle { overflow-wrap: anywhere; color: var(--app-text-muted); font-size: var(--app-font-size-small); }
@@ -542,6 +542,42 @@
 .dishboard-admin .admin-table-actions { text-align: end; }
 .dishboard-admin .admin-table-status .badge { white-space: nowrap; }
 .dishboard-admin .admin-table-actions .admin-row-actions { min-width: max-content; flex-wrap: nowrap; }
+
+/* P5a: drei Textrollen. Legacy-Zeilen nutzen denselben Vertrag bis zur
+   Makromigration. !important schützt ihn auch vor Tabler-Utilities und später
+   geladenem Modul-CSS; Tabellenköpfe, Labels, Icons und Bedienelemente behalten
+   ihren Vertrag. */
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row),
+.dishboard-admin :is(.admin-table, .admin-table--stack) tbody :is(td, th),
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
+  :where(a, span, div, p, small, strong, b, em, i, time, code, h2, h3, h4, h5, h6):not(:where(thead *, .badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *, button, button *, summary, summary *, .form-control, .form-select)) {
+  font-size: var(--app-list-meta-size) !important;
+  font-weight: var(--app-list-meta-weight) !important;
+  color: var(--app-text) !important;
+  font-style: normal !important;
+}
+.dishboard-admin :is(.admin-table, .admin-table--stack) tbody :is(th[scope="row"], td:first-child),
+.dishboard-admin :is(.admin-table, .admin-table--stack) tbody :where(th[scope="row"], td:first-child) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)),
+.dishboard-admin :is(.admin-table, .admin-table--stack) .admin-list-primary,
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row)
+  :is(.admin-list-primary, .admin-list-name > strong, .recipe-list-name > h2, h3, h5, .card-title),
+.dishboard-admin .admin-users-row > div:first-child > strong,
+.dishboard-admin .admin-list-primary :where(a, span, strong, b, em, i, time, code),
+.dishboard-admin .admin-list-name > strong :where(a, span, strong, b, em, i, time, code) {
+  font-size: var(--app-list-primary-size) !important;
+  font-weight: var(--app-list-primary-weight) !important;
+  color: var(--app-text) !important;
+  font-style: normal !important;
+}
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
+  :is(.admin-list-secondary, .admin-list-subtitle, .text-secondary, .print-tpl-meta),
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
+  :is(.admin-list-secondary, .admin-list-subtitle, .text-secondary, .print-tpl-meta) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)) {
+  font-size: var(--app-list-secondary-size) !important;
+  font-weight: var(--app-list-secondary-weight) !important;
+  color: var(--app-text-muted) !important;
+  font-style: normal !important;
+}
 .dishboard-admin .admin-sort-header { display: inline-flex; align-items: center; min-height: var(--app-button-size); gap: var(--app-space-1); }
 @media (max-width: 767.98px) {
   .dishboard-admin .admin-table--stack .admin-row-actions { min-width: 0; flex-wrap: wrap; }
