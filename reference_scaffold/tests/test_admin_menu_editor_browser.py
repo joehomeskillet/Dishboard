@@ -469,12 +469,16 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
     page.set_viewport_size({'width': 360, 'height': 780})
     page.goto(_editor(family))
     prices = page.locator('[name="internal_chf"], [name="external_chf"]')
+    output = page.locator('#sec-output-texts')
     if family == 'cafeteria':
         expect(prices).to_have_count(2)
+        expect(page.locator('#f-int')).to_be_visible()
+        expect(output).to_have_attribute('open', '')
         expect(page.get_by_label('Mitarbeitende CHF', exact=True)).to_be_visible()
         expect(page.get_by_label('Preis für externe Gäste CHF', exact=True)).to_be_visible()
     else:
         expect(prices).to_have_count(0)
+        assert output.get_attribute('open') is None
         assert PATIENT_FORBIDDEN.search(page.content()) is None
 
     expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)

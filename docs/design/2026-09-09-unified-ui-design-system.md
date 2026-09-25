@@ -1622,7 +1622,7 @@ im selben Container. In der schmaleren Editorspalte steht die Präsenz unter dem
 gewählten Allergen, damit Namen und Werte lesbar bleiben. Herkunft verwendet eine
 gemeinsame Kopfzeile und zugänglich beschriftete Wiederholfelder. Reihenfolge der
 Arbeitsbereiche: Titel/Beilage, Bausteine, Kennzeichnungen, weitere Angaben.
-`disclosure_section` öffnet weitere Angaben bei Inhalt oder Fehler. Verdeckte
+`disclosure_section` öffnet weitere Angaben bei Inhalt oder Fehler. Im Cafeteria-Profil ist dieser Bereich standardmässig offen, damit die Preisfelder ohne weiteren Klick bedienbar sind; ohne Inhalt oder Fehler bleibt er im Patientenprofil geschlossen. Verdeckte
 CSRF-/Versionsfelder bleiben unmittelbar im Formular; gespeicherter Prüfstand und
 Prüfformular bleiben sichtbar und getrennt vom Entwurf. Die bestehende Sticky-Leiste
 behält «Menü speichern» als einzige Primäraktion.

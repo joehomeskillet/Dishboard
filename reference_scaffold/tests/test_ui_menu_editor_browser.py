@@ -244,6 +244,13 @@ def test_menu_editor_states_and_viewports(editor_page, family: str, tmp_path: Pa
             page.set_viewport_size({'width': width, 'height': height})
             assert page.goto(url).status == 200
             _controls(page, family, component_rows=1, require_modes=False)
+            if state == 'empty':
+                output = page.locator('#sec-output-texts')
+                if family == 'cafeteria':
+                    expect(page.locator('#f-int')).to_be_visible()
+                    expect(output).to_have_attribute('open', '')
+                else:
+                    assert output.get_attribute('open') is None
             _keyboard(page)
             if state == 'dense-long':
                 expect(page.locator('h1')).to_have_text('Menüs')
