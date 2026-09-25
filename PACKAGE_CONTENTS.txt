@@ -1638,6 +1638,7 @@ reference_scaffold/tests/test_ui_korrektur_tools_browser.py
 reference_scaffold/tests/test_ui_korrektur_users_browser.py
 reference_scaffold/tests/test_ui_korrektur_vorlagen_browser.py
 reference_scaffold/tests/test_ui_korrektur_week_browser.py
+reference_scaffold/tests/test_ui_list_typography_browser.py
 reference_scaffold/tests/test_ui_master_components_browser.py
 reference_scaffold/tests/test_ui_master_shell_browser.py
 reference_scaffold/tests/test_ui_master_tokens_browser.py
