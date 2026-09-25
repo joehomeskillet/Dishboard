@@ -66,10 +66,10 @@
               {% for row in rows %}
               <tr data-week-id="{{ row.id }}" data-status="{{ row.status }}">
                 <td data-label="Woche">
-                  <strong><time datetime="{{ row.week_start.isoformat() }}">{{ row.week_start.strftime('%d.%m.%Y') }}</time>{% if row.next_week %} – <time datetime="{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).isoformat() }}">{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).strftime('%d.%m.%Y') }}</time>{% endif %}</strong>
-                  <div class="text-secondary">KW {{ row.week_start.isocalendar().week }} / {{ row.week_start.isocalendar().year }}{% if not row.next_week %} · Wochenbeginn{% endif %}</div>
+                  <span class="admin-list-primary"><time datetime="{{ row.week_start.isoformat() }}">{{ row.week_start.strftime('%d.%m.%Y') }}</time>{% if row.next_week %} – <time datetime="{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).isoformat() }}">{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).strftime('%d.%m.%Y') }}</time>{% endif %}</span>
+                  <div class="admin-list-secondary">KW {{ row.week_start.isocalendar().week }} / {{ row.week_start.isocalendar().year }}{% if not row.next_week %} · Wochenbeginn{% endif %}</div>
                 </td>
-                <td data-label="Titel" class="text-break">{{ row.title or empty_value() }}</td>
+                <td data-label="Titel" class="text-break admin-list-meta">{{ row.title or empty_value() }}</td>
                 <td data-label="Status" class="admin-table-status">
                   {% set week_status_variant = {
                     'live': 'success', 'review_open': 'warning', 'changed': 'warning',
@@ -89,7 +89,7 @@
                   } %}
                   {{ label(week_status_label, week_status_variant, icon=week_status_icon) }}
                   {# Publication state explanations stay visible (polish rule: no safety/publication hints in tooltips). #}
-                  <p class="text-secondary small mb-0">{{ status_descriptions.get(row.status, '') }}</p>
+                  <p class="admin-list-secondary mb-0">{{ status_descriptions.get(row.status, '') }}</p>
                   {% if row.workflow_state == 'archived' %}<div class="mt-1">{{ label('Archiviert', 'neutral', icon=sem('actions.archive').resolved_icon) }}</div>{% endif %}
                 </td>
                 <td data-label="Aktionen" class="admin-table-actions">
@@ -101,7 +101,7 @@
                       <div class="week-more-content">
                       {% if can_preview %}<a class="btn" href="{{ url_for('admin.preview', family=family, week=row.week_start.isoformat()) }}" aria-label="Vorschau für Woche ab {{ row.week_start.strftime('%d.%m.%Y') }}">{{ icon_label('actions.preview') }}</a>{% endif %}
                       {% if can_write and row.next_week %}
-                      <p class="text-secondary small my-2" id="copy-{{ row.id }}">Quelle: {{ row.week_start.strftime('%d.%m.%Y') }} → Ziel: {{ row.next_week.strftime('%d.%m.%Y') }}. Kopieren wird im nächsten Schritt bestätigt; Ziel muss leer und unveröffentlicht sein.</p>
+                      <p class="admin-list-secondary my-2" id="copy-{{ row.id }}">Quelle: {{ row.week_start.strftime('%d.%m.%Y') }} → Ziel: {{ row.next_week.strftime('%d.%m.%Y') }}. Kopieren wird im nächsten Schritt bestätigt; Ziel muss leer und unveröffentlicht sein.</p>
                       <a class="btn ui-sem-control" href="{{ url_for('admin.copy_get', family=family, week=row.next_week.isoformat()) }}" aria-describedby="copy-{{ row.id }}">{{ icon_label('actions.copy') }}</a>
                       {% endif %}
                       </div>

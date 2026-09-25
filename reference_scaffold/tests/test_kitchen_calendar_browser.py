@@ -260,7 +260,9 @@ def test_calendar_has_no_horizontal_overflow(
                 f'{MOBILE_DOC_HEIGHT_BEFORE}px (max {max_height:.0f}px)'
             )
 
-            head = empty_day.locator('.kitchen-cal-list-head > a').first
+            # Locator-Nachzug: .kitchen-cal-list-head > a → .kitchen-cal-list-head h2 > a.
+            # Grund: h2 bleibt Zeilentitel mit Rolle Primär; Planen steht daneben.
+            head = empty_day.locator('.kitchen-cal-list-head h2 > a').first
             plan = empty_day.locator('.kitchen-cal-plan')
             assert plan.count() == 1
             head_box = head.bounding_box()
