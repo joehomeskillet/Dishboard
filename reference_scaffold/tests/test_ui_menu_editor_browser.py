@@ -265,7 +265,7 @@ def test_validation_preserves_inputs_and_tokens(editor_page, family: str, javasc
             page.locator('[data-component-kind-option][value="text"]').first.check()
         page.locator('#component-0-text').fill('Freitext behalten')
         with page.expect_response(lambda r: r.request.method == 'POST') as failed:
-            page.get_by_role('button', name='Speichern', exact=True).click()
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
         assert failed.value.status == 400
         expect(page.locator('#f-title')).to_have_value('')
         expect(page.locator('#f-desc')).to_have_value('Behalten')
@@ -353,7 +353,12 @@ def test_p4_action_meanings_and_proposal_states(editor_page, family, javascript)
     expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_class('btn btn-danger')
     expect(page.locator('#components-list [data-remove-row]').first).to_have_class('btn btn-danger')
     review = page.get_by_role('button', name='Als geprüft bestätigen', exact=True)
-    expect(review).to_have_text('Geprüft')
+    expect(review).to_have_text('Als geprüft bestätigen', use_inner_text=True)
+    expect(review.locator('[data-semantic="actions.confirm"] svg')).to_be_visible()
+    expect(review).to_have_attribute('title', 'Als geprüft bestätigen')
+    save = page.get_by_role('button', name='Menü speichern', exact=True)
+    expect(save).to_have_text('Menü speichern')
+    expect(save).to_have_attribute('data-semantic', 'actions.save')
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
 
     for freeze in (True, False):

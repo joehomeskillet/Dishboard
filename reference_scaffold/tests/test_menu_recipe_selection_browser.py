@@ -325,12 +325,14 @@ def test_browser_add_remove_reorder_keeps_three_arrays(
     page.locator('[name="component_text"]').nth(1).fill('Unten')
     page.locator('[name="recipe_revision_public_id"]').nth(1).select_option(second['public_id'])
     page.locator('[data-finish-row]').nth(1).click()
+    page.locator('#components-list [data-row]').nth(1).locator('summary').click()
     page.locator('#components-list [data-row]').nth(1).get_by_role('button', name='Nach oben', exact=True).click()
     payload = _submit_menu(page)
     assert payload['component_text'] == ['Unten', 'Oben']
     assert payload['recipe_revision_public_id'] == [second['public_id'], first['public_id']]
     assert payload['component_public_id'] == ['', '']
-    page.get_by_role('button', name='Entfernen', exact=True).last.click()
+    page.locator('#components-list [data-row]').last.locator('summary').click()
+    page.locator('#components-list').get_by_role('button', name='Löschen', exact=True).last.click()
     leftover = _submit_menu(page)
     assert leftover['component_text'] == ['Unten']
     assert leftover['recipe_revision_public_id'] == [second['public_id']]

@@ -90,7 +90,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
         assert page.locator('#accompaniment-none').evaluate('e => getComputedStyle(e).outlineStyle !== "none"')
         csrf = page.locator('form[data-menu-editor] [name="_csrf"]').input_value()
         with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as posted:
-            page.get_by_role('button', name='Speichern', exact=True).click()
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
         assert posted.value.status == 303
         fields = parse_qsl(posted.value.request.post_data, keep_blank_values=True)
         assert dict(fields)['_csrf'] == csrf
@@ -126,7 +126,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
         expect(page.locator('#allergen-milk-presence')).to_be_enabled()
         expect(page.locator('#review')).to_have_text(saved_review, use_inner_text=True)
         with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as changed:
-            page.get_by_role('button', name='Speichern', exact=True).click()
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
         submitted = parse_qs(changed.value.request.post_data, keep_blank_values=True)
         assert submitted['allergen_code'] == ['GLUTEN', 'LUPIN']
         assert changed.value.status == 303
@@ -148,7 +148,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
 
         page.route('**/menu', invalid_presence, times=1)
         with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as invalid:
-            page.get_by_role('button', name='Speichern', exact=True).click()
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
         assert invalid.value.status == 400
         presence = page.locator('#allergen-gluten-presence')
         expect(presence).to_have_value('invalid')
@@ -161,7 +161,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
                           WEEK.isoformat(), 'LUNCH', 'MENU_1', payload, next_version)
         page.goto(f'{origin}/admin/{family}/menu?week={WEEK}&day={WEEK}&meal=LUNCH&option=MENU_1')
         with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as automatic:
-            page.get_by_role('button', name='Speichern', exact=True).click()
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
         auto_fields = parse_qs(automatic.value.request.post_data, keep_blank_values=True)
         assert automatic.value.status == 303
         assert auto_fields['allergen_mode'] == ['auto']

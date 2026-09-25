@@ -125,4 +125,6 @@
   .dishboard-admin .menu-editor-component-summary { grid-template-columns: minmax(0, 1fr); }
   .dishboard-admin .menu-editor-row-actions .btn { flex: 1 1 auto; }
 }
+/* The full review action exceeds the shared short-label contract. Keep its symbol. */
+.menu-review-confirm .ui-sem-label > span { display: none; }
 @media (prefers-reduced-motion: reduce) { .dishboard-admin summary.card-header .admin-accordion-marker { transition: none; } }

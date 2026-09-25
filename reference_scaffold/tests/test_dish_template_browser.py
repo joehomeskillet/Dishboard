@@ -62,7 +62,7 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
                 expect(summary).to_contain_text('Messvorlage')
                 page.get_by_label('Menüart', exact=True).select_option('VEGGIE')
                 if not javascript:
-                    page.get_by_role('button', name='Aktualisieren').click()
+                    page.get_by_role('button', name='Ziel aktualisieren').click()
                 expect(summary).to_contain_text('Vegetarisch')
                 for name in ('area', 'meal', 'option'):
                     selected = page.locator(f'#planning-target [name="{name}"] option:checked').inner_text()

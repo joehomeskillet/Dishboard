@@ -47,7 +47,7 @@ def _submit_menu_form(page: Page, status: int) -> dict[str, list[str]]:
     with page.expect_response(
         lambda response: response.request.method == 'POST' and response.url.endswith('/menu')
     ) as submitted:
-        page.get_by_role('button', name='Speichern', exact=True).click()
+        page.get_by_role('button', name='Menü speichern', exact=True).click()
     response = submitted.value
     assert response.status == status
     data = response.request.post_data
@@ -89,7 +89,7 @@ def _assert_one_primary_save(page: Page) -> None:
     expect(form.locator('.btn-primary [data-semantic="actions.save"] use')).to_have_attribute(
         'href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-device-floppy')
     expect(page.locator('#review .admin-list-row')).to_have_count(2)
-    expect(form.get_by_role('button', name='Speichern', exact=True)).to_have_count(1)
+    expect(form.get_by_role('button', name='Menü speichern', exact=True)).to_have_count(1)
     expect(form.get_by_role('button', name='Speichern und zum Wochenplan', exact=True)).to_have_count(1)
     secondary = form.locator('input[type="submit"][formaction*="return_to=week"]')
     expect(secondary).to_have_count(1)
@@ -111,7 +111,7 @@ def test_a08_unchanged_catalog_and_text_pairs_use_native_save(
             expect(row.locator('[name="component_text"]')).to_be_visible()
 
     with page.expect_response(lambda response: response.request.method == 'POST' and response.url.endswith('/menu')) as saved:
-        page.get_by_role('button', name='Speichern', exact=True).click()
+        page.get_by_role('button', name='Menü speichern', exact=True).click()
     assert saved.value.status == 303
     data = saved.value.request.post_data
     assert data is not None

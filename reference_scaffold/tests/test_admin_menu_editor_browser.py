@@ -92,7 +92,7 @@ def test_visible_editor_labels_with_populated_and_error_states(
         'falls Fleischersatz verwendet wird, dessen Soja- und Weizenbestandteile prüfen. '
         'Rezeptur und Produktdeklaration prüfen.',
     )
-    page.get_by_role('button', name='Ändern').first.click()
+    page.get_by_role('button', name='Bearbeiten').first.click()
     page.locator('[data-component-kind-option][value="text"]').first.check()
     page.locator('[name="component_text"]').fill('Saisonales Gemüse mit Kräutern und langem vollständigem Rezepturhinweis')
     page.locator('[name="allergen_mode"][value="manual"]').check()
@@ -113,7 +113,8 @@ def test_visible_editor_labels_with_populated_and_error_states(
     page.get_by_role('button', name='Baustein hinzufügen').click()
     page.locator('[data-component-kind-option][value="text"]').last.check()
     page.locator('[name="component_text"]').last.fill('Zusätzliche Gemüsebeilage')
-    page.locator('#components-list [data-row]').last.get_by_role('button', name='Fertig', exact=True).click()
+    page.locator('#components-list [data-row]').last.get_by_role('button', name='Bestätigen', exact=True).click()
+    page.locator('#components-list [data-row]').last.locator('summary').click()
     page.locator('#components-list [data-row]').last.get_by_role('button', name='Nach oben', exact=True).click()
     _assert_visible_editor_labels(page)
 
@@ -326,19 +327,21 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
         if index:
             add.click()
         else:
-            page.get_by_role('button', name='Ändern').first.click()
+            page.get_by_role('button', name='Bearbeiten').first.click()
         page.locator('[data-component-kind-option][value="text"]').nth(index).check()
         page.locator('[name="component_text"]').nth(index).fill(text)
         page.locator('#components-list .component-row').nth(index).get_by_role(
-            'button', name='Fertig', exact=True,
+            'button', name='Bestätigen', exact=True,
         ).click()
     rows = page.locator('#components-list .component-row')
     expect(rows).to_have_count(3)
     expect(rows.nth(2).locator('legend').first).to_have_text('Baustein 3')
+    rows.nth(2).locator('summary').click()
     rows.nth(2).get_by_role('button', name='Nach oben').click()
     expect(page.locator('[name="component_text"]').nth(1)).to_have_value('Dritte')
     expect(rows.nth(1).get_by_role('button', name='Nach oben')).to_be_focused()
-    rows.nth(0).get_by_role('button', name='Entfernen').click()
+    rows.nth(0).locator('summary').click()
+    rows.nth(0).get_by_role('button', name='Löschen', exact=True).click()
     expect(rows).to_have_count(2)
     expect(rows.nth(0).locator('legend').first).to_have_text('Baustein 1')
     expect(rows.nth(1).locator('legend').first).to_have_text('Baustein 2')
@@ -363,7 +366,7 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
         'els => els.map(el => el.htmlFor).filter(id => !document.getElementById(id))',
     )
     assert dangling == []
-    for name in ('Baustein hinzufügen', 'Entfernen', 'Nach oben', 'Nach unten', 'Herkunft hinzufügen', 'Herkunft entfernen'):
+    for name in ('Baustein hinzufügen', 'Löschen', 'Nach oben', 'Nach unten', 'Herkunft hinzufügen', 'Herkunft löschen'):
         assert page.get_by_role('button', name=name).count() >= 1, name
 
     payload = _submit_menu(page)
@@ -413,7 +416,7 @@ def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(pa
     link.click()
     assert origin.get_attribute('open') is not None
     expect(field).to_be_focused()
-    expect(summary.locator('button', has_text='Erneut versuchen')).to_be_visible()
+    expect(summary.locator('button', has_text='Erneut')).to_be_visible()
 
 
 def test_modes_and_accordion_state_survive_save_and_reload(page_context: Page) -> None:  # noqa: F811

@@ -338,7 +338,7 @@
       {% endcall %}
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
-        <button type="submit" class="btn btn-primary"{% if cell.template_proposal %} formaction="/admin/{{ family }}/menu?return_to=week"{% endif %}>{{ icon_label('actions.save') }}</button>
+        {{ icon_button('actions.save', text='Menü speichern', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'} if cell.template_proposal else {}) }}
         {# Native submit input: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
         {% if not cell.template_proposal %}<input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zum Wochenplan">{% endif %}
         {{ icon_button('actions.cancel', href=back_url) }}
@@ -412,7 +412,7 @@
           <input type="hidden" name="option" value="{{ cell.option }}">
           <input type="hidden" name="row_version" value="{{ cell.row_version }}">
           <input type="hidden" name="component_version" value="{{ review_token }}">
-          {{ icon_button('actions.confirm', text='Geprüft', aria_label='Als geprüft bestätigen', title='Als geprüft bestätigen', emphasis='secondary') }}
+          <button type="submit" class="btn menu-review-confirm" title="Als geprüft bestätigen"><span aria-hidden="true">{{ icon_label('actions.confirm') }}</span><span>Als geprüft bestätigen</span></button>
         </form>
       </div>
       {% endif %}
