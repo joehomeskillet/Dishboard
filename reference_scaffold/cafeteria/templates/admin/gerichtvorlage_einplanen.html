@@ -77,7 +77,7 @@
     <p class="form-hint mt-2">Erst «Menü speichern» übernimmt das Menü in den Plan.</p>
     <div class="admin-form-footer"><div class="admin-form-main">
       {{ icon_button('actions.cancel', href=url_for('admin.dish_template_edit', public_id=public_id)) }}
-      {{ icon_button('actions.next', name='action', value='continue') }}
+      {{ icon_button('actions.next', aria_label='Weiter zum Menü', title='Weiter zum Menü', name='action', value='continue') }}
     </div></div>
   </div>
 </form>

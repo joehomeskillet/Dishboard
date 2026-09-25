@@ -123,7 +123,7 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
             for label in ('Bereich', 'Woche ab Montag', 'Wochentag', 'Mahlzeit', 'Menüart'):
                 assert page.get_by_label(label, exact=True).bounding_box()['height'] >= 48
         before = stored_state(admin_engine)
-        submit(page, 'Weiter', 303)
+        submit(page, 'Weiter zum Menü', 303)
         assert 'template_context=' in page.url and '_csrf=' not in page.url
         expect(page.get_by_role('heading', name='Menüs', exact=True)).to_be_visible()
         expect(page.locator('.page-header')).to_contain_text('Neues Menü aus Vorlage «Rösti»')
@@ -172,7 +172,7 @@ def test_occupied_conflict_opens_current_menu_only_after_explicit_action(
         page = context.new_page()
         assert page.goto(path + f'?week={DAY}').status == 200
         page.get_by_label('Bereich', exact=True).select_option('patient')
-        submit(page, 'Weiter', 409)
+        submit(page, 'Weiter zum Menü', 409)
         expect(page.get_by_role('alert')).to_contain_text('Bereits belegt mit «Rösti»')
         expect(page.get_by_role('link', name='Anderes Ziel wählen', exact=True)).to_be_visible()
         assert page.locator('[data-menu-editor]').count() == 0
@@ -206,7 +206,7 @@ def test_real_browser_200_percent_zoom(browser, live_server, admin_app, admin_en
             assert page.evaluate('[innerWidth,outerWidth,devicePixelRatio]') == [720, 1440, 2]
             assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
             shot(page, 'planning-native-zoom-200')
-            submit(page, 'Weiter', 303)
+            submit(page, 'Weiter zum Menü', 303)
             assert cdp.send('Page.getLayoutMetrics')['cssVisualViewport']['zoom'] == 2
             shot(page, 'editor-native-zoom-200')
             cdp.detach()
@@ -227,7 +227,7 @@ def test_invalid_week_keeps_native_values_and_focuses_error(
         csrf = page.locator('#planning-target [name="_csrf"]').input_value()
         before = stored_state(admin_engine)
         page.get_by_label('Woche ab Montag', exact=True).fill('2026-09-01')
-        submit(page, 'Weiter', 400)
+        submit(page, 'Weiter zum Menü', 400)
         expect(page.get_by_role('alert')).to_be_focused()
         expect(page.get_by_label('Woche ab Montag', exact=True)).to_have_value('2026-09-01')
         assert page.locator('[name="template_context"]').input_value() == original
@@ -236,7 +236,7 @@ def test_invalid_week_keeps_native_values_and_focuses_error(
             page.set_viewport_size({'width': width, 'height': height})
             shot(page, f'invalid-week-{width}-{javascript}')
         page.get_by_label('Woche ab Montag', exact=True).fill(DAY)
-        submit(page, 'Weiter', 303)
+        submit(page, 'Weiter zum Menü', 303)
         assert stored_state(admin_engine) == before
 
 
