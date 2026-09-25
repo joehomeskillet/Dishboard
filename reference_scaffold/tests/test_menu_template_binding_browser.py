@@ -3,6 +3,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 import pytest
+import re
 from playwright.sync_api import expect
 from sqlalchemy import text
 
@@ -43,6 +44,7 @@ def test_archived_provenance_native_roundtrip_and_viewports(
         assert page.goto(editor).status == 200
         link = page.get_by_role('link', name='Aus Vorlage «Rösti» (archiviert)', exact=True)
         expect(link).to_be_visible()
+        expect(link).to_have_class(re.compile(r'\bui-sem-control\b'))
         expect(page.get_by_label('Vorlagenbezug lösen', exact=True)).not_to_be_checked()
         for width, height in VIEWPORTS:
             page.set_viewport_size({'width': width, 'height': height})

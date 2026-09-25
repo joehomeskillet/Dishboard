@@ -1,6 +1,6 @@
 {# Compact soup/dessert row for one meal. Context: kind, shared, exceptions, meal_cell, week_value, family. #}
 {% from 'admin/_macros.html' import label %}
-{% from 'ui/_semantic.html' import sem_icon %}
+{% from 'ui/_semantic.html' import sem_icon, icon_button %}
 {% set labels = {'soup': 'Suppe', 'dessert': 'Dessert'} %}
 {% set empty_labels = {'soup': 'Suppe noch nicht geplant', 'dessert': 'Dessert noch nicht geplant'} %}
 {% set none_labels = {'soup': 'Keine Suppe', 'dessert': 'Kein Dessert'} %}
@@ -19,7 +19,7 @@
     {% elif course.state == 'not_offered' %}
     <span>{{ none_labels[kind] }}</span>
     {% else %}
-    <a class="btn text-wrap" href="#{{ form_id }}-{{ kind }}-state" data-error-link aria-label="{{ labels[kind] }} planen · {{ day_iso }} · {{ meal_code }}">{{ icon('plus') }}{{ labels[kind] }} planen</a>
+    {{ icon_button('actions.add', href='#' ~ form_id ~ '-' ~ kind ~ '-state', text=labels[kind] ~ ' planen', aria_label=labels[kind] ~ ' planen · ' ~ day_iso ~ ' · ' ~ meal_code, attrs={'data-error-link': true}) }}
     <span class="visually-hidden">{{ empty_labels[kind] }}</span>
     {% endif %}
     {% if course.state in ('planned', 'not_offered') %}

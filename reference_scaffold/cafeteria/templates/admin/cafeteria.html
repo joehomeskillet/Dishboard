@@ -1,6 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
 {% from 'admin/_macros.html' import icon, field, page_header, status_badge, form_errors %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% block title %}Wochenplan · {{ area_names[profile] }}{% endblock %}
 {% set layout_variant = 'workspace' %}
 {% set csrf_value = csrf if csrf is defined else csrf_token() %}
@@ -54,7 +55,7 @@
 <div class="alert alert-info admin-notice">
   Noch keine Gerichte erfasst
   {% if first_slot %}
-  <p class="mb-0 mt-2"><a class="btn" href="{{ first_slot.edit_url }}">Zum ersten Slot</a></p>
+  <p class="mb-0 mt-2">{{ icon_button('actions.open', href=first_slot.edit_url, text='Erster Slot', aria_label='Erster Slot öffnen') }}</p>
   {% endif %}
 </div>
 {% endif %}
