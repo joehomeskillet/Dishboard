@@ -154,6 +154,7 @@ def test_browser_complete_lifecycle_and_session_revocation(live_accounts, browse
         expect(page.get_by_role('button', name='Konto deaktivieren', exact=True)).to_be_visible()
         login_target()
         page.goto(detail_url, wait_until='networkidle')
+        page.locator('#account-login-details > summary').click()
         page.get_by_role('link', name='Kontoereignisse', exact=True).click()
         expect(page.get_by_text('Lokales Konto reaktiviert.', exact=True)).to_be_visible()
         page.screenshot(path=str(tmp_path / 'iam-lifecycle-events-390.png'), full_page=True)

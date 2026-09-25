@@ -46,8 +46,10 @@ def test_native_history_filters_pagination_keyboard_and_outage(
             connection.execute(text('UPDATE cafeteria.users SET display_name=:name '
                 "WHERE auth_provider='local'"), {'name': 'Küchenverantwortung Südhang ' * 4})
         page.goto(origin + '/admin/benutzer', wait_until='networkidle')
+        page.locator('details.admin-compact-details > summary').click()
         page.get_by_role('link', name='Zugriffsverlauf', exact=True).click()
-        expect(page.get_by_role('heading', name='Zugriffsverlauf', exact=True)).to_be_visible()
+        expect(page.get_by_role('heading', name='Benutzer & Zugriff', exact=True, level=1)).to_be_visible()
+        expect(page.locator('.page-header-subtitle')).to_have_text('Zugriffsverlauf')
         expect(page.locator('tbody tr')).to_have_count(50)
         _layout(page)
         page.get_by_label('Zugang', exact=True).focus()
@@ -67,7 +69,7 @@ def test_native_history_filters_pagination_keyboard_and_outage(
         assert page.locator('tbody td[data-label="Ereignis"]').all_text_contents() == ['Anmeldung akzeptiert'] * 9
         _layout(page)
         page.screenshot(path=str(tmp_path / f'access-filtered-{width}.png'), full_page=True)
-        page.get_by_role('link', name='Filter zurücksetzen', exact=True).click()
+        page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         navigation = page.get_by_role('navigation', name='Zugriffsereignisseiten', exact=True)
         navigation.get_by_role('link', name='Weiter', exact=True).click()
         expect(page.locator('tbody tr')).to_have_count(6)
@@ -75,9 +77,10 @@ def test_native_history_filters_pagination_keyboard_and_outage(
         _layout(page)
         page.screenshot(path=str(tmp_path / f'access-second-page-{width}.png'), full_page=True)
         page.get_by_role('link', name='Kontoereignisse', exact=True).click()
-        expect(page.get_by_role('heading', name='Kontoereignisse', exact=True, level=1)).to_be_visible()
+        expect(page.get_by_role('heading', name='Benutzer & Zugriff', exact=True, level=1)).to_be_visible()
+        expect(page.locator('.page-header-subtitle')).to_have_text('Kontoereignisse')
         page.get_by_role('link', name='Zugriffsverlauf', exact=True).click()
-        expect(page.get_by_role('heading', name='Zugriffsverlauf', exact=True)).to_be_visible()
+        expect(page.locator('.page-header-subtitle')).to_have_text('Zugriffsverlauf')
         assert not errors and not requests
 
         def unavailable(*_args, **_kwargs):
