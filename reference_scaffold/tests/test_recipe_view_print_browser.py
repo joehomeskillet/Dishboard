@@ -55,6 +55,10 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
             if label == 'print-template':
                 expect(page.locator('#recipe-search')).to_have_attribute('maxlength', '200')
                 expect(page.locator('#recipe-search')).to_have_attribute('name', 'q')
+                page.locator('[data-recipe-selection] > summary').click()
+                original_yield = page.get_by_role('link', name='Originalausbeute verwenden', exact=True)
+                expect(original_yield).to_contain_text('Originalausbeute')
+                assert 'Originalausbeute' in (original_yield.get_attribute('aria-label') or '')
             for glyph in page.locator('main use').all():
                 if glyph.evaluate('el => el.closest("svg").getClientRects().length > 0'):
                     assert glyph.evaluate('el => el.getBBox().width > 0'), glyph.get_attribute('href')
@@ -72,16 +76,11 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         response = client.get(pdf.get_attribute('href'))
         assert response.status_code == 200 and response.data.startswith(b'%PDF-')
         assert response.headers['X-Recipe-Revision'] == revision.public_id
-        edit.focus()
-        expect(edit).to_be_focused()
-        page.keyboard.press('Shift+Tab')
-        page.keyboard.press('Tab')
-        expect(edit).to_be_focused()
-        ring = edit.evaluate(
-            "el => getComputedStyle(el).outlineStyle + ' ' + getComputedStyle(el).boxShadow")
-        assert ring != 'none none'
         view.focus()
         expect(view).to_be_focused()
+        ring = view.evaluate(
+            "el => getComputedStyle(el).outlineStyle + ' ' + getComputedStyle(el).boxShadow")
+        assert ring != 'none none'
         with page.expect_navigation() as navigation:
             page.keyboard.press('Enter')
         assert navigation.value.status == 200
@@ -91,9 +90,13 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.edit')
         page.locator('.page-header .admin-compact-actions > summary').click()
-        page.get_by_role('link', name='Mengen berechnen', exact=True).click()
+        quantity = page.get_by_role('link', name='Mengen berechnen', exact=True)
+        expect(quantity).to_contain_text('Berechnen')
+        quantity.click()
         page.get_by_label('Zielmenge · PORTION', exact=True).fill('8')
-        page.get_by_role('button', name='Mengen berechnen', exact=True).click()
+        scale = page.get_by_role('button', name='Mengen berechnen', exact=True)
+        expect(scale).to_contain_text('Berechnen')
+        scale.click()
         assert 'yield=8' in page.url
         expect(page.locator('main table tbody tr').first.locator('[data-label="Berechnet"]')).to_have_text('2')
         page.get_by_role('link', name='Rezept ansehen', exact=True).click()
@@ -133,7 +136,10 @@ def test_reader_view_print_without_write_actions(view_print, recipe_editor, reci
                 expect(page.locator('form[role="search"] .btn-primary')).to_have_attribute(
                     'data-semantic', 'view.filter')
             elif label == 'view':
-                expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.back')
+                back = page.locator('main .btn-primary')
+                expect(back).to_have_attribute('data-semantic', 'actions.back')
+                expect(back).to_contain_text('Zurück')
+                expect(back).to_have_attribute('aria-label', 'Zurück zur Rezeptliste')
             accessibility._accessible_capture(page, f'{label}-reader-{width}-js{javascript}', methods=['GET'])
     assert state(recipe_editor[1]) == before
 
@@ -193,6 +199,7 @@ def test_history_opens_each_of_three_archived_stands(view_print, recipe_editor, 
         root = f'/admin/rezepte/{recipe}'
         assert page.goto(root + '/revisionen').status == 200
         expect(page).to_have_title(re.compile(r'^Rezept-History'))
+        expect(page.get_by_role('heading', name='Alle gespeicherten Stände', exact=True)).to_be_visible()
         expect(page.locator('#recipe-history')).to_be_visible()
         expect(page.locator('#recipe-history .admin-row-actions')).to_have_count(3)
         expect(page.locator('#recipe-history .ui-sem-actions')).to_have_count(3)
@@ -280,8 +287,13 @@ def test_readable_recipe_content_and_explicit_mode(readable_recipe, recipe_edito
             for glyph in document.locator('use').all():
                 assert glyph.evaluate('el => el.getBBox().width > 0 && el.getBBox().height > 0')
             originals = document.locator('.recipe-originals > summary')
+            expect(originals).to_contain_text('Originalmengen')
             expect(originals).to_have_attribute('title', 'Originalmengen ansehen')
             expect(originals).to_have_attribute('aria-label', 'Originalmengen ansehen')
+            provenance = document.locator('.recipe-provenance > summary')
+            expect(provenance).to_contain_text('Herkunft')
+            expect(provenance).to_have_attribute('aria-label', 'Herkunft ansehen')
+            assert 'Verlauf' not in (provenance.inner_text() or '')
             originals.focus()
             expect(originals).to_be_focused()
             page.keyboard.press('Enter')

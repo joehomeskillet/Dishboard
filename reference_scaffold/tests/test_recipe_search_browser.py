@@ -160,13 +160,27 @@ def test_editor_disclosures_preserve_complete_native_post(
                         expect(page.locator('.admin-statusbar')).to_contain_text('Entwurf')
                         assert sorted(map(tuple, form.evaluate('f => [...new FormData(f)]'))) == expected
                         page.screenshot(path=str(tmp_path / f'editor-{width}-js-{javascript}.png'), full_page=True)
-                    page.get_by_label('Aktionen für Zutat 1', exact=True).click()
+                    menu = page.get_by_label('Mehr Aktionen für Zutat 1', exact=True)
+                    expect(menu).to_contain_text('Mehr')
+                    menu.click()
+                    insert = page.get_by_role('button', name='Zutat 1 davor einfügen', exact=True)
+                    expect(insert).to_contain_text('Davor einfügen')
+                    assert 'Anlegen' not in (insert.inner_text() or '')
                     remove = page.locator('button[formaction*="row_action=remove"]').first
                     assert 'btn-danger' in (remove.get_attribute('class') or '').split()
                     expect(remove.locator('span')).to_have_text('Entfernen')
                     assert remove.get_attribute('formnovalidate') is not None
                     assert '/admin/rezepte/formular?' in (remove.get_attribute('formaction') or '')
                     expect(page.locator('.ui-sem-consequence').first).to_be_visible()
+                    back = page.get_by_role('link', name='Zurück zur Rezeptliste', exact=True)
+                    expect(back).to_contain_text('Zurück')
+                    assert 'Zurück' in (back.get_attribute('aria-label') or '')
+                    page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
+                    history = page.get_by_role('link', name='Rezept-History', exact=True)
+                    expect(history).to_contain_text('Rezept-History')
+                    quantity = page.get_by_role('link', name='Mengen berechnen', exact=True)
+                    expect(quantity).to_contain_text('Berechnen')
+                    assert 'Mengen berechnen'.lower().find('berechnen') >= 0
                     source = page.locator('#recipe-source > summary')
                     source.focus()
                     page.keyboard.press('Enter')

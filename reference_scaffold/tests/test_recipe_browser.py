@@ -61,7 +61,7 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
         for name in ('dots', 'arrow-up', 'arrow-down', 'arrow-left'):
             symbol = symbols.find(f"{{http://www.w3.org/2000/svg}}symbol[@id='tabler-{name}']")
             assert symbol is not None and len(symbol)
-        expect(page.get_by_role('link', name='Zur Rezeptliste', exact=True).locator('use')).to_have_attribute('href', sprite_url + '#tabler-arrow-left')
+        expect(page.get_by_role('link', name='Zurück zur Rezeptliste', exact=True).locator('use')).to_have_attribute('href', sprite_url + '#tabler-arrow-left')
         expect(page.locator('.admin-compact-toolbar summary use')).to_have_attribute('href', sprite_url + '#tabler-dots')
         for summary in actions.all():
             expect(summary.locator('use')).to_have_attribute('href', sprite_url + '#tabler-dots')
@@ -87,7 +87,7 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
         assert len(posts) == post_count and snapshot(owner) == before
         long_title = 'Rezept ' + 'S' * 113
         create(client, long_title)
-        page.get_by_role('link', name='Zur Rezeptliste', exact=True).click()
+        page.get_by_role('link', name='Zurück zur Rezeptliste', exact=True).click()
         expect(page.get_by_role('link', name='Browser Suppe bearbeiten')).to_be_visible()
         expect(page.get_by_role('heading', name=long_title, exact=True)).to_be_visible()
         heights = page.locator('.recipe-card').evaluate_all('els => els.map(el => el.getBoundingClientRect().height)')

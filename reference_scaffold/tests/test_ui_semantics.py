@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import re
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 
@@ -555,3 +556,59 @@ def test_p2c_canonical_actions(semantic_app, locale, labels):
         doc = _p2c_action(semantic_app, key)
         assert doc.button.span.text == doc.button['title'] == label
         assert doc.select_one('use')['href'].endswith('#tabler-' + item.resolved_icon)
+
+
+@pytest.mark.parametrize('locale', ['de', 'en'])
+@pytest.mark.parametrize('key,text,aria', [
+    ('actions.save', 'Festhalten', 'Gespeicherten Stand festhalten'),
+    ('recipe.quantity', 'Berechnen', 'Mengen berechnen'),
+    ('recipe.quantity', 'Originalmengen', 'Originalmengen ansehen'),
+    ('actions.refresh', 'Originalausbeute', 'Originalausbeute verwenden'),
+    ('actions.restore', 'Reaktivieren', 'Rezept reaktivieren'),
+    ('actions.history', 'Rezept-History', 'Rezept-History'),
+    ('actions.back', 'Zurück', 'Zurück zur Rezeptliste'),
+    ('actions.back', 'Zurück', 'Zurück zum Rezept'),
+    ('actions.back', 'Zurück', 'Zurück zu den Rezepten'),
+    ('actions.delete', 'Verwerfen', 'Stapel verwerfen'),
+    ('actions.delete', 'Verwerfen', 'Verwerfen bestätigen'),
+    ('actions.apply', 'Übernehmen', 'Importstapel übernehmen'),
+    ('actions.preview', 'Vorschau speichern', 'Vorschau speichern'),
+    ('actions.print', 'Drucken', 'Drucken · PDF öffnen'),
+])
+def test_p4_recipe_context_labels_survive_en_and_keep_name(semantic_app, locale, key, text, aria):
+    semantic_app.config['UI_LOCALE'] = locale
+    extra = {'consequence_key': 'actions.delete'} if key == 'actions.delete' else {}
+    doc = _p2c_action(semantic_app, key, href='/x', text=text, aria_label=aria, title=aria, **extra)
+    control = doc.a or doc.button
+    assert control.span.text == text
+    assert text.lower() in control['aria-label'].lower()
+    assert control['aria-label'] == aria == control['title']
+
+
+def test_p4_german_aria_without_text_fails_in_en(semantic_app):
+    semantic_app.config['UI_LOCALE'] = 'en'
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'recipe.quantity', href='/scale', aria_label='Mengen berechnen')
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'actions.print', href='/pdf', aria_label='Drucken · PDF öffnen')
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'actions.back', href='/', aria_label='Zurück zur Rezeptliste')
+
+
+def test_p4_owned_templates_pair_german_aria_with_text():
+    root = Path(__file__).resolve().parents[1] / 'cafeteria/templates/admin'
+    call = re.compile(r'icon_button\((.*?)\)', re.S)
+    files = (
+        '_recipe_template_selection.html', '_rezepte_fields.html', 'rezepte.html',
+        'rezepte_ansicht.html', 'rezepte_editor.html', 'rezepte_images.html',
+        'rezepte_import.html', 'rezepte_revision.html', 'rezepte_revisionen.html',
+        'rezepte_scale.html',
+    )
+    for name in files:
+        source = (root / name).read_text(encoding='utf-8')
+        for args in call.findall(source):
+            if 'aria_label=' not in args:
+                continue
+            if 'icon_only=true' in args.replace(' ', ''):
+                continue
+            assert 'text=' in args, f'{name}: visible text missing for {args[:160]}'

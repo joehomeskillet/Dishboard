@@ -185,8 +185,12 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                 page.keyboard.press('Enter')
                 if name == 'revisionen':
                     expected = page.locator('#recipe-freeze-form').evaluate('f => [...new FormData(f)]')
+                    freeze = page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)
+                    expect(freeze).to_contain_text('Festhalten')
+                    assert 'festhalten' in (freeze.get_attribute('aria-label') or '').lower()
+                    assert 'btn-primary' in (freeze.get_attribute('class') or '').split()
                     with page.expect_request(lambda request: request.method == 'POST') as request:
-                        page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True).click()
+                        freeze.click()
                     from urllib.parse import parse_qsl
                     assert sorted(parse_qsl(request.value.post_data)) == sorted(map(tuple, expected))
                     expect(page.locator('#recipe-error')).to_be_visible()
