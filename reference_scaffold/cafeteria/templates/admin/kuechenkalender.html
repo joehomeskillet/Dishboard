@@ -1,5 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, hint %}
+{% from 'admin/_macros.html' import page_header, icon, hint, label %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'calendar' %}
 {% set layout_variant = 'calendar' %}
 {% block title %}Küchenkalender · Menüplanung{% endblock %}
@@ -32,7 +33,7 @@
 {% endif %}
 {% call page_header('Küchenkalender', description='Monatsübersicht der geplanten Menüs und Anlässe.', status_items=calendar_status) %}
   {% if can_write %}
-  <a class="btn btn-primary" href="{{ url_for('admin.kitchen_event_new', date=jump_value + '-01') }}">{{ icon('plus') }}Anlass anlegen</a>
+  {{ icon_button('actions.add', href=url_for('admin.kitchen_event_new', date=jump_value + '-01'), text='Anlass anlegen', aria_label='Anlass anlegen') }}
   {% endif %}
 {% endcall %}
 {% endblock %}
@@ -45,7 +46,7 @@
 {% endmacro %}
 {% macro day_plan_btn(cell) %}
   {% if can_write and not cell.groups and not cell.events %}
-  <a class="btn kitchen-cal-plan" href="{{ plan_href(cell.date, plan_family, cell.plan_week_start) }}" aria-label="Planen für {{ cell.list_label }}">{{ icon('plus') }}Planen</a>
+  {{ icon_button('actions.add', href=plan_href(cell.date, plan_family, cell.plan_week_start), text='Planen', aria_label='Planen für ' ~ cell.list_label, class='kitchen-cal-plan') }}
   {% endif %}
 {% endmacro %}
 {% macro day_body(cell) %}
@@ -95,15 +96,19 @@
 {{ hint('Auf schmalen Bildschirmen erscheint die Monatsliste statt des Rasters. Anlass anlegen bleibt die Hauptaktion.', 'kitchen-cal-hint') }}
 <div class="kitchen-cal-toolbar" role="region" aria-label="Kalendersteuerung">
   <div class="kitchen-cal-month-nav" role="group" aria-label="Monat wählen">
-    <a class="btn" href="{{ url_for('admin.kitchen_calendar', year=prev_year, month=prev_month, profiles=profiles) }}" aria-label="Vorheriger Monat">{{ icon('chevron-left') }}</a>
+    {{ icon_button('time.previous', href=url_for('admin.kitchen_calendar', year=prev_year, month=prev_month, profiles=profiles), icon_only=true, aria_label='Vorheriger Monat') }}
     <form class="kitchen-cal-jump" method="get" action="{{ url_for('admin.kitchen_calendar') }}" data-autosubmit data-dirty-tracking="off" data-loading>
       <label class="visually-hidden" for="calendar-jump">Monat</label>
       <input class="form-control" type="month" id="calendar-jump" name="jump" value="{{ jump_value }}">
       <input type="hidden" name="profiles" value="{{ profiles }}">
       <noscript><button class="btn" type="submit">Anzeigen</button></noscript>
     </form>
-    <a class="btn" href="{{ url_for('admin.kitchen_calendar', year=next_year, month=next_month, profiles=profiles) }}" aria-label="Nächster Monat">{{ icon('chevron-right') }}</a>
-    <a class="btn{% if year == today.year and month == today.month %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=today.year, month=today.month, profiles=profiles) }}"{% if year == today.year and month == today.month %} aria-current="true"{% endif %}>{% if year == today.year and month == today.month %}{{ icon('check') }}{% endif %}Heute</a>
+    {{ icon_button('time.next', href=url_for('admin.kitchen_calendar', year=next_year, month=next_month, profiles=profiles), icon_only=true, aria_label='Nächster Monat') }}
+    {% if year == today.year and month == today.month %}
+    {{ icon_button('time.today', href=url_for('admin.kitchen_calendar', year=today.year, month=today.month, profiles=profiles), text='Heute', class='active', attrs={'aria-current': 'true'}) }}
+    {% else %}
+    {{ icon_button('time.today', href=url_for('admin.kitchen_calendar', year=today.year, month=today.month, profiles=profiles), text='Heute') }}
+    {% endif %}
   </div>
   <div class="kitchen-cal-filters" role="group" aria-label="Bereich filtern">
     <a class="btn{% if profiles == 'both' %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='both') }}"{% if profiles == 'both' %} aria-current="true"{% endif %}>{% if profiles == 'both' %}{{ icon('check') }}{% endif %}Beide</a>
@@ -130,7 +135,7 @@
           {% if cell.in_month and not cell.groups and not cell.events %}<span class="kitchen-cal-empty visually-hidden">Keine Einträge für diesen Tag.</span>{% endif %}
           <a class="kitchen-cal-day-head" href="{{ plan_href(cell.date, (cell.groups[0].family if cell.groups else plan_family), cell.plan_week_start) }}">
             <span class="kitchen-cal-day-num">{{ cell.date.day }}</span>
-            {% if cell.is_today %}<span class="admin-status--info kitchen-cal-today-mark">Heute</span>{% endif %}
+            {% if cell.is_today %}{{ label('Heute', 'info', class='kitchen-cal-today-mark') }}{% endif %}
           </a>
           {{ day_plan_btn(cell) }}
         </div>
