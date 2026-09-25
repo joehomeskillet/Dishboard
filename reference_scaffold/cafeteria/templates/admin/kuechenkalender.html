@@ -33,7 +33,7 @@
 {% endif %}
 {% call page_header('Küchenkalender', description='Monatsübersicht der geplanten Menüs und Anlässe.', status_items=calendar_status) %}
   {% if can_write %}
-  {{ icon_button('actions.add', href=url_for('admin.kitchen_event_new', date=jump_value + '-01'), text='Anlass anlegen', aria_label='Anlass anlegen') }}
+  {{ icon_button('actions.add', href=url_for('admin.kitchen_event_new', date=jump_value + '-01'), text='Anlass anlegen', aria_label='Anlass anlegen', title='Anlass anlegen') }}
   {% endif %}
 {% endcall %}
 {% endblock %}
@@ -46,7 +46,7 @@
 {% endmacro %}
 {% macro day_plan_btn(cell) %}
   {% if can_write and not cell.groups and not cell.events %}
-  {{ icon_button('actions.add', href=plan_href(cell.date, plan_family, cell.plan_week_start), text='Planen', aria_label='Planen für ' ~ cell.list_label, class='kitchen-cal-plan') }}
+  {{ icon_button('actions.add', href=plan_href(cell.date, plan_family, cell.plan_week_start), text='Planen', aria_label='Planen für ' ~ cell.list_label, title='Planen', class='kitchen-cal-plan', emphasis='secondary') }}
   {% endif %}
 {% endmacro %}
 {% macro day_body(cell) %}
@@ -96,14 +96,14 @@
 {{ hint('Auf schmalen Bildschirmen erscheint die Monatsliste statt des Rasters. Anlass anlegen bleibt die Hauptaktion.', 'kitchen-cal-hint') }}
 <div class="kitchen-cal-toolbar" role="region" aria-label="Kalendersteuerung">
   <div class="kitchen-cal-month-nav" role="group" aria-label="Monat wählen">
-    {{ icon_button('time.previous', href=url_for('admin.kitchen_calendar', year=prev_year, month=prev_month, profiles=profiles), icon_only=true, aria_label='Vorheriger Monat') }}
+    {{ icon_button('time.previous', href=url_for('admin.kitchen_calendar', year=prev_year, month=prev_month, profiles=profiles), icon_only=true, aria_label='Vorheriger Monat', title='Vorheriger Monat') }}
     <form class="kitchen-cal-jump" method="get" action="{{ url_for('admin.kitchen_calendar') }}" data-autosubmit data-dirty-tracking="off" data-loading>
       <label class="visually-hidden" for="calendar-jump">Monat</label>
       <input class="form-control" type="month" id="calendar-jump" name="jump" value="{{ jump_value }}">
       <input type="hidden" name="profiles" value="{{ profiles }}">
       <noscript><button class="btn" type="submit">Anzeigen</button></noscript>
     </form>
-    {{ icon_button('time.next', href=url_for('admin.kitchen_calendar', year=next_year, month=next_month, profiles=profiles), icon_only=true, aria_label='Nächster Monat') }}
+    {{ icon_button('actions.open', href=url_for('admin.kitchen_calendar', year=next_year, month=next_month, profiles=profiles), icon_only=true, aria_label='Nächster Monat', title='Nächster Monat') }}
     {% if year == today.year and month == today.month %}
     {{ icon_button('time.today', href=url_for('admin.kitchen_calendar', year=today.year, month=today.month, profiles=profiles), text='Heute', class='active', attrs={'aria-current': 'true'}) }}
     {% else %}
