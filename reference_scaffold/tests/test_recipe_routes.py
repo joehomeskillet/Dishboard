@@ -163,10 +163,10 @@ def test_literal_search_full_pagination_and_missing_object(b3):
             FROM cafeteria.recipes CROSS JOIN generate_series(1,51) n'''), {'actor': actor.user_id})
     before = snapshot(owner)
     page = client.get('/admin/rezepte?q=Rezept')
-    assert page.status_code == 200 and page.text.count('class="card recipe-card"') == 50
+    assert page.status_code == 200 and page.text.count('<article class="recipe-card">') == 50
     page = client.get('/admin/rezepte?q=Rezept&page=2')
     assert page.status_code == 200 and 'Rezept 051' in page.text
-    assert page.text.count('class="card recipe-card"') == 1
+    assert page.text.count('<article class="recipe-card">') == 1
     assert 'Keine passenden Rezepte' in client.get('/admin/rezepte?q=%25').text
     assert client.get('/admin/rezepte/not-a-uuid').status_code == 404
     assert snapshot(owner) == before

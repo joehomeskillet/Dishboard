@@ -86,30 +86,36 @@ def test_recipe_pages_follow_correction_contract(
             _open(page, base, '/admin/rezepte')
             expect(page.get_by_label('Kennzeichnung', exact=True)).to_be_visible()
             expect(page.locator('main summary').filter(has_text='Symbole')).to_have_count(0)
-            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}"]')).to_contain_text('Bearbeiten')
-            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}/ansicht"]')).to_contain_text('Ansehen')
-            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}/revisionen"]')).to_contain_text('Rezept-History')
+            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}"]')).to_have_accessible_name('Suppe bearbeiten')
+            row_menu = page.locator('.recipe-card', has=page.locator(f'a[href="/admin/rezepte/{recipe_id}"]')).locator('summary')
+            row_menu.click()
+            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}/ansicht"]')).to_have_accessible_name('Suppe ansehen')
+            expect(page.locator(f'.recipe-card a[href="/admin/rezepte/{recipe_id}/revisionen"]')).to_have_accessible_name('Rezept-History · Suppe')
+            row_menu.click()
             _check_layout(page, width)
             _capture(page, 'liste-regulaer', width, height, javascript)
 
             _open(page, base, '/admin/rezepte?q=zzzz-ui-korrektur-empty')
-            expect(page.get_by_role('heading', name='Keine passenden Rezepte', exact=True)).to_be_visible()
+            expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_have_text('Keine passenden Rezepte')
+            expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_be_visible()
             _check_layout(page, width)
             _capture(page, 'liste-leer', width, height, javascript)
 
             editor_path = f'/admin/rezepte/{recipe_id}'
             _open(page, base, editor_path)
             expect(page.get_by_text('Entwurf · Änderungen werden erst mit Speichern übernommen.', exact=True)).to_be_visible()
-            expect(page.get_by_text('Weitere Aktionen', exact=True)).to_be_visible()
-            expect(page.locator('details', has=page.get_by_text('Weitere Aktionen', exact=True))).not_to_have_attribute('open', '')
+            editor_menu = page.locator('.admin-compact-toolbar > details.admin-compact-actions')
+            expect(editor_menu.locator('summary')).to_have_text('Mehr')
+            expect(editor_menu.locator('summary')).to_be_visible()
+            expect(editor_menu).not_to_have_attribute('open', '')
             expect(page.locator('#recipe-editor')).to_be_visible()
             expect(page.get_by_role('heading', name='Kennzeichnungen', exact=True)).to_be_visible()
             expect(page.locator('#recipe-editor button[formaction]').first).not_to_have_text('')
             assert page.locator('#recipe-editor').get_attribute('method') == 'post'
             assert page.locator('#recipe-editor').get_attribute('action') == editor_path
-            page.get_by_text('Weitere Aktionen', exact=True).click()
+            editor_menu.locator('summary').click()
             expected_links = {
-                'Bilder verwalten': f'{editor_path}/bilder',
+                'Bild': f'{editor_path}/bilder',
                 'Rezept-History': f'{editor_path}/revisionen',
                 'Mengen berechnen': f'{editor_path}/skalierung',
             }
@@ -120,7 +126,7 @@ def test_recipe_pages_follow_correction_contract(
 
             images_path = f'{editor_path}/bilder'
             _open(page, base, images_path)
-            upload = page.get_by_role('button', name='Bild hochladen', exact=True)
+            upload = page.get_by_role('button', name='Hochladen', exact=True)
             expect(page.get_by_label('Bilddatei', exact=True)).to_be_visible()
             expect(upload).to_be_visible()
             assert page.locator(f'form[action="{images_path}"]').get_attribute('method') == 'post'
@@ -138,7 +144,8 @@ def test_recipe_pages_follow_correction_contract(
 
             revisions_path = f'{editor_path}/revisionen'
             _open(page, base, revisions_path)
-            expect(page.get_by_role('heading', name='Rezept-History', exact=True)).to_be_visible()
+            expect(page.get_by_role('heading', name='Rezepte', exact=True)).to_be_visible()
+            expect(page.get_by_role('heading', name='Alle gespeicherten Stände', exact=True)).to_be_visible()
             freeze = page.locator(f'form[action="{revisions_path}"]')
             assert freeze.get_attribute('method') == 'post'
             assert set(freeze.locator('[name]').evaluate_all('elements => elements.map(element => element.name)')) == {
@@ -152,7 +159,7 @@ def test_recipe_pages_follow_correction_contract(
             _open(page, base, revision_path)
             expect(page.get_by_role('heading', name='Gespeicherter Stand 1', exact=True)).to_be_visible()
             expect(page.get_by_text('Dieser gespeicherte Stand bleibt unverändert.', exact=False)).to_have_count(1)
-            technical = page.locator('details.card > summary').filter(has_text='Technische Details')
+            technical = page.locator('.recipe-reading-actions details > summary').filter(has_text='Weitere Optionen')
             expect(technical).to_have_count(1)
             technical.click()
             expect(page.get_by_text('Vollständige Daten', exact=True)).to_be_visible()
@@ -170,12 +177,13 @@ def test_recipe_pages_follow_correction_contract(
             _open(page, base, '/admin/rezepte/neu')
             page.locator('#recipe-editor').evaluate('form => { form.noValidate = true; }')
             with page.expect_request(lambda request: request.method == 'POST') as submitted:
-                page.get_by_role('button', name='Rezept anlegen', exact=True).click()
+                page.get_by_role('button', name='Anlegen', exact=True).click()
             request = submitted.value
             assert urlsplit(request.url).path == '/admin/rezepte/neu'
             assert request.post_data is not None and '_csrf=' in request.post_data and '_form_context=' in request.post_data
             page.wait_for_load_state('networkidle')
-            expect(page.get_by_role('heading', name='Rezeptaktion nicht möglich', exact=True)).to_be_visible()
+            expect(page.get_by_role('heading', name='Rezepte', exact=True)).to_be_visible()
+            expect(page.locator('.page-header-subtitle')).to_have_text('Rezeptaktion nicht möglich')
             expect(page.locator('#recipe-error')).to_be_visible()
             _check_layout(page, width)
             _capture(page, 'konflikt', width, height, javascript)

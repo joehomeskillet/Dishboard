@@ -50,7 +50,8 @@ def test_recipe_choice_saved_pdf_activation_restore_archive_native_forms(recipe_
                 if '/vorlagen/rezepte/vorschau.pdf?' in response.url else None)
         response = page.goto(BASE)
         assert response.status == 200 and "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
-        expect(page.get_by_role('heading', name='Rezepte · Vorlageneditor')).to_be_visible()
+        expect(page.get_by_role('heading', name='Vorlagen', exact=True)).to_be_visible()
+        expect(page.locator('.page-header-subtitle')).to_have_text('Rezepte · Vorlageneditor.')
         assert page.locator('[name^="layout_"], [name="week"]').count() == 0
         if width == 1440:
             assert page.get_by_role('link', name='Gespeicherte Stände für Suppe auswählen', exact=True).count() == 0
@@ -88,7 +89,7 @@ def test_recipe_choice_saved_pdf_activation_restore_archive_native_forms(recipe_
             _wait_for_pdf_paint(page, frame, tmp_path / 'recipe-editor-native-pdf-1440.png')
         assert any(response.status == 200 and response.headers.get('x-print-template-revision') == 'standard:2'
                    for response in pdf_responses)
-        page.get_by_role('heading', name='Rezepte · Vorlageneditor').scroll_into_view_if_needed()
+        page.get_by_role('heading', name='Vorlagen', exact=True).scroll_into_view_if_needed()
         page.screenshot(path=str(tmp_path / f'recipe-editor-viewport-{width}.png'))
         page.screenshot(path=str(tmp_path / f'recipe-editor-selected-{width}.png'), full_page=True)
         # Screenshot caret hiding restores properties but leaves empty style
@@ -103,7 +104,7 @@ def test_recipe_choice_saved_pdf_activation_restore_archive_native_forms(recipe_
         page.locator('details[data-template-activation] > summary').click()
         expect(page.get_by_text('Aktive Druckvorlage', exact=True)).to_be_visible()
         page.locator('details[data-template-versions] > summary').click()
-        page.get_by_role('button', name='Revision 1 wiederherstellen', exact=True).click()
+        page.get_by_role('button', name='Revision 1 wiederherstellen: als neuen Entwurf laden', exact=True).click()
         expect(page.get_by_role('heading', name='PDF-Vorschau · Revision 3', exact=True)).to_be_visible()
         page.locator('details[data-template-more-actions] > summary').click()
         page.get_by_label('Name der Kopie', exact=True).fill('Archivprobe')

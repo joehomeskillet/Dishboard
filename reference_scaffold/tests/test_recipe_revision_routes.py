@@ -248,7 +248,11 @@ def test_view_print_latest_revision_is_distinct_from_current_draft(a3, monkeypat
         result = client.get('/admin/rezepte' if not suffix else path + suffix)
         assert result.status_code == 200
         assert f'href="{second.location}/druck.pdf"' in result.text
-        assert 'Drucken · Stand 2' in result.text
+        if suffix:
+            assert 'aria-label="PDF öffnen"' in result.text
+            assert 'Neuester gespeicherter Stand 2' in result.text
+        else:
+            assert 'aria-label="Drucken · Stand 2 · Nur im Entwurf"' in result.text
         assert f'href="{first.location}/druck.pdf"' not in result.text
     assert 'Nur im Entwurf' in client.get(path + '/ansicht').text
     historical = client.get(second.location)
@@ -257,7 +261,9 @@ def test_view_print_latest_revision_is_distinct_from_current_draft(a3, monkeypat
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
     revisions = client.get(path + '/revisionen')
     assert revisions.status_code == 200
-    assert revisions.text.count('PDF öffnen</a>') == 2
+    assert revisions.text.count('data-semantic="actions.print"') == 2
+    for number in (1, 2):
+        assert f'aria-label="PDF von Stand {number} öffnen"' in revisions.text
     for suffix in ('/ansicht', '/revisionen', second.location.removeprefix(path)):
         result = client.get(path + suffix)
         assert result.status_code == 200
@@ -287,8 +293,10 @@ def test_history_every_stand_remains_readable_after_draft_changes_and_archive(a3
     listing = client.get(path + '/revisionen')
     assert listing.status_code == 200 and 'Rezept-History' in listing.text
     assert 'Dieses Rezept ist archiviert' in listing.text
-    assert listing.text.count('Ansehen</a>') == 3 and listing.text.count('<time datetime=') == 3
+    assert listing.text.count('aria-label="Gespeicherten Stand ') == 3
+    assert listing.text.count('<time datetime=') == 3
     for number, (url, original) in enumerate(history, 1):
+        assert f'aria-label="Gespeicherten Stand {number} ansehen"' in listing.text
         assert f'href="{url}"' in listing.text and f'href="{url}/druck.pdf"' in listing.text
         current = client.get(url)
         assert current.status_code == 200
