@@ -26,7 +26,13 @@
   align-items: center;
 }
 .dishboard-admin .admin-users-row > * { min-width: 0; }
-.dishboard-admin .admin-users-lock { grid-column: 1 / -1; }
+.dishboard-admin .admin-users-lock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-2);
+  grid-column: 1 / -1;
+}
 .dishboard-admin .admin-filter-bar > div { max-width: 100%; }
 .dishboard-admin .admin-users-history td { overflow-wrap: anywhere; }
 .dishboard-admin :is(#roles-action, #password-action, #state-action, #create-local-user) > summary {

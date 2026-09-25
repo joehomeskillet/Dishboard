@@ -27,7 +27,7 @@
 {% endset %}
 <div data-account-row{% if account.locked_until and account.locked_until > now %} class="admin-users-row-locked"{% endif %}>
 {{ list_row(account.display_name, account.username, 'active' if not account.disabled_at else none, meta=role_meta, status=account_status if account.disabled_at else none, actions=row_actions([{'key': 'actions.edit' if can_mutate else 'actions.open', 'href': url_for('admin.local_user_detail', public_id=account.public_id, page=page, status=status), 'icon_only': true, 'aria_label': 'Konto ' ~ account.username ~ (' bearbeiten' if can_mutate else ' öffnen')}]), more_actions=more_info) }}
-{% if account.locked_until and account.locked_until > now %}<div class="admin-users-lock">{{ label('Gesperrt', 'warning', icon='alert-triangle', detail='Lokale Anmeldung gesperrt bis ' ~ format_time(account.locked_until)) }}</div>{% endif %}
+{% if account.locked_until and account.locked_until > now %}<div class="admin-users-lock">{{ label('Gesperrt', 'warning', icon='alert-triangle') }}<span>Lokale Anmeldung gesperrt bis {{ format_time(account.locked_until) }}</span></div>{% endif %}
 </div>
 {% endfor %}
 </div>

@@ -99,7 +99,10 @@
       <div class="brand-preview-actions">
         <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="activate" data-confirm="Version {{ selected.id }} «{{ selected.name }}» als öffentliches Erscheinungsbild aktivieren?">
           <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-          {{ icon_button('actions.activate', name='action', value='activate', title='Öffentliche Marke aktivieren', aria_label='Version ' ~ selected.id ~ ' aktivieren', attrs={'disabled': selected_is_active}) }}
+          {% set activate_visible = t(sem('actions.activate').label_key) %}
+          {% set activate_de = 'Version ' ~ selected.id ~ ' aktivieren' %}
+          {% set activate_name = activate_de if activate_visible|lower in activate_de|lower else activate_visible ~ ' — Version ' ~ selected.id %}
+          {{ icon_button('actions.activate', name='action', value='activate', title='Öffentliche Marke aktivieren', aria_label=activate_name, attrs={'disabled': selected_is_active}) }}
         </form>
         {% if selected_is_active %}
         <span class="text-success small d-inline-flex align-items-center gap-1">{{ icon('check') }}{{ t('status.active.label') }}</span>
@@ -113,7 +116,11 @@
   <h3 class="h4 d-flex align-items-center gap-2 mb-2" id="brand-history-title">{{ icon('copy') }}<span>Ausgewählten Stand übernehmen</span></h3>
   <form method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="restore">
     <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}"><input type="hidden" name="revision" value="{{ selected.id }}">
-    {{ icon_button('actions.apply', name='action', value='restore', title='Ausgewählten Stand übernehmen', aria_label='Version ' ~ selected.id ~ ' als neuen Entwurf übernehmen') }}
+    {% set apply_visible = t(sem('actions.apply').label_key) %}
+    {% set apply_de = 'Version ' ~ selected.id ~ ' als neuen Entwurf übernehmen' %}
+    {% set apply_name = apply_de if apply_visible|lower in apply_de|lower else apply_visible ~ ' — Version ' ~ selected.id %}
+    {{ icon_button('actions.apply', name='action', value='restore', title='Erstellt einen neuen Entwurf', aria_label=apply_name) }}
+    <p class="text-secondary small mb-0">Erstellt einen neuen Entwurf</p>
   </form>
   <h3 class="h4 pt-3 mb-2 d-flex align-items-center gap-2">{{ icon('history') }}<span>Version auswählen</span></h3>
   <div class="list-group list-group-flush brand-history-list">
