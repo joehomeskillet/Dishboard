@@ -14,10 +14,6 @@ tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_with
 tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport1-cafeteria-staff_guest-Mitarbeitende
 tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport1-patienten-patient-Patientinnen
 # 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
-tests/test_admin_overview_forms.py::test_copy_link_on_empty_week_submits_exact_native_form[viewport0-cafeteria-staff_guest]
-tests/test_admin_overview_forms.py::test_copy_link_on_empty_week_submits_exact_native_form[viewport0-patienten-patient]
-tests/test_admin_overview_forms.py::test_copy_link_on_empty_week_submits_exact_native_form[viewport1-cafeteria-staff_guest]
-tests/test_admin_overview_forms.py::test_copy_link_on_empty_week_submits_exact_native_form[viewport1-patienten-patient]
 # 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
 tests/test_ui_korrektur_tools_browser.py::test_tool_pages_put_primary_content_before_administration
 tests/test_ui_korrektur_tools_browser.py::test_api_density_viewports_and_publication_truth
