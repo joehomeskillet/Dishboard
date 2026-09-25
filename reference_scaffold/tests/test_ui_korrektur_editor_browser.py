@@ -86,7 +86,7 @@ def _assert_no_overflow(page: Page) -> None:
 def _assert_one_primary_save(page: Page) -> None:
     form = page.locator('form[data-menu-editor]')
     expect(form.locator('.btn-primary')).to_have_count(1)
-    expect(form.locator('.btn-primary [data-semantic="actions.save"] use')).to_have_attribute(
+    expect(form.locator('.btn-primary[data-semantic="actions.save"] use')).to_have_attribute(
         'href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-device-floppy')
     expect(page.locator('#review .admin-list-row')).to_have_count(2)
     expect(form.get_by_role('button', name='Menü speichern', exact=True)).to_have_count(1)
