@@ -590,6 +590,7 @@ docs/ENTRA_SSO_BETRIEBSKONZEPT.md
 docs/GROK_KRITIK_UMSETZUNG.md
 docs/licenses/iso-codes-copyright.txt
 docs/licenses/iso-codes-LGPL-2.1.txt
+docs/operations/release-zug.md
 docs/README.md
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.docx
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.md
@@ -1709,6 +1710,15 @@ tools/google_menu_images.py
 tools/import_dish_templates.py
 tools/recipe_draft_apply.py
 tools/recipe_example_validation.py
+tools/release/deploy_status.sh
+tools/release/gate.sh
+tools/release/known_red.txt
+tools/release/label_grep.py
+tools/release/new_failures.py
+tools/release/refresh_template_hashes.py
+tools/release/release_gate.sh
+tools/release/sync_manifest.py
+tools/release/test_delta.py
 tools/rotate_admin_password.py
 tools/ui_consistency_inventory.py
 tools/validate_package.py
