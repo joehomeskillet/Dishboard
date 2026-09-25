@@ -10412,7 +10412,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "b85fae69f282d587978946275c5c716f80145d69aaaa40554da413fcbc7bd149",
+      "sha256": "712fb864d9a8b53d4e19ad5bef35443c0eb643826dbc07033b75377da73bbe28",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10814,7 +10814,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "c2713dabfc6474a905cce4471907e07b7e4df03a3979fabc194be6b681cf4fa8",
+      "sha256": "0447dcbf229f827c7c2210fb39d9474ffba454861d86dc094414306f730fb526",
       "used_by_endpoints": [
         "admin.components_get"
       ],
@@ -10882,7 +10882,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "6b1ce96e30dc482ac5d4d859104fae4a9ce663c31a1ad758401c060dd19124ff",
+      "sha256": "70d21c3802aa70bd982b5ac3c87b129f14c8db17fec096045260e3dacf693287",
       "used_by_endpoints": [
         "admin.dish_template_plan",
         "admin.dish_template_plan_post"
@@ -10906,7 +10906,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "af7a2b14a4460f86ca4367a61c02a743f40f63fe46132df5660f9ceb35184f5a",
+      "sha256": "baa275a6b990074e4f39410367f0400bf5a674769dd76ade1bef7ea1ece0336a",
       "used_by_endpoints": [
         "admin.dish_template_create",
         "admin.dish_template_edit",
@@ -11136,7 +11136,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "c88605ebae922d1ce63a43a7164e936cb37961c2e7946ae551fdfa9744a44722",
+      "sha256": "e6eb15fb3debf9d6f02a84929016659b260f351311f573f50099e649679a9c70",
       "used_by_endpoints": [
         "admin.kitchen_calendar"
       ],
@@ -11291,7 +11291,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "356db5b5732efab9db32394e24f12fbf1010a578859b9134509d8853c5e01265",
+      "sha256": "926eaa0aee51f64fd643e2c7b905c982b03563457293b520d0fcafbc5178b2c7",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],
@@ -11314,7 +11314,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "fd4d55ae1d9eaffb3fdadaf576a0bb88ba8dd73d929880a5b886d9d9feeab0aa",
+      "sha256": "c157459f9c715e95b8c38e082338893388e84412d4195c88dd12c2bf61b483c7",
       "used_by_endpoints": [
         "admin.menu_get"
       ],

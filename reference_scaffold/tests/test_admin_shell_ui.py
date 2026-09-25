@@ -186,7 +186,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         assert create_box['y'] >= list_box['y'] + list_box['height'] - 1
         row = main.locator('.component-list-container .component-row').first
         name = row.locator('.component-row-name')
-        edit_link = row.locator('.component-action').get_by_role('link', name='Bearbeiten', exact=True)
+        edit_link = row.locator('.component-action').get_by_role('link', name='bearbeiten')  # contextual name «Baustein X bearbeiten» (P4)
         expect(name).to_have_attribute('scope', 'row')
         expect(row.get_by_role('link')).to_have_count(1)
         name_box = name.bounding_box()
