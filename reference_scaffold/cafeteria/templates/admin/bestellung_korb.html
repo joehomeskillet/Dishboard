@@ -26,7 +26,7 @@
 <form method="post" action="{{ url_for('admin.order_basket_save', public_id=basket.public_id) }}" class="order-basket-form" data-loading>
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="row_version" value="{{ basket.row_version }}">
-<table class="table table-vcenter table-mobile-lg order-lines admin-table--stack">
+<table class="table table-vcenter table-mobile-lg order-lines admin-table admin-table--stack">
 <thead><tr><th scope="col">Artikel</th><th scope="col">Bestellmenge</th><th scope="col">Rohmenge</th><th scope="col">Gebinde</th></tr></thead>
 <tbody>
 {% for line in basket.lines %}

@@ -222,6 +222,10 @@ def test_detail_shared_viewports_no_overflow_and_48px_targets(server, browser, w
         expect(page.locator('#compute_week')).to_have_value(week_public)
         expect(page.locator('input[name="component_ids"]').first).to_be_visible()
         expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
+        expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
+        expect(page.get_by_role('button', name='Woche laden', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Neu berechnen', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Abhaken', exact=True).last).to_have_attribute('formnovalidate', '')
         page.evaluate('window.scrollTo(0, 0)')  # full-page capture of the fixed sidebar starts at the top
         _shot(page, f'detail-shared-{width}x{height}')
 
@@ -323,6 +327,10 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                     has=page.get_by_text('Positionen', exact=True)
                 )).to_contain_text('offen')
                 expect(page.locator('.shopping-filter .active')).to_have_attribute('aria-current', 'true')
+                expect(page.get_by_role('link', name='Mit Archivierten', exact=True)).to_be_visible()
+                expect(page.locator('.shopping-filter').get_by_role('link', name='Archivieren', exact=True)).to_have_count(0)
+                page.locator('.shopping-list details.admin-compact-actions summary').first.click()
+                expect(page.get_by_role('button', name='Archivieren', exact=True)).to_be_visible()
                 expect(page.get_by_role('link', name='Öffnen', exact=True).first).to_be_visible()
                 page.locator('#einkaufsliste-neu-title').click()
                 expect(page.get_by_label('Titel', exact=True)).to_be_focused()
@@ -365,6 +373,11 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                     )).to_have_count(1)
                 expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
                 expect(page.get_by_role('button', name='Neu berechnen', exact=True)).to_have_count(1)
+                expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
+                expect(page.get_by_role('button', name='Aktualisieren', exact=True)).to_have_count(0)
+                expect(page.locator('[data-semantic="actions.confirm"]').first).to_be_visible()
+                expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
+                expect(page.locator('.admin-label').first).to_be_visible()
                 expect(page.locator('main .btn-primary')).to_have_count(1)
                 expect(page.locator('main .btn-primary')).to_be_visible()
                 if width < 768:

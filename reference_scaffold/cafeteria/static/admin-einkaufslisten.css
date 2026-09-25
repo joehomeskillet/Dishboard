@@ -60,8 +60,13 @@
 .dishboard-admin [data-shopping-lists] .shopping-result-table :is(th, td),
 .dishboard-admin [data-shopping-lists] .shopping-manual-table :is(th, td) {
   padding: var(--app-space-1) var(--app-space-2);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   white-space: normal;
+}
+
+.dishboard-admin [data-shopping-lists] .shopping-result-table .admin-table-actions,
+.dishboard-admin [data-shopping-lists] .shopping-manual-table .admin-table-actions {
+  white-space: nowrap;
 }
 
 .dishboard-admin [data-shopping-lists] .shopping-item-grid {
@@ -131,6 +136,18 @@
 .dishboard-admin [data-shopping-lists] .shopping-result-table.admin-table--stack tbody tr,
 .dishboard-admin [data-shopping-lists] .shopping-manual-table.admin-table--stack tbody tr {
   height: auto;
+}
+
+@media (min-width: 768px) {
+  .dishboard-admin [data-shopping-lists] .shopping-result-table tbody td,
+  .dishboard-admin [data-shopping-lists] .shopping-manual-table tbody td {
+    white-space: nowrap;
+  }
+  .dishboard-admin [data-shopping-lists] .shopping-result-table tbody td[data-label="Zutat"],
+  .dishboard-admin [data-shopping-lists] .shopping-result-table tbody td[data-label="Aktion"],
+  .dishboard-admin [data-shopping-lists] .shopping-manual-table tbody td[data-label="Text"] {
+    white-space: normal;
+  }
 }
 
 @media (max-width: 767.98px) {

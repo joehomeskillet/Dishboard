@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, hint, icon %}
+{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, hint, icon, label %}
 {% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'inventory' %}
 {% set lager_status = [] %}
@@ -30,7 +30,7 @@
 {% if slots %}
 <section class="lager-slots" aria-labelledby="lager-slots-heading">
   <h2 class="lager-section-title" id="lager-slots-heading">Zuordnungen</h2>
-  <table class="table lager-table admin-table--stack">
+  <table class="table lager-table admin-table admin-table--stack">
     <thead><tr><th scope="col">Zutat</th><th scope="col">Lagerort</th><th scope="col">Bestand</th><th scope="col">Aktion</th></tr></thead>
     <tbody>
     {% for slot in slots %}
@@ -38,9 +38,9 @@
       <tr class="lager-row{% if current %} table-active{% endif %}">
         <td data-label="Zutat"><a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=slot.food_public_id) }}">{{ slot.food_name }}</a></td>
         <td data-label="Lagerort">{{ slot.storage_name }}</td>
-        <td data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}<span class="badge admin-status--warning">{{ icon('alert-triangle') }}<span>Kein Bestand erfasst</span></span>{% endif %}</td>
-        <td class="lager-row-action" data-label="Aktion">
-          <a class="btn{% if current %} active{% endif %}" href="{{ url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id) }}"{% if current %} aria-current="true"{% endif %}>{{ icon_label('actions.open') }}</a>
+        <td class="admin-table-status" data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}{{ label('Kein Bestand erfasst', 'warning', icon='alert-triangle') }}{% endif %}</td>
+        <td class="lager-row-action admin-table-actions" data-label="Aktion">
+          {{ icon_button('actions.open', href=url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id), class=('active' if current else ''), aria_label=t(sem('actions.open').label_key) ~ ': ' ~ slot.food_name, attrs={'aria-current': true} if current else none) }}
         </td>
       </tr>
     {% endfor %}

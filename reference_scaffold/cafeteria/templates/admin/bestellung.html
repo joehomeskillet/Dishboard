@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_label, empty_state_sem, status_badge_sem %}
+{% from 'admin/_macros.html' import page_header, disclosure_section, list_row %}
+{% from 'ui/_semantic.html' import icon_label, empty_state_sem, status_badge_sem, icon_button %}
 {% set workflow_nav = 'orders' %}
 {# Status labels only; no send action or state transition. #}
 {% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
@@ -28,11 +28,9 @@
 {% if baskets %}
 <div class="order-list" role="list">
 {% for row in baskets %}
-<div class="admin-list-row" role="listitem">
-<div class="admin-list-name"><strong>{{ row.supplier_name }}</strong></div>
-{{ status_badge_sem(order_states.get(row.status, 'status.unknown')) }}
-<div class="admin-list-actions"><a class="btn" href="{{ url_for('admin.order_basket', public_id=row.public_id) }}">{{ icon_label('actions.open') }}</a></div>
-</div>
+{% set status %}{{ status_badge_sem(order_states.get(row.status, 'status.unknown')) }}{% endset %}
+{% set actions %}{{ icon_button('actions.open', href=url_for('admin.order_basket', public_id=row.public_id), aria_label=t(sem('actions.open').label_key) ~ ': ' ~ row.supplier_name) }}{% endset %}
+<div role="listitem">{{ list_row(primary=row.supplier_name, status=status, actions=actions) }}</div>
 {% endfor %}
 </div>
 {% else %}
@@ -55,10 +53,8 @@
 {% if suppliers %}
 <div class="order-list" role="list">
 {% for row in suppliers %}
-<div class="admin-list-row" role="listitem">
-<div class="admin-list-name"><strong>{{ row.name }}</strong><div class="admin-list-subtitle" title="{{ row.code }}">{{ row.code }}</div></div>
-{{ status_badge_sem('status.active' if row.active else 'status.inactive') }}
-</div>
+{% set status %}{{ status_badge_sem('status.active' if row.active else 'status.inactive') }}{% endset %}
+<div role="listitem">{{ list_row(primary=row.name, secondary=row.code, status=status) }}</div>
 {% endfor %}
 </div>
 {% else %}
@@ -79,9 +75,7 @@
 {% if articles %}
 <div class="order-list" role="list">
 {% for row in articles %}
-<div class="admin-list-row" role="listitem">
-<div class="admin-list-name"><strong>{{ row.name }}</strong><div class="admin-list-subtitle" title="{{ row.article_code }}">{{ row.article_code }} · Gebinde {{ row.pack_size }} {{ row.order_unit_code }}{% if row.without_food %} · ohne Zutat{% endif %}</div></div>
-</div>
+<div role="listitem">{{ list_row(primary=row.name, secondary=row.article_code ~ ' · Gebinde ' ~ row.pack_size ~ ' ' ~ row.order_unit_code ~ (' · ohne Zutat' if row.without_food else '')) }}</div>
 {% endfor %}
 </div>
 {% else %}

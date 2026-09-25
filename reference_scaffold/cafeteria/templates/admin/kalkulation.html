@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, disclosure_section, hint, icon %}
+{% from 'admin/_macros.html' import page_header, disclosure_section, hint, icon, label, empty_value %}
 {% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'cost' %}
 {% block title %}Kalkulation · Menüplanung{% endblock %}
@@ -22,7 +22,7 @@
   {% if projection %}
     {{ icon_button('actions.confirm', form='cost-confirm') }}
   {% else %}
-    <button class="btn btn-primary" type="submit" form="cost-preview">{{ icon_label('actions.preview') }}</button>
+    {{ icon_button('actions.preview', type='submit', form='cost-preview', emphasis='primary') }}
   {% endif %}
 {% endcall %}
 {% endblock %}
@@ -61,15 +61,15 @@
     {% if not projection.complete %}
       <p>Unvollständig — fehlender Preis oder fehlende Umrechnung, nicht als 0.</p>
     {% endif %}
-    <table class="table cost-lines admin-table--stack">
+    <table class="table cost-lines admin-table admin-table--stack">
       <thead><tr><th scope="col">Zutat</th><th scope="col">Menge</th><th scope="col">Status</th><th scope="col">Betrag</th></tr></thead>
       <tbody>
       {% for line in projection.lines %}
         <tr>
           <td data-label="Zutat">{{ t('recipe.ingredient.label') }} {{ loop.index }}{% if not line.food_public_id %} · ohne Zutat{% endif %}</td>
-          <td data-label="Menge">{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% endif %}</td>
-          <td data-label="Status">{% if line.status == 'complete' %}<span class="admin-status--success">{{ icon('circle-check') }}<span>vollständig</span></span>{% else %}<span class="admin-status--warning">{{ icon('alert-triangle') }}<span>unvollständig</span></span>{% endif %}</td>
-          <td data-label="Betrag">{% if line.amount is not none %}{{ line.amount }} CHF{% else %}—{% endif %}</td>
+          <td data-label="Menge">{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% else %}{{ empty_value() }}{% endif %}</td>
+          <td class="admin-table-status" data-label="Status">{% if line.status == 'complete' %}{{ label('vollständig', 'success', icon='circle-check') }}{% else %}{{ label('unvollständig', 'warning', icon='alert-triangle') }}{% endif %}</td>
+          <td data-label="Betrag">{% if line.amount is not none %}{{ line.amount }} CHF{% else %}{{ empty_value() }}{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>

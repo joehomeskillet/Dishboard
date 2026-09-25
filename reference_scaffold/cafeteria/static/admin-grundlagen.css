@@ -1,14 +1,17 @@
-.grundlagen-list .list-group-item {
-  min-height: 3rem;
-  padding: var(--app-space-2) var(--app-space-3);
+.grundlagen-list .admin-list-row {
+  min-width: 0;
+  flex-wrap: nowrap;
 }
 
-.grundlagen-list .list-group-item .col {
+.grundlagen-list .admin-list-name {
+  flex: 1 1 6rem;
   min-width: 0;
 }
 
-.grundlagen-list .list-group-item .badge {
-  margin-inline-start: var(--app-space-2);
+.grundlagen-list .admin-list-status,
+.grundlagen-list .admin-list-actions {
+  margin-inline-start: 0;
+  flex: none;
 }
 
 .grundlagen-filter > div {

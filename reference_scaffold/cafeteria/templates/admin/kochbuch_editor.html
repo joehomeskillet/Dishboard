@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, form_footer, hint %}
-{% from 'ui/_semantic.html' import icon_label, sem_icon %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon %}
 {% set workflow_nav = 'cookbooks' %}
 {% set creating = book is none %}
 {% set archived = book is not none and not book.active %}
@@ -36,7 +36,7 @@
       <input type="hidden" name="_form_context" value="{{ status_token }}">
       <input type="hidden" name="row_version" value="{{ book.row_version }}">
       <input type="hidden" name="status_action" value="{{ status_action }}">
-      <button class="btn{% if reactivating %} btn-primary{% else %} btn-danger{% endif %}" type="submit">{% if reactivating %}{{ icon('archive-off') }}Reaktivieren{% else %}{{ icon_label('actions.archive') }}{% endif %}</button>
+      {% if reactivating %}{{ icon_button('actions.activate', text='Reaktivieren', emphasis='primary') }}{% else %}<button class="btn btn-danger" type="submit">{{ icon_label('actions.archive') }}</button>{% endif %}
       <a class="btn" href="{{ url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}">{{ icon_label('actions.cancel') }}</a>
     </form>
     {% endif %}
@@ -72,7 +72,7 @@
     {% if book.description %}<p class="text-break mb-0">{{ book.description }}</p>{% else %}<p class="text-secondary mb-0">Keine Beschreibung</p>{% endif %}
     {% if archived %}<p class="form-hint mb-0 mt-2">{{ icon('archive') }} Schreibgeschützt · zum Ändern zuerst reaktivieren.</p>{{ hint('Archivierte Kochbücher bleiben lesbar. Rezepte und Angaben lassen sich erst nach dem Reaktivieren wieder ändern.', 'cookbook-readonly-hint') }}{% endif %}
     {% if book and can_write and not status_action %}
-    <p class="mt-2 mb-0"><a class="btn{% if book.active %} btn-outline-danger{% else %} btn-primary{% endif %}" href="{{ url_for('admin.cookbook_status', cookbook_id=book.public_id) }}">{% if book.active %}{{ icon_label('actions.archive') }}{% else %}{{ icon('archive-off') }}Reaktivieren{% endif %}</a></p>
+    <p class="mt-2 mb-0">{% if book.active %}<a class="btn btn-outline-danger" href="{{ url_for('admin.cookbook_status', cookbook_id=book.public_id) }}">{{ icon_label('actions.archive') }}</a>{% else %}{{ icon_button('actions.activate', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), text='Reaktivieren', emphasis='primary') }}{% endif %}</p>
     {% endif %}
     {% endif %}
   </div>
@@ -85,7 +85,7 @@
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="_form_context" value="{{ recipes_token }}">
     <input type="hidden" name="row_version" value="{{ book.row_version }}">
-    <table class="table table-vcenter cookbook-assignment-table admin-table--stack">
+    <table class="table table-vcenter cookbook-assignment-table admin-table admin-table--stack">
         <thead>
           <tr><th scope="col" class="w-1">Position</th><th scope="col">Rezept</th></tr>
         </thead>
@@ -117,21 +117,21 @@
           {% endfor %}
         </tbody>
       </table>
-    <button class="btn cookbook-section-action" type="submit">{{ icon_label('actions.save') }}</button>
+    {{ icon_button('actions.save', text='Rezepte speichern', emphasis='secondary', class='cookbook-section-action') }}
   </form>
   {% elif book.recipe_public_ids %}
-  <ol class="mb-0">
-    {% for public_id in book.recipe_public_ids %}
-    {% set label = names.get(public_id, 'Rezept ohne Anzeigenamen') %}
-    <li class="mb-1">
-      {% if assignment_rows[loop.index0].url %}
-      <a href="{{ assignment_rows[loop.index0].url }}">{{ label }}</a>
-      {% else %}
-      {{ label }}
-      {% endif %}
-    </li>
-    {% endfor %}
-  </ol>
+  <table class="table table-vcenter cookbook-assignment-table admin-table admin-table--stack">
+    <thead><tr><th scope="col">Position</th><th scope="col">Rezept</th></tr></thead>
+    <tbody>
+      {% for public_id in book.recipe_public_ids %}
+      {% set label = names.get(public_id, 'Rezept ohne Anzeigenamen') %}
+      <tr>
+        <td data-label="Position">{{ loop.index }}</td>
+        <td data-label="Rezept">{% if assignment_rows[loop.index0].url %}<a href="{{ assignment_rows[loop.index0].url }}">{{ label }}</a>{% else %}{{ label }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
   {% else %}
   <p class="mb-0 text-secondary">Noch keine Rezepte zugeordnet.</p>
   {% endif %}

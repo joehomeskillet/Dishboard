@@ -1,11 +1,11 @@
 {% extends 'admin/grundlagen.html' %}
 {% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}Einheit · Grundlagen{% endblock %}
 {% block page_header %}{{ page_header(t('navigation.ingredients.label'), description='Einheit bearbeiten' if row else 'Einheit anlegen', status_items=[{'label': 'Status', 'value': 'Aktiv' if row.active else 'Archiviert', 'variant': 'neutral'}] if row else []) }}{% endblock %}
 {% block content %}
-<a class="btn mb-3" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ icon('arrow-left') }}Zur Liste</a>{{ errors() }}
+<div class="mb-3">{{ icon_button('actions.back', href=url_for('admin.master_data_list', kind=query_kinds[kind])) }}</div>{{ errors() }}
 {% if not row %}<details class="card mb-4" open>{{ section_summary('Einheit anlegen', 'plus') }}<div class="card-body">{% else %}<div class="card mb-4"><div class="card-header gap-2">{{ icon('copy') }}<h2 class="card-title mb-0">Einheit</h2></div><div class="card-body">{% endif %}
 {% if row %}{% call disclosure_section() %}<dl><dt>Code</dt><dd>{{ row.code }}</dd><dt>Dimension</dt><dd>{{ row.dimension }}</dd><dt>Basisfaktor</dt><dd>{{ row.base_factor if row.base_factor is not none else 'Kontextabhängig' }}</dd></dl><p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Code, Dimension und Faktor bleiben unverändert. Für eine andere Bedeutung eine neue Einheit anlegen.</p>{% endcall %}{% endif %}
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='name') if row else url_for('admin.master_data_new', kind=kind) }}">

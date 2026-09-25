@@ -140,10 +140,12 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             expect(page.locator('main .btn-primary')).to_be_visible()
             if width < 768 and state != 'empty':
                 stacked = page.evaluate('''() => {
-                    const table = document.querySelector('.cost-lines.admin-table--stack');
+                    const table = document.querySelector('.cost-lines.admin-table.admin-table--stack');
                     return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
                 }''')
                 assert stacked, (state, width, javascript)
+                expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
+                expect(page.locator('.admin-label').first).to_be_visible()
             hint = page.locator('details.admin-hint').first
             summary = hint.locator('summary')
             expect(summary).to_be_visible()
@@ -154,7 +156,12 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             expect(hint).to_have_attribute('open', '')
             page.keyboard.press('Enter')
             if measured['row'] is not None:
-                assert measured['row'] < (109 if width == 360 else 46)
+                assert measured['row'] < (109 if width == 360 else 72)
+                if width >= 768:
+                    pad = page.evaluate(
+                        "() => getComputedStyle(document.querySelector('.cost-lines tbody td')).paddingTop",
+                    )
+                    assert pad != '0px'
             assert measured['form'] < (428 if width == 360 else 218)
             metrics.append({'state': state, 'width': width, 'javascript': javascript, **measured})
             for control in page.locator('main :is(.btn, input:not([type=hidden]), select, summary):visible').all():

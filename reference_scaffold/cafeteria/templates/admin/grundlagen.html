@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, disclosure_section, hint %}
+{% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, disclosure_section, hint, list_row, label %}
 {% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}{{ t('navigation.ingredients.label') }} · Menüplanung{% endblock %}
@@ -33,7 +33,7 @@
 {% if can_write and not (kind == 'einheiten' and row.code in ['G', 'ML', 'STK']) %}
 {% set purpose = 'archivieren' if row.active else 'reaktivieren' %}
 <form method="post" action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=purpose) }}" data-confirm="{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}">
-{{ form_start(purpose) }}<button class="btn{% if row.active %} btn-danger{% endif %}" type="submit">{{ icon('archive' if row.active else 'archive-off') }}{{ 'Archivieren' if row.active else 'Reaktivieren' }}</button><p class="form-hint ui-sem-consequence">{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}</p></form>
+{{ form_start(purpose) }}{% if row.active %}<button class="btn btn-danger" type="submit">{{ icon_label('actions.archive') }}</button>{% else %}{{ icon_button('actions.activate', text='Reaktivieren') }}{% endif %}<p class="form-hint ui-sem-consequence">{{ 'Diesen Datensatz archivieren?' if row.active else 'Diesen Datensatz reaktivieren?' }}</p></form>
 {% elif kind == 'einheiten' and row.code in ['G', 'ML', 'STK'] %}<p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Diese Basiseinheit bleibt dauerhaft aktiv.</p>{% endif %}
 {% endif %}
 {% endmacro %}
@@ -64,17 +64,18 @@
 {% if filters_active %}<a class="btn" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ icon_label('view.reset') }}</a>{% endif %}
 </form>
 <div class="card grundlagen-list"><div class="card-header"><h2 class="card-title">{{ 'Kennzeichnungen' if kind == 'tags' else kinds[kind] }}</h2></div>
-<div class="list-group list-group-flush">
-{% for item in rows %}<div class="list-group-item"><div class="row g-2 align-items-center"><div class="col">
-<a class="text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>
-<span class="badge admin-status--{{ 'active' if item.active else 'neutral' }}">{{ icon('circle-check' if item.active else 'archive') }}<span>{{ 'Aktiv' if item.active else 'Archiviert' }}</span></span>
-{% if kind == 'zutaten' %}<div class="text-secondary">{{ item.base_unit.display_name }} · {% for storage in item.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}{{ icon('alert-triangle', class='text-secondary') }}Lagerort fehlt{% endfor %}</div>
-{% if item.prepared_recipe %}<div><a href="{{ url_for('admin.recipe_revision', recipe_id=item.prepared_recipe.recipe_public_id, revision_id=item.prepared_recipe.revision_public_id) }}">{{ icon('tools-kitchen-2', class='text-secondary') }}{{ item.prepared_recipe.title }} · Stand {{ item.prepared_recipe.revision_number }}</a></div>{% endif %}{% endif %}</div>
-<div class="col-auto">{{ icon_button('actions.edit' if can_write else 'actions.open', href=url_for('admin.master_data_detail', kind=kind, public_id=item.public_id)) }}</div></div></div>
+{% for item in rows %}
+{% set primary %}<a class="text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>{% endset %}
+{% set secondary %}{% if kind == 'zutaten' %}{{ item.base_unit.display_name }} · {% for storage in item.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}{{ icon('alert-triangle', class='text-secondary') }}Lagerort fehlt{% endfor %}{% if item.prepared_recipe %}<div><a href="{{ url_for('admin.recipe_revision', recipe_id=item.prepared_recipe.recipe_public_id, revision_id=item.prepared_recipe.revision_public_id) }}">{{ icon('tools-kitchen-2', class='text-secondary') }}{{ item.prepared_recipe.title }} · Stand {{ item.prepared_recipe.revision_number }}</a></div>{% endif %}{% endif %}{% endset %}
+{% set status %}{{ label('Aktiv' if item.active else 'Archiviert', 'active' if item.active else 'neutral', icon='circle-check' if item.active else 'archive') }}{% endset %}
+{% set item_name = item.display_name if kind == 'einheiten' else item.name %}
+{% set row_verb = 'bearbeiten' if can_write else 'öffnen' %}
+{% set actions %}{{ icon_button('actions.edit' if can_write else 'actions.open', href=url_for('admin.master_data_detail', kind=kind, public_id=item.public_id), icon_only=true, aria_label=singular[kind] ~ ' ' ~ item_name ~ ' ' ~ row_verb) }}{% endset %}
+{{ list_row(primary=primary, secondary=secondary if kind == 'zutaten' else none, status=status, actions=actions) }}
 {% else %}
 {% call empty_state('no_match', 'Keine passenden ' ~ ('Kennzeichnungen' if kind == 'tags' else kinds[kind]), 'Filter anpassen' if filters_active else ('Zutat anlegen' if kind == 'zutaten' else kinds[kind])) %}
 {% if filters_active %}<a class="btn" href="{{ url_for('admin.master_data_list', kind=query_kinds[kind]) }}">{{ icon_label('view.reset') }}</a>
-{% elif can_write %}<a class="btn" href="{{ url_for('admin.master_data_new', kind=kind) }}">{{ icon_label('actions.add') }}</a>{% endif %}
+{% elif can_write %}{{ icon_button('actions.add', href=url_for('admin.master_data_new', kind=kind), emphasis='secondary') }}{% endif %}
 {% endcall %}{% endfor %}
-</div>{% if page > 1 or has_next %}<div class="card-footer">{{ pagination(page, has_next, prev_url, next_url, 'Stammdatenseiten') }}</div>{% endif %}</div>
+{% if page > 1 or has_next %}<div class="card-footer">{{ pagination(page, has_next, prev_url, next_url, 'Stammdatenseiten') }}</div>{% endif %}</div>
 {% endblock %}

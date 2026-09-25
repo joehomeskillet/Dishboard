@@ -55,7 +55,7 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                             page.goto(base + path, wait_until='networkidle')
                             metric = page.evaluate('''() => ({
                                 height: document.documentElement.scrollHeight,
-                                row: document.querySelector('.list-group-item')?.getBoundingClientRect().height,
+                                row: document.querySelector('.admin-list-row')?.getBoundingClientRect().height,
                                 primary: document.querySelectorAll('main .btn-primary').length,
                                 open: document.querySelectorAll('main details[open]').length,
                                 overflow: document.documentElement.scrollWidth > innerWidth + 1
@@ -66,6 +66,10 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                             expect(page.locator('.admin-statusbar')).to_be_visible()
                             if state == 'list':
                                 assert metric['row'] < 100
+                                row_min = page.evaluate(
+                                    "() => getComputedStyle(document.querySelector('.grundlagen-list .admin-list-row')).minHeight",
+                                )
+                                assert row_min != '0px'
                                 expect(page.locator('[aria-label="Stammdatenbereiche"] .active')).to_have_attribute('aria-current', 'true')
                             else:
                                 assert metric['height'] < (3337 if width == 360 else 2747 if width == 768 else 2188 if width == 1024 else 2041)
@@ -101,7 +105,8 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                         expect(price.get_by_label('CHF je Einheit', exact=True)).not_to_be_visible()
                         price.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
                         expect(price.get_by_label('CHF je Einheit', exact=True)).to_be_visible()
-                        expect(price.get_by_role('button', name='Speichern', exact=True)).not_to_have_class(re.compile('btn-primary'))
+                        expect(price.get_by_role('button', name='Preis speichern', exact=True)).not_to_have_class(re.compile('btn-primary'))
+                        expect(page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True)).to_have_class(re.compile('btn-primary'))
                         for control in price.locator('.form-control, .btn').all():
                             assert control.bounding_box()['height'] >= 48
                         _assert_no_horizontal_scroll(page)
@@ -191,7 +196,7 @@ def test_ingredient_list_is_first_full_width_and_visible(
         expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
             'href', re.compile(r'tabler-')
         )
-        first = page.locator('.grundlagen-list .list-group-item').first
+        first = page.locator('.grundlagen-list .admin-list-row').first
         expect(first).to_be_visible()
         box = first.bounding_box()
         assert box is not None
@@ -256,7 +261,7 @@ def test_ingredient_list_genuine_browser_zoom_200(
             expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
                 'href', re.compile(r'tabler-')
             )
-            first = page.locator('.grundlagen-list .list-group-item').first
+            first = page.locator('.grundlagen-list .admin-list-row').first
             expect(first).to_be_visible()
             expect(page.locator('details').filter(has_text='Filter').first).not_to_have_attribute('open', '')
             _assert_no_horizontal_scroll(page)
@@ -374,9 +379,26 @@ def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser)
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         _assert_no_horizontal_scroll(page)
         expect(page.locator('.badge.admin-status--active').first).to_be_visible()
+        expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_be_visible()
+        expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_have_attribute(
+            'aria-label', re.compile(r'.+ bearbeiten'),
+        )
+        expect(page.locator('.admin-label.admin-status--active').first).to_be_visible()
         page.goto(base + path)
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         expect(page.locator('#food-core-save-hint')).to_be_visible()
+        expect(page.locator('[data-semantic="actions.back"]').first).to_be_visible()
+        expect(page.locator('[data-semantic="actions.save"]').first).to_be_visible()
+        page.locator('form[action$="/preis"]').locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
+        expect(page.get_by_role('button', name='Preis speichern', exact=True)).to_be_visible()
+        page.locator('details').filter(has=page.locator('form[action$="/tags"]')).locator('summary').first.click()
+        expect(page.get_by_role('button', name='Kennzeichnen', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Kennzeichnen', exact=True)).not_to_have_class(re.compile('btn-primary'))
+        page.locator('details').filter(has=page.locator('form[action$="/metadaten"]')).locator('summary').first.click()
+        expect(page.get_by_role('button', name='Angaben speichern', exact=True)).to_be_visible()
+        page.get_by_text('Allergenprüfung', exact=True).last.click()
+        expect(page.get_by_role('button', name='Prüfung bestätigen', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
         _assert_no_horizontal_scroll(page)
         page.get_by_role('link', name='Lagerorte').click()
         storage_hint = page.locator('summary[aria-describedby="storage-list-hint"]')
@@ -384,3 +406,31 @@ def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser)
         expect(storage_hint).to_be_focused()
         page.keyboard.press('Enter')
         expect(page.locator('#storage-list-hint')).to_be_visible()
+
+
+def test_p4_stammdaten_inventory_counts_sum():
+    """Judge finding 12: per-template remaining counts must add up."""
+    import runpy
+
+    root = Path(__file__).resolve().parents[2]
+    ns = runpy.run_path(str(root / 'tools' / 'ui_consistency_inventory.py'), run_name='p4counts')
+    cur, cats = ns['inventory'](), ns['CATEGORIES']
+    names = (
+        'grundlagen.html', 'grundlagen_food.html', 'grundlagen_location_conflict.html',
+        'grundlagen_unit.html', 'kochbuch_editor.html', 'kochbuecher.html',
+        'bestellung.html', 'bestellung_korb.html', 'einkaufsliste.html',
+        'einkaufslisten.html', 'kalkulation.html', 'lager.html',
+    )
+    total = dict.fromkeys(cats, 0)
+    for name in names:
+        row = cur.get(name) or cur.get(f'admin/{name}') or dict.fromkeys(cats, 0)
+        for cat in cats:
+            total[cat] += row[cat]
+    assert sum(total.values()) == sum(total[cat] for cat in cats)
+    assert total['legacy_labels'] == 0
+    assert total['wrong_icons'] == 0
+    assert total['long_labels'] == 0
+    assert total['literal_buttons'] == 1
+    assert total['local_lists'] == 2
+    assert total['local_filters'] == 4
+    assert sum(total.values()) == 7
