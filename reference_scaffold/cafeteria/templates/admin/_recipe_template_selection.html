@@ -54,7 +54,7 @@
         {{ selected_fields(['yield']) }}
         <div class="col-12 col-sm-6"><label class="form-label" for="recipe-yield">Gewünschte Ausbeute</label><input class="form-control" id="recipe-yield" name="yield" inputmode="decimal" maxlength="40" required value="{{ arguments.get('yield', recipe_revision.snapshot.recipe.servings) }}"><p class="form-hint">Original: {{ recipe_revision.snapshot.recipe.servings }} {{ recipe_revision.snapshot.recipe.servings_unit_code }}. Zutaten ohne Menge bleiben ohne Menge.</p></div>
         <div class="col-12 col-sm-auto">{{ icon_button('actions.apply', text='Anwenden', aria_label='Ausbeute anwenden') }}</div>
-      </form><a class="btn mt-3" href="{{ recipe_url(yield=none, revision=revision.id) }}" data-semantic="actions.refresh" aria-label="Originalausbeute verwenden">{{ icon_label('actions.refresh') }}</a>
+      </form>{{ icon_button('actions.refresh', href=recipe_url(yield=none, revision=revision.id), text='Originalausbeute', aria_label='Originalausbeute verwenden', title='Originalausbeute verwenden', class='mt-3') }}
     </div>{% endif %}
     </div>
     </details>

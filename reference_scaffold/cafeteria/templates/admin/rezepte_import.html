@@ -10,7 +10,7 @@
 {% set status_items = [{'label': t('actions.import.label'), 'value': t('actions.preview.label') if not batch else ('Übernommen' if batch.status == 'imported' else ('Verworfen' if batch.status == 'cancelled' else t('publish.draft.label'))), 'variant': 'success' if batch and batch.status == 'imported' else 'neutral'}] %}
 {% if error %}{% set ignored = status_items.append({'label': t('actions.save.label'), 'value': t('status.error.label'), 'variant': 'danger'}) %}{% elif batch and batch.status == 'draft' %}{% set ignored = status_items.append({'label': t('actions.confirm.label'), 'value': t('status.done.label') if batch.confirmation_hash_sha256 else t('status.pending.label'), 'variant': 'neutral' if batch.confirmation_hash_sha256 else 'warning'}) %}{% endif %}
 {% call page_header(t('navigation.recipes.label'), 'CSV- oder JSON-Rezepte als standortgebundenen Entwurf speichern.', status_items=status_items) %}
-<a class="btn{% if batch and batch.status != 'draft' %} btn-primary{% endif %}" href="{{ url_for('admin.recipes_list') }}" data-semantic="actions.back" aria-label="Zu den Rezepten">{{ icon_label('actions.back') }}</a>
+{{ icon_button('actions.back', href=url_for('admin.recipes_list'), text='Zurück', aria_label='Zurück zu den Rezepten', title='Zurück zu den Rezepten', emphasis='primary' if batch and batch.status != 'draft' else none) }}
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -32,7 +32,7 @@
         <input class="form-control" id="source_file" name="source_file" type="file" accept=".csv,.json,text/csv,application/json" required>
       </div>
       <div class="col-12 col-lg-auto">
-        <button class="btn{% if not batch %} btn-primary{% endif %}" type="submit" data-semantic="actions.preview" aria-label="Vorschau speichern">{{ icon_label('actions.preview') }}</button>
+        {{ icon_button('actions.preview', text='Vorschau speichern', aria_label='Vorschau speichern', title='Vorschau speichern', emphasis='primary' if not batch else none) }}
       </div>
     </div>
     <p class="mb-2">Unaufgelöste Zutaten bleiben Entwurf.</p>
@@ -146,9 +146,9 @@
       <button class="btn{% if not (batch.confirmation_hash_sha256 and can_import) %} btn-primary{% endif %}" type="submit" name="action" value="save">{{ icon_label('actions.save') }}</button>
       <button class="btn" type="submit" name="action" value="acknowledge">{{ icon_label('actions.confirm') }}</button>
       <details class="admin-compact-actions"><summary class="btn">{{ icon_label('actions.more') }}</summary>
-        <details class="mt-2"><summary class="btn" aria-label="Stapel verwerfen">{{ icon_label('actions.delete') }}</summary>
+        <details class="mt-2"><summary class="btn" aria-label="Stapel verwerfen">{{ icon('trash') }}<span>Verwerfen</span></summary>
           <p id="discard-consequence">Der Importstapel wird verworfen. Ungespeicherte Änderungen gehen verloren; vorhandene Rezepte bleiben unverändert.</p>
-          <button class="btn btn-danger" type="submit" name="action" value="cancel" aria-describedby="discard-consequence" aria-label="Verwerfen bestätigen">{{ icon_label('actions.delete') }}</button>
+          <button class="btn btn-danger" type="submit" name="action" value="cancel" aria-describedby="discard-consequence" aria-label="Verwerfen bestätigen">{{ icon('trash') }}<span>Verwerfen</span></button>
         </details>
       </details>
     </div>
@@ -166,7 +166,7 @@
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       <input type="hidden" name="row_version" value="{{ values.row_version or batch.row_version }}">
       <input type="hidden" name="candidate_hash_sha256" value="{{ batch.candidate_hash_sha256 }}">
-      <button class="btn btn-primary" type="submit" data-semantic="actions.import" aria-label="Importstapel übernehmen">{{ icon_label('actions.import') }}</button>
+      {{ icon_button('actions.apply', text='Übernehmen', aria_label='Importstapel übernehmen', title='Importstapel übernehmen', emphasis='primary') }}
     </form>
     {% else %}
     <p class="text-secondary">Zum Übernehmen ist die Berechtigung zum Rezeptimport erforderlich.</p>

@@ -21,12 +21,12 @@
 {{ icon_button('actions.cancel', href=url_for('admin.recipe_edit', recipe_id=recipe_id)) }}</div></form></div></div>
 {% else %}
 <div class="admin-compact-toolbar" data-sticky-form="recipe-editor" data-sticky-edge="top">
-<a class="btn" href="{{ url_for('admin.recipes_list') }}" data-semantic="actions.back" aria-label="Zur Rezeptliste">{{ icon_label('actions.back') }}</a>
+{{ icon_button('actions.back', href=url_for('admin.recipes_list'), text='Zurück', aria_label='Zurück zur Rezeptliste', title='Zurück zur Rezeptliste') }}
 {% if recipe_id and can_write or links %}<details class="admin-compact-actions"><summary class="btn">{{ icon_label('actions.more') }}</summary><div class="d-flex flex-wrap gap-2 mt-2">
-{% if recipe_id and can_write %}<a class="btn" href="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}" data-semantic="{{ 'actions.archive' if active else 'actions.restore' }}" aria-label="{{ 'Archivieren' if active else 'Reaktivieren' }}">{{ icon_label('actions.archive' if active else 'actions.restore') }}</a>{% endif %}
+{% if recipe_id and can_write %}{% if active %}{{ icon_button('actions.archive', href=url_for('admin.recipe_status', recipe_id=recipe_id), text='Archivieren', aria_label='Archivieren', title='Archivieren') }}{% else %}{{ icon_button('actions.restore', href=url_for('admin.recipe_status', recipe_id=recipe_id), text='Reaktivieren', aria_label='Rezept reaktivieren', title='Rezept reaktivieren') }}{% endif %}{% endif %}
 {% if 'recipe_images' in links %}<a class="btn" href="{{ links['recipe_images'] }}" data-semantic="data.image" aria-label="Bilder verwalten">{{ icon_label('data.image') }}</a>{% endif %}
-{% if 'recipe_revisions' in links %}<a class="btn" href="{{ links['recipe_revisions'] }}" data-semantic="data.history" aria-label="Rezept-History">{{ icon_label('data.history') }}</a>{% endif %}
-{% if 'recipe_scale' in links %}<a class="btn" href="{{ links['recipe_scale'] }}" data-semantic="recipe.quantity" aria-label="Mengen berechnen">{{ icon_label('recipe.quantity') }}</a>{% endif %}
+{% if 'recipe_revisions' in links %}{{ icon_button('actions.history', href=links['recipe_revisions'], text='Rezept-History', aria_label='Rezept-History', title='Rezept-History') }}{% endif %}
+{% if 'recipe_scale' in links %}{{ icon_button('recipe.quantity', href=links['recipe_scale'], text='Berechnen', aria_label='Mengen berechnen', title='Mengen berechnen') }}{% endif %}
 </div></details>{% endif %}
 <span class="text-secondary" role="status">{{ 'Entwurf · Änderungen werden erst mit Speichern übernommen.' if active else 'Archiviert · Lesbar, zum Bearbeiten zuerst reaktivieren.' }}</span>
 {% if can_write and active %}<span class="ms-auto">{{ icon_button('actions.save' if recipe_id else 'actions.add', form='recipe-editor') }}</span>{% endif %}

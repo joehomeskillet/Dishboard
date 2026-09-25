@@ -1,9 +1,9 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, field, disclosure_section, hint, empty_state %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-admin.css') }}">{% endblock %}
 {% block title %}Bilder · {{ recipe.payload.title }}{% endblock %}
-{% block page_header %}{% call page_header(t('navigation.recipes.label'), recipe.payload.title, status_items=[{'label': t('recipe.recipe.label'), 'value': t('publish.draft.label') if recipe.active else 'Archiviert', 'variant': 'neutral'}]) %}<a class="btn{% if not token %} btn-primary{% endif %}" href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}" data-semantic="actions.back" aria-label="Zum Rezept">{{ icon_label('actions.back') }}</a>{% endcall %}{% endblock %}
+{% block page_header %}{% call page_header(t('navigation.recipes.label'), recipe.payload.title, status_items=[{'label': t('recipe.recipe.label'), 'value': t('publish.draft.label') if recipe.active else 'Archiviert', 'variant': 'neutral'}]) %}{{ icon_button('actions.back', href=url_for('admin.recipe_edit', recipe_id=recipe.public_id), text='Zurück', aria_label='Zurück zum Rezept', title='Zurück zum Rezept', emphasis='primary' if not token else none) }}{% endcall %}{% endblock %}
 {% block content %}
 {% if token %}<section class="card mb-3"><div class="card-header"><h2 class="card-title">Bild hochladen</h2></div><div class="card-body">
 <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.recipe_images', recipe_id=recipe.public_id) }}" data-loading>

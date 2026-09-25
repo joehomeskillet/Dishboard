@@ -34,8 +34,8 @@
 {% set more %}
 {% if can_write and item.active %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, aria_label=item.payload.title ~ ' ansehen') }}{% endif %}
 {% if links.latest_revision %}
-{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=item.public_id, revision_id=links.latest_revision.public_id), aria_label='Drucken · Stand ' ~ links.latest_revision.revision_number ~ ' · ' ~ item.payload.title) }}
-{% else %}{{ icon_button('actions.print', href=url_for('admin.recipe_revisions', recipe_id=item.public_id, _anchor='recipe-freeze'), aria_label='Drucken · ' ~ item.payload.title, attrs={'aria-describedby': 'print-hint-' ~ item.public_id}) }}{% endif %}
+{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=item.public_id, revision_id=links.latest_revision.public_id), text='Drucken', aria_label='Drucken · Stand ' ~ links.latest_revision.revision_number ~ ' · ' ~ item.payload.title, title='Drucken · Stand ' ~ links.latest_revision.revision_number ~ ' · ' ~ item.payload.title) }}
+{% else %}{{ icon_button('actions.print', href=url_for('admin.recipe_revisions', recipe_id=item.public_id, _anchor='recipe-freeze'), text='Drucken', aria_label='Drucken · ' ~ item.payload.title, title='Drucken · ' ~ item.payload.title, attrs={'aria-describedby': 'print-hint-' ~ item.public_id}) }}{% endif %}
 {{ icon_button('actions.history', href=url_for('admin.recipe_revisions', recipe_id=item.public_id), icon_only=true, aria_label='Rezept-History · ' ~ item.payload.title, title='Rezeptverlauf öffnen') }}
 {% if not links.latest_revision %}<p class="text-secondary mt-2 mb-0" id="print-hint-{{ item.public_id }}">Zum Drucken zuerst einen Stand festhalten.</p>{% endif %}
 {{ template_links(links, item.public_id, can_create_template) }}

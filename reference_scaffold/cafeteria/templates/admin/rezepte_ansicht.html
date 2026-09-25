@@ -14,10 +14,10 @@
 {% block title %}{{ document.title }} · {{ t('navigation.recipes.label') }}{% endblock %}
 {% block page_header %}
 {% call page_header(t('navigation.recipes.label'), document.title, status_items=[{'label': t('recipe.recipe.label'), 'value': 'Entwurf · nicht festgeschrieben' if recipe.active else 'Archiviert', 'variant': 'neutral'}]) %}
-{{ icon_button('actions.back', href=url_for('admin.recipes_list'), icon_only=can_write and recipe.active, aria_label='Zur Rezeptliste' if can_write and recipe.active else 'Zurück zur Rezeptliste', emphasis='primary' if not (can_write and recipe.active) else none) }}
+{{ icon_button('actions.back', href=url_for('admin.recipes_list'), icon_only=can_write and recipe.active, text='Zurück', aria_label='Zurück zur Rezeptliste', title='Zurück zur Rezeptliste', emphasis='primary' if not (can_write and recipe.active) else none) }}
 {% if can_write and recipe.active %}{{ icon_button('actions.edit', href=url_for('admin.recipe_edit', recipe_id=recipe_id), emphasis='primary') }}{% endif %}
 <details class="admin-compact-actions"><summary class="btn">{{ icon_label('actions.more') }}</summary><div class="d-flex flex-wrap gap-2 mt-2">
-{{ icon_button('recipe.quantity', href=scale_url, aria_label='Mengen berechnen') }}
+{{ icon_button('recipe.quantity', href=scale_url, text='Berechnen', aria_label='Mengen berechnen', title='Mengen berechnen') }}
 {{ icon_button('actions.history', href=url_for('admin.recipe_revisions', recipe_id=recipe_id), icon_only=true, aria_label='Rezept-History', title='Rezeptverlauf öffnen') }}
 {% if links.latest_revision %}{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=links.latest_revision.public_id), icon_only=true, aria_label='PDF öffnen') }}{% endif %}
 </div></details>
