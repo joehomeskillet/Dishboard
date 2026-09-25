@@ -399,6 +399,26 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
                 assert payload["roles"] == ["Cafeteria.Editor"]
 
 
+def test_locked_account_shows_scope_and_expiry(live_accounts, browser):
+    origin, client, owner, issuer = live_accounts
+    target = _create(issuer, "ui.locked.visible")
+    with owner.begin() as connection:
+        connection.execute(text(
+            "UPDATE cafeteria.local_credentials SET failed_login_count=5, "
+            "locked_until=clock_timestamp()+interval '2 hours' "
+            "WHERE user_id=(SELECT id FROM cafeteria.users WHERE public_id=:public_id)"
+        ), {"public_id": target.public_id})
+    with _context(browser, origin, client) as context:
+        page = context.new_page()
+        _open(page, origin, "/admin/benutzer")
+        row = page.locator("[data-account-row]").filter(has_text="ui.locked.visible")
+        notice = row.locator(".admin-users-lock")
+        expect(notice.get_by_text("Gesperrt", exact=True)).to_be_visible()
+        expiry = notice.get_by_text(re.compile(r"Lokale Anmeldung gesperrt bis \d{2}\.\d{2}\.\d{4} \d{2}:\d{2}"))
+        expect(expiry).to_be_visible()
+        assert "visually-hidden" not in (expiry.evaluate("el => el.className") or "")
+
+
 def test_user_and_access_pages_fit_required_viewports(live_accounts, browser):
     origin, client, _, issuer = live_accounts
     target = _create(issuer, "ui.viewport.target")

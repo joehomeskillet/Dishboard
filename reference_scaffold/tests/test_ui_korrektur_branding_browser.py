@@ -206,6 +206,10 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         restore = page.get_by_role("button", name="Version 2 als neuen Entwurf übernehmen", exact=True)
         expect(restore).to_have_attribute("data-semantic", "actions.apply")
         expect(restore.locator("span")).to_have_text("Übernehmen")
+        expect(restore).to_have_attribute("title", "Erstellt einen neuen Entwurf")
+        expect(page.locator('form[data-brand-action="restore"]').get_by_text(
+            "Erstellt einen neuen Entwurf", exact=True,
+        )).to_be_visible()
         restore.click()
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=3$"))
 
@@ -386,6 +390,47 @@ def test_branding_editor_native_cdp_zoom_200(
             encoding="utf-8",
         )
         cdp.detach()
+
+
+def test_branding_locale_names_contain_visible_action_text(admin_app, admin_engine):  # noqa: F811
+    """DE keeps the contextual name; EN and pseudo include the translated label."""
+    from html import unescape
+
+    from cafeteria.ui.i18n import pseudo
+
+    client, _ = _login(admin_app, admin_engine, ["Cafeteria.Admin"])
+    translator = admin_app.extensions["ui_translator"]
+    original = admin_app.config["UI_LOCALE"]
+    translator.locales["xx"] = {
+        key: pseudo(value) for key, value in translator.locales["de"].items()
+    }
+    german = {
+        "actions.activate": "Version 1 aktivieren",
+        "actions.apply": "Version 1 als neuen Entwurf übernehmen",
+    }
+    try:
+        for locale in ("de", "en", "xx"):
+            admin_app.config["UI_LOCALE"] = locale
+            response = client.get(BRAND_PATH)
+            assert response.status_code == 200, (locale, response.status_code)
+            html = response.get_data(as_text=True)
+            for key, german_name in german.items():
+                match = re.search(
+                    rf'<button(?P<attrs>[^>]*data-semantic="{key}"[^>]*)>(?P<body>.*?)</button>',
+                    html,
+                    re.S,
+                )
+                assert match, (locale, key)
+                aria = unescape(re.search(r'aria-label="([^"]*)"', match.group("attrs")).group(1))
+                visible = unescape(re.search(r"<span>([^<]*)</span>", match.group("body")).group(1))
+                assert visible.lower() in aria.lower(), (locale, key, visible, aria)
+                if locale == "de":
+                    assert aria == german_name, (key, aria)
+            assert "Erstellt einen neuen Entwurf" in html
+            assert 'title="Erstellt einen neuen Entwurf"' in html
+            assert 'visually-hidden">Erstellt einen neuen Entwurf' not in html
+    finally:
+        admin_app.config["UI_LOCALE"] = original
 
 
 def test_branding_rendered_icons_reject_missing_symbols(
