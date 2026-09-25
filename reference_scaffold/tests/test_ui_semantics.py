@@ -454,13 +454,52 @@ def test_p2c_emphasis(semantic_app, key, emphasis, expected):
     ({'emphasis': 'danger', 'icon_only': True}, 'icon-only'),
     ({'text': 'one two three'}, 'text must'),
     ({'text': 'x' * 19}, 'text must'), ({'text': ''}, 'text must'),
-    ({'aria_label': 'Unrelated'}, 'contain visible text'),
     ({'aria_label': ''}, 'nonempty'), ({'title': ''}, 'nonempty'),
     ({'attrs': []}, 'mapping'), ({'attrs': {'disabled': 'false'}}, 'boolean'),
 ])
 def test_p2c_invalid_contract_fails(semantic_app, options, match):
     with pytest.raises(SemanticError, match=match):
         _p2c_action(semantic_app, **options)
+
+
+@pytest.mark.parametrize('locale,key,text,aria_label,visible', [
+    ('de', 'actions.edit', None, 'Unrelated', 'Bearbeiten'),
+    ('en', 'actions.edit', None, 'Vorlage X bearbeiten', 'Edit'),
+    ('en', 'actions.activate', None, 'Vorlage X aktivieren', 'Activate'),
+    ('en', 'actions.apply', None, 'Vorlage X übernehmen', 'Apply'),
+    ('de', 'actions.edit', 'Edit', 'Vorlage X bearbeiten', 'Edit'),
+    ('en', 'actions.edit', None, '\"<img src=x>&', 'Edit'),
+])
+@pytest.mark.parametrize('href', [None, '/edit'])
+def test_p2d_context_name_composes_visible_label(semantic_app, locale, key, text, aria_label, visible, href):
+    semantic_app.config['UI_LOCALE'] = locale
+    doc = _p2c_action(semantic_app, key, text=text, aria_label=aria_label, href=href)
+    control = doc.select_one('.ui-sem-control')
+    assert control.span.text == visible
+    assert control['aria-label'] == control['title'] == f'{visible}: {aria_label}'
+    assert not doc.select('img, script')
+
+
+@pytest.mark.parametrize('icon_only', [False, True])
+@pytest.mark.parametrize('title', [None, 'Eigener Tooltip'])
+def test_p2d_composed_name_respects_icon_only_and_explicit_title(semantic_app, icon_only, title):
+    semantic_app.config['UI_LOCALE'] = 'en'
+    doc = _p2c_action(semantic_app, aria_label='Vorlage X bearbeiten', icon_only=icon_only, title=title)
+    expected = 'Vorlage X bearbeiten' if icon_only else 'Edit: Vorlage X bearbeiten'
+    assert doc.button['aria-label'] == expected
+    assert doc.button['title'] == (title if title is not None else expected)
+    assert (doc.button.span is None) == icon_only
+
+
+@pytest.mark.parametrize('aria_label', [None, 'Vorlage X BEARBEITEN'])
+def test_p2d_matching_or_absent_name_keeps_exact_markup(semantic_app, aria_label):
+    with semantic_app.test_request_context():
+        template = "{% from 'ui/_semantic.html' import icon_button %}{{ icon_button('actions.edit', **options) }}"
+        baseline = render_template_string(template, options={})
+        actual = render_template_string(template, options={'aria_label': aria_label})
+    expected = baseline if aria_label is None else baseline.replace(
+        'title="Bearbeiten"', 'title="Bearbeiten" aria-label="Vorlage X BEARBEITEN"')
+    assert actual == expected
 
 
 @pytest.mark.parametrize('attribute', [
