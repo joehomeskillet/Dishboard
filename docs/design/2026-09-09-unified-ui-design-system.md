@@ -1582,6 +1582,18 @@ Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten st
 
 ##### Modul Menüs und Menüeditor inkl. Allergene (2026-09-20)
 
+**Polish P4: menues (2026-09-24).** Menütabelle nutzt `admin-table` mit
+Status-/Aktionsspalten; kurzer Prüfchip und vollständiger Inline-Prüfhinweis
+bleiben getrennt. Kontextuelle Bearbeiten-Tooltips bleiben mit Registry-Icon
+erhalten. Gespeicherte Bausteine verwenden `list_row`. Seltene Zeilenaktionen
+stehen unter «Mehr». Controls mit JS-Hooks oder `formaction` behalten ihre
+Attribute und nutzen `icon_label`; der native Rückkehr-Submit behält seinen
+verbindlichen `value`. Rezeptfilter im POST-Editor bleibt lokal, weil ein
+GET-Filterformular weder verschachtelt werden noch seine Semantik ersetzen darf.
+Sicht-/Funktionsnachweis: `test_ui_korrektur_editor_browser.py`,
+`test_ui_menu_editor_browser.py` und der Basisvergleich in
+`test_menu_collection_browser.py` prüfen Formularvertrag, Dichte und Registry-Muster.
+
 **Polish P3: editoren (2026-09-24).** Menü speichern bleibt die einzige
 Primäraktion; im Prüfkonflikt übernimmt «Bestehendes Menü öffnen» diese Rolle.
 Beilage und Bausteinauswahl verwenden `hint()` mit bestehenden Beschreibungs-IDs;
@@ -1660,6 +1672,14 @@ Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine f
 **Vertrag:** Vor dem Deaktivieren oder Ausblenden von Controls die POST-Semantik prüfen. Nur eine Darstellung ändern, keine Werte verlieren oder hidden/disabled-Verhalten neu erfinden. Der Verwendungszähler ist nur bei belegten Daten zulässig. Die Wirkung zentraler Änderungen auf bestehende Menüs anhand des Codes erklären; nicht als garantiert unveränderliche Vergangenheit ausgeben.
 
 ##### Modul Bausteine (2026-09-20)
+
+**Polish P4: menues (2026-09-24).** Katalog nutzt `admin-table`, gemeinsame
+Status-/Aktionsspalten, `row_actions`, Kategorie-/Statuslabels und `empty_state`.
+Die vorhandene `admin-filter-bar` behält aktive Zusatzfilter in ihrer Summary;
+der gemeinsame Makrovertrag bietet dafür noch keinen Slot und kein bedingtes
+Öffnen. Keine zweite Filterleiste und keine Änderung der GET-/POST-Felder.
+Katalog- und Filterbrowsertests prüfen die bestehenden Routen und Fehlerzustände;
+der P4-Basisvergleich misst Liste bei 360/1440 px einschließlich Primäraktion.
 
 M08/M13 folgen dem gemeinsamen Seitenrahmen: «Bausteine» als Titel, Objektname
 im Editor als Kontext. `page_header(status_items=...)` zeigt den Bereich aus
@@ -2203,6 +2223,15 @@ admin-table--stack`. Reaktivieren verwendet `actions.activate` mit sichtbarem
 Kurzlabel «Reaktivieren».
 
 ##### Modul Gerichtvorlagen (2026-09-20)
+
+**Polish P4: menues (2026-09-24).** Liste und Einplanen verwenden semantische
+Buttons, Filter sowie gemeinsame Tabellen-/Labelvarianten. Als nächstliegender
+Planungsschlüssel dient `actions.open`; ein eigener Kurzschlüssel
+«Einplanen» ist P2-Nachtrag. Rezeptsuche/-seitenwechsel behalten `formnovalidate`,
+Archivierung ihre Bestätigung und sichtbare Folge. Ihre nativen Controls nutzen
+Registry-Labels. Speichern bzw. Weiter bleibt jeweils die einzige Primäraktion.
+Nachweis: `test_dish_template_browser.py` und gemeinsame Pattern-Browsertests,
+einschließlich JS/No-JS, schmaler Viewports und unveränderter Übermittlungswerte.
 
 Das Modul Gerichtvorlagen nutzt M22 (Filterzeile), M23 (Zeilenvertrag) und M24 (Formularfuss) anstelle eigener Custom-Controls. Die Haupttabelle trennt Rezept, Status und Planung auf dem Desktop, wird auf schmalen Viewports aber zu einer kompakten Zeile je Vorlage verdichtet. Der Anlage- und Editorbereich folgt dem gemeinsamen Formular-Grid, mit exakt einer Primäraktion im Formularfuss. Statuswerte (Aktiv, Bereich, Rezeptbindung) sind in die zentrale Statusbar verlegt, die Planungsziel-Vorschau verbleibt fokussiert im Einplanen-Kontext. Dauerhaft geöffnete Anlage- oder Suchformulare am Listenende sind durch die Primäraktion im Seitenkopf abgelöst.
 

@@ -185,7 +185,7 @@ def _assert_component_controls_fit(page: Page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     dimensions = page.locator(
         'main .btn, main .form-control, main .form-select, main .form-check, '
-        'main summary, main .component-edit-link'
+        'main summary, main .component-action .ui-sem-control'
     ).evaluate_all('''elements => elements.filter(e => e.getClientRects().length).map(e => ({
         height: e.getBoundingClientRect().height,
         width: e.getBoundingClientRect().width,
@@ -224,8 +224,10 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
         row = page.locator(f'.component-row[data-public-id="{public_id}"]')
         expect(row).to_contain_text(long_name)
         expect(row).to_contain_text('verwendet in 0 Gerichten')
-        edit_link = row.get_by_role('link', name='Bearbeiten', exact=True)
+        edit_link = row.get_by_role('link', name=f'Baustein {long_name} bearbeiten', exact=True)
         expect(edit_link).to_be_visible()
+        expect(edit_link).to_have_text('Bearbeiten')
+        expect(edit_link).to_have_attribute('title', f'Baustein {long_name} bearbeiten')
         if width < 768:
             assert row.evaluate('e => getComputedStyle(e).display') == 'grid'
             expect(row.locator('[data-label="Kategorie"]')).to_be_visible()

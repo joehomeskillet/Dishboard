@@ -141,7 +141,7 @@ def _open_editor(page: Page, family: str) -> None:
         form.get_by_role('button', name='Anlegen', exact=True).click()
         page.wait_for_url(f'**{list_path}/*')
     else:
-        page.locator('.component-edit-link').first.click()
+        page.locator('.component-action .ui-sem-control').first.click()
         page.wait_for_load_state()
 
 
@@ -162,6 +162,9 @@ def test_list_first_row_visible_without_scroll(catalog_page: Page, family: str) 
     expect(page.locator('#create-component')).not_to_have_attribute('open', '')
     first_row = page.locator('.component-list-container .component-row').first
     expect(first_row).to_be_visible()
+    expect(first_row.locator('.admin-table-status .admin-label.admin-status--active')).to_be_visible()
+    expect(first_row.locator('.category .admin-label.admin-status--category')).to_be_visible()
+    expect(first_row.locator('.admin-row-actions [data-semantic="actions.edit"]')).to_have_text('Bearbeiten')
     box = first_row.bounding_box()
     assert box is not None
     assert box['y'] + box['height'] <= 768
@@ -440,7 +443,7 @@ def test_p3_polish_components_primary_stack_hint(catalog_page: Page) -> None:  #
     assert row.evaluate("e => getComputedStyle(e).display") == 'grid'
     expect(row.locator('[data-label="Kategorie"]')).to_be_visible()
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-    page.locator('.component-edit-link').first.click()
+    page.locator('.component-action .ui-sem-control').first.click()
     page.wait_for_load_state()
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
     food_hint = page.locator('summary[aria-describedby="c-food-extra-hint"]')

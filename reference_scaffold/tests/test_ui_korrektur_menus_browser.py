@@ -161,12 +161,15 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             # 4. Status separation on cards
             # Tomatensuppe has verified review badge
             soup_card = page.locator('#menu-cards [data-menu-id]').filter(has_text='Tomatensuppe')
-            expect(soup_card.locator('[data-review="checked"]')).to_contain_text('Geprüft · gespeicherter Stand bestätigt')
+            expect(soup_card.locator('[data-review="checked"] .admin-label.admin-status--success')).to_have_text('Geprüft')
+            expect(soup_card.locator('[data-review="checked"] .small')).to_have_text('gespeicherter Stand bestätigt')
 
             # Kartoffelgratin has open review badge AND missing allergens warning directly on card
             gratin_card = page.locator('#menu-cards [data-menu-id]').filter(has_text='Kartoffelgratin')
             expect(gratin_card.locator('[data-review="open"]')).to_contain_text('Prüfung offen')
             expect(gratin_card).to_contain_text('Allergenangaben nicht erfasst')
+            expect(gratin_card.locator('[data-review="open"] .small')).to_be_visible()
+            expect(gratin_card.locator('[data-review="open"] .small')).to_contain_text('Allergenangaben nicht erfasst')
 
             # Long description/note stays available in a native disclosure.
             details = gratin_card.locator('details.menu-note-details')

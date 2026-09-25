@@ -1,10 +1,10 @@
 .dishboard-menu-table { table-layout: fixed; width: 100%; min-width: 0; }
 .dishboard-menu-table.admin-table--stack tbody tr { height: auto; }
-.dishboard-menu-table th:nth-child(1) { width: 28%; }
+.dishboard-menu-table th:nth-child(1) { width: 24%; }
 .dishboard-menu-table th:nth-child(2) { width: 14%; }
 .dishboard-menu-table th:nth-child(3) { width: 16%; }
 .dishboard-menu-table th:nth-child(4) { width: 28%; }
-.dishboard-menu-table th:nth-child(5) { width: 14%; }
+.dishboard-menu-table th:nth-child(5) { width: 18%; }
 .dishboard-menu-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; }
 .dishboard-admin .dishboard-menu-table th {
   font-size: calc(var(--app-font-size-label) * var(--app-font-scale));
@@ -63,7 +63,7 @@
 
 /* Prominent allergen warning in cards */
 .dishboard-admin .menu-grid [data-menu-metadata] > p:not(.menu-description):not(.shared-note):not(.menu-accompaniment) {
-  /* The identical warning remains visible in the single combined review badge. */
+  /* The identical warning remains inline beside the shared review label. */
   display: none;
 }
 

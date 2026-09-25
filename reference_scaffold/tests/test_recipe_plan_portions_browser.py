@@ -246,12 +246,14 @@ def test_browser_add_remove_reorder_keeps_target_quantity_with_own_row(
     page.locator('[name="recipe_revision_public_id"]').nth(1).select_option(second['public_id'])
     page.locator('[name="target_quantity"]').nth(1).fill('3')
     page.locator('[data-finish-row]').nth(1).click()
+    page.locator('#components-list [data-row]').nth(1).locator('summary').click()
     page.locator('#components-list [data-row]').nth(1).get_by_role('button', name='Nach oben', exact=True).click()
     payload = _submit_menu(page)
     assert payload['component_text'] == ['Untensuppe', 'Obensuppe']
     assert payload['target_quantity'] == ['3', '1.5']
     assert payload['target_quantity_unit_code'] == ['PORTION', 'PORTION']
-    page.get_by_role('button', name='Entfernen', exact=True).first.click()
+    page.locator('#components-list [data-row]').first.locator('summary').click()
+    page.locator('#components-list').get_by_role('button', name='Löschen', exact=True).first.click()
     leftover = _submit_menu(page)
     assert leftover['component_text'] == ['Obensuppe']
     # The first submit already round-tripped through the DB, so the reloaded page

@@ -1,5 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, form_footer, hint %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'dish_templates' %}
 {% block title %}Gerichtvorlagen · Menüplanung{% endblock %}
 {% block page_header %}
@@ -9,7 +10,7 @@
   {% set _ = status_items.append({'label': 'Mahlzeit', 'value': meals.get(values.meal, values.meal), 'variant': 'neutral'}) %}
 {% endif %}
 {% call page_header('Gerichtvorlagen', description='Als Menü einplanen · ' ~ values.title, status_items=status_items) %}
-<a class="btn" href="{{ url_for('admin.dish_template_edit', public_id=public_id) }}">{{ icon('arrow-left') }}Zur Vorlage</a>
+{{ icon_button('actions.back', aria_label='Zur Vorlage ' ~ values.title, href=url_for('admin.dish_template_edit', public_id=public_id), icon_only=true) }}
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -21,8 +22,8 @@
 {% endif %}
 {% if occupied is not none %}
 <div class="btn-list mb-3">
-  <a class="btn" href="{{ existing_url }}">{{ icon('eye') }}Bestehendes Menü öffnen</a>
-  <a class="btn" href="#planning-target">{{ icon('calendar-week') }}Anderes Ziel wählen</a>
+  {{ icon_button('actions.open', text='Menü öffnen', aria_label='Bestehendes Menü öffnen: ' ~ occupied, href=existing_url) }}
+  {{ icon_button('actions.edit', text='Ziel wählen', aria_label='Anderes Ziel wählen', href='#planning-target') }}
 </div>
 {% endif %}
 {% if values.template_context %}
@@ -68,17 +69,20 @@
       </div>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
-      <button class="btn" type="submit" name="action" value="refresh">{{ icon('refresh') }}Ziel aktualisieren</button>
+      {{ icon_button('actions.refresh', text='Ziel aktualisieren', name='action', value='refresh') }}
       {{ hint('Nach Wechsel von Bereich oder Woche verfügbare Tage und Mahlzeiten aktualisieren.', 'planning-refresh-hint') }}
     </div>
     <p class="mt-3 mb-0 text-break" role="status" id="planning-summary">{{ values.title }} → {{ area_labels.get(values.area, values.area) }} · {{ summary_day }} · {{ meals.get(values.meal, values.meal) }} · {{ dict(types).get(values.option, values.option) }}</p>
     <noscript><p class="form-hint">«Ziel aktualisieren» übernimmt Ihre Auswahl in die Zusammenfassung.</p></noscript>
     <p class="form-hint mt-2">Erst «Menü speichern» übernimmt das Menü in den Plan.</p>
-    {{ form_footer(primary={'type': 'submit', 'name': 'action', 'value': 'continue', 'label': 'Weiter zum Menü', 'icon': 'chevron-right'}, cancel_url=url_for('admin.dish_template_edit', public_id=public_id)) }}
+    <div class="admin-form-footer"><div class="admin-form-main">
+      {{ icon_button('actions.cancel', href=url_for('admin.dish_template_edit', public_id=public_id)) }}
+      {{ icon_button('actions.next', aria_label='Weiter zum Menü', title='Weiter zum Menü', name='action', value='continue') }}
+    </div></div>
   </div>
 </form>
 {% else %}
-<a class="btn" href="{{ url_for('admin.dish_template_edit', public_id=public_id) }}">{{ icon('arrow-left') }}Vorlage prüfen</a>
+{{ icon_button('actions.open', text='Vorlage prüfen', href=url_for('admin.dish_template_edit', public_id=public_id), emphasis='primary') }}
 {% endif %}
 {% endblock %}
 {% block page_scripts %}<script src="{{ url_for('static', filename='admin-gerichtvorlagen.js') }}" defer></script>{% endblock %}

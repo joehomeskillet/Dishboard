@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit
 import json
 
 import pytest
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import expect
 from sqlalchemy import text
 
 from cafeteria.workflow_review import get_component_review_token, review_component
@@ -23,7 +23,7 @@ from test_admin_workflow_routes import app as workflow_app, database_engine as d
 
 @pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
 @pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
-def test_wp04_reference_post_and_density(live_branding, database_engine, tmp_path, family, profile, javascript):
+def test_wp04_reference_post_and_density(live_branding, database_engine, browser, tmp_path, family, profile, javascript):
     """Real POST baseline, including ordered repeated fields; never record CSRF."""
     origin, _, client, _, _ = live_branding
     payload = _payload(staff=profile == 'staff_guest')
@@ -34,139 +34,140 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, tmp_pat
         assignments=[{'component_public_id': None, 'component_text': 'Kartoffeln'}],
     )
     _save(database_engine, _scope(client, database_engine, profile), title='Referenzmenü', payload=payload)
-    with sync_playwright() as playwright:
-        with playwright.chromium.launch(args=['--no-sandbox']) as chromium:
-            with chromium.new_context(java_script_enabled=javascript, reduced_motion='reduce') as context:
-                context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': origin}])
-                page = context.new_page()
-                metrics = []
-                for width in (360, 768, 1024, 1440):
-                    page.set_viewport_size({'width': width, 'height': 900})
-                    page.goto(f'{origin}/admin/{family}/menues')
-                    row_height = page.locator('[data-menu-list-id]').first.bounding_box()['height']
-                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                    expect(page.locator('main .btn-primary')).to_have_count(1)
-                    expect(page.locator('.admin-statusbar')).to_contain_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
-                    expect(page.locator('#menu-list [data-review] .badge')).to_have_count(1)
-                    expect(page.locator('main .btn-primary')).to_have_count(1)
-                    expect(page.locator('main .btn-primary')).to_be_visible()
-                    if width < 768:
-                        stacked = page.evaluate('''() => {
-                            const table = document.querySelector('.dishboard-menu-table.admin-table--stack');
-                            return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
-                        }''')
-                        assert stacked, width
-                    hint = page.locator('details.admin-hint').first
-                    summary = hint.locator('summary')
-                    expect(summary).to_be_visible()
-                    summary.focus()
-                    expect(summary).to_be_focused()
-                    if hint.get_attribute('open') is None:
-                        page.keyboard.press('Enter')
-                    expect(hint).to_have_attribute('open', '')
-                    page.keyboard.press('Enter')
-                    assert row_height < (284 if width < 1440 else 86)
-                    page.screenshot(path=str(tmp_path / f'list-{width}.png'), full_page=True)
-                    page.locator('#menu-list [data-admin-icon-action]').first.click()
-                    for section in ('allergen', 'origin'):
-                        details = page.locator(f'details[data-mode-section="{section}"]')
-                        if details.get_attribute('open') is None:
-                            details.locator('summary').click()
-                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                    expect(page.locator('main .btn-primary')).to_have_count(1)
-                    expect(page.locator('.admin-statusbar')).to_contain_text('Profil')
-                    expect(page.locator('[data-option-group]')).to_contain_text('Nicht ausgewählt bedeutet nicht: allergenfrei bestätigt.')
-                    expect(page.locator('[data-review-scope="persisted"]')).to_be_visible()
-                    for control in page.locator('[data-option-presence]:disabled').all():
-                        expect(control).to_be_hidden()
-                    metrics.append({'width': width, 'row': round(row_height, 2),
-                                    'allergens': round(page.locator('.allergen-list').bounding_box()['height'], 2),
-                                    'origins': round(page.locator('#origins-list').bounding_box()['height'], 2)})
-                    page.screenshot(path=str(tmp_path / f'editor-{width}.png'), full_page=True)
-                page.locator('#f-title').focus()
-                page.keyboard.press('Tab')
-                expect(page.locator('#accompaniment-none')).to_be_focused()
-                assert page.locator('#accompaniment-none').evaluate('e => getComputedStyle(e).outlineStyle !== "none"')
-                csrf = page.locator('form[data-menu-editor] [name="_csrf"]').input_value()
-                with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as posted:
-                    page.get_by_role('button', name='Menü speichern', exact=True).click()
-                assert posted.value.status == 303
-                fields = parse_qsl(posted.value.request.post_data, keep_blank_values=True)
-                assert dict(fields)['_csrf'] == csrf
-                sanitized = [(key, value) for key, value in fields if key != '_csrf']
-                # Captured on unmodified 9af1334d, for JS and No-JS in both profiles.
-                expected = {
-                    'week': ['2026-08-31'], 'day': ['2026-08-31'], 'meal': ['LUNCH'],
-                    'option': ['MENU_1'], 'row_version': ['1'], 'dish_template_public_id': [''],
-                    'title': ['Referenzmenü'], 'accompaniment': ['none'], 'description': [''], 'note': [''],
-                    'allergen_mode': ['manual'], 'allergen_code': ['GLUTEN', 'MILK'],
-                    'origin_mode': ['manual'],
-                    'label_mode': ['manual'], 'component_public_id': [''], 'component_text': ['Kartoffeln'],
-                    'recipe_revision_public_id': [''], 'target_quantity': [''], 'target_quantity_unit_code': [''],
-                    'origin_ingredient': ['Reis', 'Rind'], 'origin_country_code': ['IT', 'CH'],
-                }
-                if profile == 'staff_guest':
-                    expected.update(internal_chf=['9.50'], external_chf=['14.50'])
-                actual = {}
-                for key, value in sanitized:
-                    actual.setdefault(key, []).append(value)
-                presence_fields = {key: value for key, value in actual.items() if key.startswith('allergen_presence__')}
-                assert presence_fields['allergen_presence__GLUTEN'] == ['contains']
-                assert presence_fields['allergen_presence__MILK'] == ['may_contain']
-                expected.update(presence_fields)
-                assert actual == expected
-                print('WP04_REFERENCE', family, javascript, json.dumps(sanitized, ensure_ascii=False))
-                print('WP04_METRICS', family, javascript, json.dumps(metrics), str(tmp_path))
-                page.wait_for_load_state()
-                saved_review = page.locator('#review').inner_text()
-                for code, selected in [('MILK', False), ('LUPIN', True), ('GLUTEN', False), ('GLUTEN', True)]:
-                    page.locator(f'[name="allergen_code"][value="{code}"]').set_checked(selected)
-                page.locator('#allergen-lupin-presence').select_option('may_contain')
-                expect(page.locator('#allergen-milk-presence')).to_be_enabled()
-                expect(page.locator('#review')).to_have_text(saved_review)
-                with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as changed:
-                    page.get_by_role('button', name='Menü speichern', exact=True).click()
-                submitted = parse_qs(changed.value.request.post_data, keep_blank_values=True)
-                assert submitted['allergen_code'] == ['GLUTEN', 'LUPIN']
-                assert changed.value.status == 303
-                assert [(code, submitted[f'allergen_presence__{code}'][0]) for code in submitted['allergen_code']] == [
-                    ('GLUTEN', 'contains'), ('LUPIN', 'may_contain'),
-                ]
-                page.wait_for_load_state()
-                page.reload()
-                assert page.locator('[name="allergen_code"]:checked').evaluate_all('(els) => els.map(e => e.value)') == ['GLUTEN', 'LUPIN']
-                expect(page.locator('#allergen-gluten-presence')).to_have_value('contains')
-                expect(page.locator('#allergen-lupin-presence')).to_have_value('may_contain')
-                next_version = 3
+    with browser.new_context(java_script_enabled=javascript, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': origin}])
+        page = context.new_page()
+        metrics = []
+        for width in (360, 768, 1024, 1440):
+            page.set_viewport_size({'width': width, 'height': 900})
+            page.goto(f'{origin}/admin/{family}/menues')
+            row_height = page.locator('[data-menu-list-id]').first.bounding_box()['height']
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            expect(page.locator('main .btn-primary')).to_have_count(1)
+            expect(page.locator('.admin-statusbar')).to_contain_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
+            expect(page.locator('#menu-list [data-review] .badge')).to_have_count(1)
+            expect(page.locator('#menu-list table.admin-table.admin-table--stack')).to_have_count(1)
+            expect(page.locator('#menu-list .admin-label.admin-status--warning')).to_be_visible()
+            expect(page.locator('#menu-list [data-semantic="actions.edit"]')).to_have_text('Bearbeiten')
+            expect(page.locator('main .btn-primary')).to_have_count(1)
+            expect(page.locator('main .btn-primary')).to_be_visible()
+            if width < 768:
+                stacked = page.evaluate('''() => {
+                    const table = document.querySelector('.dishboard-menu-table.admin-table--stack');
+                    return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
+                }''')
+                assert stacked, width
+            hint = page.locator('details.admin-hint').first
+            summary = hint.locator('summary')
+            expect(summary).to_be_visible()
+            summary.focus()
+            expect(summary).to_be_focused()
+            if hint.get_attribute('open') is None:
+                page.keyboard.press('Enter')
+            expect(hint).to_have_attribute('open', '')
+            page.keyboard.press('Enter')
+            assert row_height < (284 if width < 1440 else 86)
+            page.screenshot(path=str(tmp_path / f'list-{width}.png'), full_page=True)
+            page.locator('#menu-list [data-admin-icon-action]').first.click()
+            for section in ('allergen', 'origin'):
+                details = page.locator(f'details[data-mode-section="{section}"]')
+                if details.get_attribute('open') is None:
+                    details.locator('summary').click()
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            expect(page.locator('main .btn-primary')).to_have_count(1)
+            expect(page.locator('.admin-statusbar')).to_contain_text('Profil')
+            expect(page.locator('[data-option-group]')).to_contain_text('Nicht ausgewählt bedeutet nicht: allergenfrei bestätigt.')
+            expect(page.locator('[data-review-scope="persisted"]')).to_be_visible()
+            for control in page.locator('[data-option-presence]:disabled').all():
+                expect(control).to_be_hidden()
+            metrics.append({'width': width, 'row': round(row_height, 2),
+                            'allergens': round(page.locator('.allergen-list').bounding_box()['height'], 2),
+                            'origins': round(page.locator('#origins-list').bounding_box()['height'], 2)})
+            page.screenshot(path=str(tmp_path / f'editor-{width}.png'), full_page=True)
+        page.locator('#f-title').focus()
+        page.keyboard.press('Tab')
+        expect(page.locator('#accompaniment-none')).to_be_focused()
+        assert page.locator('#accompaniment-none').evaluate('e => getComputedStyle(e).outlineStyle !== "none"')
+        csrf = page.locator('form[data-menu-editor] [name="_csrf"]').input_value()
+        with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as posted:
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
+        assert posted.value.status == 303
+        fields = parse_qsl(posted.value.request.post_data, keep_blank_values=True)
+        assert dict(fields)['_csrf'] == csrf
+        sanitized = [(key, value) for key, value in fields if key != '_csrf']
+        # Captured on unmodified 9af1334d, for JS and No-JS in both profiles.
+        expected = {
+            'week': ['2026-08-31'], 'day': ['2026-08-31'], 'meal': ['LUNCH'],
+            'option': ['MENU_1'], 'row_version': ['1'], 'dish_template_public_id': [''],
+            'title': ['Referenzmenü'], 'accompaniment': ['none'], 'description': [''], 'note': [''],
+            'allergen_mode': ['manual'], 'allergen_code': ['GLUTEN', 'MILK'],
+            'origin_mode': ['manual'],
+            'label_mode': ['manual'], 'component_public_id': [''], 'component_text': ['Kartoffeln'],
+            'recipe_revision_public_id': [''], 'target_quantity': [''], 'target_quantity_unit_code': [''],
+            'origin_ingredient': ['Reis', 'Rind'], 'origin_country_code': ['IT', 'CH'],
+        }
+        if profile == 'staff_guest':
+            expected.update(internal_chf=['9.50'], external_chf=['14.50'])
+        actual = {}
+        for key, value in sanitized:
+            actual.setdefault(key, []).append(value)
+        presence_fields = {key: value for key, value in actual.items() if key.startswith('allergen_presence__')}
+        assert presence_fields['allergen_presence__GLUTEN'] == ['contains']
+        assert presence_fields['allergen_presence__MILK'] == ['may_contain']
+        expected.update(presence_fields)
+        assert actual == expected
+        print('WP04_REFERENCE', family, javascript, json.dumps(sanitized, ensure_ascii=False))
+        print('WP04_METRICS', family, javascript, json.dumps(metrics), str(tmp_path))
+        page.wait_for_load_state()
+        saved_review = page.locator('#review').inner_text()
+        for code, selected in [('MILK', False), ('LUPIN', True), ('GLUTEN', False), ('GLUTEN', True)]:
+            page.locator(f'[name="allergen_code"][value="{code}"]').set_checked(selected)
+        page.locator('#allergen-lupin-presence').select_option('may_contain')
+        expect(page.locator('#allergen-milk-presence')).to_be_enabled()
+        expect(page.locator('#review')).to_have_text(saved_review, use_inner_text=True)
+        with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as changed:
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
+        submitted = parse_qs(changed.value.request.post_data, keep_blank_values=True)
+        assert submitted['allergen_code'] == ['GLUTEN', 'LUPIN']
+        assert changed.value.status == 303
+        assert [(code, submitted[f'allergen_presence__{code}'][0]) for code in submitted['allergen_code']] == [
+            ('GLUTEN', 'contains'), ('LUPIN', 'may_contain'),
+        ]
+        page.wait_for_load_state()
+        page.reload()
+        assert page.locator('[name="allergen_code"]:checked').evaluate_all('(els) => els.map(e => e.value)') == ['GLUTEN', 'LUPIN']
+        expect(page.locator('#allergen-gluten-presence')).to_have_value('contains')
+        expect(page.locator('#allergen-lupin-presence')).to_have_value('may_contain')
+        next_version = 3
 
-                def invalid_presence(route):
-                    fields = parse_qsl(route.request.post_data, keep_blank_values=True)
-                    route.continue_(post_data=urlencode([
-                        (key, 'invalid' if key == 'allergen_presence__GLUTEN' else value)
-                        for key, value in fields]))
+        def invalid_presence(route):
+            fields = parse_qsl(route.request.post_data, keep_blank_values=True)
+            route.continue_(post_data=urlencode([
+                (key, 'invalid' if key == 'allergen_presence__GLUTEN' else value)
+                for key, value in fields]))
 
-                page.route('**/menu', invalid_presence, times=1)
-                with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as invalid:
-                    page.get_by_role('button', name='Menü speichern', exact=True).click()
-                assert invalid.value.status == 400
-                presence = page.locator('#allergen-gluten-presence')
-                expect(presence).to_have_value('invalid')
-                expect(presence).to_have_attribute('aria-invalid', 'true')
-                expect(presence).to_have_attribute('aria-describedby', 'allergen-gluten-error')
-                expect(page.locator('#allergen-gluten-error')).to_contain_text('ungültig')
-                expect(page.locator('#allergen-lupin-presence')).to_have_value('may_contain')
-                payload.update(allergen_mode='auto', allergens=[])
-                persist_menu_item(database_engine, _scope(client, database_engine, profile), WEEK,
-                                  WEEK.isoformat(), 'LUNCH', 'MENU_1', payload, next_version)
-                page.goto(f'{origin}/admin/{family}/menu?week={WEEK}&day={WEEK}&meal=LUNCH&option=MENU_1')
-                with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as automatic:
-                    page.get_by_role('button', name='Menü speichern', exact=True).click()
-                auto_fields = parse_qs(automatic.value.request.post_data, keep_blank_values=True)
-                assert automatic.value.status == 303
-                assert auto_fields['allergen_mode'] == ['auto']
-                assert 'allergen_code' not in auto_fields and 'allergen_presence' not in auto_fields
-                assert not any(key.startswith('allergen_presence__') for key in auto_fields)
-                print('WP04_AUTO', family, javascript, automatic.value.status, 'no allergen fields')
+        page.route('**/menu', invalid_presence, times=1)
+        with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as invalid:
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
+        assert invalid.value.status == 400
+        presence = page.locator('#allergen-gluten-presence')
+        expect(presence).to_have_value('invalid')
+        expect(presence).to_have_attribute('aria-invalid', 'true')
+        expect(presence).to_have_attribute('aria-describedby', 'allergen-gluten-error')
+        expect(page.locator('#allergen-gluten-error')).to_contain_text('ungültig')
+        expect(page.locator('#allergen-lupin-presence')).to_have_value('may_contain')
+        payload.update(allergen_mode='auto', allergens=[])
+        persist_menu_item(database_engine, _scope(client, database_engine, profile), WEEK,
+                          WEEK.isoformat(), 'LUNCH', 'MENU_1', payload, next_version)
+        page.goto(f'{origin}/admin/{family}/menu?week={WEEK}&day={WEEK}&meal=LUNCH&option=MENU_1')
+        with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as automatic:
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
+        auto_fields = parse_qs(automatic.value.request.post_data, keep_blank_values=True)
+        assert automatic.value.status == 303
+        assert auto_fields['allergen_mode'] == ['auto']
+        assert 'allergen_code' not in auto_fields and 'allergen_presence' not in auto_fields
+        assert not any(key.startswith('allergen_presence__') for key in auto_fields)
+        print('WP04_AUTO', family, javascript, automatic.value.status, 'no allergen fields')
 
 
 def test_collection_navigation_search_and_mobile_layout(page_context, admin_app, admin_engine):
@@ -215,7 +216,7 @@ def test_icon_actions_use_tabler_tooltips_under_real_csp(
             link = page.locator(f'#menu-{view} [data-admin-icon-action]').first
             expect(link).to_have_attribute('aria-label', 'Kartoffelgratin mit Gemüse vom 31.08.2026 bearbeiten')
             assert link.inner_text() == 'Bearbeiten'
-            expect(link.locator('use')).to_have_attribute('href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-pencil')
+            expect(link.locator('use')).to_have_attribute('href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-edit')
             assert link.evaluate('element => Boolean(window.tabler.Tooltip.getInstance(element))')
             link.hover()
             tooltip = page.get_by_role('tooltip')
@@ -337,3 +338,98 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
     expect(rows).to_have_count(1)
     rows.get_by_role('link').click()
     expect(page.locator('input[name="title"]')).to_have_value('Kartoffelgratin mit Gemüse')
+
+
+def test_p4_density_and_form_contract_against_base(live_branding, database_engine, browser, tmp_path):
+    """Render identical fixtures with base and current templates, without changing files."""
+    from pathlib import Path
+    import subprocess
+    from jinja2 import ChoiceLoader, DictLoader
+    from test_dish_template_routes import create, fields
+
+    origin, app, client, _, _ = live_branding
+    _save(database_engine, _scope(client, database_engine, 'staff_guest'), title='Polish Referenzmenü')
+    template_path = create(client, title='Polish Gerichtvorlage', menu_type_code='MENU_1')
+    component_path = '/admin/cafeteria/komponenten'
+    data = fields(client, component_path)
+    for key, value in {'name': 'Polish Baustein', 'category': 'side', 'target_scope': 'common'}.items():
+        data[key] = value
+    assert client.post(component_path, data=data).status_code == 303
+    root = Path(__file__).resolve().parents[2]
+    base = 'd2e66fed8fe3fce9aab21f5613140327dd19822b'
+    names = ('menu_editor', 'menu_collection', 'gerichtvorlagen', 'gerichtvorlage_einplanen', 'components')
+    baseline = {f'admin/{name}.html': subprocess.check_output(
+        ['rtk', 'git', 'show', f'{base}:reference_scaffold/cafeteria/templates/admin/{name}.html'],
+        cwd=root, text=True) for name in names}
+    routes = {
+        'menu_collection': '/admin/cafeteria/menues',
+        'menu_editor': f'/admin/cafeteria/menu?week={WEEK}&day={WEEK}&meal=LUNCH&option=MENU_1',
+        'gerichtvorlagen': '/admin/gerichtvorlagen',
+        'gerichtvorlage_einplanen': template_path + '/einplanen',
+        'components': component_path,
+    }
+    css_names = ('admin-menu-editor.css', 'admin-menu-collection.css', 'admin-components.css', 'admin-gerichtvorlagen.css')
+    css = {name: subprocess.check_output(
+        ['rtk', 'git', 'show', f'{base}:reference_scaffold/cafeteria/static/{name}'],
+        cwd=root, text=True) for name in css_names}
+    original_loader = app.jinja_env.loader
+    measurements = {}
+    contracts = {}
+    try:
+        for version in ('before', 'after'):
+            app.jinja_env.loader = ChoiceLoader([DictLoader(baseline), original_loader]) if version == 'before' else original_loader
+            app.jinja_env.cache.clear()
+            with browser.new_context(reduced_motion='reduce') as context:
+                context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': origin}])
+                if version == 'before':
+                    for filename, source in css.items():
+                        context.route('**/static/' + filename, lambda route, request, body=source: route.fulfill(
+                            status=200, content_type='text/css', body=body))
+                page = context.new_page()
+                for width in (360, 1440):
+                    page.set_viewport_size({'width': width, 'height': 900})
+                    for name, route in routes.items():
+                        assert page.goto(origin + route).status == 200
+                        page.evaluate('document.fonts.ready')
+                        key = f'{name}-{width}'
+                        measurements.setdefault(key, {})[version] = page.evaluate('''() => ({
+                            height: document.documentElement.scrollHeight,
+                            width: document.documentElement.scrollWidth,
+                            rows: [...document.querySelectorAll('main table tbody tr')].map(e => e.getBoundingClientRect().height)
+                        })''')
+                        # Compare actual successful fields and submitter contracts without recording secrets.
+                        contract = page.locator('main form').evaluate_all('''forms => forms.map(f => ({
+                            action: f.getAttribute('action'), method: f.method,
+                            loading: f.getAttribute('data-loading'),
+                            fieldAttributes: [...f.querySelectorAll('input, select, textarea')]
+                                .map(e => [e.name, e.getAttribute('maxlength'), e.getAttribute('aria-describedby')]),
+                            fields: [...new FormData(f)].filter(([k]) => k !== '_csrf').map(([k, v]) => {
+                                if (k === 'template_context') {
+                                    const context = JSON.parse(atob(v.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                                    delete context.expires_at; // Each GET issues a fresh expiry/signature.
+                                    return [k, context];
+                                }
+                                return [k, v];
+                            }),
+                            csrf: Boolean(f.querySelector('[name="_csrf"]')),
+                            submitters: [...f.querySelectorAll('button[type="submit"], input[type="submit"]')]
+                                .map(b => [b.name, b.value, b.getAttribute('formaction'), b.formNoValidate, b.getAttribute('form')])
+                        }))''')
+                        contracts.setdefault(key, {})[version] = contract
+                        if version == 'after':
+                            page.screenshot(path=str(tmp_path / f'p4-{key}.png'), full_page=True)
+                            expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                            expect(page.locator('main [onclick], main script:not([src])')).to_have_count(0)
+    finally:
+        app.jinja_env.loader = original_loader
+        app.jinja_env.cache.clear()
+    (tmp_path / 'p4-density.json').write_text(json.dumps(measurements, indent=2))
+    print('P4_DENSITY', json.dumps(measurements), str(tmp_path))
+    for key, pair in measurements.items():
+        before, after = pair['before'], pair['after']
+        assert after['width'] <= int(key.rsplit('-', 1)[1]), (key, pair)
+        assert bool(contracts[key]['before'] == contracts[key]['after']), key
+        if key.endswith('-1440'):
+            assert after['height'] <= before['height'], (key, pair)
+            assert len(after['rows']) == len(before['rows'])
+            assert all(a <= b for a, b in zip(after['rows'], before['rows'], strict=True)), (key, pair)

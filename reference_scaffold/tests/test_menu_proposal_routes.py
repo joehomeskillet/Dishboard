@@ -117,7 +117,7 @@ def test_missing_or_archived_recipe_keeps_explicit_unbound_choice(admin_app, adm
     if revision:
         assert f'value="{revision["public_id"]}"' not in editor.text
     if state == 'no_revision':
-        assert 'Stand festhalten' in editor.text
+        assert 'Rezeptstand festhalten' in editor.text
     before = stored_state(admin_engine)
     assert client.post('/admin/patienten/menu?return_to=week', data=menu).status_code == 303
     assert stored_state(admin_engine)['dish_templates'] == before['dish_templates']

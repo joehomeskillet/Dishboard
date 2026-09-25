@@ -86,6 +86,9 @@ def _assert_no_overflow(page: Page) -> None:
 def _assert_one_primary_save(page: Page) -> None:
     form = page.locator('form[data-menu-editor]')
     expect(form.locator('.btn-primary')).to_have_count(1)
+    expect(form.locator('.btn-primary[data-semantic="actions.save"] use')).to_have_attribute(
+        'href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-device-floppy')
+    expect(page.locator('#review .admin-list-row')).to_have_count(2)
     expect(form.get_by_role('button', name='Menü speichern', exact=True)).to_have_count(1)
     expect(form.get_by_role('button', name='Speichern und zum Wochenplan', exact=True)).to_have_count(1)
     secondary = form.locator('input[type="submit"][formaction*="return_to=week"]')
@@ -160,14 +163,14 @@ def test_a08_reopening_empty_input_kind_focuses_selected_control(editor_page, fa
         option.check()
         expect(row.locator(f'[name="{name}"]')).to_have_value('')
         expect(row.locator(f'[name="{other_name}"]')).to_have_value('')
-        row.get_by_role('button', name='Fertig').click()
+        row.get_by_role('button', name='Bestätigen').click()
         edit = row.get_by_role('button', name='Bearbeiten')
         expect(edit).to_be_focused()
         edit.press('Enter')
         expect(option).to_be_checked()
         expect(row.locator(f'[name="{name}"]')).to_be_focused()
         expect(row.locator(f'[name="{other_name}"]')).to_be_hidden()
-        row.get_by_role('button', name='Fertig').click()
+        row.get_by_role('button', name='Bestätigen').click()
 
 
 def test_a09_add_move_remove_keeps_visual_payload_order(editor_page, family: str, javascript: bool) -> None:  # noqa: F811
@@ -175,15 +178,18 @@ def test_a09_add_move_remove_keeps_visual_payload_order(editor_page, family: str
         pytest.skip('Zeilenaktionen benötigen progressive Enhancement.')
     page, *_ = editor_page
     page.goto(_menu_url(family))
-    page.get_by_role('button', name='Baustein hinzufügen').click()
+    page.locator('[data-add-row="components-list"]').click()
     rows = page.locator('#components-list .component-row')
     expect(rows).to_have_count(3)
     expect(rows.last.locator('[name="component_public_id"]')).to_be_focused()
     rows.last.locator('[data-component-kind-option][value="text"]').check()
     rows.last.locator('[name="component_text"]').fill('Dritte Beilage')
-    rows.last.get_by_role('button', name='Fertig').click()
+    rows.last.get_by_role('button', name='Bestätigen').click()
+    expect(rows.last.locator('[data-move-row="up"]')).not_to_be_visible()
+    rows.last.locator('summary').click()
     rows.last.get_by_role('button', name='Nach oben').click()
-    rows.first.get_by_role('button', name='Entfernen').click()
+    rows.first.locator('summary').click()
+    rows.first.get_by_role('button', name='Löschen').click()
 
     expect(rows).to_have_count(2)
     expect(rows.nth(0).locator('legend').first).to_have_text('Baustein 1')
@@ -265,10 +271,10 @@ def test_a11_a12_editor_evidence_states(editor_page, family: str, javascript: bo
         _capture(page, 'menu-editor-ohne-js-1366x768.png')
         return
 
-    page.get_by_role('button', name='Baustein hinzufügen').click()
+    page.locator('[data-add-row="components-list"]').click()
     page.locator('[data-component-kind-option][value="text"]').last.check()
     page.locator('[name="component_text"]').last.fill('Dritte Beilage')
-    page.get_by_role('button', name='Fertig').last.click()
+    page.locator('[data-finish-row]').last.click()
     for width, height in DENSITY_VIEWPORTS:
         page.set_viewport_size({'width': width, 'height': height})
         _capture(page, f'menu-editor-regulaer-{width}x{height}.png')
@@ -360,7 +366,7 @@ def test_compact_assignments_and_native_kind_contract(
 ) -> None:
     page, *_ = editor_page
     page.goto(_menu_url(family))
-    expect(page.get_by_role('button', name='Baustein hinzufügen', exact=True)).to_have_count(1)
+    expect(page.locator('[data-add-row="components-list"]')).to_have_count(1)
     _assert_one_primary_save(page)
     rows = page.locator('#components-list .component-row')
     expect(rows).to_have_count(2)
@@ -370,8 +376,8 @@ def test_compact_assignments_and_native_kind_contract(
         height = rows.first.evaluate('el => el.getBoundingClientRect().height')
         assert height >= 44
         expect(rows.get_by_role('button', name='Bearbeiten')).to_have_count(2)
-        expect(rows.get_by_role('button', name='Nach oben')).to_have_count(2)
-        expect(rows.get_by_role('button', name='Entfernen', exact=True)).to_have_count(2)
+        expect(rows.locator('[data-move-row="up"]')).to_have_count(2)
+        expect(rows.locator('[data-remove-row]')).to_have_count(2)
     else:
         for row in rows.all():
             expect(row.locator('[name="component_public_id"]')).to_be_visible()
