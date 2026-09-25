@@ -52,7 +52,7 @@ def test_calendar_template_uses_shared_statusbar_and_primary_action() -> None:
     assert "'label': 'Monat'" in text
     assert "'label': 'Geplante Tage'" in text
     assert 'Anlass anlegen' in text
-    assert 'btn-primary' in text
+    assert "icon_button('actions.add'" in text
 
 
 def test_calendar_template_keeps_mobile_list_for_narrow_viewports() -> None:
