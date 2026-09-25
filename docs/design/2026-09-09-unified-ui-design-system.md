@@ -1231,6 +1231,8 @@ Nicht-Zutaten `q` erzwingen würde. «Neu laden» im Standortkonflikt bleibt der
 sichtbare Wiederherstellungstext. Allergenprüfung heisst «Prüfung bestätigen»/
 «Prüfung aufheben»; Reaktivieren nutzt `actions.activate`.
 
+**Polish P5b:** Zutaten-Listen und Tabellen folgen den drei gemeinsamen Rollen ohne lokale Modul-Typografie in `admin-grundlagen.css`.
+
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
 Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeutiges Objekt, nicht mehrfach denselben Titel.
@@ -2270,6 +2272,8 @@ Eine sichtbare `.btn-primary` je Zustand; Archivieren bleibt selten und bestäti
 admin-table--stack`. Reaktivieren verwendet `actions.activate` mit sichtbarem
 Kurzlabel «Reaktivieren».
 
+**Polish P5b:** Kochbuch-Listen folgen den drei gemeinsamen Rollen ohne lokale Modul-Typografie in `cookbook-admin.css`.
+
 ##### Modul Gerichtvorlagen (2026-09-20)
 
 **Polish P4: menues (2026-09-24).** Liste und Einplanen verwenden semantische
@@ -2314,6 +2318,8 @@ heisst «Mit Archivierten», getrennt von der Archivierungsaktion. GET-Filter f�
 Stand und Woche bleiben lokal, weil `filter_bar_sem` ein Suchfeld `q` erzwingen
 würde. Unvollständige Positionen bleiben eine Inhaltsliste.
 
+**Polish P5b:** Einkaufslisten und Tabellen folgen den drei gemeinsamen Rollen; lokale font-weight- und Farb-Überschreibungen in `admin-einkaufslisten.css` sind bereinigt.
+
 ##### Modul Lager (2026-09-20)
 
 Die Lagerseite folgt M01/M23/M25: Titel «Lager», ein Satz Kontext, Statusbar
@@ -2349,6 +2355,8 @@ Bestand ohne Erfassung als `admin-status--warning`. Zuordnungshinweis in
 **Polish P4:** Zuordnungstabelle `admin-table admin-table--stack` mit
 `admin-table-status`/`admin-table-actions`. Fehlender Bestand ist `label()`.
 
+**Polish P5b:** Lager-Zuordnungen folgen den drei gemeinsamen Rollen; modulspezifische Typografie-Deklarationen in `admin-lager.css` sind bereinigt.
+
 ##### Modul Kalkulation (2026-09-20)
 
 Kalkulation nutzt M01/M23/M25: Seitenkopf mit genau einer Primäraktion
@@ -2375,6 +2383,8 @@ bleiben sichtbar. Vorschau- und Belegformulare opt-in `data-loading`.
 
 **Polish P4:** Ergebniszeilen `admin-table admin-table--stack` mit `label()`
 und `empty_value()`. Technische Zutaten-IDs bleiben eine Inhaltsliste.
+
+**Polish P5b:** Kalkulationszeilen folgen den drei gemeinsamen Rollen ohne lokale Modul-Typografie in `admin-kalkulation.css`.
 
 ##### Modul Einstellungen – Erscheinungsbild (2026-09-20)
 
