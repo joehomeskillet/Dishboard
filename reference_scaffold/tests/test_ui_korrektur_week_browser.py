@@ -396,6 +396,11 @@ def test_a12_empty_and_review_open_screenshots(
     page = page_context
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, family)
+    first_slot = page.get_by_role('link', name='Erster Slot öffnen')
+    if family == 'cafeteria':
+        expect(first_slot).to_be_visible()
+    else:
+        expect(first_slot).to_have_count(0)
     _shot(page, family, 'empty', 1366, 768)
     profile = PROFILE_BY_FAMILY[family]
     values = deepcopy(_staff_values() if profile == 'staff_guest' else _patient_values())

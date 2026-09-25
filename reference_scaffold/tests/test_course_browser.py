@@ -157,6 +157,7 @@ def test_course_disclosure_form_contract_and_viewports(
             page.screenshot(path=str(EVIDENCE / f'wp26-{family}-{javascript_enabled}-{width}.png'), full_page=True)
         # Native disclosures never alter which fields are submitted, including CAS.
         editor.locator(':scope > summary').click()
+        expect(page.get_by_role('link', name=f'Suppe planen · {DAY} · LUNCH')).to_be_visible()
         page.locator(f'a[href="#course-{DAY}-LUNCH-soup-state"]').click()
         expect(form.locator('select[name="soup_state"]')).to_be_visible()
         if javascript_enabled:

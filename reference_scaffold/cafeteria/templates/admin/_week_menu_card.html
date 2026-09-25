@@ -1,6 +1,6 @@
 {% from '_food_symbols.html' import symbol, allergen_text %}
 {% from 'admin/_macros.html' import label as ui_label %}
-{% from 'ui/_semantic.html' import icon_label, status_badge_sem %}
+{% from 'ui/_semantic.html' import icon_label, status_badge_sem, sem_icon %}
 {% set hint_len = (cell.description|default('') ~ cell.note|default(''))|length %}
 <div class="col-12 col-md-6">
   <article class="card menu-slot h-100" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
@@ -12,7 +12,7 @@
       {% if cell.dish_template %}
       <details class="admin-week-template">
         <summary>Weitere Optionen</summary>
-        <a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ icon('copy') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a>
+        <a class="btn text-wrap text-start" href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ sem_icon('navigation.templates') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a>
       </details>
       {% endif %}
       {% if cell.components %}
