@@ -160,7 +160,7 @@ def test_editor_disclosures_preserve_complete_native_post(
                         expect(page.locator('.admin-statusbar')).to_contain_text('Entwurf')
                         assert sorted(map(tuple, form.evaluate('f => [...new FormData(f)]'))) == expected
                         page.screenshot(path=str(tmp_path / f'editor-{width}-js-{javascript}.png'), full_page=True)
-                    menu = page.get_by_label('Mehr Aktionen für Zutat 1', exact=True)
+                    menu = page.get_by_label('Mehr: Weitere Aktionen Zutat 1', exact=True)
                     expect(menu).to_contain_text('Mehr')
                     menu.click()
                     insert = page.get_by_role('button', name='Zutat 1 davor einfügen', exact=True)

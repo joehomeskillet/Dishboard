@@ -612,3 +612,54 @@ def test_p4_owned_templates_pair_german_aria_with_text():
             if 'icon_only=true' in args.replace(' ', ''):
                 continue
             assert 'text=' in args, f'{name}: visible text missing for {args[:160]}'
+
+
+def _visible_word_in_name(node, visible):
+    text = ' '.join(node.get_text(' ', strip=True).split())
+    assert visible in text, text
+    accessible = node.get('aria-label', text)
+    assert visible.lower() in accessible.lower(), (visible, accessible, text)
+
+
+@pytest.mark.parametrize('locale,more,image,upload,edit', [
+    ('de', 'Mehr', 'Bild', 'Hochladen', 'Bearbeiten'),
+    ('en', 'More', 'Image', 'Upload', 'Edit'),
+])
+def test_p4_registry_visible_text_is_in_accessible_name(semantic_app, locale, more, image, upload, edit):
+    """Judge-2: EN labels More/Image/Upload/Edit must occur in the accessible name."""
+    from types import SimpleNamespace
+
+    from bs4 import BeautifulSoup
+    from werkzeug.datastructures import MultiDict
+
+    semantic_app.config['UI_LOCALE'] = locale
+    semantic_app.jinja_env.globals['csrf_token'] = lambda: 'token'
+    for endpoint in ('admin.recipes_list', 'admin.recipe_status', 'admin.recipe_edit',
+                     'admin.recipe_form_rows', 'admin.recipe_images', 'admin.recipe_asset'):
+        semantic_app.add_url_rule('/stub/' + endpoint, endpoint=endpoint, view_func=lambda **_kwargs: '')
+    ingredient = SimpleNamespace(
+        food_public_id='', group_label='', note='', source_reference='', source_kind='',
+        fetched_at='', ingredient_text='Karotte', quantity='1', unit_code='G', line_public_id='')
+    step = SimpleNamespace(instruction='Kochen', duration_minutes='', image_sha256='')
+    payload = SimpleNamespace(
+        title='Suppe', source=SimpleNamespace(kind='manual', reference='', url='', note='', fetched_at=''),
+        ingredients=[ingredient], steps=[step], images=[])
+    recipe = SimpleNamespace(
+        payload=SimpleNamespace(title='Suppe', images=[]), active=True, public_id='r1', row_version=1)
+    with semantic_app.test_request_context():
+        editor = render_template_string(
+            "{% extends 'admin/rezepte_editor.html' %}{% block sidebar %}{% endblock %}",
+            confirmation=False, payload=payload, active=True, recipe_id='r1', can_write=True,
+            links={'recipe_images': '/bilder', 'recipe_revisions': '/revisionen', 'recipe_scale': '/skala'},
+            data=MultiDict(), choices=SimpleNamespace(units=[], foods=[], tags=[]),
+            source_names={}, image_names={}, action='recipe.update')
+        images = render_template_string(
+            "{% extends 'admin/rezepte_images.html' %}{% block sidebar %}{% endblock %}",
+            recipe=recipe, token='token')
+    editor_doc = BeautifulSoup(editor, 'html.parser')
+    for summary in editor_doc.select('.admin-compact-actions > summary'):
+        _visible_word_in_name(summary, more)
+    _visible_word_in_name(editor_doc.select_one('a[data-semantic="data.image"]'), image)
+    _visible_word_in_name(editor_doc.select_one('button[data-recipe-toggle^="step-details"]'), edit)
+    upload_button = BeautifulSoup(images, 'html.parser').select_one('button[data-semantic="actions.upload"]')
+    _visible_word_in_name(upload_button, upload)

@@ -123,12 +123,12 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         cards = page.locator('.recipe-card-grid article')
         boxes = [card.bounding_box() for card in cards.all()]
         assert len(boxes) == 4 and all(box is not None for box in boxes)
-        rows = cards.locator('.recipe-list-row')
+        rows = cards.locator('.admin-list-row')
         expect(rows).to_have_count(4)
         assert rows.evaluate_all('''els => els.every(el =>
             el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1)''')
         metrics = rows.evaluate_all('''els => els.map(el => {
-            const title = el.querySelector('h2');
+            const title = el.querySelector('.admin-list-name strong');
             const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
             return {height: el.closest('article').getBoundingClientRect().height,
                 titleLines: Math.round(title.getBoundingClientRect().height / lineHeight),
@@ -154,7 +154,7 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
                    for before, after in zip(boxes[1:], expanded[1:]))
         more.click()
         editor = page.locator(f'main a[href="/admin/rezepte/{public_id}"]')
-        expect(editor).to_have_text('Bearbeiten')
+        expect(editor).to_have_attribute('data-semantic', 'actions.edit')
         expect(editor).to_have_attribute('aria-label', 'Suppe bearbeiten')
         box = editor.bounding_box()
         assert box and box['width'] >= 48 and box['height'] >= 48
@@ -169,8 +169,13 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
             page.keyboard.press('Enter')
         active(page, 'Rezepte')
         expect(page.locator('#recipe-editor')).to_be_visible()
-        page.get_by_text('Weitere Aktionen', exact=True).click()
-        page.get_by_role('link', name='Bilder verwalten', exact=True).click()
+        menu = page.locator('.admin-compact-toolbar .admin-compact-actions > summary')
+        expect(menu).to_contain_text('Mehr')
+        menu.click()
+        images = page.locator('.admin-compact-toolbar').get_by_role('link', name='Bild', exact=True)
+        expect(images).to_contain_text('Bild')
+        assert 'Bild' in (images.get_attribute('aria-label') or '')
+        images.click()
         active(page, 'Rezepte')
         expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte')
         expect(page.locator('.page-header-subtitle')).to_have_text('Suppe')
@@ -203,7 +208,7 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         page.screenshot(path=str(tmp_path / f'image-document-{width}-js{javascript}.png'))
         page.go_back()
         page.get_by_role('link', name='Zurück zum Rezept', exact=True).click()
-        page.get_by_text('Weitere Aktionen', exact=True).click()
+        page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
         page.get_by_role('link', name='Rezept-History', exact=True).click()
         active(page, 'Rezepte')
         page.get_by_role('link', name='Gespeicherten Stand 1 ansehen', exact=True).click()
@@ -213,12 +218,12 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         page.get_by_role('link', name='Aktuellen Entwurf ansehen', exact=True).click()
         expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         page.get_by_role('link', name='Bearbeiten', exact=True).click()
-        page.get_by_text('Weitere Aktionen', exact=True).click()
+        page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
         page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         active(page, 'Rezepte')
         page.get_by_role('link', name='Rezept ansehen', exact=True).click()
         page.get_by_role('link', name='Bearbeiten', exact=True).click()
-        page.get_by_text('Weitere Aktionen', exact=True).click()
+        page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
         page.get_by_role('link', name='Archivieren', exact=True).click()
         page.keyboard.press('Escape')
         page.get_by_role('link', name='Abbrechen', exact=True).click()

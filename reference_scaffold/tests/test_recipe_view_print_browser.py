@@ -76,11 +76,15 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         response = client.get(pdf.get_attribute('href'))
         assert response.status_code == 200 and response.data.startswith(b'%PDF-')
         assert response.headers['X-Recipe-Revision'] == revision.public_id
-        view.focus()
+        idle = view.evaluate(
+            "el => getComputedStyle(el).outlineStyle + '|' + getComputedStyle(el).outlineWidth + '|' + getComputedStyle(el).boxShadow")
+        view.evaluate('el => el.focus({focusVisible: true})')
         expect(view).to_be_focused()
-        ring = view.evaluate(
-            "el => getComputedStyle(el).outlineStyle + ' ' + getComputedStyle(el).boxShadow")
-        assert ring != 'none none'
+        shown = view.evaluate(
+            "el => getComputedStyle(el).outlineStyle + '|' + getComputedStyle(el).outlineWidth + '|' + getComputedStyle(el).boxShadow")
+        outline_style, outline_width, _shadow = shown.split('|', 2)
+        assert shown != idle
+        assert outline_style != 'none' and outline_width not in ('0px', '0')
         with page.expect_navigation() as navigation:
             page.keyboard.press('Enter')
         assert navigation.value.status == 200
