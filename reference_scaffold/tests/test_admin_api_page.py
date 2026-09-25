@@ -286,7 +286,8 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                             open: document.querySelectorAll('main details[open]').length,
                             overflow: document.documentElement.scrollWidth - innerWidth})''')
                         assert metrics['overflow'] <= 1, metrics
-                        assert metrics['row'] <= (96 if width >= 1024 else 280), metrics
+                        # Shared .admin-row-actions wrap; stacked key rows may use two action lines.
+                        assert metrics['row'] <= (96 if width >= 1024 else 320), metrics
                         targets = page.locator('main :is(.btn, summary)').evaluate_all(
                             'es => es.filter(e => e.checkVisibility()).map(e => e.getBoundingClientRect().height)')
                         assert targets and min(targets) >= 48, targets
