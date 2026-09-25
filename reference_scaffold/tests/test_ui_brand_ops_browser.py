@@ -159,6 +159,8 @@ def test_operations_normal_state_and_viewports(
         details.locator('summary').focus()
         page.keyboard.press('Enter')
         expect(details.locator('ul')).to_be_visible()
+        expect(details.locator('.admin-list-primary').first).to_be_visible()
+        expect(details.locator('.admin-list-meta').first).to_be_visible()
         page.keyboard.press('Enter')
         expect(details.locator('ul')).to_be_hidden()
         print('P3_OPERATIONS', width, page.evaluate('document.documentElement.scrollHeight'))

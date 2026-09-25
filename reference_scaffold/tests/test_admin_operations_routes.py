@@ -71,6 +71,8 @@ def test_get_authorization_csrf_and_shape(client, app, database_engine):  # noqa
         timezone = connection.execute(text('SELECT timezone FROM cafeteria.locations WHERE active')).scalar_one()
     overview = re.search(r'id="operations-overview".*?</section>', body, re.S)
     assert overview is not None and 'admin-table--stack' in overview.group()
+    assert '<span class="admin-list-primary">' in overview.group()
+    assert '<span class="admin-list-meta">' in overview.group()
     statusbar = re.search(r'<dl class="admin-statusbar".*?</dl>', body, re.S)
     assert statusbar and 'Zeitzone' in statusbar.group() and timezone in statusbar.group()
     assert 'Zeiten nicht eingetragen' in statusbar.group()
@@ -190,8 +192,13 @@ def test_exception_menu_preservation_weekend_guard_and_status_mismatch(client, d
     with database_engine.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_items')).scalar_one() == 1
     schedule = _get(client, 'schedule-patient')
-    schedule.update(slot_1_LUNCH_state='closed', slot_1_LUNCH_notice='Normalerweise geschlossen')
+    schedule.update(
+        slot_1_LUNCH_state='closed', slot_1_LUNCH_notice='Normalerweise geschlossen',
+        slot_4_LUNCH_state='closed', slot_4_LUNCH_notice='Normalerweise geschlossen',
+    )
     assert client.post(PATH, data=schedule).status_code == 303
+    empty_timed = _load(client, profile='patient', date='2026-09-03')
+    assert client.post(PATH, data={**empty_timed, 'service_state': 'open', 'service_start': '', 'service_end': '', 'notice': ''}).status_code == 303
     assert 'data-kind="open"' in client.get(PATH).get_data(as_text=True)
     closed = _load(client, profile='patient', date='2026-09-01')
     assert client.post(PATH, data={**closed, 'service_state': 'holiday', 'notice': 'Feiertag'}).status_code == 303
@@ -201,6 +208,12 @@ def test_exception_menu_preservation_weekend_guard_and_status_mismatch(client, d
     assert all(f'data-kind="{kind}"' in body for kind in ('open', 'closure', 'time'))
     assert 'admin-label' in body
     assert 'Woche öffnen' in body
+    saved = re.search(r'id="saved-exceptions".*?</details>', body, re.S)
+    assert saved is not None
+    assert '<span class="admin-empty-value">—</span>' in saved.group()
+    assert '<div class="admin-list-secondary">' in saved.group()
+    assert '<span class="admin-list-primary">' in body
+    assert '<span class="admin-list-meta">' in body
 
 
 def test_defaults_keep_original_week_version_menu_times_and_invalidate_review(client, database_engine):  # noqa: F811

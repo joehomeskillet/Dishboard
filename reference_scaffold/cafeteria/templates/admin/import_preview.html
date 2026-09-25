@@ -63,7 +63,7 @@
       <p>Korrigieren Sie die genannten Stellen in der CSV-Datei. Wählen Sie danach die korrigierte Datei erneut aus und prüfen Sie sie.</p>
       <ul class="csv-issue-list">
         {% for issue in result.issues %}
-        <li class="csv-issue-row"><span class="admin-list-primary">Zeile {{ issue.line }}, Spalte {{ issue.column }}:</span> <span class="admin-list-meta">{{ issue.message }}</span></li>
+        <li class="csv-issue-row"><strong>Zeile {{ issue.line }}, Spalte {{ issue.column }}:</strong> <span class="admin-list-meta">{{ issue.message }}</span></li>
         {% endfor %}
       </ul>
     </div>
