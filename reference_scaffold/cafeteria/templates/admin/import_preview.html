@@ -29,7 +29,7 @@
 {% block page_header %}
 {% call page_header('Daten importieren', 'Wochen-CSV prüfen und als Entwurf übernehmen.', status_items=status_items) %}
 {%- if ready -%}
-<button class="btn btn-primary ui-sem-control" type="submit" form="csv-import" data-semantic="actions.import" title="{{ t(sem('actions.import').tooltip_key) }}">{{ icon_label('actions.import') }}</button>
+{{ icon_button('actions.import', type='submit', form='csv-import', emphasis='primary', text='Importieren', title='Geprüfte Datei importieren', aria_label='Geprüfte Datei importieren') }}
 {%- endif -%}
 {% endcall %}
 {% endblock %}
@@ -41,7 +41,7 @@
       <div role="status">
         <h2 id="csv-result-title">{{ icon('file-check', class='me-2') }}Bereit zum Import</h2>
         <p class="csv-checked-identity mb-2" data-checked-identity>Geprüftes Ergebnis der zuletzt geprüften Datei, nicht einer neuen Auswahl.</p>
-        <p>Die geprüfte Datei wird erst mit dem nächsten Schritt als Entwurf übernommen. «Geprüfte Datei importieren» gilt für dieses Ergebnis, nicht für eine neu ausgewählte Datei.</p>
+        <p>Die geprüfte Datei wird erst mit dem nächsten Schritt als Entwurf übernommen. «Importieren» gilt für dieses geprüfte Ergebnis, nicht für eine neu ausgewählte Datei.</p>
         {% if result.warnings %}
         <div class="csv-warning-list" id="csv-warnings" data-csv-warnings>
           {% for warning in result.warnings %}
@@ -80,7 +80,7 @@
           <label class="form-label" for="file">{{ 'Korrigierte CSV-Datei' if invalid else 'CSV-Datei' }}</label>
           <input class="form-control{% if invalid %} is-invalid{% endif %}" id="file" name="file" type="file" accept=".csv,text/csv" required{% if invalid %} aria-invalid="true" aria-describedby="file-error"{% endif %}>
         </div>
-        <button class="btn{% if not ready %} btn-primary{% endif %} ui-sem-control" type="submit" data-semantic="actions.preview" title="{{ t(sem('actions.preview').tooltip_key) }}">{{ icon_label('actions.preview') }}</button>
+        {{ icon_button('actions.preview', type='submit', text='Prüfen', title='CSV-Datei prüfen', aria_label='Vorschau prüfen', emphasis=('primary' if not ready else none)) }}
       </div>
       {% call disclosure_section(id='csv-more', has_content=result, has_error=invalid) %}
           <p class="mb-2">Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>

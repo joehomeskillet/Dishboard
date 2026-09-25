@@ -31,24 +31,24 @@
 </div><div class="card-footer"><button class="btn{% if error_action == 'rollen' %} btn-primary{% endif %} ui-sem-control" type="submit" data-semantic="actions.save" title="{{ t(sem('actions.save').tooltip_key) }}"{% if not can_mutate %} disabled{% endif %}>{{ icon_label('actions.save') }}</button></div></form>
 </details>
 <details id="password-action" class="card mb-3"{% if error_action == 'passwort' %} open{% endif %}>
-<summary class="card-header gap-2 py-2">{{ icon_label('view.reset') }}<h3 class="card-title mb-0">Passwort zurücksetzen</h3>{% if error_action == 'passwort' %}{{ label('Fehler', 'danger', icon='alert-triangle') }}{% endif %}</summary>
+<summary class="card-header gap-2 py-2">{{ sem_icon('actions.refresh') }}<h3 class="card-title mb-0">Passwort zurücksetzen</h3>{% if error_action == 'passwort' %}{{ label('Fehler', 'danger', icon='alert-triangle') }}{% endif %}</summary>
 <form class="admin-compact-form" method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action='passwort') }}"{% if error_action == 'passwort' %} aria-describedby="user-error-passwort"{% endif %}>
 {{ hidden(csrf,page,status,account) }}<div class="card-body">
 <p class="text-secondary mb-3">Neues Passwort setzen und bestehende Anmeldungen widerrufen.</p>
 {{ form_error(error if error_action == 'passwort' else '', 'passwort') }}{{ password('reset') }}
 {{ confirm('password', 'Neues Passwort für ' ~ account.username ~ ' setzen und bestehende Anmeldungen widerrufen') }}
 <p class="form-hint">Rollen und Kontostatus bleiben unverändert.</p>
-</div><div class="card-footer"><button class="btn btn-danger ui-sem-control" type="submit" data-semantic="view.reset" title="{{ t(sem('view.reset').tooltip_key) }}"{% if not can_mutate %} disabled{% endif %}>{{ icon_label('view.reset') }}</button></div></form>
+</div><div class="card-footer"><button class="btn btn-danger ui-sem-control" type="submit" data-semantic="actions.refresh" title="Passwort zurücksetzen" aria-label="Passwort zurücksetzen"{% if not can_mutate %} disabled{% endif %}>{{ sem_icon('actions.refresh') }}<span>Zurücksetzen</span></button></div></form>
 </details>
 {% set state_action = 'aktivieren' if account.disabled_at else 'deaktivieren' %}
 <details id="state-action" class="card"{% if error_action in ['aktivieren','deaktivieren'] %} open{% endif %}>
-<summary class="card-header gap-2 py-2">{% if account.disabled_at %}{{ icon_label('actions.restore') }}{% else %}{{ icon_label('actions.archive') }}{% endif %}<h3 class="card-title mb-0">Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</h3>{% if error_action in ['aktivieren','deaktivieren'] %}{{ label('Fehler', 'danger', icon='alert-triangle') }}{% endif %}</summary>
+<summary class="card-header gap-2 py-2">{{ sem_icon('actions.activate' if account.disabled_at else 'status.locked') }}<h3 class="card-title mb-0">Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</h3>{% if error_action in ['aktivieren','deaktivieren'] %}{{ label('Fehler', 'danger', icon='alert-triangle') }}{% endif %}</summary>
 <form class="admin-compact-form" method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action=state_action) }}"{% if error_action in ['aktivieren','deaktivieren'] %} aria-describedby="user-error-{{ error_action }}"{% endif %}>
 {{ hidden(csrf,page,status,account) }}<div class="card-body">
 {{ form_error(error if error_action in ['aktivieren','deaktivieren'] else '', error_action) }}
 <p>{% if account.disabled_at %}Das Konto kann sich wieder mit seinem bestehenden Passwort anmelden. Eine vorübergehende Anmeldesperre bleibt erhalten.{% else %}Die lokale Anmeldung wird gesperrt. Bestehende Sitzungen verlieren ihre Berechtigung; Konto und Ereignisse bleiben erhalten.{% endif %}</p>
 {{ confirm('state', 'Konto ' ~ account.username ~ ' ausdrücklich ' ~ ('reaktivieren' if account.disabled_at else 'deaktivieren')) }}
-</div><div class="card-footer">{% if account.disabled_at %}<button class="btn ui-sem-control" type="submit" data-semantic="actions.restore" title="{{ t(sem('actions.restore').tooltip_key) }}"{% if not can_mutate %} disabled{% endif %}>{{ icon_label('actions.restore') }}</button>{% else %}<button class="btn btn-danger ui-sem-control" type="submit" data-semantic="actions.archive" title="{{ t(sem('actions.archive').tooltip_key) }}"{% if not can_mutate %} disabled{% endif %}>{{ icon_label('actions.archive') }}</button>{% endif %}</div></form>
+</div><div class="card-footer">{% if account.disabled_at %}{{ icon_button('actions.activate', text='Reaktivieren', title='Konto reaktivieren', aria_label='Konto reaktivieren', attrs={'disabled': not can_mutate}) }}{% else %}<button class="btn btn-danger ui-sem-control" type="submit" data-semantic="status.locked" title="Konto deaktivieren" aria-label="Konto deaktivieren"{% if not can_mutate %} disabled{% endif %}>{{ sem_icon('status.locked') }}<span>Deaktivieren</span></button>{% endif %}</div></form>
 </details>
 </section>
 <details id="account-login-details" class="admin-compact-details mt-3">

@@ -7,14 +7,6 @@
   content: " · ";
 }
 
-.dishboard-admin [data-page="api"] [data-api-keys] .admin-row-actions {
-  display: inline-flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--app-space-1);
-  justify-content: flex-end;
-}
-
 .dishboard-admin [data-page="api"] .admin-api-key-details > summary {
   margin-top: 0;
 }

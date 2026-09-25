@@ -126,7 +126,7 @@
   </div>
   <form class="pt-3" method="post" action="{{ url_for('admin.branding_editor') }}" data-brand-action="reset" data-confirm="Südhang Standard als neuen Entwurf anlegen?">
     <input type="hidden" name="_csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ document.version }}">
-    {{ icon_button('view.reset', name='action', value='reset', text='Südhang Standard', title='Südhang Standard als Entwurf', aria_label='Südhang Standard als Entwurf') }}
+    {{ icon_button('actions.add', name='action', value='reset', text='Entwurf anlegen', title='Südhang Standard als neuen Entwurf anlegen', aria_label='Südhang Standard als Entwurf anlegen', emphasis='secondary') }}
   </form>
 </section>
 {% endcall %}
