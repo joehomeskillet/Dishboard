@@ -1,0 +1,9 @@
+# Bekannte rote Tests, die einen Release-Zug NICHT blockieren (release_gate.sh / new_failures.py).
+# Nur veraltete Tests und Testfehler gehören hierher, nie Produktregressionen.
+#
+# Format: eine Test-ID pro Zeile, wie pytest sie nennt, relativ zu reference_scaffold:
+#   tests/test_datei.py::test_name[param]
+#   tests/test_datei.py::TestKlasse::test_name
+# Zeilen mit # sind Kommentare. Vor jeder ID eine Kommentarzeile: Datum, Grund, belegender Commit
+# (git log -S '<assertierter Text>'). Meldet das Gate «BEKANNT ROT, JETZT GRÜN», die Zeile löschen.
+# Gesperrte Abnahmetests (*_accept.py) stehen nie hier: Wenn sie rot sind, ist das Produkt falsch.
