@@ -590,6 +590,7 @@ docs/ENTRA_SSO_BETRIEBSKONZEPT.md
 docs/GROK_KRITIK_UMSETZUNG.md
 docs/licenses/iso-codes-copyright.txt
 docs/licenses/iso-codes-LGPL-2.1.txt
+docs/operations/release-zug.md
 docs/README.md
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.docx
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.md
