@@ -210,7 +210,13 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=3$"))
 
         page.locator("#brand-more summary").click()
-        page.get_by_role("button", name="Südhang Standard als Entwurf", exact=True).click()
+        reset = page.get_by_role("button", name="Südhang Standard als Entwurf anlegen", exact=True)
+        expect(reset).to_have_attribute("data-semantic", "actions.add")
+        expect(reset).to_have_attribute("title", "Südhang Standard als neuen Entwurf anlegen")
+        expect(reset.locator("span")).to_have_text("Entwurf anlegen")
+        expect(reset).not_to_have_class(re.compile(r"\bbtn-primary\b"))
+        expect(page.locator('form[data-brand-action="reset"] [data-semantic="view.reset"]')).to_have_count(0)
+        reset.click()
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=4$"))
 
         with admin_engine.connect() as connection:
@@ -394,7 +400,10 @@ def test_branding_rendered_icons_reject_missing_symbols(
         summary.focus()
         page.keyboard.press("Enter")
         expect(page.locator("#brand-more")).to_have_attribute("open", "")
-        expect(page.get_by_role("button", name="Südhang Standard als Entwurf", exact=True)).to_be_visible()
+        reset = page.get_by_role("button", name="Südhang Standard als Entwurf anlegen", exact=True)
+        expect(reset).to_be_visible()
+        expect(reset.locator("span")).to_have_text("Entwurf anlegen")
+        expect(reset).to_have_attribute("data-semantic", "actions.add")
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=str(EVIDENCE / "branding-editor-open-actions-1440x900.png"), full_page=True)
         _assert_icons_painted(page)

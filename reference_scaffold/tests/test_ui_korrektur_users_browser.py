@@ -337,11 +337,11 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
         cases = (
             ("#roles-action", "Speichern", "rollen", {"roles"}),
             (
-                "#password-action", "Zurücksetzen", "passwort",
+                "#password-action", "Passwort zurücksetzen", "passwort",
                 {"password", "password_confirm"},
             ),
-            ("#state-action", "Archivieren", "deaktivieren", set()),
-            ("#state-action", "Wiederherstellen", "aktivieren", set()),
+            ("#state-action", "Konto deaktivieren", "deaktivieren", set()),
+            ("#state-action", "Konto reaktivieren", "aktivieren", set()),
         )
         for selector, button, action, extra_fields in cases:
             _open(page, origin, f"/admin/benutzer/{target.public_id}")
@@ -356,8 +356,28 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
                 page.get_by_label("Neues Passwort bestätigen", exact=True).fill("Valide!Wolken77Kette")
             confirmation = details.locator('input[name="confirm"]')
             expect(confirmation).to_have_count(1)
+            submit = details.get_by_role("button", name=button, exact=True)
+            if action == "passwort":
+                expect(submit).to_have_attribute("data-semantic", "actions.refresh")
+                expect(submit).to_have_attribute("title", "Passwort zurücksetzen")
+                expect(submit.locator("span")).to_have_text("Zurücksetzen")
+                expect(submit).to_have_class(re.compile(r"\bbtn-danger\b"))
+                expect(details.locator('[data-semantic="view.reset"]')).to_have_count(0)
+            elif action == "deaktivieren":
+                expect(submit).to_have_attribute("data-semantic", "status.locked")
+                expect(submit).to_have_attribute("title", "Konto deaktivieren")
+                expect(submit.locator("span")).to_have_text("Deaktivieren")
+                expect(submit).to_have_class(re.compile(r"\bbtn-danger\b"))
+                expect(details.locator('[data-semantic="actions.archive"]')).to_have_count(0)
+                expect(details.get_by_role("button", name="Archivieren", exact=True)).to_have_count(0)
+            elif action == "aktivieren":
+                expect(submit).to_have_attribute("data-semantic", "actions.activate")
+                expect(submit).to_have_attribute("title", "Konto reaktivieren")
+                expect(submit.locator("span")).to_have_text("Reaktivieren")
+                expect(details.locator('[data-semantic="actions.restore"]')).to_have_count(0)
+                expect(details.get_by_role("button", name="Wiederherstellen", exact=True)).to_have_count(0)
             # Required confirmation remains a native browser boundary.
-            details.get_by_role("button", name=button, exact=True).click()
+            submit.click()
             expect(confirmation).to_be_focused()
             confirmation.check()
             details.locator('summary').click()

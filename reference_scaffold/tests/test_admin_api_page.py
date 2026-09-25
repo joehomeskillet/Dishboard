@@ -34,6 +34,14 @@ pytestmark = pytest.mark.skipif(
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
 )
 
+API_CSS = Path(__file__).resolve().parents[1] / 'cafeteria/static/admin-settings-schnittstellen.css'
+
+
+def test_api_settings_css_keeps_shared_row_actions() -> None:
+    css = API_CSS.read_text(encoding='utf-8')
+    assert '[data-api-keys] .admin-row-actions' not in css
+    assert 'flex-wrap: nowrap' not in css
+
 
 def _register(application: Flask) -> Flask:
     from cafeteria.admin import api_routes  # noqa: F401
@@ -238,6 +246,25 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                         table = page.locator('[data-api-keys] table')
                         expect(table).to_have_class(re.compile(r'\badmin-table--stack\b'))
                         expect(table.locator('tbody td:not([data-label])')).to_have_count(0)
+                        row_actions = table.locator('.admin-row-actions').first
+                        shared = row_actions.evaluate('''el => {
+                            const host = document.querySelector('.dishboard-admin');
+                            const probe = document.createElement('div');
+                            probe.className = 'admin-row-actions';
+                            host.appendChild(probe);
+                            const sharedStyle = getComputedStyle(probe);
+                            const cs = getComputedStyle(el);
+                            const result = {
+                                wrap: cs.flexWrap, sharedWrap: sharedStyle.flexWrap,
+                                gap: cs.gap, sharedGap: sharedStyle.gap,
+                                display: cs.display, sharedDisplay: sharedStyle.display,
+                            };
+                            probe.remove();
+                            return result;
+                        }''')
+                        assert shared['wrap'] == shared['sharedWrap'] == 'wrap', shared
+                        assert shared['gap'] == shared['sharedGap'], shared
+                        assert shared['display'] == shared['sharedDisplay'], shared
                         assert table.locator('tbody tr').first.evaluate(
                             'el => getComputedStyle(el).display'
                         ) == ('grid' if width < 768 else 'table-row')

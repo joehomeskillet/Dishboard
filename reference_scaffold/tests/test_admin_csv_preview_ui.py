@@ -204,7 +204,10 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     page.goto('/admin/import-preview')
     expect(page.locator('main')).to_have_attribute('data-state', 'empty')
     expect(page.get_by_text('Die Vorschau speichert noch keinen Entwurf.')).to_be_visible()
-    expect(page.locator('main .btn-primary')).to_have_text('Vorschau')
+    expect(page.locator('main .btn-primary')).to_have_text('Prüfen')
+    expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau prüfen')
+    expect(page.locator('main .btn-primary')).to_have_attribute('title', 'CSV-Datei prüfen')
+    expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.preview')
     expect(page.locator('main .btn-primary')).to_have_count(1)
     expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
     expect(page.get_by_label('CSV-Datei', exact=True)).to_be_visible()
@@ -227,7 +230,8 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     expect(alert).to_contain_text('erneut aus')
     expect(alert).to_contain_text('Zeile 1, Spalte')
     expect(page.get_by_label('Korrigierte CSV-Datei')).to_be_visible()
-    expect(page.locator('main .btn-primary')).to_have_text('Vorschau')
+    expect(page.locator('main .btn-primary')).to_have_text('Prüfen')
+    expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau prüfen')
     expect(page.locator('main .btn-primary')).to_have_count(1)
     expect(page.locator('dl.admin-statusbar')).to_contain_text('Fehlerhaft')
     expect(page.locator('dl.admin-statusbar .admin-statusbar-link')).to_have_attribute('href', '#file-error')
@@ -258,11 +262,16 @@ def test_csv_preview_ready_exposes_destination_before_import(
     expect(statusbar).to_contain_text('Bereit')
     expect(statusbar.locator('.admin-statusbar-item').filter(has=page.get_by_text('Zeilen', exact=True)).locator('dd')).to_have_text(str(rows))
     expect(page.get_by_role('status')).to_contain_text('Geprüftes Ergebnis der zuletzt geprüften Datei')
+    expect(page.get_by_role('status')).to_contain_text('«Importieren» gilt für dieses geprüfte Ergebnis')
+    expect(page.get_by_role('status')).not_to_contain_text('Geprüfte Datei importieren')
     assert 'staff_guest' not in page.locator('main').inner_text()
     assert 'Profil patient' not in page.locator('main').inner_text()
     primary = page.locator('main .btn-primary')
     expect(primary).to_have_text('Importieren')
+    expect(primary).to_have_attribute('aria-label', 'Geprüfte Datei importieren')
     expect(primary).to_have_count(1)
+    expect(page.get_by_role('button', name='Prüfen', exact=True)).to_have_count(0)
+    expect(page.get_by_role('button', name='Vorschau prüfen', exact=True)).to_have_attribute('data-semantic', 'actions.preview')
     for element in (statusbar, primary):
         box = element.bounding_box()
         assert box is not None and box['y'] >= 0 and box['y'] + box['height'] <= height
@@ -357,7 +366,7 @@ def test_native_csv_preview_and_draft_import_without_javascript(
         with page.expect_response(
             lambda response: response.request.method == 'POST' and response.url.endswith('/admin/import')
         ) as imported:
-            page.get_by_role('button', name='Importieren', exact=True).click()
+            page.get_by_role('button', name='Geprüfte Datei importieren', exact=True).click()
         assert imported.value.status == 303
         expect(page).to_have_url(f'{live_server}/admin/{family}?week=2026-08-31')
         with admin_engine.connect() as connection:
@@ -417,7 +426,8 @@ def test_csv_preview_frame_viewports_statusbar_nojs_keyboard(
                         more.press('Enter')
                         expect(page.locator('#csv-more')).not_to_have_attribute('open', '')
                         expect(page.locator('dl.admin-statusbar')).to_contain_text('Offen')
-                        expect(page.locator('main .btn-primary')).to_have_text('Vorschau')
+                        expect(page.locator('main .btn-primary')).to_have_text('Prüfen')
+                        expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau prüfen')
                         if width == 360:
                             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                         primary = page.locator('main .btn-primary')
