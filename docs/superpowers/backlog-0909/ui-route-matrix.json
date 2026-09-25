@@ -10931,7 +10931,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "2716dd74dd619c651196454dba054779594c5a235a84f26fb175e00dc80a279d",
+      "sha256": "065a6ed10b1ae9a05bb0904d687f66c9177e527e704961ddcef5397efdde0281",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -10955,7 +10955,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "9f90b223f7bb6ab6080ce943e2903281f3ed1e7ad99990c4867130462e49931e",
+      "sha256": "6cbd6f7c8fed634a4de4301498688323ee76b768633045e077946da154b12008",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -10978,7 +10978,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "eda9b2564de6e754c492be0375325070c811bacb37772fa76067304853ab6839",
+      "sha256": "24e684ffa465cf54caa7f20dfbb50f26de09d91183215269020d82b3adfbb461",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11021,7 +11021,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "df25fda0af9d8a8c6acd6808d6f1a8b2c3b69c5aedeb4ac7e51e65aec7017a33",
+      "sha256": "694c40cb855c260cf03625abc91cb0a3bdb73c6fb1f869bc0a78545adea9d117",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11090,7 +11090,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "59bc3f8c520b8e7504c4ebb06895c0d08b92b1b0c6bc01f624f7ba44d9d318fa",
+      "sha256": "750602f09bdc10c0f048b428c9312dc913ea61f7d9ff066ac448eadb8eb03c6a",
       "used_by_endpoints": [
         "admin.cookbook_edit",
         "admin.cookbook_new",
@@ -11114,7 +11114,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "aa74bfdd5fbd5a7d8302a4ab96aab69fb6fc230d341cfb2fad77f7356036adc9",
+      "sha256": "6fbfdfc003a0ffec2834820dfd8bad6125d39a37f877c92d55b05e11848de803",
       "used_by_endpoints": [
         "admin.cookbooks_list"
       ],
@@ -12281,7 +12281,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "40c37a5265be82ff3ef35a579e0cd2c3c1aac74bb67f7c8125b1349f2561c977",
+      "sha256": "58e9bf6ff11958234d990672cd33c0dea5b45f6313b2d4fc96dfc9df6c14e17f",
       "used_by_endpoints": [
         "admin.shopping_list_archive",
         "admin.shopping_lists_create",
@@ -12303,7 +12303,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "a3193fea94e2c326914949d4283ef0b16c3bc06f61130174e6761836c9341f51",
+      "sha256": "d6fca3d1eeacf7d1c04424b6321980f4f186936abf5f1c51491847d904d5796e",
       "used_by_endpoints": [
         "admin.shopping_list_compute",
         "admin.shopping_list_detail",
@@ -12387,7 +12387,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "e28bad464512c089aaf61d06fc8f407c91ad81c19bfe8fc89bfe4b781e756557",
+      "sha256": "d2ca89e5595df0e01b1de3318ce7e7028c78e1e50ec29cef80c19d00f240b6e8",
       "used_by_endpoints": [
         "admin.order_home"
       ],
@@ -12402,7 +12402,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "cd706aad28d673a34829cc5336db576ac8888aa15d02c6cbbf73f296da47e251",
+      "sha256": "7f1f121cf993395fbb27b4beac1d5283ed26d15f7930ca9c5eff58ee0ee4ecd7",
       "used_by_endpoints": [
         "admin.order_basket"
       ],
@@ -12417,7 +12417,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "364158d78217fed5a614680e860096035af71d422529830bc6f7c03d25a417fd",
+      "sha256": "ec4279ed9c97d81c8bd02d4b9e9e546be74b7e60e1c6aca6a56ce4d7c8fb528a",
       "used_by_endpoints": [
         "admin.cost_home",
         "admin.cost_preview"
@@ -12433,7 +12433,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "a4e48dc875d365d5f471f52e4f253bf25dfa35d352a4b611f638869bc2cde780",
+      "sha256": "e337d3841c09663de6cfa284349eb0a1b2e79b7ba02d7d1b5201ad9346c75055",
       "used_by_endpoints": [
         "admin.inventory_home"
       ],
