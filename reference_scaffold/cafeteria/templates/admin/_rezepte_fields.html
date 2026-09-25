@@ -16,7 +16,7 @@
 <button class="btn" type="submit" formnovalidate{% if focus %} autofocus{% endif %}{% if aria_label %} aria-label="{{ aria_label }}"{% endif %} formaction="{{ url_for('admin.recipe_form_rows', action=action, recipe_id=recipe_id, row_kind=kind, row_action=operation, row_index=index) }}">{{ icon(symbol) }}<span>{{ label }}</span></button>
 {% endmacro %}
 {% macro row_actions(kind, index, count, label) %}
-{% if can_write and active %}<details class="admin-compact-actions"><summary class="btn" aria-label="Mehr Aktionen für {{ label }}">{{ icon_label('actions.more') }}</summary><div class="d-flex flex-wrap gap-2 mt-2">
+{% if can_write and active %}<details class="admin-compact-actions"><summary class="btn" aria-label="{{ t('actions.more.label') }}: {{ t('actions.more.aria') }} {{ label }}">{{ icon_label('actions.more') }}</summary><div class="d-flex flex-wrap gap-2 mt-2">
 {{ row_button(kind, 'add', index, 'Davor einfügen', sem('actions.add').resolved_icon, aria_label=label ~ ' davor einfügen') if kind != 'images' and count < 64 else '' }}
 {% if index > 0 %}{{ row_button(kind, 'up', index, 'Nach oben', 'arrow-up', aria_label=label ~ ' nach oben verschieben') }}{% endif %}
 {% if index + 1 < count %}{{ row_button(kind, 'down', index, 'Nach unten', 'arrow-down', aria_label=label ~ ' nach unten verschieben') }}{% endif %}

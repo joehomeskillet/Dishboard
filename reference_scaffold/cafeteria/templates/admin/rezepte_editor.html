@@ -24,7 +24,7 @@
 {{ icon_button('actions.back', href=url_for('admin.recipes_list'), text='Zurück', aria_label='Zurück zur Rezeptliste', title='Zurück zur Rezeptliste') }}
 {% if recipe_id and can_write or links %}<details class="admin-compact-actions"><summary class="btn">{{ icon_label('actions.more') }}</summary><div class="d-flex flex-wrap gap-2 mt-2">
 {% if recipe_id and can_write %}{% if active %}{{ icon_button('actions.archive', href=url_for('admin.recipe_status', recipe_id=recipe_id), text='Archivieren', aria_label='Archivieren', title='Archivieren') }}{% else %}{{ icon_button('actions.restore', href=url_for('admin.recipe_status', recipe_id=recipe_id), text='Reaktivieren', aria_label='Rezept reaktivieren', title='Rezept reaktivieren') }}{% endif %}{% endif %}
-{% if 'recipe_images' in links %}<a class="btn" href="{{ links['recipe_images'] }}" data-semantic="data.image" aria-label="Bilder verwalten">{{ icon_label('data.image') }}</a>{% endif %}
+{% if 'recipe_images' in links %}<a class="btn" href="{{ links['recipe_images'] }}" data-semantic="data.image" aria-label="{{ t('data.image.label') }}">{{ icon_label('data.image') }}</a>{% endif %}
 {% if 'recipe_revisions' in links %}{{ icon_button('actions.history', href=links['recipe_revisions'], text='Rezept-History', aria_label='Rezept-History', title='Rezept-History') }}{% endif %}
 {% if 'recipe_scale' in links %}{{ icon_button('recipe.quantity', href=links['recipe_scale'], text='Berechnen', aria_label='Mengen berechnen', title='Mengen berechnen') }}{% endif %}
 </div></details>{% endif %}
@@ -77,7 +77,7 @@
 {% set focus_row = row_kind == 'steps' and loop.index0 == [row_index, payload.steps|length - 1]|min %}
 <div class="admin-compact-row" data-recipe-step aria-label="Schritt {{ loop.index }}">
 <div class="admin-compact-line"><div class="admin-compact-name"><h3 class="mb-0">Schritt {{ loop.index }}</h3><p class="admin-compact-summary" data-recipe-step-summary>{{ row.instruction|truncate(140) }}</p><p class="admin-compact-summary text-secondary" data-recipe-step-extra>{% if row.duration_minutes != '' %}Dauer: {{ row.duration_minutes }} Minuten{% endif %}{% if row.image_sha256 %} · Bild: {{ image_names.get(row.image_sha256, 'Bestehendes Schrittbild') }}{% endif %}</p></div>
-<button class="btn" type="button" hidden data-recipe-toggle="step-details-{{ loop.index0 }}" aria-controls="step-details-{{ loop.index0 }}" aria-label="Schritt {{ loop.index }} bearbeiten" aria-expanded="true">{{ icon_label('actions.edit') }}</button>
+<button class="btn" type="button" hidden data-recipe-toggle="step-details-{{ loop.index0 }}" aria-controls="step-details-{{ loop.index0 }}" aria-label="{{ t('actions.edit.label') }}: Schritt {{ loop.index }}" aria-expanded="true">{{ icon_label('actions.edit') }}</button>
 {{ row_actions('steps', loop.index0, payload.steps|length, 'Schritt ' ~ loop.index) }}</div>
 {# Without JS, required instructions stay open: native validation cannot reveal a closed details reliably. #}
 <details id="step-details-{{ loop.index0 }}" class="admin-compact-details" data-recipe-details data-recipe-instruction open><summary class="btn"{% if can_write and active %} hidden{% endif %} aria-label="Details für Schritt {{ loop.index }}">{{ icon_label('ui.disclosure.details') }}</summary><div class="admin-compact-detail-body">
