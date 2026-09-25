@@ -412,7 +412,7 @@
           <input type="hidden" name="option" value="{{ cell.option }}">
           <input type="hidden" name="row_version" value="{{ cell.row_version }}">
           <input type="hidden" name="component_version" value="{{ review_token }}">
-          <button type="submit" class="btn menu-review-confirm" title="Als geprüft bestätigen"><span aria-hidden="true">{{ icon_label('actions.confirm') }}</span><span>Als geprüft bestätigen</span></button>
+          <button type="submit" class="btn menu-review-confirm" title="Als geprüft bestätigen">{{ sem_icon('actions.confirm') }}<span>Als geprüft bestätigen</span></button>
         </form>
       </div>
       {% endif %}
