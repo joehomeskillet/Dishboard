@@ -51,6 +51,8 @@ def main(argv: list[str]) -> int:
 
     added, updated, removed = [], [], []
     for rel in paths:
+        if rel == MANIFEST_NAME:  # hasht sich nicht selbst
+            continue
         target = root / rel
         if not target.is_file():
             if rel in contents or rel in manifest_rows:
@@ -64,8 +66,7 @@ def main(argv: list[str]) -> int:
             added.append(rel)
         elif manifest_rows.get(rel) != digest:
             updated.append(rel)
-        if rel != MANIFEST_NAME:
-            manifest_rows[rel] = digest
+        manifest_rows[rel] = digest
 
     contents_file.write_text('\n'.join(sorted(contents, key=str.casefold)) + '\n', encoding='utf-8')
     # PACKAGE_CONTENTS.txt wurde eben neu geschrieben; sein eigener Hash muss die neuen Bytes spiegeln.
