@@ -461,7 +461,7 @@
 {%- set primary_content = primary if primary is not none else name -%}
 {%- set secondary_content = secondary if secondary is not none else subtitle -%}
 <div class="admin-list-row">
-  <div class="admin-list-name"><strong>{{ empty_value() if primary_content is none or primary_content == '' else primary_content }}</strong>{% if secondary_content is not none %}<div class="admin-list-subtitle" title="{{ secondary_content|striptags }}">{{ secondary_content }}</div>{% endif %}</div>
+  <div class="admin-list-name"><strong class="admin-list-primary">{{ empty_value() if primary_content is none or primary_content == '' else primary_content }}</strong>{% if secondary_content is not none %}<div class="admin-list-subtitle admin-list-secondary" title="{{ secondary_content|striptags }}">{{ secondary_content }}</div>{% endif %}</div>
   {% if meta is not none %}<div class="admin-list-meta">{{ empty_value() if meta == '' else meta }}</div>{% endif %}
   {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}{{ label('+' ~ overflow, detail=overflow ~ ' weitere Kennzeichnungen') }}{% endif %}</div>{% endif %}
   <div class="admin-list-status">{{ status if status is not none and status != '' else status_badge(state) if state is not none and state != '' else empty_value() }}</div>

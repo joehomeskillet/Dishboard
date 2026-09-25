@@ -189,6 +189,12 @@
   --app-list-pad-y: var(--app-space-2);
   --app-list-line-width: 1px;
   --app-list-font-size: var(--app-font-size-label);
+  --app-list-primary-size: var(--app-font-size-label);
+  --app-list-primary-weight: 600;
+  --app-list-secondary-size: var(--app-font-size-small);
+  --app-list-secondary-weight: 400;
+  --app-list-meta-size: var(--app-font-size-label);
+  --app-list-meta-weight: 400;
   --app-list-hover: var(--app-surface-soft);
   --app-label-min-height: var(--app-space-8);
   --app-label-pad-x: var(--app-space-2);

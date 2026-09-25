@@ -440,6 +440,50 @@ Verbleibende Inkonsistenzen vor Merge selbst beheben oder als P1-Fund dokumentie
 - Erledigt P2: `admin-statusbar-item--info` und `--active` (R22).
 - Erledigt P2: gemeinsames Submit-Lademuster (R37, M59); Modul-Opt-in bleibt P3.
 
+### Polish P5: Listentypografie
+
+P5a vereinheitlicht Listeninhalte zentral in `static/tokens.css` und
+`static/admin-tabler.css`. Genau drei Textrollen gelten auf Desktop und Mobil:
+
+| Rolle | Zuordnung | Token / Wert | Farbe |
+|---|---|---|---|
+| Primär | Name, erste Tabellenzelle, `th[scope=row]`, `.admin-list-primary` | `--app-list-primary-size` = `--app-font-size-label` (14 px), `--app-list-primary-weight` = 600 | `--app-text` |
+| Sekundär | Zusatzinfo, zweite Textzeile, `.admin-list-secondary`, `.admin-list-subtitle`, `.text-secondary` innerhalb einer Zeile | `--app-list-secondary-size` = `--app-font-size-small` (13 px), `--app-list-secondary-weight` = 400 | `--app-text-muted` |
+| Meta | übrige Zellen, `.admin-list-meta` | `--app-list-meta-size` = `--app-font-size-label` (14 px), `--app-list-meta-weight` = 400 | `--app-text` |
+
+Keine Kursivschrift oder zusätzlichen Modulgrössen/-farben. Status bleibt Aufgabe
+von `label()`, Leerwerte von `empty_value()`. Labels, Icons und Bedienelemente
+behalten ihre eigenen Komponentenverträge. `list_row()` gibt die expliziten
+Primär-/Sekundärklassen aus; seine Parameter bleiben unverändert.
+
+Zentrale, auf `.dishboard-admin` begrenzte Regeln überstimmen auch wichtige
+Tabler-Textutilities. `.admin-table--stack` verwendet dieselben Rollen.
+Bis zur Modulmigration werden die bestehenden `.recipe-list-row`,
+`.admin-users-row`, `.print-tpl-row` und `.print-screen-row` an denselben Vertrag
+angebunden. Modul-CSS bleibt erhalten; seine spätere Entfernung gehört den
+Modulpaketen. Öffentliche Seiten, Druckausgaben und Signage sind nicht Ziel.
+
+Die Ratsche `list_typography_overrides` zählt `font-size`, `font-weight` und
+`color` in Listen-/Tabellenselektoren von `admin-*.css`, `cookbook-admin.css`
+und `recipe-*.css`. Mehrfachselektoren zählen jede Deklaration einmal,
+Kommentare und Zeichenketten nicht. Auch zentrale Regeln werden gezählt.
+Nur bei erstmaliger Einführung darf die neue Kategorie initialisiert werden;
+alle bisherigen Obergrenzen bleiben erhalten. Anschliessend ist jeder Anstieg
+gesperrt. `--update-baseline` aktualisiert JSON und bestehendes UI-Inventar.
+
+`tests/test_ui_list_typography_browser.py` misst echte, mit synthetischen Daten
+gefüllte Seiten für Wochen, Bausteine, Gerichtvorlagen, Rezepte, Kochbücher,
+Zutaten, Einkaufslisten, Bestellung, Benutzer, API-Schlüssel, Druckvorlagen und
+Kalkulation bei 1440 und 390 px. Er vergleicht `fontSize`, `fontWeight`, `color`
+und `fontStyle` mit den Rollenwerten und untereinander, prüft die Grössen- und
+Gewichtstokens und schreibt JSON-Messmatrix plus Screenshots nach `tmp_path`.
+Nicht vorhandene optionale Textrollen sind ausdrücklich als solche erfasst,
+nicht durch künstliche Seiteninhalte ersetzt. Bei Bestellung wird die erste
+Lieferantenzeile gemessen, da die Korbzeile keine Sekundärinformation enthält.
+Die Kalkulation wird über ihre echte Vorschau mit gespeicherter Rezeptrevision
+gefüllt. Ein zusätzlicher Makro-/Tabellenfall prüft verschachtelte Links und
+Hervorhebungen sowie unveränderte Labelmetriken.
+
 ### Nicht-Ziele
 
 Kein neues Frontend-Framework, keine technische Migration, keine fachlichen Änderungen, keine Datenbankmigration, kein Ersetzen der v2- oder Semantic-Pakete — nur Vereinheitlichung und Verdichtung im bestehenden Tabler/Flask-Stack.

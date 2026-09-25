@@ -22,7 +22,7 @@ def test_all_six_detectors_and_jinja_quoting():
     <button class="btn"><span>Speichern und zurück zum Wochenplan</span></button>
     <span class="badge bg-green-lt">Live</span><table class="table"></table>
     <form><input type="search"></form>'''
-    assert inventory.count_template(source) == dict(zip(inventory.CATEGORIES, (2, 1, 1, 1, 1, 1)))
+    assert inventory.count_template(source) == dict(zip(inventory.CATEGORIES, (2, 1, 1, 1, 1, 1, 0)))
 
 
 def test_shared_patterns_hidden_text_and_reductions():
@@ -54,3 +54,25 @@ def test_plain_lists_filter_containers_and_mixed_literal_buttons():
     assert result['local_filters'] == result['literal_buttons'] == 1
     assert result['long_labels'] == 1
     assert inventory.count_template('''<button class="btn">{{ icon(sem('view.reset').resolved_icon) }}{{ t(sem('view.reset').label_key) }}</button>''')['long_labels'] == 0
+
+
+def test_list_typography_declarations_nested_rules_and_false_positives():
+    css = '''/* td { color: red; } */
+    .admin-list-row, .admin-table td { font-size: 1rem; color: var(--app-text); }
+    @media (width < 600px) { .recipe-list > tr { font-weight: 700; padding: 0; } }
+    .title { color: red; content: "td { color: red; }"; }
+    .other-row { font-weight: 600 }
+    .other-list { color: inherit; }
+    th { font-size: 14px; }'''
+    hits = inventory.list_typography_overrides(css)
+    assert [hit['property'] for hit in hits] == [
+        'font-size', 'color', 'font-weight', 'font-weight', 'color', 'font-size']
+    assert [hit['line'] for hit in hits] == [2, 2, 3, 5, 6, 7]
+
+
+def test_list_typography_ratchet_rejects_new_and_increased_overrides():
+    zero = dict.fromkeys(inventory.CATEGORIES, 0)
+    added = zero | {'list_typography_overrides': 1}
+    assert inventory.regressions({'static/admin-new.css': added}, {})
+    assert inventory.regressions({'static/admin-old.css': added}, {'static/admin-old.css': zero})
+    assert not inventory.regressions({'static/admin-old.css': zero}, {'static/admin-old.css': added})
