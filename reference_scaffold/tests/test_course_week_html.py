@@ -1,6 +1,7 @@
 """Week HTML shows soup/dessert once and posts an atomic course form."""
 from __future__ import annotations
 
+import re
 import secrets
 
 import pytest
@@ -181,3 +182,42 @@ def test_course_options_open_for_errors_or_existing_exceptions(app, has_error, e
         assert 'name="VEGGIE_soup_row_version" value="3"' in html
     assert 'name="soup_state"' in html
     assert 'name="dessert_state"' in html
+
+
+def test_week_card_renders_long_archived_template_without_primary_course_links(
+    app, database_engine: Engine,
+) -> None:
+    from test_menu_template_binding_db import make_template
+
+    client, user_id = _login(app, database_engine, ['Cafeteria.Admin'])
+    engine = app.extensions['cafeteria_db']
+    scope = _scope(database_engine, user_id, 'staff_guest')
+    title = 'Reis mit Gemüse und Sauce'
+    template = make_template(database_engine, title=title)
+    persist_menu_item(
+        engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1',
+        {**_payload(staff=True), 'title': title, 'dish_template_public_id': template['public_id']},
+        0,
+    )
+    with database_engine.begin() as connection:
+        connection.execute(
+            text('UPDATE cafeteria.dish_templates SET active=false WHERE id=:id'),
+            {'id': template['id']},
+        )
+    page = client.get(f'/admin/cafeteria?week={DAY}')
+    html = page.get_data(as_text=True)
+    assert page.status_code == 200
+    marker = f'Aus Vorlage «{title}» (archiviert)'
+    card = html.split('admin-week-template', 1)[1].split('</details>', 1)[0]
+    assert marker in card
+    assert 'data-semantic="actions.copy"' not in card
+    assert 'class="btn text-wrap text-start"' in card
+    assert '#tabler-template' in card
+    for label in ('Suppe planen', 'Dessert planen'):
+        matched = [
+            attrs for attrs, inner in re.findall(r'<a\b([^>]*)>(.*?)</a>', html, flags=re.S)
+            if label in inner
+        ]
+        assert matched, label
+        assert all('btn-primary' not in attrs and 'data-error-link' in attrs for attrs in matched)
+        assert all(f'aria-label="{label}' in attrs for attrs in matched)

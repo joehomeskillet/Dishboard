@@ -19,7 +19,7 @@
     {% elif course.state == 'not_offered' %}
     <span>{{ none_labels[kind] }}</span>
     {% else %}
-    {{ icon_button('actions.add', href='#' ~ form_id ~ '-' ~ kind ~ '-state', text=labels[kind] ~ ' planen', aria_label=labels[kind] ~ ' planen · ' ~ day_iso ~ ' · ' ~ meal_code, attrs={'data-error-link': true}) }}
+    {{ icon_button('actions.add', href='#' ~ form_id ~ '-' ~ kind ~ '-state', text=labels[kind] ~ ' planen', aria_label=labels[kind] ~ ' planen · ' ~ day_iso ~ ' · ' ~ meal_code, emphasis='secondary', attrs={'data-error-link': true}) }}
     <span class="visually-hidden">{{ empty_labels[kind] }}</span>
     {% endif %}
     {% if course.state in ('planned', 'not_offered') %}
