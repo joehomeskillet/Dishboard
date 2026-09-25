@@ -41,7 +41,8 @@ def test_archived_provenance_native_roundtrip_and_viewports(
     try:
         page = context.new_page()
         assert page.goto(editor).status == 200
-        link = page.get_by_role('link', name='Aus Vorlage «Rösti» (archiviert)', exact=True)
+        expect(page.locator('#template-reference')).to_contain_text('Aus Vorlage «Rösti» (archiviert)')
+        link = page.locator('#template-reference').get_by_role('link', name='Vorlagen', exact=True)
         expect(link).to_be_visible()
         expect(page.get_by_label('Vorlagenbezug lösen', exact=True)).not_to_be_checked()
         for width, height in VIEWPORTS:
@@ -65,7 +66,7 @@ def test_archived_provenance_native_roundtrip_and_viewports(
         expect(checkbox).to_be_checked()
         submitted = _submit_menu(page, 303)
         assert submitted['dish_template_detach'] == ['1']
-        expect(page.get_by_role('link', name='Aus Vorlage «Rösti» (archiviert)', exact=True)).to_have_count(0)
+        expect(page.locator('#template-reference')).to_have_count(0)
         with admin_engine.connect() as connection:
             assert connection.execute(text('SELECT title,dish_template_id FROM cafeteria.menu_items')).one() == ('Rösti – eigener Titel', None)
     finally:

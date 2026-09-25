@@ -125,7 +125,8 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
         before = stored_state(admin_engine)
         submit(page, 'Weiter', 303)
         assert 'template_context=' in page.url and '_csrf=' not in page.url
-        expect(page.get_by_role('heading', name='Neues Menü aus Vorlage «Rösti»', exact=True)).to_be_visible()
+        expect(page.get_by_role('heading', name='Menüs', exact=True)).to_be_visible()
+        expect(page.locator('.page-header')).to_contain_text('Neues Menü aus Vorlage «Rösti»')
         expect(page.get_by_label('Menüname', exact=True)).to_have_value('Rösti')
         expect(page.locator('[name="recipe_revision_public_id"]')).to_have_value(revision['public_id'])
         expect(page.get_by_text('Vorgeschlagen: Stand 1', exact=False)).to_be_visible()
@@ -310,6 +311,7 @@ def test_list_planning_action_stays_inside_visible_entry(
         assert link.evaluate('(el) => getComputedStyle(el).outlineStyle') != 'none'
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
-        expect(page.get_by_role('heading', name='Menü einplanen', exact=True)).to_be_visible()
+        expect(page.get_by_role('heading', name='Gerichtvorlagen', exact=True)).to_be_visible()
+        expect(page.locator('.page-header')).to_contain_text('Als Menü einplanen · ' + title)
         expect(page.locator('#planning-summary')).to_contain_text(title)
         assert stored_state(admin_engine) == before
