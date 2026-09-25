@@ -90,3 +90,14 @@ tests/test_ui_korrektur_vorlagen_browser.py::test_save_activate_and_load_version
 # 2026-09-26 rot auf Produktion R11 d2e66fe (Baseline-Lauf): PDF-Paint bei 1440/JS und 390/noJS - Ursache noch nicht klassifiziert.
 tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[1440-True]
 tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[390-False]
+# 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 Browsertests - Ursache noch nicht klassifiziert.
+tests/test_recipe_freeze_v2_browser.py::test_preview_and_list_are_native_readonly_with_exact_prepared_selection[1440-900-True]
+tests/test_recipe_freeze_v2_browser.py::test_preview_and_list_are_native_readonly_with_exact_prepared_selection[390-844-False]
+tests/test_recipe_freeze_v2_browser.py::test_native_freeze_conflict_keeps_original_until_explicit_reload[1440-True]
+tests/test_recipe_freeze_v2_browser.py::test_native_freeze_conflict_keeps_original_until_explicit_reload[390-False]
+tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromium_200_percent_zoom
+# 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Tab nach «Zum Wochenplan» landet nicht auf #menu-query-search - Ursache noch nicht klassifiziert.
+tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[True-cafeteria-staff_guest]
+tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[True-patienten-patient]
+tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[False-cafeteria-staff_guest]
+tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[False-patienten-patient]
