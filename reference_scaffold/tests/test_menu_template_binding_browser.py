@@ -42,7 +42,8 @@ def test_archived_provenance_native_roundtrip_and_viewports(
         page = context.new_page()
         assert page.goto(editor).status == 200
         expect(page.locator('#template-reference')).to_contain_text('Aus Vorlage «Rösti» (archiviert)')
-        link = page.locator('#template-reference').get_by_role('link', name='Vorlagen', exact=True)
+        link = page.locator('#template-reference a[data-semantic="navigation.templates"]')
+        expect(link).to_have_text('Gerichtvorlagen')
         expect(link).to_be_visible()
         expect(page.get_by_label('Vorlagenbezug lösen', exact=True)).not_to_be_checked()
         for width, height in VIEWPORTS:
