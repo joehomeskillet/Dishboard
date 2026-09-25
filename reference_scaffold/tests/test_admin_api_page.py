@@ -34,6 +34,14 @@ pytestmark = pytest.mark.skipif(
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
 )
 
+API_CSS = Path(__file__).resolve().parents[1] / 'cafeteria/static/admin-settings-schnittstellen.css'
+
+
+def test_api_settings_css_keeps_shared_row_actions() -> None:
+    css = API_CSS.read_text(encoding='utf-8')
+    assert '[data-api-keys] .admin-row-actions' not in css
+    assert 'flex-wrap: nowrap' not in css
+
 
 def _register(application: Flask) -> Flask:
     from cafeteria.admin import api_routes  # noqa: F401
@@ -238,6 +246,11 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                         table = page.locator('[data-api-keys] table')
                         expect(table).to_have_class(re.compile(r'\badmin-table--stack\b'))
                         expect(table.locator('tbody td:not([data-label])')).to_have_count(0)
+                        row_actions = table.locator('.admin-row-actions').first
+                        shared = row_actions.evaluate('el => { const cs = getComputedStyle(el); return {wrap: cs.flexWrap, gap: cs.gap, display: cs.display}; }')
+                        assert shared['display'] == 'flex', shared
+                        assert shared['gap'] == '8px', shared
+                        assert shared['wrap'] == ('wrap' if width < 768 else 'nowrap'), (width, shared)
                         assert table.locator('tbody tr').first.evaluate(
                             'el => getComputedStyle(el).display'
                         ) == ('grid' if width < 768 else 'table-row')
@@ -278,14 +291,28 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                     technical.focus()
                     technical.press('Enter')
                     expect(page.get_by_role('heading', name='Technische Versionen')).to_be_visible()
-                    expect(page.locator('a[href="/api/v1/docs"]')).to_be_visible()
+                    docs = page.locator('a[href="/api/v1/docs"]')
+                    expect(docs).to_be_visible()
+                    expect(docs).to_contain_text('Swagger UI')
+                    expect(docs).to_have_attribute('target', '_blank')
+                    openapi = page.locator('a[href="/api/v1/openapi.json"]')
+                    expect(openapi).to_contain_text('OpenAPI')
+                    expect(openapi).to_have_attribute('title', 'OpenAPI öffnen')
+                    fhir = page.locator('a[href="/fhir/metadata"]')
+                    expect(fhir).to_contain_text('FHIR')
+                    expect(fhir).to_have_attribute('title', 'FHIR öffnen')
                     technical.press('Enter')
-                    # Native details and confirmation preserve the revoke payload, including without JS.
-                    details = page.locator('.admin-api-key-details > summary')
-                    details.focus()
-                    details.press('Enter')
+                    # Direct labeled revoke plus «Mehr» for details; confirmation stays native.
                     revoke = page.locator('form[action$="/revoke"]')
+                    expect(revoke.locator('summary')).to_contain_text('Widerrufen')
                     expect(revoke.locator('button')).not_to_be_visible()
+                    more = page.locator('.ui-sem-actions > summary')
+                    more.focus()
+                    more.press('Enter')
+                    details = page.locator('.admin-api-key-details > summary')
+                    expect(details).to_have_attribute('title', re.compile(r'Details zu '))
+                    details.press('Enter')
+                    expect(page.locator('[data-label="Präfix"]')).to_be_visible()
                     revoke.locator('summary').press('Enter')
                     assert revoke.evaluate('e => [...new FormData(e)]') == [['_csrf', 'workflow-csrf']]
                     if javascript:

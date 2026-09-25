@@ -77,6 +77,11 @@ def test_get_authorization_csrf_and_shape(client, app, database_engine):  # noqa
     assert 'href="#schedule-patient"' in statusbar.group()
     assert 'revision' not in statusbar.group() and 'row_version' not in statusbar.group()
     assert 'aria-current="page"' in body
+    saved = re.search(r'id="saved-exceptions".*?</details>', body, re.S)
+    assert saved and 'data-empty-kind="none"' in saved.group()
+    assert 'Keine gespeicherten Ausnahmen' in saved.group()
+    empty_add = re.search(r'<a\b[^>]*data-semantic="actions.add"[^>]*>', saved.group())
+    assert empty_add and 'btn-primary' not in empty_add.group(0)
     valid = _get(client, 'name-patient')
     for form in ({**valid, '_csrf': 'wrong'}, {**valid, 'actor_id': '1'},
                  MultiDict([*valid.items(), ('action', 'save_name_patient')])):
@@ -194,6 +199,8 @@ def test_exception_menu_preservation_weekend_guard_and_status_mismatch(client, d
     assert client.post(PATH, data={**timed, 'service_start': '12:00'}).status_code == 303
     body = client.get(PATH).get_data(as_text=True)
     assert all(f'data-kind="{kind}"' in body for kind in ('open', 'closure', 'time'))
+    assert 'admin-label' in body
+    assert 'Woche öffnen' in body
 
 
 def test_defaults_keep_original_week_version_menu_times_and_invalidate_review(client, database_engine):  # noqa: F811

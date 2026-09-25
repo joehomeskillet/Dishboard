@@ -3,6 +3,10 @@
   overflow-wrap: anywhere;
 }
 
+.dishboard-admin [data-page="api"] [data-api-keys] .admin-api-key-scopes .badge + .text-secondary::before {
+  content: " · ";
+}
+
 .dishboard-admin [data-page="api"] .admin-api-key-details > summary {
   margin-top: 0;
 }
@@ -14,25 +18,26 @@
 @media (max-width: 767.98px) {
   .dishboard-admin [data-page="api"] [data-api-keys] tbody tr {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    padding: var(--app-space-2) var(--app-space-3);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--app-space-1) var(--app-space-2);
+    padding: var(--app-space-1) var(--app-space-2);
     border-bottom: 1px solid var(--app-border);
+    height: auto;
   }
 
   .dishboard-admin [data-page="api"] [data-api-keys] td {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-    gap: 0 var(--app-space-2);
+    display: block;
+    min-width: 0;
     padding: 0;
     border: 0;
   }
 
   .dishboard-admin [data-page="api"] [data-api-keys] td::before {
-    grid-column: 1;
+    display: inline;
+    margin-inline-end: var(--app-space-1);
   }
 
-  .dishboard-admin [data-page="api"] [data-api-keys] td > * {
-    grid-column: 2;
-    min-width: 0;
+  .dishboard-admin [data-page="api"] [data-api-keys] td.admin-table-actions {
+    grid-column: 1 / -1;
   }
 }

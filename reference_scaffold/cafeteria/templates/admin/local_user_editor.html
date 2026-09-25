@@ -1,7 +1,7 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, hint %}
+{% from 'admin/_macros.html' import page_header, icon, hint, label %}
 {% from 'admin/_local_user_forms.html' import hidden, roles as role_fields, password, confirm, error as form_error, unavailable %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon %}
 {% set workflow_nav = 'users' %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-benutzer.css') }}">{% endblock %}
 {% block title %}Lokales Konto · Benutzer & Zugriff{% endblock %}
@@ -13,7 +13,7 @@
   {'label': 'Lokale Anmeldung', 'value': t('status.locked.label') if login_locked else 'Nicht vorübergehend gesperrt', 'detail': format_time(account.locked_until) if login_locked else none, 'variant': 'warning' if login_locked else 'neutral'}
 ] %}
 {% block page_header %}{% call page_header('Benutzer & Zugriff', account.display_name ~ ' · ' ~ account.username, status_items=account_status) %}
-<a class="btn" href="{{ url_for('admin.local_users_list', page=page, status=status) }}">{{ icon('arrow-left') }}Zurück zur Kontenliste</a>{% endcall %}{% endblock %}
+{{ icon_button('actions.back', href=url_for('admin.local_users_list', page=page, status=status)) }}{% endcall %}{% endblock %}
 {% block content %}
 {{ unavailable(can_mutate) }}
 <h2 class="visually-hidden" id="account-identity">{{ account.display_name }}</h2>
@@ -22,33 +22,33 @@
 {{ hint('Rollen, Passwort und Kontostatus werden getrennt gespeichert und bestätigt.', 'account-actions-hint') }}
 {% set selected_roles = request.form.getlist('roles') if error_action == 'rollen' else account.roles %}
 <details id="roles-action" class="card mb-3"{% if error_action == 'rollen' %} open{% endif %}>
-<summary class="d-flex gap-2 py-2 px-3{% if error_action != 'rollen' %} btn btn-primary{% else %} card-header{% endif %}">{{ icon_label('actions.edit') }}<span>Rollen</span>{% if error_action == 'rollen' %}<span class="badge admin-status--danger">{{ icon('alert-triangle') }}Fehler</span>{% endif %}{{ icon('chevron-right', class='ms-auto flex-shrink-0') }}</summary>
+<summary class="d-flex gap-2 py-2 px-3{% if error_action != 'rollen' %} btn btn-primary{% else %} card-header{% endif %}">{{ icon_label('actions.edit') }}<span>Rollen</span>{% if error_action == 'rollen' %}{{ label('Fehler', 'danger', icon='alert-triangle') }}{% endif %}</summary>
 <form class="admin-compact-form" method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action='rollen') }}"{% if error_action == 'rollen' %} aria-describedby="user-error-rollen"{% endif %}>
 {{ hidden(csrf,page,status,account) }}<div class="card-body">
 {{ form_error(error if error_action == 'rollen' else '', 'rollen') }}{{ role_fields(role_labels,selected_roles,'edit') }}
 {{ confirm('roles', 'Rollenänderung für ' ~ account.username ~ ' bestätigen') }}
 <p class="form-hint">Speichern widerruft bestehende Anmeldungen. Beim Entzug der Adminrolle muss ein weiterer ungesperrter lokaler Admin bestehen bleiben.</p>
-</div><div class="card-footer"><button class="btn{% if error_action == 'rollen' %} btn-primary{% endif %}" type="submit"{% if not can_mutate %} disabled{% endif %}>{{ icon_label('actions.save') }}</button></div></form>
+</div><div class="card-footer"><button class="btn{% if error_action == 'rollen' %} btn-primary{% endif %} ui-sem-control" type="submit" data-semantic="actions.save" title="{{ t(sem('actions.save').tooltip_key) }}"{% if not can_mutate %} disabled{% endif %}>{{ icon_label('actions.save') }}</button></div></form>
 </details>
 <details id="password-action" class="card mb-3"{% if error_action == 'passwort' %} open{% endif %}>
-<summary class="card-header gap-2 py-2">{{ icon('refresh') }}<h3 class="card-title mb-0">Passwort zurücksetzen</h3>{% if error_action == 'passwort' %}<span class="badge admin-status--danger">{{ icon('alert-triangle') }}Fehler</span>{% endif %}{{ icon('chevron-right', class='ms-auto') }}</summary>
+<summary class="card-header gap-2 py-2">{{ sem_icon('actions.refresh') }}<h3 class="card-title mb-0">Passwort zurücksetzen</h3>{% if error_action == 'passwort' %}{{ label('Fehler', 'danger', icon='alert-triangle') }}{% endif %}</summary>
 <form class="admin-compact-form" method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action='passwort') }}"{% if error_action == 'passwort' %} aria-describedby="user-error-passwort"{% endif %}>
 {{ hidden(csrf,page,status,account) }}<div class="card-body">
 <p class="text-secondary mb-3">Neues Passwort setzen und bestehende Anmeldungen widerrufen.</p>
 {{ form_error(error if error_action == 'passwort' else '', 'passwort') }}{{ password('reset') }}
 {{ confirm('password', 'Neues Passwort für ' ~ account.username ~ ' setzen und bestehende Anmeldungen widerrufen') }}
 <p class="form-hint">Rollen und Kontostatus bleiben unverändert.</p>
-</div><div class="card-footer"><button class="btn btn-danger" type="submit"{% if not can_mutate %} disabled{% endif %}>{{ icon('refresh') }}Passwort zurücksetzen</button></div></form>
+</div><div class="card-footer">{{ icon_button('actions.refresh', text='Zurücksetzen', title='Passwort zurücksetzen', aria_label='Passwort zurücksetzen', class='btn-danger', attrs={'disabled': not can_mutate}) }}</div></form>
 </details>
 {% set state_action = 'aktivieren' if account.disabled_at else 'deaktivieren' %}
 <details id="state-action" class="card"{% if error_action in ['aktivieren','deaktivieren'] %} open{% endif %}>
-<summary class="card-header gap-2 py-2">{{ icon('archive-off' if account.disabled_at else 'archive') }}<h3 class="card-title mb-0">Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</h3>{% if error_action in ['aktivieren','deaktivieren'] %}<span class="badge admin-status--danger">{{ icon('alert-triangle') }}Fehler</span>{% endif %}{{ icon('chevron-right', class='ms-auto') }}</summary>
+<summary class="card-header gap-2 py-2">{{ sem_icon('actions.activate' if account.disabled_at else 'status.locked') }}<h3 class="card-title mb-0">Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</h3>{% if error_action in ['aktivieren','deaktivieren'] %}{{ label('Fehler', 'danger', icon='alert-triangle') }}{% endif %}</summary>
 <form class="admin-compact-form" method="post" action="{{ url_for('admin.local_user_change', public_id=account.public_id, action=state_action) }}"{% if error_action in ['aktivieren','deaktivieren'] %} aria-describedby="user-error-{{ error_action }}"{% endif %}>
 {{ hidden(csrf,page,status,account) }}<div class="card-body">
 {{ form_error(error if error_action in ['aktivieren','deaktivieren'] else '', error_action) }}
 <p>{% if account.disabled_at %}Das Konto kann sich wieder mit seinem bestehenden Passwort anmelden. Eine vorübergehende Anmeldesperre bleibt erhalten.{% else %}Die lokale Anmeldung wird gesperrt. Bestehende Sitzungen verlieren ihre Berechtigung; Konto und Ereignisse bleiben erhalten.{% endif %}</p>
 {{ confirm('state', 'Konto ' ~ account.username ~ ' ausdrücklich ' ~ ('reaktivieren' if account.disabled_at else 'deaktivieren')) }}
-</div><div class="card-footer"><button class="btn{% if not account.disabled_at %} btn-danger{% endif %}" type="submit"{% if not can_mutate %} disabled{% endif %}>{{ icon('archive-off' if account.disabled_at else 'archive') }}Konto {{ 'reaktivieren' if account.disabled_at else 'deaktivieren' }}</button></div></form>
+</div><div class="card-footer">{% if account.disabled_at %}{{ icon_button('actions.activate', text='Reaktivieren', title='Konto reaktivieren', aria_label='Konto reaktivieren', attrs={'disabled': not can_mutate}) }}{% else %}{{ icon_button('status.locked', text='Deaktivieren', title='Konto deaktivieren', aria_label='Konto deaktivieren', class='btn-danger', attrs={'disabled': not can_mutate}) }}{% endif %}</div></form>
 </details>
 </section>
 <details id="account-login-details" class="admin-compact-details mt-3">
@@ -59,8 +59,8 @@
   <dt class="col-12 col-md-4">Passwort zuletzt geändert</dt><dd class="col-12 col-md-8">{{ format_time(account.password_changed_at) }}</dd>
 </dl>
 <nav class="btn-list mt-3" aria-label="Kontoverlauf">
-<a class="btn" href="{{ url_for('admin.local_user_events', target=account.public_id) }}">{{ icon('history') }}Kontoereignisse</a>
-<a class="btn" href="{{ url_for('admin.access_history') }}">{{ icon('history') }}Gesamter Zugriffsverlauf</a>
+{{ icon_button('actions.history', href=url_for('admin.local_user_events', target=account.public_id), text='Kontoereignisse', title='Kontoereignisse öffnen') }}
+{{ icon_button('actions.history', href=url_for('admin.access_history'), text='Zugriffsverlauf', title='Zugriffsverlauf öffnen') }}
 </nav>
 </details>
 {% endblock %}

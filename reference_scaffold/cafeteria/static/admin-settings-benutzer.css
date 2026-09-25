@@ -1,4 +1,24 @@
 /* WP19: existing tokens and native forms, scoped to account views. */
+.dishboard-admin .admin-users-list .admin-list-meta .small {
+  display: inline;
+}
+.dishboard-admin .admin-users-list .admin-list-meta .small:not(:last-child)::after {
+  content: " · ";
+}
+@media (max-width: 1023px) {
+  .dishboard-admin .admin-users-list .admin-list-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: var(--app-space-2);
+    row-gap: var(--app-space-1);
+  }
+  .dishboard-admin .admin-users-list .admin-list-name {
+    min-width: 0;
+  }
+  .dishboard-admin .admin-users-list .admin-list-meta {
+    grid-column: 1 / -1;
+  }
+}
 .dishboard-admin .admin-users-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -6,7 +26,13 @@
   align-items: center;
 }
 .dishboard-admin .admin-users-row > * { min-width: 0; }
-.dishboard-admin .admin-users-lock { grid-column: 1 / -1; }
+.dishboard-admin .admin-users-lock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-2);
+  grid-column: 1 / -1;
+}
 .dishboard-admin .admin-filter-bar > div { max-width: 100%; }
 .dishboard-admin .admin-users-history td { overflow-wrap: anywhere; }
 .dishboard-admin :is(#roles-action, #password-action, #state-action, #create-local-user) > summary {

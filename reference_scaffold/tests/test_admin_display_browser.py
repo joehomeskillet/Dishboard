@@ -323,4 +323,5 @@ def test_csv_states_remain_independent_of_density_and_old_local_storage(page_con
     expect(page.locator('main')).to_have_attribute('data-state', 'ready')
     expect(page.locator('main')).to_have_attribute('data-density', 'compact')
     expect(page.get_by_role('button', name='Geprüfte Datei importieren')).to_be_visible()
+    expect(page.locator('main .btn-primary span')).to_have_text('Importieren')
     expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)

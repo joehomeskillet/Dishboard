@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory, gettempdir
@@ -23,6 +24,7 @@ from test_auth_routes import ACTOR_IDENTIFIER, auth_app
 __all__ = ["admin_account", "auth_app", "browser", "live_accounts"]
 
 EVIDENCE = Path(gettempdir()) / "uiux-wp19-0920-evidence"
+CSS_PATH = Path(__file__).resolve().parents[1] / "cafeteria/static/admin-settings-benutzer.css"
 VIEWPORTS = (
     (1440, 900, "1440x900"),
     (1024, 768, "1024x768"),
@@ -32,6 +34,13 @@ VIEWPORTS = (
     (2560, 1440, "2560x1440"),
     (320, 844, "320-reflow"),
 )
+
+
+def test_user_settings_css_keeps_shared_list_tokens() -> None:
+    css = CSS_PATH.read_text(encoding="utf-8")
+    assert "#e6e7e9" not in css
+    assert "calc(var(--app-list-pad-y) - 3px)" not in css
+    assert "padding-block: 0" not in css
 
 
 @pytest.fixture(scope="session")
@@ -194,6 +203,31 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         assert box is not None and box["y"] + box["height"] <= 900
         assert box["height"] <= 96
         expect(first_row.get_by_text("Aktiv", exact=True)).to_be_visible()
+        edit = first_row.locator('a[data-semantic="actions.edit"]')
+        expect(edit).to_have_attribute('aria-label', re.compile(r'Konto ui\.list\.(js|nojs) bearbeiten'))
+        expect(edit).to_have_attribute('title', re.compile(r'Konto ui\.list\.(js|nojs) bearbeiten'))
+        expect(edit.locator('svg.icon')).to_have_count(1)
+        metrics = first_row.locator('.admin-list-row').evaluate('''el => {
+            const host = document.querySelector('.dishboard-admin');
+            const probe = document.createElement('div');
+            probe.style.minHeight = 'var(--app-list-row-min-height)';
+            probe.style.paddingTop = 'var(--app-list-pad-y)';
+            host.appendChild(probe);
+            const token = getComputedStyle(probe);
+            const cs = getComputedStyle(el);
+            const result = {minHeight: cs.minHeight, tokenMin: token.minHeight,
+                            paddingTop: cs.paddingTop, tokenPad: token.paddingTop};
+            probe.remove();
+            return result;
+        }''')
+        assert metrics['minHeight'] == metrics['tokenMin'], metrics
+        assert metrics['paddingTop'] == metrics['tokenPad'], metrics
+        page.locator('details.admin-compact-details > summary').filter(
+            has_text='Weitere Optionen'
+        ).click()
+        history_nav = page.get_by_role('navigation', name='Kontoverlauf')
+        expect(history_nav.get_by_role('link', name='Kontoereignisse', exact=True)).to_be_visible()
+        expect(history_nav.get_by_role('link', name='Zugriffsverlauf', exact=True)).to_be_visible()
         info = first_row.locator('summary')
         info.focus()
         page.keyboard.press('Enter')
@@ -322,8 +356,28 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
                 page.get_by_label("Neues Passwort bestätigen", exact=True).fill("Valide!Wolken77Kette")
             confirmation = details.locator('input[name="confirm"]')
             expect(confirmation).to_have_count(1)
+            submit = details.get_by_role("button", name=button, exact=True)
+            if action == "passwort":
+                expect(submit).to_have_attribute("data-semantic", "actions.refresh")
+                expect(submit).to_have_attribute("title", "Passwort zurücksetzen")
+                expect(submit.locator("span")).to_have_text("Zurücksetzen")
+                expect(submit).to_have_class(re.compile(r"\bbtn-danger\b"))
+                expect(details.locator('[data-semantic="view.reset"]')).to_have_count(0)
+            elif action == "deaktivieren":
+                expect(submit).to_have_attribute("data-semantic", "status.locked")
+                expect(submit).to_have_attribute("title", "Konto deaktivieren")
+                expect(submit.locator("span")).to_have_text("Deaktivieren")
+                expect(submit).to_have_class(re.compile(r"\bbtn-danger\b"))
+                expect(details.locator('[data-semantic="actions.archive"]')).to_have_count(0)
+                expect(details.get_by_role("button", name="Archivieren", exact=True)).to_have_count(0)
+            elif action == "aktivieren":
+                expect(submit).to_have_attribute("data-semantic", "actions.activate")
+                expect(submit).to_have_attribute("title", "Konto reaktivieren")
+                expect(submit.locator("span")).to_have_text("Reaktivieren")
+                expect(details.locator('[data-semantic="actions.restore"]')).to_have_count(0)
+                expect(details.get_by_role("button", name="Wiederherstellen", exact=True)).to_have_count(0)
             # Required confirmation remains a native browser boundary.
-            details.get_by_role("button", name=button, exact=True).click()
+            submit.click()
             expect(confirmation).to_be_focused()
             confirmation.check()
             details.locator('summary').click()
@@ -343,6 +397,26 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
                 assert payload[name] == [value]
             if action == "rollen":
                 assert payload["roles"] == ["Cafeteria.Editor"]
+
+
+def test_locked_account_shows_scope_and_expiry(live_accounts, browser):
+    origin, client, owner, issuer = live_accounts
+    target = _create(issuer, "ui.locked.visible")
+    with owner.begin() as connection:
+        connection.execute(text(
+            "UPDATE cafeteria.local_credentials SET failed_login_count=5, "
+            "locked_until=clock_timestamp()+interval '2 hours' "
+            "WHERE user_id=(SELECT id FROM cafeteria.users WHERE public_id=:public_id)"
+        ), {"public_id": target.public_id})
+    with _context(browser, origin, client) as context:
+        page = context.new_page()
+        _open(page, origin, "/admin/benutzer")
+        row = page.locator("[data-account-row]").filter(has_text="ui.locked.visible")
+        notice = row.locator(".admin-users-lock")
+        expect(notice.get_by_text("Gesperrt", exact=True)).to_be_visible()
+        expiry = notice.get_by_text(re.compile(r"Lokale Anmeldung gesperrt bis \d{2}\.\d{2}\.\d{4} \d{2}:\d{2}"))
+        expect(expiry).to_be_visible()
+        assert "visually-hidden" not in (expiry.evaluate("el => el.className") or "")
 
 
 def test_user_and_access_pages_fit_required_viewports(live_accounts, browser):
@@ -413,7 +487,13 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         page = context.new_page()
         _open(page, origin, '/admin/benutzer')
         expect(page.get_by_text('Noch keine lokalen Konten angelegt.', exact=True)).to_be_visible()
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('[data-empty-kind] .btn-primary')).to_have_count(0)
+        expect(page.locator('[data-empty-kind] a[data-semantic="actions.add"]')).to_be_visible()
         _screenshot(page, f'local-users-empty-{width}-{javascript}.png')
+        _open(page, origin, '/admin/benutzer/protokoll')
+        expect(page.locator('[data-empty-kind]')).to_contain_text('Noch keine Kontoereignisse')
+        _open(page, origin, '/admin/benutzer')
         target = _create(issuer, 'ui.states.target')
         page.get_by_label('Kontostatus', exact=True).select_option('disabled')
         page.get_by_role('button', name='Filtern', exact=True).click()
@@ -428,7 +508,7 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         expect(page.get_by_text('Keine Zugriffsereignisse in dieser Auswahl.', exact=True)).to_be_visible()
         expect(page.get_by_label('Zugang', exact=True)).to_have_value('entra')
         _screenshot(page, f'access-history-filter-empty-{width}-{javascript}.png')
-        page.get_by_role('link', name='Filter zurücksetzen', exact=True).click()
+        page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         expect(page.get_by_label('Zugang', exact=True)).to_have_value('all')
 
         app.extensions['cafeteria_auth_issuer_db'] = None
@@ -487,7 +567,7 @@ def test_history_rows_and_native_filters_keep_scope_and_pagination(live_accounts
         page.get_by_role('button', name='Filtern', exact=True).click()
         assert parse_qs(urlsplit(page.url).query) == {'provider': ['entra'], 'action': ['auth.login.accepted']}
         expect(page.locator('tbody tr')).to_have_count(9)
-        page.get_by_role('link', name='Filter zurücksetzen', exact=True).click()
+        page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         page.get_by_role('navigation', name='Zugriffsereignisseiten').get_by_role('link', name='Weiter').click()
         expect(page.locator('tbody tr')).to_have_count(6)
         page.get_by_text('Geltungsbereich', exact=True).click()

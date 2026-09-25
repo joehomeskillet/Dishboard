@@ -1,46 +1,45 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, pagination, icon %}
+{% from 'admin/_macros.html' import page_header, pagination, list_row, label, empty_state %}
 {% from 'admin/_local_user_forms.html' import unavailable %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_button, icon_label, sem_icon, row_actions %}
 {% set workflow_nav = 'users' %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-benutzer.css') }}">{% endblock %}
 {% block title %}Lokale Konten · Benutzer & Zugriff{% endblock %}
 {% block page_header %}{% call page_header('Benutzer & Zugriff', 'Lokale Konten', status_items=[{'label': t('admin.permission.label'), 'value': t('status.readonly.label'), 'variant': 'warning'}] if not can_mutate else []) %}
-{% if can_mutate %}<a class="btn btn-primary" href="{{ url_for('admin.local_user_new', page=page, status=status) }}">{{ icon_label('actions.add') }}</a>{% endif %}
+{% if can_mutate %}{{ icon_button('actions.add', href=url_for('admin.local_user_new', page=page, status=status)) }}{% endif %}
 {% endcall %}{% endblock %}
 {% block content %}
 {{ unavailable(can_mutate) }}
 <form method="get" class="admin-filter-bar" aria-label="Konten filtern" data-dirty-tracking="off">
   <div><label class="form-label" for="user-status">Kontostatus</label><select class="form-select" id="user-status" name="status">
   {% for value,label in [('all','Alle lokalen Konten'),('active','Aktiv'),('disabled','Deaktiviert')] %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-  <div class="col-auto"><button class="btn{% if not can_mutate %} btn-primary{% endif %}" type="submit">{{ icon('search') }}Filtern</button></div>
-  {% if status != 'all' or page > 1 %}<a class="btn" href="{{ url_for('admin.local_users_list') }}">{{ icon_label('view.reset') }}</a>{% endif %}
+  <div class="col-auto"><button class="btn{% if not can_mutate %} btn-primary{% endif %} ui-sem-control" type="submit" data-semantic="view.filter" title="{{ t(sem('view.filter').tooltip_key) }}">{{ icon_label('view.filter') }}</button></div>
+  {% if status != 'all' or page > 1 %}{{ icon_button('view.reset', href=url_for('admin.local_users_list'), icon_only=true) }}{% endif %}
 </form>
 <section class="card mb-3" aria-labelledby="users-title">
 <h2 class="visually-hidden" id="users-title">Lokale Konten</h2>
-{% if rows %}<ul class="list-group list-group-flush">
-{% for account in rows %}<li class="list-group-item px-3 py-2" data-account-row>
-<div class="admin-users-row">
-  <div><strong class="text-break">{{ account.display_name }}</strong><div class="text-secondary text-break">{{ account.username }}</div></div>
-  <div><span class="visually-hidden">Rollen: </span>{% for role in account.roles %}<div class="small">{{ role_labels[role] }}</div>{% endfor %}</div>
-  <div><div class="d-flex flex-wrap align-items-center gap-2">
-    <span class="badge bg-secondary-lt">{% if account.disabled_at %}Deaktiviert{% else %}Aktiv{% endif %}</span>
-    <a class="btn" href="{{ url_for('admin.local_user_detail', public_id=account.public_id, page=page, status=status) }}" aria-label="{{ t('actions.edit.label') if can_mutate else t('actions.open.label') }}: {{ account.username }}">{{ icon_label('actions.edit' if can_mutate else 'actions.open') }}</a>
-    <details class="admin-compact-actions">
-      <summary class="btn btn-icon" aria-label="Anmeldedaten für {{ account.username }}" title="Anmeldedaten für {{ account.username }}">{{ icon('info-circle') }}</summary>
-      <div class="pt-2 small">{% if not (account.locked_until and account.locked_until > now) %}<p class="mb-1">Keine vorübergehende Anmeldesperre</p>{% endif %}<p class="mb-0">Letzte lokale Passwortprüfung: {{ format_time(account.last_login_at) }}</p></div>
-    </details>
-  </div></div>
-  {% if account.locked_until and account.locked_until > now %}<div class="admin-users-lock">{{ icon('alert-triangle') }}Lokale Anmeldung gesperrt bis {{ format_time(account.locked_until) }}</div>{% endif %}
+{% if rows %}<div class="admin-users-list">
+{% for account in rows %}
+{% set role_meta %}{% for role in account.roles %}<div class="small">{{ role_labels[role] }}</div>{% endfor %}{% endset %}
+{% set account_status %}{% if account.disabled_at %}{{ label('Deaktiviert', 'warning') }}{% endif %}{% endset %}
+{% set more_info %}
+<div class="pt-2 small">{% if not (account.locked_until and account.locked_until > now) %}<p class="mb-1">Keine vorübergehende Anmeldesperre</p>{% endif %}<p class="mb-0">Letzte lokale Passwortprüfung: {{ format_time(account.last_login_at) }}</p></div>
+{% endset %}
+<div data-account-row{% if account.locked_until and account.locked_until > now %} class="admin-users-row-locked"{% endif %}>
+{{ list_row(account.display_name, account.username, 'active' if not account.disabled_at else none, meta=role_meta, status=account_status if account.disabled_at else none, actions=row_actions([{'key': 'actions.edit' if can_mutate else 'actions.open', 'href': url_for('admin.local_user_detail', public_id=account.public_id, page=page, status=status), 'icon_only': true, 'aria_label': 'Konto ' ~ account.username ~ (' bearbeiten' if can_mutate else ' öffnen')}]), more_actions=more_info) }}
+{% if account.locked_until and account.locked_until > now %}<div class="admin-users-lock">{{ label('Gesperrt', 'warning', icon='alert-triangle') }}<span>Lokale Anmeldung gesperrt bis {{ format_time(account.locked_until) }}</span></div>{% endif %}
 </div>
-</li>{% endfor %}</ul>
-{% else %}<div class="card-body py-3"><p class="mb-2">{% if status == 'all' and page == 1 %}Noch keine lokalen Konten angelegt.{% else %}Keine lokalen Konten in dieser Auswahl.{% endif %}</p>{% if status != 'all' or page > 1 %}<a class="btn" href="{{ url_for('admin.local_users_list') }}">{{ icon_label('view.reset') }}</a>{% elif can_mutate %}<a class="btn" href="{{ url_for('admin.local_user_new', page=page, status=status) }}">{{ icon_label('actions.add') }}</a>{% endif %}</div>{% endif %}
+{% endfor %}
+</div>
+{% else %}{% call empty_state('none', 'Noch keine lokalen Konten angelegt.' if status == 'all' and page == 1 else 'Keine lokalen Konten in dieser Auswahl.', '') %}
+{% if status != 'all' or page > 1 %}{{ icon_button('view.reset', href=url_for('admin.local_users_list')) }}{% elif can_mutate %}{{ icon_button('actions.add', href=url_for('admin.local_user_new', page=page, status=status), emphasis='secondary') }}{% endif %}
+{% endcall %}{% endif %}
 </section>
 {{ pagination(page, has_next, prev_url, next_url, 'Kontenseiten') }}
 <details class="admin-compact-details">
 <summary>{{ t('ui.disclosure.more_options.label') }}</summary>
 <nav class="btn-list" aria-label="Kontoverlauf">
-<a class="btn" href="{{ url_for('admin.local_user_events') }}">{{ icon('history') }}Kontoereignisse</a>
-<a class="btn" href="{{ url_for('admin.access_history') }}">{{ icon('history') }}Zugriffsverlauf</a>
+{{ icon_button('actions.history', href=url_for('admin.local_user_events'), text='Kontoereignisse', title='Kontoereignisse öffnen') }}
+{{ icon_button('actions.history', href=url_for('admin.access_history'), text='Zugriffsverlauf', title='Zugriffsverlauf öffnen') }}
 </nav></details>
 {% endblock %}

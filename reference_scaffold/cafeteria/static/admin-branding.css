@@ -105,10 +105,15 @@
   overflow-wrap: anywhere;
 }
 
-.brand-history-card .list-group-item.active {
+.brand-history-card .list-group-item.active,
+.brand-history-row.active {
   background: var(--app-primary);
   border-color: var(--app-primary);
   color: var(--app-on-primary);
+}
+
+.brand-history-row.active .admin-list-row {
+  background: transparent;
 }
 
 .brand-history-name {
