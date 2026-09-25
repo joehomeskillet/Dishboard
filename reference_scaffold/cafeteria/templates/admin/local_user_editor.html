@@ -38,7 +38,7 @@
 {{ form_error(error if error_action == 'passwort' else '', 'passwort') }}{{ password('reset') }}
 {{ confirm('password', 'Neues Passwort für ' ~ account.username ~ ' setzen und bestehende Anmeldungen widerrufen') }}
 <p class="form-hint">Rollen und Kontostatus bleiben unverändert.</p>
-</div><div class="card-footer"><button class="btn btn-danger ui-sem-control" type="submit" data-semantic="actions.refresh" title="Passwort zurücksetzen" aria-label="Passwort zurücksetzen"{% if not can_mutate %} disabled{% endif %}>{{ sem_icon('actions.refresh') }}<span>Zurücksetzen</span></button></div></form>
+</div><div class="card-footer">{{ icon_button('actions.refresh', text='Zurücksetzen', title='Passwort zurücksetzen', aria_label='Passwort zurücksetzen', class='btn-danger', attrs={'disabled': not can_mutate}) }}</div></form>
 </details>
 {% set state_action = 'aktivieren' if account.disabled_at else 'deaktivieren' %}
 <details id="state-action" class="card"{% if error_action in ['aktivieren','deaktivieren'] %} open{% endif %}>
@@ -48,7 +48,7 @@
 {{ form_error(error if error_action in ['aktivieren','deaktivieren'] else '', error_action) }}
 <p>{% if account.disabled_at %}Das Konto kann sich wieder mit seinem bestehenden Passwort anmelden. Eine vorübergehende Anmeldesperre bleibt erhalten.{% else %}Die lokale Anmeldung wird gesperrt. Bestehende Sitzungen verlieren ihre Berechtigung; Konto und Ereignisse bleiben erhalten.{% endif %}</p>
 {{ confirm('state', 'Konto ' ~ account.username ~ ' ausdrücklich ' ~ ('reaktivieren' if account.disabled_at else 'deaktivieren')) }}
-</div><div class="card-footer">{% if account.disabled_at %}{{ icon_button('actions.activate', text='Reaktivieren', title='Konto reaktivieren', aria_label='Konto reaktivieren', attrs={'disabled': not can_mutate}) }}{% else %}<button class="btn btn-danger ui-sem-control" type="submit" data-semantic="status.locked" title="Konto deaktivieren" aria-label="Konto deaktivieren"{% if not can_mutate %} disabled{% endif %}>{{ sem_icon('status.locked') }}<span>Deaktivieren</span></button>{% endif %}</div></form>
+</div><div class="card-footer">{% if account.disabled_at %}{{ icon_button('actions.activate', text='Reaktivieren', title='Konto reaktivieren', aria_label='Konto reaktivieren', attrs={'disabled': not can_mutate}) }}{% else %}{{ icon_button('status.locked', text='Deaktivieren', title='Konto deaktivieren', aria_label='Konto deaktivieren', class='btn-danger', attrs={'disabled': not can_mutate}) }}{% endif %}</div></form>
 </details>
 </section>
 <details id="account-login-details" class="admin-compact-details mt-3">
