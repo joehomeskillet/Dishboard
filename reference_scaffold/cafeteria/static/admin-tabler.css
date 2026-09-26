@@ -748,6 +748,8 @@
 .dishboard-admin .admin-label.admin-status--active {
   color: var(--app-primary) !important; background: var(--app-primary-soft) !important;
 }
+/* The accent rail belongs to status cards, not to rounded labels. */
+.dishboard-admin .admin-label { border-left-color: transparent; }
 .dishboard-admin .display-preview[data-content-width="contained"] { max-width: var(--app-container-width); margin-inline: auto; }
 .dishboard-admin .display-preview[data-content-width="full"] { max-width: none; }
 @media (max-width: 991.98px) {

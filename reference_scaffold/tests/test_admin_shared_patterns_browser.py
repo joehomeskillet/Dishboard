@@ -146,6 +146,31 @@ def test_c3_disclosure_has_one_marker_and_native_keyboard_state(width, javascrip
     _run_polish_check(markup, verify, width, javascript)
 
 
+@pytest.mark.parametrize('width', [390, 1440])
+def test_c3_labels_have_no_one_sided_border_or_clipped_content(width):
+    markup = '''{% from 'admin/_macros.html' import label, page_header %}
+        {{ label('Beilage', 'category') }}{{ label('Prüfung offen', 'warning') }}
+        {{ label('Aktiv', 'active', icon='circle-check') }}
+        {{ page_header('Status', status_items=[{'label':'Prüfung', 'value':1, 'variant':'warning'}]) }}'''
+
+    def verify(page):
+        for badge in page.locator('.admin-label').all():
+            styles = badge.evaluate('''el => {
+                const s = getComputedStyle(el);
+                const r = el.getBoundingClientRect();
+                return {left: s.borderLeftColor, right: s.borderRightColor,
+                    inside: [...el.children].every(child => {
+                        const c = child.getBoundingClientRect();
+                        return c.left >= r.left && c.right <= r.right;
+                    })};
+            }''')
+            assert styles['left'] == styles['right']
+            assert styles['inside']
+        expect(page.locator('.admin-statusbar-item')).to_have_css('border-left-width', '4px')
+
+    _run_polish_check(markup, verify, width, javascript=False)
+
+
 @pytest.mark.parametrize('width,columns', [(360, 1), (768, 2), (1024, 2), (1440, 3), (1920, 3)])
 def test_polish_field_grid_targets_and_adjacent_error(width, columns):
     markup = '''{% from 'admin/_macros.html' import field, select, check %}
