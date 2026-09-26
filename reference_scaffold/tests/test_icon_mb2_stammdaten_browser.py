@@ -17,7 +17,7 @@ from test_ui_route_inventory import _prepare_inventory_entities
 def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server, tmp_path,  # noqa: F811
                                          javascript, width):
     client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
-    _prepare_inventory_entities(admin_app, admin_engine, actor)
+    prepared = _prepare_inventory_entities(admin_app, admin_engine, actor)
     create(client, 'kategorien', name='MB2 Kategorie', code='MB2', sort_order='1')
     evidence = Path(__file__).resolve().parents[2] / '.claude/evidence/icon-mb2-0926'
     evidence.mkdir(parents=True, exist_ok=True)
@@ -65,6 +65,19 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     expect(page.locator('#c-name')).to_be_visible()
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                     page.screenshot(path=str(tmp_path / f'{family}-{width}-{javascript}.png'), full_page=True)
+                operation_pages = {
+                    'cookbooks': '/admin/kochbuecher',
+                    **{endpoint.rsplit('.', 1)[1]: prepared['endpoint_paths'][endpoint]
+                       for endpoint in ('admin.inventory_home', 'admin.cost_home', 'admin.order_home',
+                                        'admin.order_basket', 'admin.shopping_list_detail')},
+                }
+                for name, path in operation_pages.items():
+                    response = page.goto(path)
+                    assert response.status == 200
+                    expect(page.get_by_role('heading', level=1)).to_be_visible()
+                    expect(page.locator('dl.admin-statusbar')).to_have_count(0)
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+                    page.screenshot(path=str(evidence / f'{name}-{width}-{javascript}.png'), full_page=True)
                 for kind in ('foods', 'units', 'categories', 'tags', 'storage_locations'):
                     page.goto('/admin/grundlagen?kind=' + kind)
                     rows = page.locator('.grundlagen-list .admin-list-row')
