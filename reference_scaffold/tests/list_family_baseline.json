@@ -90,10 +90,8 @@
     "benutzer": [
       "1440:filtereinstieg_text",
       "1440:ueberlauf_leer",
-      "1440:zeilenaktion_text:zeilen-1",
       "390:filtereinstieg_text",
-      "390:ueberlauf_leer",
-      "390:zeilenaktion_text:zeilen-1"
+      "390:ueberlauf_leer"
     ],
     "benutzerprotokoll": [],
     "api-schluessel": [
