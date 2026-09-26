@@ -28,7 +28,7 @@
       <td data-label="Zeitpunkt">{{ format_time(item.occurred_at) }}</td>
       <td data-label="Verifiziertes Konto" class="text-break">{{ item.actor_display_name or 'Nicht zugeordnet' }}</td>
       <td data-label="Zugang">{{ providers[item.provider] }}</td>
-      <td data-label="Ereignis"><div>{{ item.summary }}</div>{% if item.reason_label %}<div class="text-secondary">{{ item.reason_label }}</div>{% endif %}</td>
+      <td data-label="Ereignis"><div>{{ item.summary }}</div>{% if item.reason_label %}<div class="admin-list-secondary">{{ item.reason_label }}</div>{% endif %}</td>
     </tr>{% endfor %}</tbody>
   </table></div>
   {% else %}{% call empty_state('none', 'Noch keine Zugriffsereignisse erfasst.' if provider == 'all' and action == 'all' and page == 1 else 'Keine Zugriffsereignisse in dieser Auswahl.', 'Neue Anmeldeentscheidungen und Abmeldeanfragen erscheinen hier automatisch.') %}{% endcall %}{% endif %}

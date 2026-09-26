@@ -3,7 +3,7 @@
   overflow-wrap: anywhere;
 }
 
-.dishboard-admin [data-page="api"] [data-api-keys] .admin-api-key-scopes .badge + .text-secondary::before {
+.dishboard-admin [data-page="api"] [data-api-keys] .admin-api-key-scopes .badge + .admin-list-secondary::before {
   content: " · ";
 }
 

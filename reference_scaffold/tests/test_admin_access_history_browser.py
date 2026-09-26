@@ -51,6 +51,15 @@ def test_native_history_filters_pagination_keyboard_and_outage(
         expect(page.get_by_role('heading', name='Benutzer & Zugriff', exact=True, level=1)).to_be_visible()
         expect(page.locator('.page-header-subtitle')).to_have_text('Zugriffsverlauf')
         expect(page.locator('tbody tr')).to_have_count(50)
+        for selector, size, weight in (
+            ('tbody td[data-label="Zeitpunkt"]', '14px', '600'),
+            ('tbody .admin-list-secondary', '13px', '400'),
+            ('tbody td[data-label="Zugang"]', '14px', '400'),
+        ):
+            text_role = page.locator(selector).first
+            expect(text_role).to_have_css('font-size', size)
+            expect(text_role).to_have_css('font-weight', weight)
+            expect(text_role).to_have_css('font-style', 'normal')
         _layout(page)
         page.get_by_label('Zugang', exact=True).focus()
         page.keyboard.press('Tab')

@@ -246,6 +246,16 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                         table = page.locator('[data-api-keys] table')
                         expect(table).to_have_class(re.compile(r'\badmin-table--stack\b'))
                         expect(table.locator('tbody td:not([data-label])')).to_have_count(0)
+                        row = table.locator('tbody tr').first
+                        for selector, size, weight in (
+                            ('.admin-list-primary', '14px', '600'),
+                            ('.admin-list-secondary', '13px', '400'),
+                            ('td[data-label="Läuft ab"]', '14px', '400'),
+                        ):
+                            cell = row.locator(selector)
+                            expect(cell).to_have_css('font-size', size)
+                            expect(cell).to_have_css('font-weight', weight)
+                            expect(cell).to_have_css('font-style', 'normal')
                         row_actions = table.locator('.admin-row-actions').first
                         shared = row_actions.evaluate('el => { const cs = getComputedStyle(el); return {wrap: cs.flexWrap, gap: cs.gap, display: cs.display}; }')
                         assert shared['display'] == 'flex', shared

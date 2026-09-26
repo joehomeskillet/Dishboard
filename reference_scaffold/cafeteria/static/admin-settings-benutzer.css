@@ -1,8 +1,8 @@
 /* WP19: existing tokens and native forms, scoped to account views. */
-.dishboard-admin .admin-users-list .admin-list-meta .small {
+.dishboard-admin .admin-users-list .admin-list-meta > .admin-list-meta {
   display: inline;
 }
-.dishboard-admin .admin-users-list .admin-list-meta .small:not(:last-child)::after {
+.dishboard-admin .admin-users-list .admin-list-meta > .admin-list-meta:not(:last-child)::after {
   content: " · ";
 }
 @media (max-width: 1023px) {

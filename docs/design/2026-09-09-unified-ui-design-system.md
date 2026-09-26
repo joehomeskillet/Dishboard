@@ -1958,6 +1958,8 @@ Zurücksetzen und Fehlerzustand. AuthZ/CSRF-Regression:
 
 ##### Modul Einstellungen – Schnittstellen (2026-09-20)
 
+**Polish P5b:** Schlüsselnamen verwenden Primärtext, Kanäle Sekundärtext und Ablaufdatum, Revision sowie Woche Meta; Leerwerte kommen aus `empty_value()`.
+
 **Polish P3:** Beide Tabellen nutzen `admin-table--stack` und beschriftete Zellen.
 Mobile Schlüssel bleiben kompakte Datensätze; lokale Tabler-Mobile-Overrides
 entfallen. Status verwendet die sechs gemeinsamen Stile mit Text. Ablaufgrenzen
@@ -2421,6 +2423,8 @@ gehört über das native `form`-Attribut zum selben Formular. Nachweise:
 No-JS, Tastatur, Statusbar, Überlauf), `tests/test_branding_browser.py`.
 
 ##### Modul Einstellungen – Benutzer & Zugriff (2026-09-20)
+
+**Polish P5b:** Kontennamen und Benutzernamen nutzen die Primär-/Sekundärrollen von `list_row()`, Rollen bleiben Meta und zusätzliche Kontohinweise sowie Ereignisbegründungen Sekundärtext.
 
 **Polish P3:** Konto- und Zugriffsereignisse verwenden `admin-table--stack` mit
 Zelllabels und Stapelung unter 768 px. Optionale Konto-/Verlaufserklärungen liegen
