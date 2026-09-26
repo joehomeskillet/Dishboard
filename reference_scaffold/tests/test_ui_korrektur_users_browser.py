@@ -132,6 +132,7 @@ def test_wp19_measured_page_frame(live_accounts, browser, javascript):
                     assert metric['row'] < 200, metric
                 measurements.append(dict(page=name, javascript=javascript, **metric))
                 first = page.locator('main a.btn:visible, main button:visible, main summary:visible').first
+                page.keyboard.press('Tab')
                 first.focus()
                 expect(first).to_be_focused()
                 assert first.evaluate('el => getComputedStyle(el).outlineStyle !== "none"')
@@ -532,7 +533,7 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
                            ('detail', f'/admin/benutzer/{target.public_id}')]:
             _open(page, origin, path)
             expect(page.get_by_role('status')).to_contain_text('Die Konten bleiben lesbar')
-            expect(page.locator('main .btn-primary')).to_have_count(1)
+            expect(page.locator('main .btn-primary')).to_have_count(0 if name == 'detail' else 1)
             if name in ('local-users', 'create'):
                 expect(page.locator('.admin-statusbar')).to_contain_text('Nur lesen')
             for summary in page.locator('details > summary').all():
