@@ -722,14 +722,17 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
         assert (control['type'], control['form']) == ('submit', 'recipe-freeze-form')
 
 
-def test_p4_german_aria_without_text_fails_in_en(semantic_app):
+@pytest.mark.parametrize('key,href,aria_label,visible', [
+    ('recipe.quantity', '/scale', 'Mengen berechnen', 'Quantity'),
+    ('actions.print', '/pdf', 'Drucken · PDF öffnen', 'Print'),
+    ('actions.back', '/', 'Zurück zur Rezeptliste', 'Back'),
+])
+def test_p4_german_aria_composes_visible_text_in_en(semantic_app, key, href, aria_label, visible):
     semantic_app.config['UI_LOCALE'] = 'en'
-    with pytest.raises(SemanticError, match='contain visible text'):
-        _p2c_action(semantic_app, 'recipe.quantity', href='/scale', aria_label='Mengen berechnen')
-    with pytest.raises(SemanticError, match='contain visible text'):
-        _p2c_action(semantic_app, 'actions.print', href='/pdf', aria_label='Drucken · PDF öffnen')
-    with pytest.raises(SemanticError, match='contain visible text'):
-        _p2c_action(semantic_app, 'actions.back', href='/', aria_label='Zurück zur Rezeptliste')
+    doc = _p2c_action(semantic_app, key, href=href, aria_label=aria_label)
+    control = doc.select_one('.ui-sem-control')
+    assert control.span.text == visible
+    assert control['aria-label'] == f'{visible}: {aria_label}'
 
 
 def test_p4_owned_templates_pair_german_aria_with_text():
