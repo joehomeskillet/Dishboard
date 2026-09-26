@@ -214,13 +214,27 @@
     padding-block: var(--app-space-2);
   }
 
+  .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list-head {
+    margin: 0;
+    padding: 0;
+  }
+
+  .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list-head > h2 {
+    margin: 0;
+  }
+
+  .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list-day {
+    padding: 0;
+  }
+
   .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list .kitchen-cal-meal-label {
-    margin-top: 5px;
+    margin: 0;
   }
 
   .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list .kitchen-cal-dish,
   .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list .kitchen-cal-notice,
-  .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list .kitchen-cal-course {
-    margin-top: 1px;
+  .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list .kitchen-cal-course,
+  .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list .kitchen-cal-event {
+    margin: 0;
   }
 }
