@@ -257,7 +257,9 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
         html = render_template_string('''
             {% from 'admin/_macros.html' import form_footer %}
             {% from 'ui/_semantic.html' import icon_button %}
-            {{ form_footer({'label': 'Speichern', 'name': 'intent', 'value': 'save', 'form': 'editor'},
+            {{ form_footer({'label': 'Speichern', 'name': 'intent', 'value': 'save', 'form': 'editor',
+                'formaction': '/save', 'formmethod': 'post', 'formenctype': 'multipart/form-data',
+                'formtarget': 'result', 'formnovalidate': true},
                 '/cancel', rare=icon_button('actions.edit', href='#edit'),
                 secondary=[{'label': 'Vorschau', 'href': '#preview'}],
                 danger=icon_button('actions.delete', consequence_key='ui.request_failed')) }}
@@ -266,6 +268,14 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
     primary = document.select('.btn-primary')
     assert len(primary) == 1
     assert (primary[0]['name'], primary[0]['value'], primary[0]['form']) == ('intent', 'save', 'editor')
+    assert {key: primary[0][key] for key in ('formaction', 'formmethod', 'formenctype', 'formtarget')} == {
+        'formaction': '/save', 'formmethod': 'post', 'formenctype': 'multipart/form-data', 'formtarget': 'result'}
+    assert primary[0].has_attr('formnovalidate')
+    for control in document.select('.admin-form-main .btn'):
+        assert control['aria-label']
+        assert control['data-ui-tooltip'] == control['aria-label']
+        assert not control.get_text(strip=True)
+    assert primary[0].select_one('use')['href'].endswith('#tabler-device-floppy')
     assert document.select_one('.admin-form-main a[href="#preview"]')
     assert document.select_one('.admin-form-main a[href="/cancel"]')
     rare = document.select_one('details.admin-form-rare')

@@ -345,18 +345,39 @@
 {%- endif -%}
 {%- endmacro %}
 
+{# Compatibility adapter: keep native form contracts, share the semantic renderer. #}
+{%- macro legacy_action(item, primary=false) -%}
+{%- from 'ui/_semantic.html' import icon_button -%}
+{%- set href = item.url or item.href or none -%}
+{%- set text = item.label or item.text -%}
+{%- set key = namespace(value=item.key|default(none)) -%}
+{%- for candidate in ['save', 'edit', 'preview', 'add', 'upload', 'download', 'cancel', 'open', 'history', 'archive', 'activate', 'delete'] -%}
+  {%- set entry = sem('actions.' ~ candidate) -%}
+  {%- if key.value is none and (item.icon|default(none) == entry.resolved_icon or text == t(entry.label_key)) -%}{%- set key.value = entry.key -%}{%- endif -%}
+{%- endfor -%}
+{%- set attrs = {} -%}
+{%- for attr in ['formaction', 'formmethod', 'formenctype', 'formtarget', 'formnovalidate'] if item.get(attr) -%}
+  {%- set _ = attrs.update({attr: item[attr]}) -%}
+{%- endfor -%}
+{%- if item.disabled -%}
+  {%- set _ = attrs.update({'aria-disabled': true, 'tabindex': '-1'} if href else {'disabled': true}) -%}
+{%- endif -%}
+{{- icon_button(key.value or ('actions.open' if href else 'actions.save'), href=href,
+    text=text, type=item.type|default('submit' if primary else 'button'),
+    id=item.id|default(none), name=item.name|default(none), value=item.value|default(none),
+    form=item.form|default(none), class=item.class|default(''), attrs=attrs,
+    consequence_key=item.consequence_key|default(none), emphasis='primary' if primary else none) -}}
+{%- endmacro %}
+
 {%- macro actions(primary=none, secondary=none, class='') -%}
+{%- from 'ui/_semantic.html' import icon_button -%}
 {%- set primary_content = caller() if caller else primary -%}
 <div class="btn-list flex-wrap align-items-center{% if class %} {{ class }}{% endif %}">
   {%- if primary_content -%}
     {%- if primary_content is mapping -%}
-      {%- if primary_content.url or primary_content.href -%}
-        <a href="{{ primary_content.url or primary_content.href }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{% if primary_content.icon %}{{ icon(primary_content.icon) }}{% endif %}{{ primary_content.label or primary_content.text }}</a>
-      {%- else -%}
-        <button type="{{ primary_content.type|default('submit') }}" class="btn btn-primary{% if primary_content.class %} {{ primary_content.class }}{% endif %}"{% if primary_content.id %} id="{{ primary_content.id }}"{% endif %}{% if primary_content.name %} name="{{ primary_content.name }}"{% endif %}{% if primary_content.value is defined %} value="{{ primary_content.value }}"{% endif %}{% if primary_content.form %} form="{{ primary_content.form }}"{% endif %}{% if primary_content.formaction %} formaction="{{ primary_content.formaction }}"{% endif %}{% if primary_content.formmethod %} formmethod="{{ primary_content.formmethod }}"{% endif %}{% if primary_content.formenctype %} formenctype="{{ primary_content.formenctype }}"{% endif %}{% if primary_content.formtarget %} formtarget="{{ primary_content.formtarget }}"{% endif %}{% if primary_content.formnovalidate %} formnovalidate{% endif %}{% if primary_content.disabled %} disabled{% endif %}>{% if primary_content.icon %}{{ icon(primary_content.icon) }}{% endif %}{{ primary_content.label or primary_content.text }}</button>
-      {%- endif -%}
+      {{- legacy_action(primary_content, primary=true) -}}
     {%- elif primary_content is string and not ('<' in primary_content) -%}
-      <button type="submit" class="btn btn-primary">{{ primary_content }}</button>
+      {{- icon_button('actions.save', text=primary_content) -}}
     {%- else -%}
       {{ primary_content }}
     {%- endif -%}
@@ -367,11 +388,7 @@
     {%- elif secondary is iterable -%}
       {%- for item in secondary -%}
         {%- if item is mapping -%}
-          {%- if item.url or item.href -%}
-            <a href="{{ item.url or item.href }}" class="btn{% if item.class %} {{ item.class }}{% endif %}"{% if item.id %} id="{{ item.id }}"{% endif %}{% if item.disabled %} aria-disabled="true" tabindex="-1"{% endif %}>{% if item.icon %}{{ icon(item.icon) }}{% endif %}{{ item.label or item.text }}</a>
-          {%- else -%}
-            <button type="{{ item.type|default('button') }}" class="btn{% if item.class %} {{ item.class }}{% endif %}"{% if item.id %} id="{{ item.id }}"{% endif %}{% if item.name %} name="{{ item.name }}"{% endif %}{% if item.value is defined %} value="{{ item.value }}"{% endif %}{% if item.form %} form="{{ item.form }}"{% endif %}{% if item.formaction %} formaction="{{ item.formaction }}"{% endif %}{% if item.formmethod %} formmethod="{{ item.formmethod }}"{% endif %}{% if item.formenctype %} formenctype="{{ item.formenctype }}"{% endif %}{% if item.formtarget %} formtarget="{{ item.formtarget }}"{% endif %}{% if item.formnovalidate %} formnovalidate{% endif %}{% if item.disabled %} disabled{% endif %}>{% if item.icon %}{{ icon(item.icon) }}{% endif %}{{ item.label or item.text }}</button>
-          {%- endif -%}
+          {{- legacy_action(item) -}}
         {%- else -%}
           {{ item }}
         {%- endif -%}
@@ -485,12 +502,13 @@
 {%- endmacro %}
 
 {%- macro form_footer(primary, cancel_url, rare=none, sticky=false, form_id=none, secondary=none, danger=none) -%}
+{% from 'ui/_semantic.html' import icon_button %}
 <div class="admin-form-footer"{% if sticky %} data-sticky{% if form_id %} data-sticky-form="{{ form_id }}"{% endif %}{% endif %}>
   {% if danger %}<div class="admin-form-danger">{{ danger }}</div>{% endif %}
-  {% if rare %}<details class="admin-form-rare admin-compact-actions"><summary class="btn btn-ghost">{{ icon(sem('actions.more').resolved_icon) }}{{ t(sem('actions.more').label_key) }}</summary><div class="admin-form-tertiary">{{ rare }}</div></details>{% endif %}
+  {% if rare and rare|trim %}<details class="admin-form-rare admin-compact-actions"><summary class="btn btn-ghost ui-sem-control ui-sem-control--icon-only" aria-label="{{ t(sem('actions.more').aria_key) }}" data-ui-tooltip="{{ t(sem('actions.more').aria_key) }}">{{ icon(sem('actions.more').resolved_icon) }}</summary><div class="admin-form-tertiary">{{ rare }}</div></details>{% endif %}
   <div class="admin-form-main">
     {% if secondary %}{{ actions(secondary=secondary) }}{% endif %}
-    <a class="btn" href="{{ cancel_url }}">{{ icon('x') }}Abbrechen</a>
+    {{ icon_button('actions.cancel', href=cancel_url) }}
     {{ actions(primary=primary) }}
   </div>
 </div>

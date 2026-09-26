@@ -30,7 +30,7 @@
       {%- for char in attr[5:] if char not in 'abcdefghijklmnopqrstuvwxyz0123456789-' -%}
         {{- action_contract_error('forbidden attribute ' ~ attr) -}}
       {%- endfor -%}
-    {%- elif attr not in ['aria-describedby', 'aria-controls', 'aria-expanded', 'aria-current', 'aria-disabled', 'aria-busy', 'formaction', 'formmethod', 'formnovalidate', 'disabled', 'target', 'rel', 'tabindex', 'hidden'] -%}
+    {%- elif attr not in ['aria-describedby', 'aria-controls', 'aria-expanded', 'aria-current', 'aria-disabled', 'aria-busy', 'formaction', 'formmethod', 'formenctype', 'formtarget', 'formnovalidate', 'disabled', 'target', 'rel', 'tabindex', 'hidden'] -%}
       {{- action_contract_error('forbidden attribute ' ~ attr) -}}
     {%- endif -%}
     {%- if attr in ['formnovalidate', 'disabled', 'hidden'] -%}
