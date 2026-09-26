@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, empty_state, disclosure_section, hint, label, list_row %}
-{% from 'ui/_semantic.html' import icon_label, icon_button %}
+{% from 'ui/_semantic.html' import icon_button, sem_icon %}
 {% set workflow_nav = 'recipes' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Rezepte importieren · Menüplanung{% endblock %}
@@ -21,7 +21,7 @@
 </div>
 {% endif %}
 
-{% if batch %}<details class="admin-compact-details mb-3" data-import-upload><summary class="btn">{{ icon_label('actions.upload') }}</summary>{% endif %}
+{% if batch %}<details class="admin-compact-details mb-3" data-import-upload><summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.upload" aria-label="{{ t(sem('actions.upload').aria_key) }}">{{ sem_icon('actions.upload') }}</summary>{% endif %}
 <section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-upload-title">
   <div class="card-header py-2"><h2 class="card-title mb-0" id="recipe-import-upload-title">{{ 'Andere Datei wählen' if batch else 'Datei importieren' }}</h2></div>
   <form class="card-body py-2 admin-compact-form" method="post" action="{{ url_for('admin.recipe_import_create') }}" enctype="multipart/form-data" data-loading>
@@ -32,7 +32,7 @@
         <input class="form-control" id="source_file" name="source_file" type="file" accept=".csv,.json,text/csv,application/json" required>
       </div>
       <div class="col-12 col-lg-auto">
-        {{ icon_button('actions.preview', text='Vorschau speichern', aria_label='Vorschau speichern', title='Vorschau speichern', emphasis='primary' if not batch else none) }}
+        {{ icon_button('actions.preview', text='Vorschau speichern', aria_label='Vorschau speichern', title='Vorschau speichern', show_text=true, emphasis='primary' if not batch else none) }}
       </div>
     </div>
     <p class="mb-2">Unaufgelöste Zutaten bleiben Entwurf.</p>
@@ -107,7 +107,7 @@
       </div>
       <p class="admin-compact-summary text-secondary">Quellennotiz: {{ payload.source.note if payload.source else '—' }}{% if payload.ingredients %} · {{ payload.ingredients|map(attribute='ingredient_text')|join(', ') }}{% endif %}</p>
       <details class="admin-compact-details" id="row-{{ candidate.row_number }}-details"{% if error or candidate.target_recipe_public_id or candidate.target_row_version %} open{% endif %}>
-        <summary class="btn" aria-label="Details für Zeile {{ candidate.row_number }}">{{ icon_label('ui.disclosure.details') }}</summary>
+        <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="ui.disclosure.details" aria-label="Details für Zeile {{ candidate.row_number }}">{{ sem_icon('ui.disclosure.details') }}</summary>
         <div class="admin-compact-detail-body">
           <p class="text-secondary">Ursprung {{ candidate.origin_ref }} · {{ candidate.original_source_kind }} bleibt unverändert.</p>
           {% for ingredient in payload.ingredients or [] %}
@@ -143,12 +143,12 @@
     {% endfor %}
     {% if batch.status == 'draft' %}
     <div class="admin-form-footer mt-3">
-      <button class="btn{% if not (batch.confirmation_hash_sha256 and can_import) %} btn-primary{% endif %}" type="submit" name="action" value="save">{{ icon_label('actions.save') }}</button>
-      <button class="btn" type="submit" name="action" value="acknowledge">{{ icon_label('actions.confirm') }}</button>
-      <details class="admin-compact-actions"><summary class="btn">{{ icon_label('actions.more') }}</summary>
+      {{ icon_button('actions.save', name='action', value='save', emphasis='primary' if not (batch.confirmation_hash_sha256 and can_import) else none) }}
+      {{ icon_button('actions.confirm', name='action', value='acknowledge') }}
+      <details class="admin-compact-actions"><summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" aria-label="{{ t(sem('actions.more').aria_key) }}">{{ sem_icon('actions.more') }}</summary>
         <details class="mt-2"><summary class="btn" aria-label="Stapel verwerfen">{{ icon('trash') }}<span>Verwerfen</span></summary>
           <p id="discard-consequence">Der Importstapel wird verworfen. Ungespeicherte Änderungen gehen verloren; vorhandene Rezepte bleiben unverändert.</p>
-          <button class="btn btn-danger" type="submit" name="action" value="cancel" aria-describedby="discard-consequence" aria-label="Verwerfen bestätigen">{{ icon('trash') }}<span>Verwerfen</span></button>
+          {{ icon_button('actions.delete', name='action', value='cancel', text='Verwerfen', aria_label='Verwerfen bestätigen', show_text=true, emphasis='danger', consequence_key='actions.delete', attrs={'aria-describedby': 'discard-consequence'}) }}
         </details>
       </details>
     </div>
@@ -201,7 +201,7 @@
       <tbody>
         {% for item in batches %}
         <tr>
-          <td data-label="Datei"><a class="text-break" href="{{ url_for('admin.recipe_import_detail', batch_id=item.public_id) }}">{{ item.source_filename or t('actions.open.label') }}</a></td>
+          <td data-label="Datei"><a class="admin-list-primary text-break" href="{{ url_for('admin.recipe_import_detail', batch_id=item.public_id) }}">{{ item.source_filename or t('actions.open.label') }}</a></td>
           <td class="admin-table-status" data-label="Status">{% if item.status == 'imported' %}{{ label('Übernommen', 'success', icon='check') }}{% elif item.status == 'draft' %}{{ label('Entwurf', 'info', icon='info-circle') }}{% elif item.status == 'cancelled' %}{{ label('Verworfen', 'neutral', icon='info-circle') }}{% else %}{{ label(item.status, 'neutral') }}{% endif %}</td>
         </tr>
         {% endfor %}

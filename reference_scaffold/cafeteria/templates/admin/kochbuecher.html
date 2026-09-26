@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, empty_state, pagination, status_badge, list_row %}
-{% from 'ui/_semantic.html' import icon_label, icon_button, filter_bar_sem %}
+{% from 'ui/_semantic.html' import icon_button, filter_bar_sem %}
 {% set workflow_nav = 'cookbooks' %}
 {% set cookbook_status = [] %}
 {% if include_archived %}
@@ -32,7 +32,7 @@
   {% set count = book.recipe_public_ids|length %}
   {% set editable = can_write and book.active %}
   {% set actions %}
-  <a class="btn cookbook-row-action" href="{{ url_for('admin.cookbook_edit', cookbook_id=book.public_id) }}" aria-label="{{ book.name }} {{ 'bearbeiten' if editable else 'öffnen' }}">{{ icon_label('actions.edit' if editable else 'actions.open') }}</a>
+  {{ icon_button('actions.edit' if editable else 'actions.open', href=url_for('admin.cookbook_edit', cookbook_id=book.public_id), icon_only=true, aria_label=book.name ~ (' bearbeiten' if editable else ' öffnen'), class='cookbook-row-action') }}
   {% endset %}
   {{ list_row(primary=book.name, secondary=book.description|truncate(160) if book.description else none, meta=(count ~ (' Rezept' if count == 1 else ' Rezepte')), status=status_badge('archived') if not book.active else none, actions=actions) }}
   {% endfor %}
@@ -40,7 +40,7 @@
 {{ pagination(page, has_next, prev_url, next_url, 'Kochbuchseiten') }}
 {% elif search %}
 {% call empty_state('no_match', 'Keine passenden Kochbücher', 'Suche ändern oder zurücksetzen.') %}
-<a class="btn" href="{{ url_for('admin.cookbooks_list', archived='1' if include_archived else none) }}">{{ icon_label('view.reset') }}</a>
+{{ icon_button('view.reset', href=url_for('admin.cookbooks_list', archived='1' if include_archived else none)) }}
 {% endcall %}
 {% else %}
 {% call empty_state('none', 'Noch keine Kochbücher', 'Ein Kochbuch anlegen, um Rezepte zu ordnen.') %}

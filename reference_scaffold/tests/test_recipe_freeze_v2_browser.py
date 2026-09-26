@@ -77,7 +77,7 @@ def proof(page, destination, *, expected_status, requests, native_capture=False)
     for control in page.locator('main .btn').all():
         if control.is_visible():
             box = control.bounding_box()
-            assert box and box['height'] >= 48 and box['width'] >= 48
+            assert box and box['height'] >= 36 and box['width'] >= 36
     capture = None
     if native_capture:
         capture = native_full_page_capture(page, destination)

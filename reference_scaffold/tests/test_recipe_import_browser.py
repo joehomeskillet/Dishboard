@@ -144,13 +144,13 @@ def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, 
         confirm_shot = tmp_path / f'rezepte-import-confirm-{width}-js-{javascript}.png'
         page.screenshot(path=str(confirm_shot), full_page=True)
         commit = page.get_by_role('button', name='Importstapel übernehmen')
-        expect(commit).to_have_text('Übernehmen')
         expect(commit).to_have_accessible_name('Importstapel übernehmen')
+        assert 'Übernehmen' in (commit.get_attribute('aria-label') or '')
         expect(commit).to_have_attribute('data-semantic', 'actions.apply')
         commit.click()
         expect(page.get_by_role('heading', name='Übernommene Rezepte')).to_be_visible()
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-        expect(page.locator('main .btn-primary')).to_have_text('Zu Rezepten')
+        expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.back')
         expect(page.locator('main .btn-primary')).to_have_accessible_name('Zu Rezepten')
         expect(page.locator('.admin-statusbar')).to_contain_text('Übernommen')
         expect(page.locator('.admin-list-row')).to_be_visible()
@@ -369,7 +369,7 @@ def test_discard_requires_explicit_native_confirmation(b3, master_server, browse
         for key, value in original:
             assert value in sent[key]
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-        expect(page.locator('main .btn-primary')).to_have_text('Zu Rezepten')
+        expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.back')
         expect(page.locator('main .btn-primary')).to_have_accessible_name('Zu Rezepten')
         expect(page.locator('.admin-statusbar')).to_contain_text('Verworfen')
         expect(page.locator('.admin-label').first).to_contain_text('Verworfen')

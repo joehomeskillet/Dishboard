@@ -72,21 +72,14 @@
     "lagerorte": [
       "haupt_typografie:zeilen-1"
     ],
-    "rezepte": [
-      "1440:zeilenaktion_text:karten-1",
-      "390:zeilenaktion_text:karten-1",
-      "karte_je_zeile:karten-1"
-    ],
+    "rezepte": [],
     "gerichtvorlagen": [
       "haupt_typografie:tabelle-1"
     ],
     "lager": [
       "haupt_typografie:tabelle-1"
     ],
-    "kochbuecher": [
-      "1440:zeilenaktion_text:zeilen-1",
-      "390:zeilenaktion_text:zeilen-1"
-    ],
+    "kochbuecher": [],
     "einkaufslisten": [
       "1440:kopfaktion_text",
       "1440:zeilenaktion_text:zeilen-1",
@@ -139,9 +132,7 @@
     ],
     "datenimport": [],
     "bereiche-zeiten": [],
-    "rezept-revisionen": [
-      "haupt_typografie:tabelle-2"
-    ],
+    "rezept-revisionen": [],
     "rezept-skalierung": [],
     "rezept-bilder": [],
     "kochbuch": [],

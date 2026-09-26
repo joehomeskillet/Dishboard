@@ -57,7 +57,7 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
                 expect(page.locator('#recipe-search')).to_have_attribute('name', 'q')
                 page.locator('[data-recipe-selection] > summary').click()
                 original_yield = page.get_by_role('link', name='Originalausbeute verwenden', exact=True)
-                expect(original_yield).to_contain_text('Originalausbeute')
+                expect(original_yield).to_have_accessible_name('Originalausbeute verwenden')
                 assert 'Originalausbeute' in (original_yield.get_attribute('aria-label') or '')
             for glyph in page.locator('main use').all():
                 if glyph.evaluate('el => el.closest("svg").getClientRects().length > 0'):
@@ -66,14 +66,14 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         page.goto('/admin/rezepte')
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.add')
-        card = page.locator('article.recipe-card').filter(
-            has=page.locator('.admin-list-name strong', has_text=re.compile(r'^Suppe$')))
+        card = page.locator('tr.recipe-row').filter(
+            has=page.locator('.admin-list-primary', has_text=re.compile(r'^Suppe$')))
         edit = card.get_by_role('link', name='Suppe bearbeiten', exact=True)
-        card.locator('.admin-compact-actions > summary').click()
+        card.locator('details.ui-sem-actions > summary').click()
         view = card.get_by_role('link', name='Suppe ansehen', exact=True)
         pdf = card.get_by_role('link', name='PDF öffnen · Stand 1 · Suppe', exact=True)
-        expect(pdf).to_have_text('PDF öffnen')
         expect(pdf).to_have_accessible_name('PDF öffnen · Stand 1 · Suppe')
+        assert 'PDF öffnen' in (pdf.get_attribute('aria-label') or '')
         assert len({view.get_attribute('href'), edit.get_attribute('href'), pdf.get_attribute('href')}) == 3
         response = client.get(pdf.get_attribute('href'))
         assert response.status_code == 200 and response.data.startswith(b'%PDF-')
@@ -95,13 +95,13 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         assert page.locator('#recipe-document input, #recipe-document select, #recipe-document textarea').count() == 0
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.edit')
-        page.locator('.page-header .admin-compact-actions > summary').click()
+        page.locator('.page-header details.ui-sem-actions > summary').click()
         quantity = page.get_by_role('link', name='Mengen berechnen', exact=True)
-        expect(quantity).to_contain_text('Berechnen')
+        expect(quantity).to_have_accessible_name('Mengen berechnen')
         quantity.click()
         page.get_by_label('Zielmenge · PORTION', exact=True).fill('8')
         scale = page.get_by_role('button', name='Mengen berechnen', exact=True)
-        expect(scale).to_contain_text('Berechnen')
+        expect(scale).to_have_accessible_name('Mengen berechnen')
         scale.click()
         assert 'yield=8' in page.url
         expect(page.locator('main table tbody tr').first.locator('[data-label="Berechnet"]')).to_have_text('2')
@@ -144,8 +144,8 @@ def test_reader_view_print_without_write_actions(view_print, recipe_editor, reci
             elif label == 'view':
                 back = page.locator('main .btn-primary')
                 expect(back).to_have_attribute('data-semantic', 'actions.back')
-                expect(back).to_have_text('Zur Liste')
                 expect(back).to_have_accessible_name('Zur Liste der Rezepte')
+                assert 'Zur Liste' in (back.get_attribute('aria-label') or '')
             accessibility._accessible_capture(page, f'{label}-reader-{width}-js{javascript}', methods=['GET'])
     assert state(recipe_editor[1]) == before
 
@@ -306,7 +306,7 @@ def test_readable_recipe_content_and_explicit_mode(readable_recipe, recipe_edito
             expect(document.get_by_text('Originalausbeute: 4 PORTION', exact=True)).to_be_visible()
             page.keyboard.press('Enter')
             accessibility._accessible_capture(page, f'complete-{label}-{width}-js{javascript}', methods=['GET'])
-            more = page.locator('.page-header .admin-compact-actions > summary')
+            more = page.locator('.page-header details.ui-sem-actions > summary')
             if more.count():
                 more.click()
             page.get_by_role('link', name='Mengen berechnen', exact=True).click()

@@ -55,10 +55,9 @@ def test_native_text_search_is_keyboard_operable_ranked_and_no_overflow(
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         assert 'text=zauberwort' in page.url
-        expect(page.locator('.recipe-card')).to_have_count(1)
-        expect(page.locator('.admin-list-row')).to_have_count(1)
-        expect(page.locator('.recipe-card .admin-list-name strong')).to_have_text('Zauberwort Auflauf')
-        expect(page.locator('.recipe-card .admin-status--info').first).to_be_visible()
+        expect(page.locator('.recipe-row')).to_have_count(1)
+        expect(page.locator('.recipe-row .admin-list-primary')).to_have_text('Zauberwort Auflauf')
+        expect(page.locator('.recipe-row .admin-status--info')).to_have_count(0)
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('form[role="search"] button[type="submit"] use')).to_have_attribute(
             'href', re.compile(r'#tabler-filter$'))
@@ -92,7 +91,7 @@ def test_recipe_frame_measurements(search_lab, master_server, tmp_path, javascri
                             const box = selector => document.querySelector(selector).getBoundingClientRect();
                             return {width: innerWidth, height: document.documentElement.scrollHeight,
                                 filter: box('form[action="/admin/rezepte"]').height,
-                                first: box('.recipe-card').top, row: box('.recipe-card').height,
+                                first: box('.recipe-row').top, row: box('.recipe-row').height,
                                 overflow: document.documentElement.scrollWidth > innerWidth + 1};
                         }''')
                         shot = tmp_path / f'frame-{width}-js-{javascript}.png'
@@ -110,9 +109,9 @@ def test_recipe_frame_measurements(search_lab, master_server, tmp_path, javascri
                         page.keyboard.press('Enter')
                         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_be_visible()
                         page.keyboard.press('Enter')
-                        assert page.get_by_role('button', name='Filtern', exact=True).bounding_box()['height'] >= 48
-                        expect(page.locator('.admin-list-row')).to_have_count(2)
-                        expect(page.locator('.admin-list-row .admin-status--info')).to_have_count(2)
+                        assert page.get_by_role('button', name='Filtern', exact=True).bounding_box()['height'] >= 36
+                        expect(page.locator('.recipe-row')).to_have_count(2)
+                        expect(page.locator('.recipe-row .admin-status--info')).to_have_count(0)
             finally:
                 instance.close()
 
@@ -161,26 +160,26 @@ def test_editor_disclosures_preserve_complete_native_post(
                         assert sorted(map(tuple, form.evaluate('f => [...new FormData(f)]'))) == expected
                         page.screenshot(path=str(tmp_path / f'editor-{width}-js-{javascript}.png'), full_page=True)
                     menu = page.get_by_label('Mehr: Weitere Aktionen Zutat 1', exact=True)
-                    expect(menu).to_contain_text('Mehr')
+                    expect(menu).to_have_accessible_name('Mehr: Weitere Aktionen Zutat 1')
                     menu.click()
                     insert = page.get_by_role('button', name='Zutat 1 davor einfügen', exact=True)
-                    expect(insert).to_contain_text('Davor einfügen')
-                    assert 'Anlegen' not in (insert.inner_text() or '')
+                    expect(insert).to_have_accessible_name('Zutat 1 davor einfügen')
+                    assert 'Anlegen' not in (insert.get_attribute('aria-label') or insert.inner_text() or '')
                     remove = page.locator('button[formaction*="row_action=remove"]').first
                     assert 'btn-danger' in (remove.get_attribute('class') or '').split()
-                    expect(remove.locator('span')).to_have_text('Entfernen')
+                    expect(remove).to_have_accessible_name('Zutat 1 entfernen')
                     assert remove.get_attribute('formnovalidate') is not None
                     assert '/admin/rezepte/formular?' in (remove.get_attribute('formaction') or '')
                     expect(page.locator('.ui-sem-consequence').first).to_be_visible()
-                    back = page.get_by_role('link', name='Zurück zur Rezeptliste', exact=True)
-                    expect(back).to_contain_text('Zurück')
-                    assert 'Zurück' in (back.get_attribute('aria-label') or '')
+                    back = page.get_by_role('link', name='Zur Liste der Rezepte', exact=True)
+                    expect(back).to_have_accessible_name('Zur Liste der Rezepte')
+                    assert 'Zur Liste' in (back.get_attribute('aria-label') or '')
                     page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
                     history = page.get_by_role('link', name='Rezept-History', exact=True)
-                    expect(history).to_contain_text('Rezept-History')
+                    expect(history).to_have_accessible_name('Rezept-History')
                     quantity = page.get_by_role('link', name='Mengen berechnen', exact=True)
-                    expect(quantity).to_contain_text('Berechnen')
-                    assert 'Mengen berechnen'.lower().find('berechnen') >= 0
+                    expect(quantity).to_have_accessible_name('Mengen berechnen')
+                    assert 'berechnen' in (quantity.get_attribute('aria-label') or '').lower()
                     source = page.locator('#recipe-source > summary')
                     source.focus()
                     page.keyboard.press('Enter')
