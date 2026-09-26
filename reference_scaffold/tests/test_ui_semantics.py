@@ -278,6 +278,27 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
     assert danger.select_one('.btn-danger span') is None
     assert danger.select_one('.ui-sem-consequence').get_text(strip=True)
 
+
+@pytest.mark.parametrize('text', [None, '', '  \n ', '<span> </span>'])
+@pytest.mark.parametrize('mode', ['inline', 'tooltip', 'dialog'])
+def test_c3_empty_hint_has_no_icon_or_spacing(semantic_app, text, mode):
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import hint %}{{ hint(text, 'help', mode=mode) }}",
+            text=text, mode=mode)
+    assert not html.strip()
+
+
+def test_c3_nonempty_hint_keeps_help_and_relationship(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import hint %}{{ hint('CSV ändert keinen Status.', 'help') }}")
+    document = BeautifulSoup(html, 'html.parser')
+    assert document.select_one('summary')['aria-describedby'] == 'help'
+    assert document.select_one('#help').get_text() == 'CSV ändert keinen Status.'
+
 def test_registry_icons_in_sprite():
     from cafeteria.ui.semantics import load_registry, sprite_icons
     
