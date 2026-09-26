@@ -47,6 +47,13 @@ geteilten Haupt-Tree. Neue Dateien vorher mit `git add` erfassen.
 Das Gate (Schritt 6) läuft in vier Teilen parallel auf eigenen Pools (A Signage/Public, B Shell/Woche,
 C Routen/Stores/Semantik, D Paket- und Label-Treffer) und wertet die JUnit-Dateien gegen
 `tools/release/known_red.txt` aus. Danach Ledger-Eintrag: Revision, Deploy-Zeit, Inhalt, Gate-Zahlen.
+In Teil D läuft **jede Browserdatei in einem eigenen pytest-Prozess**, weil Playwright-Sync-API
+und Session-Fixtures sich nicht in einem Prozess vertragen. Dateien mit `playwright`, `_browser`
+oder `test_rendered_ui` im Inhalt laufen vorsorglich einzeln; im Zweifel ebenfalls einzeln.
+Nicht-Browser-Dateien laufen gemeinsam (`d0.xml`), danach Browserdateien nacheinander auf `POOL_D`
+(`d-<n>.xml`, ab 1; Logs gleichnamig mit `.log`). Leere Gruppen starten keinen Prozess.
+`new_failures.py` wertet weiterhin alle XML-Dateien aus; Infrastrukturfehler blockieren weiterhin.
+`RELEASE_GATE_DRY_RUN=1` zeigt «gemeinsam» und «einzeln», ohne Pools oder Tests zu starten.
 
 ## 4. Entscheidungsregeln
 
