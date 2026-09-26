@@ -1,4 +1,5 @@
 """Real runtime-role HTTP, immutable PDF and template CAS contracts."""
+import re
 from io import BytesIO
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -276,10 +277,11 @@ def test_archived_recipe_and_revision_pagination_keep_explicit_historical_choice
     assert old.status_code == 200 and f'value="{first.public_id}"' in old.text
     history = client.get(f'/admin/rezepte/{recipe}/revisionen')
     assert history.status_code == 200 and 'Rezept-History' in history.text
-    assert history.text.count('Ansehen</a>') == 50
+    assert len(re.findall(r'aria-label="Gespeicherten Stand \d+ ansehen"', history.text)) == 50
     assert f'href="/admin/rezepte/{recipe}/revisionen/{first.public_id}"' not in history.text
     earliest = client.get(f'/admin/rezepte/{recipe}/revisionen?page=2')
-    assert earliest.status_code == 200 and earliest.text.count('Ansehen</a>') == 1
+    assert earliest.status_code == 200
+    assert len(re.findall(r'aria-label="Gespeicherten Stand \d+ ansehen"', earliest.text)) == 1
     assert f'href="/admin/rezepte/{recipe}/revisionen/{first.public_id}"' in earliest.text
     assert client.get(f'/admin/rezepte/{recipe}/revisionen/{first.public_id}').status_code == 200
     # No implicit choice, including a directly selected archived recipe.

@@ -61,7 +61,7 @@ _NEEDS_DB = pytest.mark.skipif(
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
 )
 _SLOT = re.compile(
-    r'<article class="[^\"]*\bmenu-slot\b[^\"]*" data-day="([^"]+)" data-meal="([^"]+)" '
+    r'<(?:article|div) class="[^\"]*\bmenu-slot\b[^\"]*" data-day="([^"]+)" data-meal="([^"]+)" '
     r'data-option="([^"]+)" data-row-version="([^"]+)">',
 )
 
