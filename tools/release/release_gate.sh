@@ -5,7 +5,8 @@
 #
 # Usage: release_gate.sh <worktree-root> <base-rev> [zusätzliche Testdateien relativ zu reference_scaffold ...]
 #   <base-rev>  Live-Stand, normalerweise main (Label-Grep vergleicht ab git merge-base)
-# Env: POOL_A..POOL_D (Pool-Env-Namen für gate.sh), DISHBOARD_TEST_VENV, DISHBOARD_POOL_ENV_DIR
+# Env: POOL_A..POOL_D, optional POOL_D2/POOL_D3 (Pool-Env-Namen für gate.sh),
+#      DISHBOARD_TEST_VENV, DISHBOARD_POOL_ENV_DIR
 #      RELEASE_GATE_DRY_RUN=1 gibt nur die Einteilung aus, ohne Pools oder Tests zu starten.
 # Höchstens vier Gate-Prozesse auf dem Host gleichzeitig (OOM-Grenze); ein Pool nie doppelt belegen.
 set -uo pipefail
@@ -16,7 +17,7 @@ fi
 WT="$(cd "$1" && pwd)" || exit 2
 BASE="$2"; shift 2
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUT="/var/tmp/dishboard-release-gate/$(date +%Y%m%d-%H%M%S)"
+OUT="${RELEASE_GATE_OUT:-/var/tmp/dishboard-release-gate/$(date +%Y%m%d-%H%M%S)-$$}"
 COMMON=(-p no:cacheprovider -p no:randomly --tb=line --show-capture=no -rfE)
 
 # Feste Leitplanken; zusätzliche Dateien werden unten in Teil D aufgeteilt.
@@ -61,50 +62,85 @@ for f in "${candidates[@]}"; do
 done
 echo "Teil D: ${#candidates[@]} Dateien (${#label_hits[@]} aus Label-Grep)"
 echo "gemeinsam: ${#together[@]} Dateien; einzeln: ${#single[@]} Dateien (je ein Prozess)"
+declare -A pools=([a]="${POOL_A:-worker-test-api-int2}" [b]="${POOL_B:-worker-test-recipe-print-0908}"
+                 [c]="${POOL_C:-worker-test-ps1}" [d]="${POOL_D:-worker-test-ps5}")
+d_pools=("${pools[d]}")
+[[ -z "${POOL_D2:-}" ]] || d_pools+=("$POOL_D2")
+[[ -z "${POOL_D3:-}" ]] || d_pools+=("$POOL_D3")
+declare -A pool_seen=()
+for pool in "${pools[a]}" "${pools[b]}" "${pools[c]}" "${d_pools[@]}"; do
+  if [[ ! "$pool" =~ ^[a-zA-Z0-9_-]+$ || -n "${pool_seen[$pool]:-}" ]]; then
+    echo 'FEHLER: Pool-Namen müssen gültig und untereinander verschieden sein' >&2
+    exit 2
+  fi
+  pool_seen[$pool]=1
+done
+parts=(a b c)
+if ((${#together[@]})); then parts+=(d0); pools[d0]="${d_pools[0]}"; fi
+for i in "${!single[@]}"; do
+  part="d-$((i + 1))"
+  parts+=("$part")
+  pools[$part]="${d_pools[$(( (i + (${#together[@]} > 0)) % ${#d_pools[@]} ))]}"
+done
 if [[ "${RELEASE_GATE_DRY_RUN:-0}" == 1 ]]; then
   for group in a b c; do
     declare -n files="part_$group"
     printf '%s: %s Dateien\n' "$group" "${#files[@]}"
     printf '  %s\n' "${files[@]}"
   done
-  for f in "${together[@]}"; do printf 'gemeinsam: %s\n' "$f"; done
-  for f in "${single[@]}"; do printf 'einzeln: %s\n' "$f"; done
+  for f in "${together[@]}"; do printf 'gemeinsam: pool=%s junit=d0.xml %s\n' "${pools[d0]}" "$f"; done
+  for i in "${!single[@]}"; do
+    part="d-$((i + 1))"
+    printf 'einzeln: pool=%s junit=%s.xml %s\n' "${pools[$part]}" "$part" "${single[$i]}"
+  done
+  echo 'Parallelität: höchstens 4 Prozesse insgesamt, höchstens 1 je Pool'
   exit 0
 fi
-mkdir -p "$OUT"
+mkdir -p "$OUT" || exit 2
+# Keine alten XML-Dateien in die Auswertung eines neuen Laufs aufnehmen.
+if [[ -n "$(find "$OUT" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+  echo "FEHLER: Gate-Ausgabeverzeichnis nicht leer: $OUT" >&2
+  exit 2
+fi
 
-declare -A pids=() pools=([a]="${POOL_A:-worker-test-api-int2}" [b]="${POOL_B:-worker-test-recipe-print-0908}"
-                          [c]="${POOL_C:-worker-test-ps1}" [d]="${POOL_D:-worker-test-ps5}")
+declare -A active=() busy=() results=()
 run_part() {
   local part="$1"; shift
-  bash "$HERE/gate.sh" "${pools[${part:0:1}]}" "$WT" -q "$@" "${COMMON[@]}" --junitxml="$OUT/$part.xml" \
+  bash "$HERE/gate.sh" "${pools[$part]}" "$WT" -q "$@" "${COMMON[@]}" --junitxml="$OUT/$part.xml" \
     >>"$OUT/$part.log" 2>&1
 }
-run_part a "${part_a[@]}" & pids[a]=$!
-run_part b "${part_b[@]}" & pids[b]=$!
-run_part c "${part_c[@]}" & pids[c]=$!
-parts=(a b c)
-previous=""
-if ((${#together[@]})); then
-  run_part d0 "${together[@]}" & pids[d0]=$!
-  parts+=(d0)
-  previous="${pids[d0]}"
-fi
-for i in "${!single[@]}"; do
-  if [[ -n "$previous" ]]; then wait "$previous"; fi
-  part="d-$((i + 1))"
-  run_part "$part" "${single[$i]}" & pids[$part]=$!
-  parts+=("$part")
-  previous="${pids[$part]}"
+reap() {
+  local finished rc part
+  wait -n -p finished "${!active[@]}"; rc=$?
+  part="${active[$finished]}"
+  results[$part]=$rc
+  unset 'active[$finished]' 'busy[${pools[$part]}]'
+}
+for part in "${parts[@]}"; do
+  while ((${#active[@]} >= 4)) || [[ -n "${busy[${pools[$part]}]:-}" ]]; do reap; done
+  case "$part" in
+    a) args=("${part_a[@]}");;
+    b) args=("${part_b[@]}");;
+    c) args=("${part_c[@]}");;
+    d0) args=("${together[@]}");;
+    d-*) args=("${single[$(( ${part#d-} - 1 ))]}");;
+  esac
+  run_part "$part" "${args[@]}" & active[$!]="$part"
+  busy[${pools[$part]}]=1
 done
+while ((${#active[@]})); do reap; done
 
 verdict=0; summary=""
 for part in "${parts[@]}"; do
-  wait "${pids[$part]}"; rc=$?
+  rc="${results[$part]}"
   summary+=" $part=$rc"
   # 0 = grün, 1 = Testfehler (Auswertung unten); alles andere = Sammel-, Pool- oder Venv-Fehler.
   if ((rc > 1)); then
     echo "Teil $part: Exit $rc = Sammel-/Infrastrukturfehler, siehe $OUT/$part.log"
+    verdict=1
+  fi
+  if [[ ! -s "$OUT/$part.xml" ]]; then
+    echo "Teil $part: JUnit fehlt: $OUT/$part.xml"
     verdict=1
   fi
 done
