@@ -44,16 +44,8 @@
       "390:zeilenaktion_text:tabelle-1",
       "kopf_typografie:tabelle-1"
     ],
-    "bausteine-cafeteria": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
-      "kopf_typografie:tabelle-1"
-    ],
-    "bausteine-patienten": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
-      "kopf_typografie:tabelle-1"
-    ],
+    "bausteine-cafeteria": [],
+    "bausteine-patienten": [],
     "kuechenkalender": [
       "haupt_typografie:tabelle-1",
       "kopf_typografie:tabelle-1"

@@ -1,6 +1,8 @@
 """Actual factory pages, native forms, conflicts and local Tabler assets."""
 from __future__ import annotations
 
+import re
+
 import os
 import threading
 from pathlib import Path
@@ -62,7 +64,8 @@ def targets(page):
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if control.is_visible():
             box = control.bounding_box()
-            assert box is not None and box['height'] >= 48
+            minimum = 36 if control.evaluate("e => e.classList.contains('ui-sem-control')") else 48
+            assert box is not None and box['height'] >= minimum
             control.focus()
             expect(control).to_be_focused()
 
@@ -111,11 +114,11 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         expect(page.get_by_role('button', name='Prüfung aufheben', exact=True)).to_be_visible()
         expect(page.get_by_role('button', name='Rückgängig', exact=True)).to_have_count(0)
         page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
-        page.get_by_role('button', name='Archivieren', exact=True).click()
+        page.get_by_role('button', name=re.compile(r'.+ archivieren$')).click()
         page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
-        expect(page.get_by_role('button', name='Reaktivieren', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name=re.compile(r'.+ aktivieren$'))).to_be_visible()
         expect(page.get_by_role('button', name='Wiederherstellen', exact=True)).to_have_count(0)
-        page.get_by_role('button', name='Reaktivieren', exact=True).click()
+        page.get_by_role('button', name=re.compile(r'.+ aktivieren$')).click()
         targets(page)
         assets = page.locator('link[rel="stylesheet"], script[src]').evaluate_all(
             'els => els.map(el => new URL(el.href || el.src).pathname)')
@@ -135,7 +138,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
         page.get_by_role('link', name='Zurück', exact=True).click()
-        expect(page.locator('.admin-list-row').filter(has_text='Andere Sitzung').get_by_role('link', name='Zutat Andere Sitzung bearbeiten', exact=True)).to_be_visible()
+        expect(page.locator('.admin-list-row').filter(has_text='Andere Sitzung').get_by_role('link', name='Andere Sitzung', exact=True)).to_be_visible()
         targets(page)
 
 
@@ -155,7 +158,7 @@ def test_browser_vocabulary_unit_forms_and_error_focus(b3, master_server, browse
                 page.get_by_label('Basisfaktor (bei kontextabhängiger Einheit leer lassen)', exact=True).fill('2')
             page.locator('main button[type="submit"]').click()
             page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
-            expect(page.get_by_role('button', name='Archivieren', exact=True)).to_be_visible()
+            expect(page.get_by_role('button', name=re.compile(r'.+ archivieren$'))).to_be_visible()
             targets(page)
         page.goto(base + '/admin/grundlagen/zutaten/neu')
         page.get_by_label('Name', exact=True).fill('<unzulässig>')

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from collections.abc import Mapping
 from pathlib import Path
 from uuid import uuid4
@@ -289,16 +291,17 @@ def test_component_food_selection_browser_roundtrip(
     gluten = form.locator('.allergen-row').filter(has=page.locator('[value="GLUTEN"]'))
     gluten.locator('[name="allergen_code"]').check()
     gluten.locator('select').select_option('contains')
-    form.get_by_role('button', name='Baustein erstellen', exact=True).click()
+    form.get_by_role('button', name='Anlegen', exact=True).click()
     page.wait_for_url(f'**{list_path}/*')
     public_id = page.locator('main').get_attribute('data-public-id')
     assert public_id
     detail = page.locator('#component-form')
+    page.locator('#component-options > summary').click()
     expect(page.locator('#c-food')).to_be_visible()
     expect(page.locator('#c-food option[value=""]')).to_have_text('Kein Lebensmittel')
     page.locator('#c-food').select_option(food['public_id'])
     with page.expect_response(lambda response: response.request.method == 'POST') as bound:
-        detail.get_by_role('button', name='Baustein speichern', exact=True).click()
+        detail.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
     assert bound.value.status == 303
     page.wait_for_load_state()
     expect(page.locator('#c-food')).to_have_value(food['public_id'])
@@ -311,11 +314,11 @@ def test_component_food_selection_browser_roundtrip(
     assert receipts[0]['food_public_id'] == food['public_id']
     page.goto(list_path)
     row = page.locator(f'.component-row[data-public-id="{public_id}"]')
-    expect(row).to_contain_text(f"Lebensmittel: {food['name']}")
+    expect(row.locator('.admin-list-secondary')).to_contain_text(str(food['name']))
     page.goto(f'{list_path}/{public_id}')
     page.locator('#c-food').select_option('')
     with page.expect_response(lambda response: response.request.method == 'POST') as denied:
-        page.locator('#component-form').get_by_role('button', name='Baustein speichern', exact=True).click()
+        page.locator('#component-form').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
     assert denied.value.status == 400
     expect(page.locator('#c-food-detach-error')).to_be_visible()
     assert len(_food_saved(engine, public_id)) == 1
@@ -323,7 +326,7 @@ def test_component_food_selection_browser_roundtrip(
     page.locator('#c-food').select_option('')
     page.locator('#c-food-detach').check()
     with page.expect_response(lambda response: response.request.method == 'POST') as detached:
-        page.locator('#component-form').get_by_role('button', name='Baustein speichern', exact=True).click()
+        page.locator('#component-form').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
     assert detached.value.status == 303
     page.wait_for_load_state()
     expect(page.locator('#c-food')).to_have_value('')
@@ -332,12 +335,11 @@ def test_component_food_selection_browser_roundtrip(
     assert len(after) == 2
     assert after[1]['food_public_id'] is None
     page.goto(list_path)
-    expect(page.locator(f'.component-row[data-public-id="{public_id}"]')).to_contain_text(
-        'kein Lebensmittel'
-    )
+    expect(page.locator(f'.component-row[data-public-id="{public_id}"] .component-row-name .admin-list-secondary')).to_have_count(0)
     page.goto(f'{list_path}/{public_id}')
+    page.locator('#component-options > summary').click()
     page.locator('#c-food').select_option(food['public_id'])
-    page.locator('#component-form').get_by_role('button', name='Baustein speichern', exact=True).click()
+    page.locator('#component-form').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
     page.wait_for_load_state()
     page.locator('#component-form input[name="row_version"]').evaluate(
         'el => el.value = "1"',
@@ -345,7 +347,7 @@ def test_component_food_selection_browser_roundtrip(
     page.locator('#c-food').select_option('')
     page.locator('#c-food-detach').check()
     with page.expect_response(lambda response: response.request.method == 'POST') as stale:
-        page.locator('#component-form').get_by_role('button', name='Baustein speichern', exact=True).click()
+        page.locator('#component-form').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
     assert stale.value.status == 409
     expect(page.locator('#c-food-detach')).to_be_checked()
     expect(page.locator('#component-form [name="_csrf"]')).not_to_have_value('')
@@ -408,9 +410,10 @@ def test_component_food_selection_nojs(
                 'CH', 'current', (), (),
             )
             page.goto(f'/admin/patienten/komponenten/{created["public_id"]}')
+            page.locator('#component-options > summary').click()
             expect(page.locator('#c-food')).to_be_visible()
             page.locator('#c-food').select_option(str(food['public_id']))
-            page.locator('#component-form').get_by_role('button', name='Baustein speichern', exact=True).click()
+            page.locator('#component-form').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
             page.wait_for_load_state()
             expect(page.locator('#c-food')).to_have_value(str(food['public_id']))
             page.screenshot(path=str(tmp_path / 'component-food-nojs.png'), full_page=True)

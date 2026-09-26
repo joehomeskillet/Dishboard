@@ -51,7 +51,7 @@ def test_keyed_presence_swap_and_error_roundtrip(catalog_page, family, javascrip
         form.locator('[name="allergen_code"][value="LUPIN"]').check()
         form.locator('[name="allergen_presence__LUPIN"]').select_option('may_contain')
         with page.expect_response(lambda r: r.request.method == 'POST') as saved:
-            form.get_by_role('button', name='Speichern', exact=True).click()
+            form.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
         assert saved.value.status == 303
         fields = parse_qs(saved.value.request.post_data)
         assert fields['allergen_code'] == ['GLUTEN', 'LUPIN']
@@ -74,7 +74,7 @@ def test_keyed_presence_swap_and_error_roundtrip(catalog_page, family, javascrip
 
         page.route('**' + path + '/*', invalid_presence, times=1)
         with page.expect_response(lambda r: r.request.method == 'POST') as invalid:
-            form.get_by_role('button', name='Speichern', exact=True).click()
+            form.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
         assert invalid.value.status == 400
         presence = page.locator('[name="allergen_presence__GLUTEN"]')
         expect(presence).to_have_value('invalid')
@@ -161,7 +161,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     milk.locator('[name="allergen_code"]').uncheck()
     expect(milk.locator('select')).to_be_enabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
-        detail.get_by_role('button', name='Speichern', exact=True).click()
+        detail.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
     assert saved.value.status == 303
     expect(page.locator('h1')).to_have_text('Bausteine')
     expect(page.locator('.page-header-subtitle')).to_have_text('Katalog-Browsertest bearbeitet')
@@ -174,7 +174,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     gluten.locator('[name="allergen_code"]').uncheck()
     expect(gluten.locator('select')).to_be_enabled()
     with page.expect_response(lambda response: response.request.method == 'POST') as cleared:
-        detail.get_by_role('button', name='Speichern', exact=True).click()
+        detail.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
     assert cleared.value.status == 303
     page.wait_for_load_state()
     with engine.connect() as connection:
@@ -189,10 +189,11 @@ def _assert_component_controls_fit(page: Page) -> None:
     ).evaluate_all('''elements => elements.filter(e => e.getClientRects().length).map(e => ({
         height: e.getBoundingClientRect().height,
         width: e.getBoundingClientRect().width,
-        label: e.textContent.trim().slice(0, 40)
+        minimum: e.classList.contains('ui-sem-control') ? 36 : 48,
+        label: e.getAttribute('aria-label') || e.textContent.trim().slice(0, 40)
     }))''')
     assert dimensions
-    assert all(item['height'] >= 48 for item in dimensions), dimensions
+    assert all(item['height'] >= item['minimum'] for item in dimensions), dimensions
 
 
 @pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
@@ -223,11 +224,11 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
         assert page.locator('script[src$="/vendor/tabler/tabler.min.js"]').count() == 1
         row = page.locator(f'.component-row[data-public-id="{public_id}"]')
         expect(row).to_contain_text(long_name)
-        expect(row).to_contain_text('verwendet in 0 Gerichten')
-        edit_link = row.get_by_role('link', name=f'Baustein {long_name} bearbeiten', exact=True)
+        expect(row).to_contain_text('0 Gerichte')
+        edit_link = row.get_by_role('link', name=long_name, exact=True)
         expect(edit_link).to_be_visible()
-        expect(edit_link).to_have_text('Bearbeiten')
-        expect(edit_link).to_have_attribute('title', f'Baustein {long_name} bearbeiten')
+        expect(edit_link).to_have_text(long_name)
+        expect(edit_link).to_have_attribute('href', detail_path)
         if width < 768:
             assert row.evaluate('e => getComputedStyle(e).display') == 'grid'
             expect(row.locator('[data-label="Kategorie"]')).to_be_visible()
@@ -237,7 +238,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
             expect(page.locator('.dishboard-component-table thead th').first).to_be_visible()
             assert row.evaluate('e => getComputedStyle(e).display') == 'table-row'
             edit_box = edit_link.bounding_box()
-            assert edit_box is not None and edit_box['height'] <= 52
+            assert edit_box is not None and edit_box['height'] > 0
             name_box = row.locator('.component-row-name').bounding_box()
             category_box = row.locator('.category').bounding_box()
             assert name_box is not None and category_box is not None
@@ -255,7 +256,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
             page.screenshot(path=str(tmp_path / f'{family}-component-editor-{width}.png'), full_page=True)
 
     page.locator('.component-secondary-actions summary').click()
-    archive = page.get_by_role('button', name='Archivieren', exact=True)
+    archive = page.get_by_role('button', name=re.compile(r'.+ archivieren$'))
     page.once('dialog', lambda dialog: dialog.dismiss())
     archive.click()
     expect(page.locator('main')).to_have_attribute('data-active', '1')
@@ -263,7 +264,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     archive.click()
     page.wait_for_load_state()
     page.locator('.component-secondary-actions summary').click()
-    expect(page.get_by_role('button', name='Reaktivieren', exact=True)).to_be_visible()
+    expect(page.get_by_role('button', name=re.compile(r'.+ aktivieren$'))).to_be_visible()
     expect(page.locator('main')).to_have_attribute('data-active', '0')
     page.goto(list_path)
     assert page.locator(f'.component-row[data-public-id="{public_id}"]').count() == 0

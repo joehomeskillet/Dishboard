@@ -1,7 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import symbol %}
 {% from 'admin/_macros.html' import icon, page_header, field, select, check as checkbox, form_errors as error_summary, disclosure_section, hint %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set workflow_nav = 'components' %}
 {% set layout_variant = 'standard' %}
@@ -30,8 +30,8 @@
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="row_version" value="{{ component.row_version }}">
   <div class="card-header admin-compact-toolbar" data-sticky-form="component-form" data-sticky-edge="top">
-    <a class="btn" href="/admin/{{ family }}/komponenten">{{ icon_label('actions.cancel') }}</a>
-    <button type="submit" class="btn btn-primary">{{ icon_label('actions.save') }}</button>
+    {{ icon_button('actions.cancel', href='/admin/' ~ family ~ '/komponenten') }}
+    {{ icon_button('actions.save', object=component.name) }}
   </div>
   <div class="card-body">
     <div class="row g-3 mb-3">
@@ -130,7 +130,7 @@
     <form method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}/{{ 'archive' if component.active else 'unarchive' }}" data-confirm="{{ 'Baustein wirklich archivieren?' if component.active else 'Baustein reaktivieren?' }}">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="row_version" value="{{ component.row_version }}">
-      <button type="submit" class="btn {{ 'btn-danger' if component.active else 'btn' }}">{{ icon('archive' if component.active else 'archive-off') }}{{ 'Archivieren' if component.active else 'Reaktivieren' }}</button>
+      {{ icon_button('actions.archive' if component.active else 'actions.activate', object=component.name) }}
     </form>
   </div>
 </details>

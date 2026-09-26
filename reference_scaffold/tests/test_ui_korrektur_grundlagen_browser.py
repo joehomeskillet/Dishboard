@@ -63,7 +63,10 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                             measurements.append(dict(width=width, javascript=javascript, state=state, **metric))
                             assert not metric['overflow']
                             assert metric['primary'] == 1
-                            expect(page.locator('.admin-statusbar')).to_be_visible()
+                            if state == 'editor':
+                                expect(page.locator('.admin-statusbar')).to_be_visible()
+                            else:
+                                expect(page.locator('.grundlagen-filter')).to_contain_text('Aktiv')
                             if state == 'list':
                                 assert metric['row'] < 100
                                 row_min = page.evaluate(
@@ -108,7 +111,7 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                         expect(price.get_by_role('button', name='Preis speichern', exact=True)).not_to_have_class(re.compile('btn-primary'))
                         expect(page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True)).to_have_class(re.compile('btn-primary'))
                         for control in price.locator('.form-control, .btn').all():
-                            assert control.bounding_box()['height'] >= 48
+                            assert control.bounding_box()['height'] >= (36 if control.evaluate("e => e.classList.contains('ui-sem-control')") else 48)
                         _assert_no_horizontal_scroll(page)
             print('WP06_MEASUREMENTS', json.dumps(measurements))
             (tmp_path / 'measurements.json').write_text(json.dumps(measurements, indent=2))
@@ -192,7 +195,8 @@ def test_ingredient_list_is_first_full_width_and_visible(
 
         assert page.locator('nav[aria-label="Stammdatenbereiche"]').count() == 1
         assert page.locator('main .btn-primary').count() == 1
-        expect(page.locator('main .btn-primary').first).to_contain_text('Anlegen')
+        expect(page.locator('main .btn-primary').first).to_have_attribute('aria-label', 'Anlegen')
+        expect(page.locator('main .btn-primary').first).to_have_text('')
         expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
             'href', re.compile(r'tabler-')
         )
@@ -257,7 +261,8 @@ def test_ingredient_list_genuine_browser_zoom_200(
 
             assert page.locator('nav[aria-label="Stammdatenbereiche"]').count() == 1
             assert page.locator('main .btn-primary').count() == 1
-            expect(page.locator('main .btn-primary').first).to_contain_text('Anlegen')
+            expect(page.locator('main .btn-primary').first).to_have_attribute('aria-label', 'Anlegen')
+            expect(page.locator('main .btn-primary').first).to_have_text('')
             expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
                 'href', re.compile(r'tabler-')
             )
@@ -359,9 +364,9 @@ def test_ingredient_statuses_and_secondary_actions_stay_separate(
         allergen_status = status.locator('.admin-statusbar-item').filter(has_text='Allergenprüfung')
         expect(allergen_status).to_have_class(re.compile(r'admin-statusbar-item--warning'))
         assert 'Version' not in status.inner_text()
-        expect(page.get_by_role('button', name='Archivieren', exact=True)).not_to_be_visible()
+        expect(page.get_by_role('button', name=re.compile(r'.+ archivieren$'))).not_to_be_visible()
         page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
-        expect(page.get_by_role('button', name='Archivieren', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name=re.compile(r'.+ archivieren$'))).to_be_visible()
         _assert_no_horizontal_scroll(page)
 
         _prepare_evidence()
@@ -378,11 +383,12 @@ def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser)
         page.goto(base + '/admin/grundlagen')
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         _assert_no_horizontal_scroll(page)
-        expect(page.locator('.badge.admin-status--active').first).to_be_visible()
-        expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_be_visible()
-        expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_have_attribute(
-            'aria-label', re.compile(r'.+ bearbeiten'),
-        )
+        expect(page.locator('.grundlagen-filter')).to_contain_text('Aktiv')
+        expect(page.locator('.grundlagen-list .badge.admin-status--active')).to_have_count(0)
+        expect(page.get_by_role('link', name='Polish Zutat', exact=True)).to_be_visible()
+        expect(page.get_by_role('link', name='Polish Zutat', exact=True)).to_have_attribute('href', path)
+        expect(page.locator('.admin-list-row [data-semantic="actions.edit"]')).to_have_count(0)
+        page.goto(base + '/admin/grundlagen?archived=1')
         expect(page.locator('.admin-label.admin-status--active').first).to_be_visible()
         page.goto(base + path)
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)

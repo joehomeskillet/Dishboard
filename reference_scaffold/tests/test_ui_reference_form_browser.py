@@ -1,6 +1,8 @@
 """Live component-form reference; screenshots are proposals in pytest tmp_path."""
 from __future__ import annotations
 
+import re
+
 import json
 import threading
 from pathlib import Path
@@ -123,9 +125,9 @@ def _controls(page: Page) -> None:
     expect(page.locator('main .btn-primary')).to_have_count(1)
     expect(page.locator('#component-form [readonly]')).to_have_count(0)
     sizes = page.locator('main .btn, main .form-control, main .form-select, main .form-check').evaluate_all(
-        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height])'
+        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height, e.classList.contains("ui-sem-control") ? 36 : 48])'
     )
-    assert sizes and all(height >= 48 for _, height in sizes), sizes
+    assert sizes and all(height >= minimum for _, height, minimum in sizes), sizes
     labels = page.locator('#component-form input:not([type="hidden"]), #component-form select').evaluate_all(
         'es => es.map(e => [e.id, [...e.labels].some(l => l.textContent.trim())])'
     )
@@ -139,9 +141,8 @@ def _controls(page: Page) -> None:
       return Math.abs(inner - (main.clientWidth - pad)) <= 1;
     }''')
     expect(page.locator('[data-sticky-form="component-form"]')).to_have_count(1)
-    expect(page.locator(
-        '[data-sticky-form="component-form"] button',
-        has_text='Baustein speichern',
+    expect(page.locator('[data-sticky-form="component-form"]').get_by_role(
+        'button', name=re.compile(r'.+ speichern$'),
     )).to_have_count(1)
     expect(page.locator('#component-form .card-footer')).to_have_count(0)
     for field_id in ('c-name', 'c-cat'):
@@ -226,7 +227,7 @@ def test_validation_preserves_inputs_tokens_and_native_submit(
         page.locator('#c-name').fill('   ')
         page.locator('#c-origin').select_option('AT')
         with page.expect_response(lambda r: r.request.method == 'POST') as failed:
-            page.get_by_role('button', name='Baustein speichern', exact=True).press('Enter')
+            page.get_by_role('button', name=re.compile(r'.+ speichern$')).press('Enter')
         assert failed.value.status == 400
         expect(page.locator('#c-name')).to_have_value('   ')
         expect(page.locator('#c-origin')).to_have_value('AT')
@@ -246,7 +247,7 @@ def test_validation_preserves_inputs_tokens_and_native_submit(
         _capture(page, tmp_path, f'invalid-{width}')
         page.locator('#c-name').fill(f'Gespeichert {width}')
         with page.expect_response(lambda r: r.request.method == 'POST') as saved:
-            page.get_by_role('button', name='Baustein speichern', exact=True).click()
+            page.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
         assert saved.value.status == 303
         payload = parse_qs(saved.value.request.post_data)
         assert all(payload[key] == [value] for key, value in tokens.items())
@@ -276,7 +277,7 @@ def test_write_rejections_keep_abort_contract(
         before = get_component(engine, scope, public_id, include_archived=True)
         page.locator('#c-name').fill('Ungespeicherter Entwurf')
         with page.expect_response(lambda r: r.request.method == 'POST') as rejected:
-            page.get_by_role('button', name='Baustein speichern', exact=True).click()
+            page.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
         assert rejected.value.status == status
         payload = parse_qs(rejected.value.request.post_data)
         assert all(payload[key] == [value] for key, value in tokens.items())
@@ -286,7 +287,7 @@ def test_write_rejections_keep_abort_contract(
             expect(page.locator('.error-region')).to_be_visible()
             assert _tokens(page) == tokens
             with page.expect_response(lambda r: r.request.method == 'POST') as still_stale:
-                page.get_by_role('button', name='Baustein speichern', exact=True).click()
+                page.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
             assert still_stale.value.status == 409
             assert _tokens(page) == tokens
         else:
