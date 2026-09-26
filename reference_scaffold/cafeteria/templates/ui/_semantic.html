@@ -45,23 +45,26 @@
   {%- if blank and 'rel' not in attrs -%}{{ ' ' }}rel="noopener"{%- endif -%}
 {%- endmacro %}
 
-{% macro icon_button(key, href=none, name=none, value=none, icon_only=false, type='submit', id=none, form=none, consequence_key=none, size='default', text=none, aria_label=none, title=none, class='', emphasis=none, attrs=none) -%}
-  {{- require_icon_only(key, icon_only) -}}{{- require_consequence(key, consequence_key) -}}
+{% macro icon_button(key, href=none, name=none, value=none, icon_only=true, type='submit', id=none, form=none, consequence_key=none, size='default', text=none, aria_label=none, title=none, class='', emphasis=none, attrs=none, object=none, show_text=false) -%}
+  {# icon_only is retained for positional compatibility; only show_text opts into text. #}
+  {{- require_consequence(key, consequence_key) -}}
   {%- set item = sem(key) -%}
   {%- if emphasis not in [none, 'primary', 'secondary', 'danger'] -%}{{ action_contract_error('invalid emphasis') }}{%- endif -%}
   {%- if item.role == 'danger' and emphasis not in [none, 'danger'] -%}{{ action_contract_error('destructive emphasis cannot be downgraded') }}{%- endif -%}
   {%- set role = emphasis if emphasis is not none else item.role -%}
-  {%- if role == 'danger' -%}{{ require_icon_only('actions.delete', icon_only) }}{{ require_consequence('actions.delete', consequence_key) }}{%- endif -%}
-  {%- if role == 'primary' and icon_only -%}{{ action_contract_error('primary action requires visible text') }}{%- endif -%}
-  {%- if text is not none and (text is not string or not text|trim or text|length > 18 or text.split()|length > 2) -%}{{ action_contract_error('text must contain at most 2 words and 18 characters') }}{%- endif -%}
+  {%- if role == 'danger' -%}{{ require_consequence('actions.delete', consequence_key) }}{%- endif -%}
+  {%- if icon_only is not boolean or show_text is not boolean -%}{{ action_contract_error('icon_only and show_text must be boolean') }}{%- endif -%}
+  {%- if text is not none and (text is not string or not text|trim) -%}{{ action_contract_error('text must be nonempty text') }}{%- endif -%}
+  {%- if show_text and text is not none and (text|length > 18 or text.split()|length > 2) -%}{{ action_contract_error('visible text must contain at most 2 words and 18 characters') }}{%- endif -%}
   {%- set visible_text = t(item.label_key) if text is none else text -%}
   {%- if aria_label is not none and (aria_label is not string or not aria_label|trim) -%}{{ action_contract_error('aria_label must be nonempty text') }}{%- endif -%}
-  {%- set compose_name = aria_label is not none and not icon_only and visible_text|lower not in aria_label|lower -%}
-  {%- if compose_name -%}{%- set aria_label = visible_text ~ ': ' ~ aria_label -%}{%- endif -%}
-  {%- set tooltip = title if title is not none else aria_label if (icon_only or compose_name) and aria_label is not none else t(item.tooltip_key) -%}
+  {%- if object is not none and (object is not string or not object|trim) -%}{{ action_contract_error('object must be nonempty text') }}{%- endif -%}
+  {%- set accessible_name = aria_label if aria_label is not none else t(key ~ '.object', object=object) if object is not none and item.category == 'actions' else t('ui.action_object', object=object, action=t(item.aria_key)) if object is not none else text if text is not none else t(item.aria_key) -%}
+  {%- if show_text and visible_text|lower not in accessible_name|lower -%}{{ action_contract_error('aria_label must contain visible text') }}{%- endif -%}
+  {%- set tooltip = title if title is not none else accessible_name -%}
   {%- if title is not none and (title is not string or not title|trim) -%}{{ action_contract_error('title must be nonempty text') }}{%- endif -%}
   {%- set variant = 'btn-primary' if role == 'primary' else 'btn-danger' if role == 'danger' else '' -%}
-  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}{% if icon_only %} ui-sem-control--icon-only{% endif %}{% if size == 'large' %} ui-sem-control--large{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" title="{{ tooltip }}"{% if icon_only or aria_label is not none %} aria-label="{{ aria_label if aria_label is not none else t(item.aria_key) }}"{% endif %}{% if id %} id="{{ id }}"{% endif %}{% if href is not none %} href="{{ href }}"{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}{{ action_attrs(attrs) }}>{{ sem_icon(key) }}{% if not icon_only %}<span>{{ visible_text }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>
+  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}{% if not show_text %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" data-ui-tooltip="{{ tooltip }}" aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}{% if href is not none %} href="{{ href }}"{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}{{ action_attrs(attrs) }}>{{ sem_icon(key) }}{% if show_text %}<span>{{ visible_text }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>
   {% if consequence_key %}<p class="ui-sem-consequence">{{ t(sem(consequence_key).label_key) }}</p>{% endif %}
 {%- endmacro %}
 
@@ -97,12 +100,14 @@
 {%- endmacro %}
 
 {% macro action_menu(items) -%}
+  {% if items %}
   <details class="ui-sem-actions">
-    <summary class="btn btn-ghost ui-sem-control" title="{{ t(sem('actions.more').tooltip_key) }}">{{ icon_label('actions.more') }}</summary>
+    <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" data-ui-tooltip="{{ t(sem('actions.more').aria_key) }}" aria-label="{{ t(sem('actions.more').aria_key) }}">{{ sem_icon('actions.more') }}</summary>
     <div class="ui-sem-action-items">
-      {% for item in items %}{{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), form=item.form|default(none), consequence_key=item.consequence_key|default(none), id=item.id|default(none), icon_only=item.icon_only|default(false), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none)) }}{% endfor %}
+      {% for item in items %}{{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), form=item.form|default(none), consequence_key=item.consequence_key|default(none), id=item.id|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none), object=item.object|default(none), show_text=true) }}{% endfor %}
     </div>
   </details>
+  {% endif %}
 {%- endmacro %}
 
 {# Sequence order chooses the one frequent action. Callers retain authorization,
@@ -111,7 +116,7 @@
   <div class="admin-row-actions">
     {% if items %}
       {% set item = items[0] %}
-      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), icon_only=item.icon_only|default(false), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none)) }}
+      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none), object=item.object|default(none)) }}
       {% if items|length > 1 %}{{ action_menu(items[1:]) }}{% endif %}
     {% endif %}
   </div>
@@ -126,9 +131,9 @@
   <dialog class="ui-sem-dialog" id="{{ id }}" aria-labelledby="{{ id }}-title" aria-describedby="{{ id }}-consequence"{% if open %} open{% endif %}>
     <h2 id="{{ id }}-title">{{ icon_label(key) }}</h2>
     <p id="{{ id }}-consequence">{{ t(sem(consequence_key).label_key) }}</p>
-    {{ icon_button(confirm_key, name=name, value=value, form=form, consequence_key=consequence_key) }}
+    {{ icon_button(confirm_key, name=name, value=value, form=form, consequence_key=consequence_key, show_text=true) }}
     {# Native close path: works without JavaScript and never submits the owning form. #}
-    <form method="dialog" class="ui-sem-dialog-cancel">{{ icon_button('actions.cancel', type='submit') }}</form>
+    <form method="dialog" class="ui-sem-dialog-cancel">{{ icon_button('actions.cancel', type='submit', show_text=true) }}</form>
     {{ caller() if caller else '' }}
   </dialog>
 {%- endmacro %}

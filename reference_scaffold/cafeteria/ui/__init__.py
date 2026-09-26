@@ -18,7 +18,7 @@ def sem(key: str) -> Semantic:
 
 def require_icon_only(key: str, icon_only: bool = False) -> str:
     item = sem(key)
-    if icon_only and (not item.icon_only_allowed or item.role == 'danger'):
+    if icon_only and not item.icon_only_allowed:
         raise SemanticError(f'{key}: icon-only presentation is forbidden')
     return ''
 

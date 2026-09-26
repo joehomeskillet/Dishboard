@@ -74,7 +74,7 @@ def test_week_actions_keep_publish_labels_and_native_contracts(
     submit = doc.select_one('#week-publish-form button[type="submit"]')
     nojs = doc.select_one('noscript button')
     for button in (trigger, submit, nojs):
-        assert button.get_text(strip=True) == publish_label
+        assert button.get('aria-label', button.get_text(strip=True)) == publish_label
         assert button.has_attr('disabled') is blocked
     assert trigger['data-bs-toggle'] == 'modal'
     assert nojs['form'] == 'week-publish-form'
@@ -82,7 +82,7 @@ def test_week_actions_keep_publish_labels_and_native_contracts(
         assert button.get('aria-describedby') == ('week-publish-guidance' if blocked else None)
     primary = doc.select('.btn-primary')
     assert len(primary) == 1
-    assert primary[0].get_text(strip=True) == (
+    assert primary[0].get('aria-label', primary[0].get_text(strip=True)) == (
         'Offene Punkte prüfen' if status == 'review_open' else publish_label
     )
     form = doc.select_one('#week-publish-form')
@@ -96,8 +96,8 @@ def test_week_actions_keep_publish_labels_and_native_contracts(
         ('_csrf', 'test-defaults'), ('week', '2026-08-31'), ('row_version', '3'),
     ]
     assert defaults.select_one('button')['data-semantic'] == 'actions.apply'
-    assert [item.get_text(strip=True) for item in doc.select('.admin-week-more-menu .dropdown-item')] == [
-        'CSV exportieren', 'Vorwoche kopieren', 'Übernehmen',
+    assert [item['aria-label'] for item in doc.select('.admin-week-more-menu .dropdown-item')] == [
+        'CSV exportieren', 'Vorwoche kopieren', 'Wochenvorgaben übernehmen',
     ]
 
 
@@ -107,7 +107,7 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; no aliases for different business actions.
     assert len(seeds) == 187
-    assert len(registry) == 208
+    assert len(registry) == 210
     assert {r['semantic_key'] for r in seeds} <= registry.keys()
     assert len(read_json(ROOT / 'icon_fallbacks.json')) == 6
     available = sprite_icons()
@@ -138,6 +138,7 @@ def test_registry_source_schema_and_frozen_resolution():
 ])
 def test_bad_registry_fails_with_key(tmp_path, mutation, match):
     rows = read_json(ROOT / 'semantic_registry.json')
+    rows.sort(key=lambda row: row['key'] != 'actions.add')
     if mutation == 'duplicate':
         rows.append(rows[0])
     elif mutation == 'missing':
@@ -218,10 +219,12 @@ def test_globals_allowlist_and_icon_only_policy(semantic_app):
         with pytest.raises(SemanticError, match='unknown semantic key'):
             sem('../../secrets')
         for key in ('actions.save', 'actions.delete'):
-            with pytest.raises(SemanticError, match=key):
-                render_template_string("{% from 'ui/_semantic.html' import icon_button %}{{ icon_button(key, icon_only=true) }}", key=key)
+            html = render_template_string(
+                "{% from 'ui/_semantic.html' import icon_button %}"
+                "{{ icon_button(key, consequence_key='ui.request_failed') }}", key=key)
+            assert 'ui-sem-control--icon-only' in html
         html = render_template_string("{% from 'ui/_semantic.html' import icon_button %}{{ icon_button('actions.edit', icon_only=true) }}")
-        assert 'title="Bearbeiten"' in html and 'aria-label="Bearbeiten"' in html
+        assert 'data-ui-tooltip="Bearbeiten"' in html and 'aria-label="Bearbeiten"' in html
         with pytest.raises(SemanticError, match='consequence_key'):
             render_template_string("{% from 'ui/_semantic.html' import icon_button %}{{ icon_button('actions.delete') }}")
     app = Flask('unsupported')
@@ -271,7 +274,8 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
     assert rare.select_one('a[href="#edit"]')
     danger = document.select_one('.admin-form-danger')
     assert danger.select_one('.btn-danger svg')
-    assert danger.select_one('.btn-danger span').get_text(strip=True) == 'Löschen'
+    assert danger.select_one('.btn-danger')['aria-label'] == 'Löschen'
+    assert danger.select_one('.btn-danger span') is None
     assert danger.select_one('.ui-sem-consequence').get_text(strip=True)
 
 def test_registry_icons_in_sprite():
@@ -301,7 +305,8 @@ def test_row_actions_keep_one_direct_action_and_native_form_fields(semantic_app)
     document = BeautifulSoup(html, 'html.parser')
     assert len(document.select('.admin-row-actions > a')) == 1
     assert not document.details.has_attr('open')
-    assert document.summary.get_text(strip=True) == 'Mehr'
+    assert document.summary.get_text(strip=True) == ''
+    assert document.summary['aria-label'] == 'Weitere Aktionen'
     buttons = document.select('details button')
     assert [(b['name'], b['value'], b['form']) for b in buttons] == [
         ('intent', 'copy', 'editor'), ('intent', 'delete', 'editor')]
@@ -436,18 +441,18 @@ def test_p2b_legacy_icon_link_and_status_mapping_contract(semantic_app):
     assert document.select_one('.admin-status--danger').get_text(strip=True) == 'Konflikt'
 
 
-# Captured before edits at d2e66fed8fe3fce9aab21f5613140327dd19822b.
+# Action snapshots follow the reviewed WP2a icon-only contract; other macros retain R11 bytes.
 # Hash raw UTF-8 HTML, including whitespace; no normalized DOM comparison.
 @pytest.mark.parametrize('template,macro,call,digest', [
     ('ui/_semantic.html', 'icon_button',
      "icon_button('actions.edit', href='/edit', icon_only=true, id='edit')",
-     'aaf97101c867535298c70ab702aa0781ab7aab98839b25c7fa72c359c44d8b63'),
+     '4684e5173caa81cddea3c7c9f7eef8e3e9969166ae336768e872a86ee8396170'),
     ('ui/_semantic.html', 'action_menu',
      "action_menu([{'key':'actions.copy','name':'intent','value':'copy','form':'editor'}])",
-     'd4b0ad3c7e58376d372c4393df66f2ca9cb4c1a00910a82c1f610b7fd59eb125'),
+     'd5fab12f4033d94c43aafad81c8125f53eb91da8664e35d3aa9a59e88803130f'),
     ('ui/_semantic.html', 'row_actions',
      "row_actions([{'key':'actions.edit','href':'/edit'}, {'key':'actions.copy','name':'intent','value':'copy'}])",
-     'a1737fa5e73b1371bb2f701ddb1f99e72ae0791b83802016ec97ecd110ab7e2a'),
+     'ac854c222d50642fac22c326373dfb51d99f818415116b66d16d8e89799e3eda'),
     ('ui/_semantic.html', 'filter_bar_sem',
      "filter_bar_sem('/search', search_name='text', search_value='Soup', more_filters='Extra', active=true, reset_url='/reset')",
      'd7862c1e706c16184dc9edd010aed7602a72225eb852a7ba0daf6e098da6bd18'),
@@ -465,6 +470,76 @@ def test_p2c_legacy_bytes(semantic_app, template, macro, call, digest):
     assert hashlib.sha256(html.encode()).hexdigest() == digest
 
 
+@pytest.mark.parametrize('locale,expected', [('de', 'Broccoli bearbeiten'), ('en', 'Edit Broccoli')])
+@pytest.mark.parametrize('href', [None, '/edit'])
+def test_icon_first_name_precedence_and_object_locale(semantic_app, locale, expected, href):
+    semantic_app.config['UI_LOCALE'] = locale
+    options = {'href': href, 'object': 'Broccoli', 'text': 'Custom label'}
+    control = _p2c_action(semantic_app, **options).select_one('.ui-sem-control')
+    assert control['aria-label'] == control['data-ui-tooltip'] == expected
+    explicit = _p2c_action(semantic_app, **options, aria_label='Explicit').select_one('.ui-sem-control')
+    assert explicit['aria-label'] == explicit['data-ui-tooltip'] == 'Explicit'
+    text_only = _p2c_action(semantic_app, text='A longer contextual action name').button
+    assert text_only['aria-label'] == text_only['data-ui-tooltip'] == 'A longer contextual action name'
+    assert text_only.get_text(strip=True) == ''
+    for node in (control, explicit, text_only):
+        assert 'title' not in node.attrs
+        assert node.svg['aria-hidden'] == 'true'
+        assert 'ui-sem-control--icon-only' in node['class']
+
+
+@pytest.mark.parametrize('locale', ['de', 'en'])
+@pytest.mark.parametrize('key', ['actions.edit', 'actions.more', 'data.revision'])
+def test_icon_first_object_is_text_even_for_markup(semantic_app, locale, key):
+    semantic_app.config['UI_LOCALE'] = locale
+    hostile = Markup('\"<img src=x onerror=alert(1)>&')
+    doc = _p2c_action(semantic_app, key, object=hostile)
+    assert str(hostile) in doc.button['aria-label']
+    assert doc.button['data-ui-tooltip'] == doc.button['aria-label']
+    assert not doc.select('img, script')
+
+
+@pytest.mark.parametrize('options', [{'object': ''}, {'object': 42}, {'text': 42}, {'icon_only': 'false'}])
+def test_icon_first_invalid_names_and_switches(semantic_app, options):
+    with pytest.raises(SemanticError):
+        _p2c_action(semantic_app, **options)
+
+
+@pytest.mark.parametrize('key', ['actions.save', 'actions.edit', 'actions.delete'])
+def test_icon_first_all_roles_and_explicit_text_exception(semantic_app, key):
+    options = {'consequence_key': 'ui.request_failed'}
+    control = _p2c_action(semantic_app, key, **options).button
+    assert control.span is None
+    assert control['aria-label'] == load_locales()['de'][key + '.aria']
+    exception = _p2c_action(semantic_app, key, show_text=True, **options).button
+    assert exception.span.text == load_locales()['de'][key + '.label']
+    assert exception.span.text in exception['aria-label']
+    assert 'ui-sem-control--icon-only' not in exception['class']
+
+
+def test_icon_first_menu_empty_and_confirmation_text(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        empty = render_template_string("{% from 'ui/_semantic.html' import action_menu %}{{ action_menu([]) }}")
+        html = render_template_string("{% from 'ui/_semantic.html' import confirm_dialog %}"
+                                      "{{ confirm_dialog('actions.delete', 'ui.request_failed', 'actions.delete') }}")
+    assert not empty.strip()
+    dialog = BeautifulSoup(html, 'html.parser').dialog
+    assert [button.get_text(strip=True) for button in dialog.select('button')] == ['Löschen', 'Abbrechen']
+    assert dialog.select_one('form')['method'] == 'dialog'
+
+
+def test_icon_first_distinct_action_meanings():
+    registry = load_registry()
+    expected = {'save': 'device-floppy', 'check': 'list-check', 'publish': 'send',
+                'confirm': 'check', 'open': 'arrow-right', 'more': 'dots',
+                'import': 'upload', 'export': 'download', 'next': 'chevron-right'}
+    for action, icon in expected.items():
+        assert registry['actions.' + action].resolved_icon == icon
+    assert len({registry['actions.' + key].resolved_icon for key in ('save', 'check', 'publish', 'confirm')}) == 4
+
+
 def _p2c_action(app, key='actions.edit', **kwargs):
     from bs4 import BeautifulSoup
 
@@ -479,18 +554,18 @@ def test_p2c_context_text_escape_and_symbol(semantic_app):
     hostile = '\"<>&'
     doc = _p2c_action(semantic_app, text=hostile, aria_label=hostile + ' Kontext',
                       title=hostile, **{'class': 'dropdown-item'})
-    assert doc.button.span.text == hostile
+    assert doc.button.span is None
     assert doc.button['aria-label'] == hostile + ' Kontext'
-    assert doc.button['title'] == hostile
+    assert doc.button['data-ui-tooltip'] == hostile
     assert set(doc.button['class']) >= {'btn', 'ui-sem-control', 'dropdown-item'}
     assert doc.select_one('use')['href'].endswith('#tabler-edit')
     assert not doc.select('script, img')
     icon = _p2c_action(semantic_app, icon_only=True, aria_label='Vorlage X bearbeiten')
-    assert icon.button['title'] == icon.button['aria-label'] == 'Vorlage X bearbeiten'
+    assert icon.button['data-ui-tooltip'] == icon.button['aria-label'] == 'Vorlage X bearbeiten'
     assert icon.button.span is None
     custom = _p2c_action(semantic_app, icon_only=True, aria_label=hostile, title='Eigener Tooltip')
     assert custom.button['aria-label'] == hostile
-    assert custom.button['title'] == 'Eigener Tooltip'
+    assert custom.button['data-ui-tooltip'] == 'Eigener Tooltip'
 
 
 @pytest.mark.parametrize('key,emphasis,expected', [
@@ -508,11 +583,11 @@ def test_p2c_emphasis(semantic_app, key, emphasis, expected):
     ({'emphasis': 'quiet'}, 'invalid emphasis'),
     ({'key': 'actions.delete', 'emphasis': 'secondary', 'consequence_key': 'ui.request_failed'}, 'downgraded'),
     ({'key': 'actions.delete', 'emphasis': 'primary', 'consequence_key': 'ui.request_failed'}, 'downgraded'),
-    ({'emphasis': 'primary', 'icon_only': True}, 'visible text'),
+    ({'show_text': 'true'}, 'boolean'),
     ({'emphasis': 'danger'}, 'consequence_key'),
-    ({'emphasis': 'danger', 'icon_only': True}, 'icon-only'),
-    ({'text': 'one two three'}, 'text must'),
-    ({'text': 'x' * 19}, 'text must'), ({'text': ''}, 'text must'),
+    ({'emphasis': 'danger', 'icon_only': True}, 'consequence_key'),
+    ({'text': 'one two three', 'show_text': True}, 'text must'),
+    ({'text': 'x' * 19, 'show_text': True}, 'text must'), ({'text': ''}, 'text must'),
     ({'aria_label': ''}, 'nonempty'), ({'title': ''}, 'nonempty'),
     ({'attrs': []}, 'mapping'), ({'attrs': {'disabled': 'false'}}, 'boolean'),
 ])
@@ -530,12 +605,13 @@ def test_p2c_invalid_contract_fails(semantic_app, options, match):
     ('en', 'actions.edit', None, '\"<img src=x>&', 'Edit'),
 ])
 @pytest.mark.parametrize('href', [None, '/edit'])
-def test_p2d_context_name_composes_visible_label(semantic_app, locale, key, text, aria_label, visible, href):
+def test_p2d_explicit_context_name_has_precedence(semantic_app, locale, key, text, aria_label, visible, href):
     semantic_app.config['UI_LOCALE'] = locale
     doc = _p2c_action(semantic_app, key, text=text, aria_label=aria_label, href=href)
     control = doc.select_one('.ui-sem-control')
-    assert control.span.text == visible
-    assert control['aria-label'] == control['title'] == f'{visible}: {aria_label}'
+    assert control.span is None
+    assert visible == (text or load_locales()[locale][key + '.label'])
+    assert control['aria-label'] == control['data-ui-tooltip'] == aria_label
     assert not doc.select('img, script')
 
 
@@ -544,10 +620,11 @@ def test_p2d_context_name_composes_visible_label(semantic_app, locale, key, text
 def test_p2d_composed_name_respects_icon_only_and_explicit_title(semantic_app, icon_only, title):
     semantic_app.config['UI_LOCALE'] = 'en'
     doc = _p2c_action(semantic_app, aria_label='Vorlage X bearbeiten', icon_only=icon_only, title=title)
-    expected = 'Vorlage X bearbeiten' if icon_only else 'Edit: Vorlage X bearbeiten'
+    expected = 'Vorlage X bearbeiten'
     assert doc.button['aria-label'] == expected
-    assert doc.button['title'] == (title if title is not None else expected)
-    assert (doc.button.span is None) == icon_only
+    assert doc.button['data-ui-tooltip'] == (title if title is not None else expected)
+    assert doc.button.span is None
+    assert 'ui-sem-control--icon-only' in doc.button['class']
 
 
 @pytest.mark.parametrize('aria_label', [None, 'Vorlage X BEARBEITEN'])
@@ -557,7 +634,7 @@ def test_p2d_matching_or_absent_name_keeps_exact_markup(semantic_app, aria_label
         baseline = render_template_string(template, options={})
         actual = render_template_string(template, options={'aria_label': aria_label})
     expected = baseline if aria_label is None else baseline.replace(
-        'title="Bearbeiten"', 'title="Bearbeiten" aria-label="Vorlage X BEARBEITEN"')
+        'Bearbeiten"', 'Vorlage X BEARBEITEN"')
     assert actual == expected
 
 
@@ -582,7 +659,7 @@ def test_p2c_attributes_escape_boolean_and_native_submission(semantic_app):
         else:
             assert doc.button[key] == ('' if value is True else 'false' if value is False else str(value))
     assert (doc.button['name'], doc.button['value'], doc.button['form']) == ('intent', 'apply', 'week')
-    assert set(doc.button.attrs) == set(attrs) - {'hidden'} | {'class', 'data-semantic', 'title', 'type', 'name', 'value', 'form'}
+    assert set(doc.button.attrs) == set(attrs) - {'hidden'} | {'class', 'data-semantic', 'data-ui-tooltip', 'aria-label', 'type', 'name', 'value', 'form'}
     assert 'disabled' not in _p2c_action(semantic_app, attrs={'disabled': False}).button.attrs
     assert _p2c_action(semantic_app, attrs={'hidden': True}).button['hidden'] == ''
 
@@ -613,12 +690,12 @@ def test_p2c_wrappers_forward_context_and_native_attrs(semantic_app, macro):
     doc = BeautifulSoup(html, 'html.parser')
     for control in doc.select('button'):
         assert control['aria-label'] == item['aria_label']
-        assert control['title'] == item['title']
+        assert control['data-ui-tooltip'] == item['title']
         assert 'dropdown-item' in control['class'] and 'btn-primary' not in control['class']
         assert control['data-confirm'] == 'Weiter?'
         assert control['formaction'] == '/edit' and control['formnovalidate'] == ''
         assert (control['name'], control['value'], control['form']) == ('intent', 'edit', 'editor')
-    assert doc.select_one('#context').span is None
+    assert (doc.select_one('#context').span is None) == (macro == 'row_actions')
     assert doc.select_one('#second').span.text == 'Ändern'
     assert not doc.details.has_attr('open')
     assert len(doc.select('.admin-row-actions > button')) == (1 if macro == 'row_actions' else 0)
@@ -649,9 +726,10 @@ def test_p2c_canonical_actions(semantic_app, locale, labels):
         key = 'actions.' + name
         item = load_registry()[key]
         assert item.role == 'neutral'
-        assert item.icon_only_allowed == (name == 'history')
+        assert item.icon_only_allowed
         doc = _p2c_action(semantic_app, key)
-        assert doc.button.span.text == doc.button['title'] == label
+        assert doc.button.span is None
+        assert doc.button['aria-label'] == doc.button['data-ui-tooltip'] == label
         assert doc.select_one('use')['href'].endswith('#tabler-' + item.resolved_icon)
 
 
@@ -679,9 +757,9 @@ def test_p4_recipe_context_labels_survive_en_and_keep_name(semantic_app, locale,
     extra = {'consequence_key': 'actions.delete'} if key == 'actions.delete' else {}
     doc = _p2c_action(semantic_app, key, href='/x', text=text, aria_label=aria, title=aria, **extra)
     control = doc.a or doc.button
-    assert control.span.text == text
+    assert control.span is None
     assert text.lower() in control['aria-label'].lower()
-    assert control['aria-label'] == aria == control['title']
+    assert control['aria-label'] == aria == control['data-ui-tooltip']
 
 
 @pytest.mark.parametrize('template,key,text,aria,icon', [
@@ -714,25 +792,22 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
             recipe=recipe, item=recipe, recipe_id='r1', can_write=False, token='token', batch=None,
             links=SimpleNamespace(latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
     control = BeautifulSoup(html, 'html.parser').select_one('a, button')
-    assert (control.get_text(strip=True), control['aria-label']) == (text, aria)
+    assert (control.get_text(strip=True), control['aria-label']) == ('', aria)
     assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
-    assert control['title'] == aria
+    assert control['data-ui-tooltip'] == aria
     assert control.select_one('use')['href'].endswith('#tabler-' + icon)
     if key == 'data.revision':
         assert (control['type'], control['form']) == ('submit', 'recipe-freeze-form')
 
 
-@pytest.mark.parametrize('key,href,aria_label,visible', [
-    ('recipe.quantity', '/scale', 'Mengen berechnen', 'Quantity'),
-    ('actions.print', '/pdf', 'Drucken · PDF öffnen', 'Print'),
-    ('actions.back', '/', 'Zurück zur Rezeptliste', 'Back'),
-])
-def test_p4_german_aria_composes_visible_text_in_en(semantic_app, key, href, aria_label, visible):
+def test_p4_german_aria_without_text_fails_in_en(semantic_app):
     semantic_app.config['UI_LOCALE'] = 'en'
-    doc = _p2c_action(semantic_app, key, href=href, aria_label=aria_label)
-    control = doc.select_one('.ui-sem-control')
-    assert control.span.text == visible
-    assert control['aria-label'] == f'{visible}: {aria_label}'
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'recipe.quantity', href='/scale', aria_label='Mengen berechnen', show_text=True)
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'actions.print', href='/pdf', aria_label='Drucken · PDF öffnen', show_text=True)
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'actions.back', href='/', aria_label='Zurück zur Rezeptliste', show_text=True)
 
 
 def test_p4_owned_templates_pair_german_aria_with_text():

@@ -112,6 +112,8 @@ def load_registry(path: Path = ROOT / 'semantic_registry.json') -> Mapping[str, 
 def validate_locales(registry: Mapping[str, Semantic], locales: Mapping[str, Mapping[str, str]]) -> None:
     expected = {getattr(item, field) for item in registry.values()
                 for field in ('label_key', 'tooltip_key', 'aria_key')}
+    expected |= {f'{item.key}.object' for item in registry.values() if item.category == 'actions'}
+    expected.add('ui.action_object')
     if 'de' not in locales:
         raise SemanticError('de: required primary locale missing')
     for locale, messages in locales.items():

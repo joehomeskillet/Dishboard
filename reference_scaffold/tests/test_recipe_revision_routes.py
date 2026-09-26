@@ -308,7 +308,8 @@ def test_history_every_stand_remains_readable_after_draft_changes_and_archive(a3
         assert client.get(url.replace(public_id, str(uuid4()), 1)).status_code == 404
     draft = client.get(path + '/ansicht')
     assert draft.status_code == 200 and 'Noch nicht festgehalten' in draft.text
-    assert 'Bearbeiten</a>' not in draft.text and 'name="_form_context"' not in draft.text
+    assert 'aria-label="Bearbeiten"' not in draft.text and 'name="_form_context"' not in draft.text
+    assert 'data-semantic="actions.edit"' not in draft.text
     assert snapshot(owner) == before
     with owner.begin() as connection:
         connection.execute(text('UPDATE cafeteria.locations SET active=false'))

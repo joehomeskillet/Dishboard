@@ -137,6 +137,32 @@
   white-space: normal;
 }
 .dishboard-admin .btn-icon { min-width: var(--app-space-12); }
+/* Icon-first actions (2026-09-26): one geometry, independent of page and role. */
+.dishboard-admin .btn.ui-sem-control {
+  --ui-control-size: var(--app-sem-control-size);
+  min-width: var(--ui-control-size); min-height: var(--ui-control-size);
+  border-radius: var(--app-radius-control);
+}
+.dishboard-admin .btn.ui-sem-control--icon-only {
+  width: var(--ui-control-size); height: var(--ui-control-size);
+  max-width: none; padding: 0; gap: 0;
+  flex: 0 0 var(--ui-control-size); justify-content: center;
+  position: relative;
+}
+.dishboard-admin .btn.ui-sem-control > .icon {
+  width: var(--app-sem-control-icon-size); height: var(--app-sem-control-icon-size);
+  margin: 0;
+}
+.dishboard-admin .ui-sem-control--icon-only.admin-btn-loading > .icon { visibility: hidden; }
+.dishboard-admin .ui-sem-control--icon-only.admin-btn-loading::after {
+  position: absolute; margin: 0;
+  width: var(--app-sem-control-icon-size); height: var(--app-sem-control-icon-size);
+}
+@media (pointer: coarse), (any-pointer: coarse) {
+  .dishboard-admin .btn.ui-sem-control { --ui-control-size: var(--app-sem-control-touch-size); }
+}
+.ui-sem-tooltip { pointer-events: auto; }
+.ui-sem-tooltip .tooltip-inner { overflow-wrap: anywhere; }
 /* R14/R15: primary = filled, secondary = neutral/outline, tertiary = ghost,
    destructive = danger with icon, label and an explicit consequence. */
 .dishboard-admin .btn-ghost,
