@@ -17,7 +17,8 @@
         {% if can_write %}
         <div class="week-create">
           {{ icon_button('actions.add', href='#new-week-date', id='new-week-title', aria_label='Neue Woche anlegen', emphasis='primary', attrs={'data-bs-toggle': 'collapse', 'data-bs-target': '#new-week-form', 'aria-controls': 'new-week-form'}) }}
-          <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form collapse{% if error or values.shared_note %} show{% endif %}" id="new-week-form" data-loading aria-labelledby="new-week-title"{% if error %} aria-describedby="new-week-error"{% endif %}>
+          <div class="collapse{% if error or values.shared_note %} show{% endif %}" id="new-week-form">
+          <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form" data-loading aria-labelledby="new-week-title"{% if error %} aria-describedby="new-week-error"{% endif %}>
             <div class="card-body">
               {% if error %}<div class="alert alert-danger error error-region" id="new-week-error" role="alert" tabindex="-1">{{ sem_icon('status.warning') }} {{ error }}</div>{% endif %}
               <input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -41,6 +42,7 @@
               <div class="btn-list ms-auto">{{ icon_button('actions.add', emphasis='secondary') }}</div>
             </div>
           </form>
+          </div>
         </div>
         {% endif %}
 {% endcall %}
@@ -97,7 +99,7 @@
           </table>
           {% else %}
           {% call empty_state('none', 'Noch keine gespeicherten Wochen auf dieser Seite.', 'Öffnen Sie «Neue Woche anlegen», um einen Plan vorzubereiten.' if can_write else 'Für das Anlegen einer Woche benötigen Sie Bearbeitungsrechte.') %}
-            {% if can_write %}{{ icon_button('actions.add', href='#new-week-date', emphasis='secondary') }}{% endif %}
+            {% if can_write %}{{ icon_button('actions.add', href='#new-week-date', emphasis='secondary', attrs={'data-bs-toggle': 'collapse', 'data-bs-target': '#new-week-form', 'aria-controls': 'new-week-form'}) }}{% endif %}
           {% endcall %}
           {% endif %}
           {% if has_next or page > 1 %}

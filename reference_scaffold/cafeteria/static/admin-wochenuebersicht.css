@@ -23,7 +23,7 @@
 .dishboard-admin .week-create .card-body { padding-inline: 0; }
 .dishboard-admin .week-create .card-footer { padding: var(--app-space-2) 0; }
 @media (scripting: none) {
-  .dishboard-admin .week-create form.collapse { display: block; }
+  .dishboard-admin .week-create .collapse { display: block; }
   .dishboard-admin .page-header-row:has(.week-create) > .col-md-auto { width: 100%; }
 }
 

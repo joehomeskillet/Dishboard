@@ -80,6 +80,37 @@ def test_week_creation_and_tablet_layout(page_context):
 
 @pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
 @pytest.mark.parametrize('javascript', [True, False])
+def test_empty_week_creation_and_error_retention(admin_app, admin_engine, live_server, browser, family, profile, javascript):
+    client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    _scope(admin_engine, actor, profile)
+    cookie = client.get_cookie('session')
+    assert cookie is not None
+    context = browser.new_context(base_url=live_server, java_script_enabled=javascript)
+    try:
+        context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        page.goto(f'/admin/{family}/wochen')
+        empty_create = page.locator('[data-empty-kind="none"]').get_by_role('link', name='Anlegen', exact=True)
+        expect(empty_create).to_have_text('')
+        empty_create.click()
+        expect(page.locator('#new-week-date')).to_be_visible()
+        if javascript:
+            expect(empty_create).to_have_attribute('aria-expanded', 'true')
+        page.get_by_label('Wochenbeginn (Montag)').fill('2026-09-01')
+        page.get_by_label('Wochentitel', exact=True).fill('Eingabe behalten')
+        with page.expect_response(lambda r: r.request.method == 'POST') as posted:
+            page.get_by_role('button', name='Anlegen', exact=True).click()
+        assert posted.value.status == 400
+        expect(page.locator('#new-week-error')).to_be_visible()
+        expect(page.locator('#new-week-date')).to_be_visible()
+        expect(page.locator('#new-week-date')).to_have_value('2026-09-01')
+        expect(page.locator('#new-week-name')).to_have_value('Eingabe behalten')
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+@pytest.mark.parametrize('javascript', [True, False])
 def test_management_density_keyboard_and_native_actions(
     admin_app, admin_engine, live_server, tmp_path, family, profile, javascript,
 ):
