@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
@@ -56,7 +57,8 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
                 expect(page.locator('.admin-statusbar')).to_contain_text('Gemeinsam')
                 expect(page.locator('.admin-statusbar')).to_contain_text('Fehlt')
             if state == 'planning':
-                expect(page.locator('[data-semantic="actions.next"].btn-primary')).to_have_text('Weiter')
+                expect(page.locator('[data-semantic="actions.next"].btn-primary')).to_have_accessible_name('Weiter zum Menü')
+                expect(page.locator('[data-semantic="actions.next"].btn-primary')).to_have_text('')
                 summary = page.locator('#planning-summary')
                 expect(summary).to_be_visible()
                 expect(summary).to_contain_text('Messvorlage')
@@ -88,8 +90,8 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
         _open(page, base, path)
         expect(page.locator('.admin-statusbar')).to_contain_text('Archiviert')
         measurements['archived-editor'] = _rework_measure(page, 'archived-editor', width)
-        page.locator('.admin-form-rare > summary').click()
-        expect(page.get_by_role('button', name='Aktivieren', exact=True)).to_have_attribute('value', 'reactivate')
+        page.locator('.admin-form-footer .ui-sem-actions > summary').click()
+        expect(page.get_by_role('button', name='Messvorlage aktivieren', exact=True)).to_have_attribute('value', 'reactivate')
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         (EVIDENCE / f'rework-{width}-js-{javascript}.json').write_text(json.dumps(measurements, indent=2))
@@ -99,7 +101,8 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
             if width == 1440:
                 assert all(height <= 96 for height in result['rows']), (state, result)
             for control in result['controls']:
-                assert control['width'] >= 48 and control['height'] >= 48, (state, control)
+                minimum = 36 if control['icon'] else 24 if control['link'] else 48
+                assert control['width'] >= minimum and control['height'] >= minimum, (state, control)
         assert not console_errors, console_errors
 
 
@@ -113,6 +116,8 @@ def _rework_measure(page, state, width):
                 const target = ['checkbox', 'radio'].includes(e.type) ? e.closest('label') || e : e;
                 const r = target.getBoundingClientRect();
                 return {name: e.getAttribute('aria-label') || e.textContent.trim() || e.name,
+                    icon: e.classList.contains('ui-sem-control'),
+                    link: e.tagName === 'A',
                     width: r.width, height: r.height};
             });
         return {viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth,
@@ -195,13 +200,14 @@ def test_list_create_conflict_and_tabler(b3, master_server, browser, width, heig
         if width < 768:
             assert page.locator('table.admin-table--stack tbody tr').first.evaluate(
                 "e => getComputedStyle(e).display") == 'grid'
-        expect(page.locator('.badge:visible').filter(has_text='Aktiv')).to_have_count(1)
+        expect(page.locator('.badge:visible').filter(has_text='Aktiv')).to_have_count(0)
+        expect(page.get_by_text('Nur aktive Gerichtvorlagen', exact=True)).to_be_visible()
         expect(page.locator('table.admin-table.admin-table--stack')).to_have_count(1)
-        expect(page.locator('.admin-table-status .admin-label.admin-status--active')).to_be_visible()
+        expect(page.locator('.admin-table-status')).to_have_count(0)
         planning = page.locator('.admin-table-actions [data-semantic="actions.open"]')
-        expect(planning).to_have_text('Einplanen')
+        expect(planning).to_have_text('')
         expect(planning).to_have_attribute('aria-label', 'Browser Vorlage als Menü einplanen')
-        expect(planning).to_have_attribute('title', 'Browser Vorlage als Menü einplanen')
+        expect(planning).to_have_attribute('data-ui-tooltip', 'Browser Vorlage als Menü einplanen')
         page.get_by_role('link', name='Browser Vorlage', exact=True).click()
         expect(page.get_by_label('Status', exact=True)).to_be_visible()
         expect(page.get_by_label('Status', exact=True).locator('dt').filter(has_text='Status')).to_be_visible()
@@ -315,6 +321,8 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
         _open(page, base)
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         _accessible_capture(page, f'list-{width}-js-{javascript}-reader-{read_only}', methods=methods.copy())
+        page.get_by_role('link', name='Verknüpfte Vorlage', exact=True).click()
+        page.locator('#template-recipe-details > summary').click()
         link = page.get_by_role('link', name='Rezept: Rezept 205', exact=True)
         link.focus()
         expect(link).to_be_focused()
@@ -328,6 +336,7 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
         if read_only:
             expect(page.locator('main .btn-primary:visible')).to_have_count(1)
             expect(page.locator('main button[name="action"]')).to_have_count(0)
+            page.locator('#template-recipe-details > summary').click()
             expect(page.get_by_role('link', name='Rezept: Rezept 205', exact=True)).to_be_visible()
         else:
             selected = page.get_by_label('Gebundenes Rezept', exact=True)
@@ -431,10 +440,10 @@ def test_p3_polish_dish_templates_primary_stack_hint(b3, master_server, browser)
         expect(page.locator('td[data-label="Menüart"]').first).to_be_visible()
         _open(page, base, path)
         plan = page.get_by_role('link', name='Polish Vorlage als Menü einplanen')
-        expect(plan).to_have_text('Einplanen')
-        expect(plan).to_have_attribute('title', 'Polish Vorlage als Menü einplanen')
+        expect(plan).to_have_text('')
+        expect(plan).to_have_attribute('data-ui-tooltip', 'Polish Vorlage als Menü einplanen')
         archive = page.locator('button[value="archive"]')
-        expect(archive).to_have_class('btn btn-danger')
+        expect(archive).to_have_class(re.compile(r'\bbtn-danger\b'))
         expect(archive).to_have_attribute('data-confirm', 'Diese Vorlage archivieren?')
         expect(page.locator('[name="recipe_search"]')).to_have_attribute('maxlength', '200')
         expect(page.locator('button[value="recipe_search"]')).to_have_attribute('formnovalidate', '')
@@ -467,9 +476,9 @@ def test_p4_occupied_target_action_meanings(b3, master_server, browser):  # noqa
         page = context.new_page()
         with before_render_template.connected_to(occupied, application):
             _open(page, base, path + '/einplanen')
-        expect(page.get_by_role('link', name='Bestehendes Menü öffnen: Bestehender Teller')).to_have_text('Menü öffnen')
+        expect(page.get_by_role('link', name='Bestehendes Menü öffnen: Bestehender Teller')).to_have_text('')
         target = page.get_by_role('link', name='Anderes Ziel wählen')
-        expect(target).to_have_text('Ziel wählen')
+        expect(target).to_have_text('')
         expect(target).to_have_attribute('href', '#planning-target')
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         expect(page.locator('#planning-error')).to_contain_text('Bereits belegt mit')

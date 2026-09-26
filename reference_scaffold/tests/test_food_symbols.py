@@ -215,6 +215,9 @@ def test_admin_cards_load_real_local_symbols(
     app: Flask, browser: Browser, profile: str, family: str, template: str, width: int,  # noqa: F811
     tmp_path: Path,
 ) -> None:
+    if template == 'admin/menu_collection.html':
+        from cafeteria.ui import register_ui
+        register_ui(app)
     option = deepcopy(app.config['TEST_SNAPSHOTS'][profile]['days'][0]['services'][0]['options'][0])
     date = dt.date(2026, 8, 31)
     row = {**option, **_declarations(), 'id': 77, 'service_date': date, 'week_start': date,

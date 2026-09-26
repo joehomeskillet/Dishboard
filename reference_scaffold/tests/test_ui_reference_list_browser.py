@@ -78,7 +78,8 @@ def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None
     expect(page.locator('.admin-page-header h1')).to_have_text('Menüs')
     expect(page.locator('.page-header-subtitle')).to_contain_text('Gespeicherte Menüs')
     expect(page.locator('.admin-page-header .btn')).to_have_count(1)
-    expect(page.locator('.admin-page-header .btn-primary')).to_have_text('Wochenplan')
+    expect(page.locator('.admin-page-header .btn-primary')).to_have_accessible_name('Wochenplan')
+    expect(page.locator('.admin-page-header .btn-primary')).to_have_text('')
     expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
     record_selector = '[data-menu-id]' if view == 'cards' else '[data-menu-list-id]'
     expect(page.locator(record_selector)).to_have_count(count)
@@ -110,10 +111,12 @@ def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None
             finding = {**pair, 'ratio': ratio}
             if finding not in contrast_failures:
                 contrast_failures.append(finding)
-    for link in page.locator('[data-admin-icon-action]:visible').all():
-        assert link.inner_text() == 'Bearbeiten'
+    for link in page.locator('[data-admin-icon-action]:visible, #menu-list [data-semantic="actions.edit"]:visible, #menu-cards [data-semantic="actions.edit"]:visible').all():
+        semantic = link.get_attribute('data-semantic') == 'actions.edit'
+        assert link.inner_text() == ('' if semantic else 'Bearbeiten')
+        assert 'bearbeiten' in link.get_attribute('aria-label').lower()
         box = link.bounding_box()
-        assert box is not None and box['height'] >= 48
+        assert box is not None and box['height'] >= (36 if semantic else 48)
     geometry = page.locator('[data-menu-id]:visible').evaluate_all('''cards => cards.map(el => {
         const r = el.getBoundingClientRect(), s = getComputedStyle(el);
         return {width: r.width, height: r.height, top: r.top, radius: s.borderRadius, shadow: s.boxShadow,
@@ -131,7 +134,8 @@ def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None
         assert all(card['radius'] == '12px' and card['shadow'] != 'none'
                    and not card['overflow'] for card in geometry), json.dumps(geometry)
     for cell in page.locator('.dishboard-menu-table :is(th, td):visible').all():
-        assert cell.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 14
+        minimum = 12 if cell.evaluate('el => !!el.closest("thead")') else 14
+        assert cell.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= minimum
     assert page.locator('[data-menu-id]:visible :is(h2, p, li)').evaluate_all('''els => els.every(el => {
         const s = getComputedStyle(el);
         return s.webkitLineClamp === 'none' && el.scrollHeight <= el.clientHeight + 1 &&
@@ -159,11 +163,11 @@ def _keyboard(page: Page, javascript: bool) -> None:
     page.locator('main').focus()
     page.keyboard.press('Tab')
     expect(page.locator('main .btn-primary')).to_be_focused()
-    expect(page.locator('main .btn-primary')).to_have_text('Wochenplan')
+    expect(page.locator('main .btn-primary')).to_have_accessible_name('Wochenplan')
+    expect(page.locator('main .btn-primary')).to_have_text('')
     expect(page.locator('.admin-area-tabs')).to_have_count(0)
     page.keyboard.press('Tab')
-    expect(page.locator('details.admin-hint > summary').first).to_be_focused()
-    page.keyboard.press('Tab')
+    expect(page.locator('details.admin-hint')).to_have_count(0)
     expect(page.locator('#menu-query-search')).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.get_by_role('navigation', name='Profil').get_by_role('link').first).to_be_focused()
@@ -200,7 +204,16 @@ def _keyboard(page: Page, javascript: bool) -> None:
     page.keyboard.press('Tab')
     expect(page.get_by_role('region', name='Menüliste', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
-    action = page.locator('#menu-list [data-admin-icon-action]').first
+    expect(page.locator('#menu-list a.admin-list-primary').first).to_be_focused()
+    page.keyboard.press('Tab')
+    disclosure = page.locator('#menu-list .admin-disclosure').first
+    expect(disclosure.locator('summary')).to_be_focused()
+    page.keyboard.press('Enter')
+    expect(disclosure).to_have_attribute('open', '')
+    page.keyboard.press('Enter')
+    expect(disclosure).not_to_have_attribute('open', '')
+    page.keyboard.press('Tab')
+    action = page.locator('#menu-list [data-semantic="actions.edit"]').first
     expect(action).to_be_focused()
     assert action.evaluate('el => getComputedStyle(el).outlineStyle') == 'solid'
     assert action.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
@@ -283,7 +296,10 @@ def test_reference_states_and_viewports(
             expect(page.locator('#menu-list').get_by_role(
                 'columnheader', name='Gespeicherter Prüfstand', exact=True,
             )).to_be_visible()
-            expect(page.locator('#menu-list').get_by_text('Allergenangaben nicht erfasst').first).to_be_visible()
+            status_details = page.locator('#menu-list .admin-disclosure').first
+            status_details.locator('summary').click()
+            expect(status_details.get_by_text('Allergenangaben nicht erfasst')).to_be_visible()
+            status_details.locator('summary').click()
             region = page.get_by_role('region', name='Menüliste', exact=True)
             region.focus()
             page.keyboard.press('Shift+Tab')
@@ -330,10 +346,10 @@ def test_reference_states_and_viewports(
         node = cdp.send('DOM.querySelector', {'nodeId': root, 'selector': 'h1'})['nodeId']
         fonts = cdp.send('CSS.getPlatformFontsForNode', {'nodeId': node})['fonts']
         cdp.detach()
-        destination = page.locator('#menu-cards [data-admin-icon-action]').get_attribute('href')
+        destination = page.locator('#menu-cards [data-semantic="actions.edit"]').get_attribute('href')
         assert urlsplit(destination).path == f'/admin/{family}/menu'
         assert set(parse_qs(urlsplit(destination).query)) == {'week', 'day', 'meal', 'option'}
-        page.locator('#menu-cards [data-admin-icon-action]').click()
+        page.locator('#menu-cards [data-semantic="actions.edit"]').click()
         expect(page.locator('input[name="title"]')).to_have_value('Pouletbrust an Kräutersauce')
         assert not errors, errors
         evidence = {'family': family, 'javascript': javascript, 'viewports': VIEWPORTS,

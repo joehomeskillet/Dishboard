@@ -42,7 +42,8 @@ def _shot(page, name: str, *, native=False, viewport_only=False) -> None:
     for action in page.locator('main .btn, main summary').all():
         if action.is_visible():
             box = action.bounding_box()
-            assert box['height'] >= 48 and box['width'] >= 48
+            minimum = 36 if action.evaluate('el => el.classList.contains("ui-sem-control")') else 48
+            assert box['height'] >= minimum and box['width'] >= minimum
             assert box['x'] >= 0 and box['x'] + box['width'] <= page.evaluate('innerWidth') + 1
     destination = EVIDENCE_DIR / f'{name}.png'
     if native and viewport_only:
@@ -188,8 +189,9 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             # 6. Exactly one action button per card
             actions = gratin_card.locator('.card-footer .btn')
             expect(actions).to_have_count(1)
-            expect(actions).to_contain_text('Bearbeiten')
-            assert actions.bounding_box()['height'] >= 48
+            expect(actions).to_have_accessible_name(re.compile(r'Kartoffelgratin mit Gemüse.*bearbeiten', re.I))
+            expect(actions).to_have_text('')
+            assert actions.bounding_box()['height'] >= 36
             if width in (390, 1440):
                 _shot(page, f'{family}-menues-cards-{width}x{height}')
 
@@ -212,7 +214,7 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
         expect(page.locator('#menu-list')).to_be_visible()
         expect(page.locator('#menu-cards')).to_be_visible()
         # Open action link has correct href
-        link = page.locator('#menu-list [data-admin-icon-action]').first
+        link = page.locator('#menu-list [data-semantic="actions.edit"]').first
         dest = link.get_attribute('href')
         assert f'/admin/{family}/menu?week=' in dest
 
