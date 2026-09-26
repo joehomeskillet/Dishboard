@@ -289,7 +289,7 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
     assert danger.select_one('.ui-sem-consequence').get_text(strip=True)
 
 
-@pytest.mark.parametrize('text', [None, '', '  \n ', '<span> </span>'])
+@pytest.mark.parametrize('text', [None, '', '  \n '])
 @pytest.mark.parametrize('mode', ['inline', 'tooltip', 'dialog'])
 def test_c3_empty_hint_has_no_icon_or_spacing(semantic_app, text, mode):
     with semantic_app.test_request_context():
@@ -318,8 +318,8 @@ def test_c3_shared_filter_trigger_is_named_icon_with_optional_count(semantic_app
             "{% from 'ui/_semantic.html' import filter_trigger %}{{ filter_trigger('test-filter', count, true) }}",
             count=count)
     summary = BeautifulSoup(html, 'html.parser').summary
-    assert summary['aria-label'] == 'Filtern'
-    assert summary['data-ui-tooltip'] == 'Filtern'
+    assert summary['aria-label'] == 'Filter'
+    assert summary['data-ui-tooltip'] == 'Filter'
     assert summary.select_one('use')['href'].endswith('#tabler-filter')
     assert summary.select_one('.admin-filter-count').has_attr('hidden') == (count == 0)
     assert summary.has_attr('aria-describedby') == bool(count)

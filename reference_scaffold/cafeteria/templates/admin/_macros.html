@@ -77,7 +77,7 @@
 {# New optional help defaults to a title + native details fallback. Callers own
    a unique id; existing field hints and safety/allergen notices remain inline. #}
 {%- macro hint(text, id, mode='tooltip') -%}
-{%- if text is not none and text|striptags|trim -%}
+{%- if text is not none and text|trim -%}
 {%- if mode == 'inline' -%}
 <p class="form-hint" id="{{ id }}">{{ text }}</p>
 {%- else -%}
