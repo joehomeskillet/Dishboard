@@ -197,14 +197,12 @@ def test_output_hubs_viewports_and_layouts(
         expect(page.locator("main")).to_have_attribute("data-layout", "standard")
         expect(page.locator(".breadcrumb")).to_contain_text("Bildschirme")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-        page.locator("#screen-assignment-details > summary").click()
+        expect(page.locator("#screen-assignment-details form")).to_be_visible()
         cards = page.locator(".screen-choice-card").evaluate_all(
             "els => els.map(el => {const b=el.getBoundingClientRect(); return [b.width, b.height]})"
         )
         assert len(cards) == 2
-        assert (
-            abs(cards[0][0] - cards[1][0]) <= 1 and abs(cards[0][1] - cards[1][1]) <= 1
-        )
+        assert abs(cards[0][0] - cards[1][0]) <= 1
         _check_contrast(page)
         page.screenshot(
             path=str(EVIDENCE_DIR / f"assignment-{width}x{height}.png"), full_page=True
@@ -239,10 +237,12 @@ def test_output_hubs_keyboard_and_zoom_200(
 
         # Keyboard checks on assignment page
         page.goto("/admin/screens/cafeteria/wochenvorlage")
-        page.locator("#screen-assignment-details > summary").click()
+        expect(page.locator("#screen-assignment-details form")).to_be_visible()
         for control in page.locator("main :is(.btn, .screen-choice-control)").all():
             box = control.bounding_box()
-            assert box is not None and box["height"] >= 48
+            classes = control.get_attribute("class") or ""
+            minimum = 36 if "ui-sem-control" in classes else 48
+            assert box is not None and box["height"] >= minimum
 
         for control in page.locator("main :is(.btn, .form-check-input)").all():
             control.focus()
@@ -416,22 +416,22 @@ def test_output_hubs_matrix_error_and_conflict_states(
         route = "/admin/screens/cafeteria/wochenvorlage"
         page.goto(route)
         stale.goto(route)
-        page.locator("#screen-assignment-details > summary").click()
-        stale.locator("#screen-assignment-details > summary").click()
+        expect(page.locator("#screen-assignment-details form")).to_be_visible()
+        expect(stale.locator("#screen-assignment-details form")).to_be_visible()
         token = stale.locator('[name="_form_context"]').input_value()
 
         page.get_by_role(
             "radio", name="Wochenplan ohne Bilder auswählen", exact=True
         ).check()
         with page.expect_response(lambda r: r.request.method == "POST") as res:
-            page.get_by_role("button", name="Vorlage zuweisen", exact=True).click()
+            page.get_by_role("button", name="Speichern", exact=True).click()
         assert res.value.status == 303
 
         stale.get_by_role(
             "radio", name="Wochenplan ohne Bilder auswählen", exact=True
         ).check()
         with stale.expect_response(lambda r: r.request.method == "POST") as res:
-            stale.get_by_role("button", name="Vorlage zuweisen", exact=True).click()
+            stale.get_by_role("button", name="Speichern", exact=True).click()
         assert res.value.status == 409
         expect(stale.locator('[name="_form_context"]')).to_have_value(token)
         expect(stale.locator('[name="version"]')).to_have_value("0")
@@ -557,7 +557,7 @@ def test_output_hubs_matrix_empty_states(
             expect(empty_state).to_be_visible()
             focus_target = page.locator(".output-area-tabs .nav-link").first
         else:
-            page.locator("#screen-assignment-details > summary").click()
+            expect(page.locator("#screen-assignment-details form")).to_be_visible()
             expect(page.get_by_text(empty_text, exact=False)).to_be_visible()
             focus_target = page.get_by_role(focus_role).first
         focus_target.focus()

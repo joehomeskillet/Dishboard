@@ -150,6 +150,13 @@ summary.card-header:focus-visible {
   #screen-assignment-details .screens-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
+.screens-overview,
+.print-screens-grid,
+#screen-assignment-details .screens-grid {
+  display: block;
+  grid-template-columns: none;
+}
+
 @media (max-width: 767px) {
   .screen-preview { aspect-ratio: 1; }
 

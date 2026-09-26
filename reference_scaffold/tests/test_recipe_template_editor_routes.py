@@ -69,7 +69,7 @@ def test_catalog_and_empty_editor_allow_drafts_without_recipe_or_settings_initia
     assert '11 pt' in response.text and '12 pt' in response.text
     for forbidden in ('name="week"', 'name="layout_', 'Wochenlayout', '21 pt', '<iframe'):
         assert forbidden not in response.text
-    assert 'Rezeptvorlageneditor öffnen' in client.get('/admin/vorlagen').text
+    assert 'Standard bearbeiten' in client.get('/admin/vorlagen').text
     assert state(owner) == before
     assert client.post(BASE, data=fields()).status_code == 303
     assert client.post(BASE, data=fields('copy', 1, 2, name='Ohne Beispiel')).status_code == 303
@@ -238,7 +238,7 @@ def test_lower_current_role_cannot_use_editor_or_preview(recipe_editor, role):
     for method, url in (('get', BASE), ('post', BASE), ('get', BASE + '/vorschau.pdf')):
         result = getattr(client, method)(url)
         assert result.status_code == 403 and result.headers['Cache-Control'] == 'no-store'
-    assert 'Rezeptvorlageneditor öffnen' not in client.get('/admin/vorlagen').text
+    assert 'Standard bearbeiten' not in client.get('/admin/vorlagen').text
 
 
 def test_database_outage_never_reloads_context(recipe_editor, monkeypatch):

@@ -123,9 +123,8 @@ def test_header_logos_keep_fixed_boxes_and_full_images(
             'aria-current', 'page',
         )
         page.evaluate('document.fonts.ready')
-        # Screens contract (test_admin_screens_preview_browser.py): equal widths everywhere; equal
-        # heights in the two-column grid from 768px. Stacked mobile TV/web previews differ in height.
-        _assert_equal_cards(page, '.screen-card', 4, ('width', 'height') if width >= 768 else ('width',))
+        # One shared list: every screen row uses the same column width.
+        _assert_equal_cards(page, '.screen-card', 4, ('width',))
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
         for path, count in PUBLIC_PAGES:

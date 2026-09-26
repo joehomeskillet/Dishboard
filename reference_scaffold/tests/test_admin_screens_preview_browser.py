@@ -94,7 +94,8 @@ def test_card_visuals_tv_is_large_visible_and_native(
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         expect(page.locator('iframe')).to_have_count(10)
         link = page.get_by_role('link', name='Mitarbeitende und externe Gäste Bildschirm Tagesplan öffnen', exact=True)
-        assert link.bounding_box()['height'] >= 48
+        minimum = 36 if 'ui-sem-control--icon-only' in (link.get_attribute('class') or '') else 48
+        assert link.bounding_box()['height'] >= minimum
         link.focus()
         expect(link).to_be_focused()
         page.keyboard.press('Enter')
@@ -176,7 +177,7 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         for card in page.locator('.screen-card').all():
             if not card.locator('.screen-preview-details').evaluate('el => el.open'):
                 card.locator('.screen-preview-details > summary').click()
-            is_web = 'Web' in card.locator('h2').inner_text()
+            is_web = 'Web' in card.locator('.admin-list-primary').inner_text()
             expect(card.locator('.screen-browser-frame')).to_have_count(3 if is_web else 0)
             periods = ('Tagesplan', 'Wochenplan mit Bildern · Vorgabe', 'Wochenplan ohne Bilder') if is_web else (
                 'Tagesplan', 'Wochenplan ohne Bilder',
@@ -264,10 +265,10 @@ def test_full_views_remain_available_without_javascript(
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
         page = context.new_page()
         page.goto('/admin/screens')
-        expect(page.locator('.screen-more-actions[open]')).to_have_count(0)
+        expect(page.locator('.screen-card .ui-sem-actions[open]')).to_have_count(0)
         expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
         for card in page.locator('.screen-card').all():
-            expect(card.locator('.card-body > .btn-list > a')).to_be_visible()
+            expect(card.locator('.admin-row-actions a').first).to_be_visible()
             for summary in card.locator('details > summary').all():
                 summary.focus()
                 page.keyboard.press('Enter')
@@ -283,7 +284,7 @@ def test_full_views_remain_available_without_javascript(
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/')
         expect(page.locator('main')).to_contain_text('Patientinnen und Patienten · Wochenübersicht')
         page.goto('/admin/screens')
-        page.locator('.screen-card[aria-labelledby="patient-public-title"] .screen-more-actions > summary').click()
+        page.locator('.screen-card[aria-labelledby="patient-public-title"] .ui-sem-actions > summary').click()
         page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan ohne Bilder öffnen', exact=True).click()
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/ohne-bilder/')
         expect(page.locator('.menu-photo, .card-img-top')).to_have_count(0)

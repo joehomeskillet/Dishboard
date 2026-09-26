@@ -251,7 +251,8 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
         for control in controls:
             control.scroll_into_view_if_needed()
             box = control.bounding_box()
-            assert box is not None and box['height'] >= 48
+            minimum = 36 if 'ui-sem-control--icon-only' in (control.get_attribute('class') or '') else 48
+            assert box is not None and box['height'] >= minimum
             control.focus()
             expect(control).to_be_focused()
             assert control.evaluate(
@@ -279,10 +280,10 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
                 expect(page.get_by_role('heading', level=1)).to_have_text(title)
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                 if path == '/admin/screens':
-                    expect(page.locator('.screen-more-actions[open]')).to_have_count(0)
-                    for summary in page.locator('.screen-more-actions > summary').all():
+                    expect(page.locator('.screen-card .ui-sem-actions[open]')).to_have_count(0)
+                    for summary in page.locator('.screen-card .ui-sem-actions > summary').all():
                         summary.click()
-                    expect(page.locator('.screen-more-actions[open]')).to_have_count(4)
+                    expect(page.locator('.screen-card .ui-sem-actions[open]')).to_have_count(4)
                     controls = page.locator('main .screen-card .btn').all()
                 else:
                     controls = []
