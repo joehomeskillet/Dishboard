@@ -1,4 +1,4 @@
-{% from 'ui/_semantic.html' import icon_button, icon_label, sem_icon %}
+{% from 'ui/_semantic.html' import icon_button, sem_icon %}
 {% if recipe_page is defined and recipe_page.query is defined %}
 <details class="admin-compact-details mb-2"{% if recipe_page.query.search or recipe_page.previous_offset is not none %} open{% endif %}>
 <summary>{{ sem_icon('view.search') }}Rezepte suchen</summary>
@@ -19,7 +19,7 @@
       {% endif %}
       {% if recipe_page.has_next and recipe_page.next_offset is not none %}
       <div class="col-auto">
-        <button class="btn ui-sem-control" type="submit" name="recipe_offset" value="{{ recipe_page.next_offset }}">{{ icon_label('actions.next') }}</button>
+        {{ icon_button('actions.next', name='recipe_offset', value=recipe_page.next_offset) }}
       </div>
       {% endif %}
     </div>

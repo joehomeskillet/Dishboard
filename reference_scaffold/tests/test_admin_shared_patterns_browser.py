@@ -122,6 +122,65 @@ def _polish_check(markup, check, width, javascript):
         server.server_close()
 
 
+@pytest.mark.parametrize('width', [390, 1440])
+@pytest.mark.parametrize('javascript', [False, True])
+def test_c3_disclosure_has_one_marker_and_native_keyboard_state(width, javascript):
+    markup = '''{% from 'admin/_macros.html' import disclosure_section %}
+        {% from 'ui/_semantic.html' import icon_label %}
+        {% call disclosure_section(id='shared') %}<p>Inhalt</p>{% endcall %}
+        <details id="nested"><summary>{{ icon_label('ui.disclosure.details') }}</summary>Details</details>
+        <details id="native"><summary>Ohne SVG</summary>Inhalt</details>'''
+
+    def verify(page):
+        for selector in ('#shared', '#nested'):
+            summary = page.locator(selector + ' > summary')
+            expect(summary).to_have_css('list-style-type', 'none')
+            expect(summary.locator('svg')).to_have_count(1)
+            summary.focus()
+            summary.press('Enter')
+            expect(page.locator(selector)).to_have_attribute('open', '')
+            summary.press('Space')
+            expect(page.locator(selector)).not_to_have_attribute('open', '')
+        assert page.locator('#native > summary').evaluate('el => getComputedStyle(el).listStyleType') != 'none'
+
+    _run_polish_check(markup, verify, width, javascript)
+
+
+@pytest.mark.parametrize('width', [390, 1440])
+def test_c3_labels_have_no_one_sided_border_or_clipped_content(width, tmp_path):
+    markup = '''{% from 'admin/_macros.html' import label, page_header, form_footer, hint, disclosure_section %}
+        {% from 'ui/_semantic.html' import filter_trigger %}
+        {{ label('Beilage', 'category') }}{{ label('Prüfung offen', 'warning') }}
+        {{ label('Aktiv', 'active', icon='circle-check') }}
+        {{ page_header('Status', status_items=[{'label':'Prüfung', 'value':1, 'variant':'warning'}]) }}
+        <details class="admin-filter-more">{{ filter_trigger(count=2) }}Filterinhalt</details>
+        {% call disclosure_section('Weitere Optionen') %}Zusatzangaben{% endcall %}
+        {{ hint('Diese Hilfe hat Inhalt.', 'help') }}{{ hint('', 'empty-help') }}
+        {{ form_footer({'label':'Speichern', 'name':'intent', 'value':'save'}, '#cancel') }}'''
+
+    def verify(page):
+        for badge in page.locator('.admin-label').all():
+            styles = badge.evaluate('''el => {
+                const s = getComputedStyle(el);
+                const r = el.getBoundingClientRect();
+                return {left: s.borderLeftColor, right: s.borderRightColor,
+                    inside: [...el.children].every(child => {
+                        const c = child.getBoundingClientRect();
+                        return c.left >= r.left && c.right <= r.right;
+                    })};
+            }''')
+            assert styles['left'] == styles['right']
+            assert styles['inside']
+        expect(page.locator('.admin-statusbar-item')).to_have_css('border-left-width', '4px')
+        expect(page.locator('#empty-help')).to_have_count(0)
+        for action in page.locator('.admin-form-main .btn').all():
+            expect(action).to_have_text('')
+            assert action.get_attribute('aria-label')
+        page.screenshot(path=str(tmp_path / f'c3-shared-{width}.png'), full_page=True)
+
+    _run_polish_check(markup, verify, width, javascript=False)
+
+
 @pytest.mark.parametrize('width,columns', [(360, 1), (768, 2), (1024, 2), (1440, 3), (1920, 3)])
 def test_polish_field_grid_targets_and_adjacent_error(width, columns):
     markup = '''{% from 'admin/_macros.html' import field, select, check %}

@@ -30,7 +30,7 @@
       {%- for char in attr[5:] if char not in 'abcdefghijklmnopqrstuvwxyz0123456789-' -%}
         {{- action_contract_error('forbidden attribute ' ~ attr) -}}
       {%- endfor -%}
-    {%- elif attr not in ['aria-describedby', 'aria-controls', 'aria-expanded', 'aria-current', 'aria-disabled', 'aria-busy', 'formaction', 'formmethod', 'formnovalidate', 'disabled', 'target', 'rel', 'tabindex', 'hidden'] -%}
+    {%- elif attr not in ['aria-describedby', 'aria-controls', 'aria-expanded', 'aria-current', 'aria-disabled', 'aria-busy', 'formaction', 'formmethod', 'formenctype', 'formtarget', 'formnovalidate', 'disabled', 'target', 'rel', 'tabindex', 'hidden'] -%}
       {{- action_contract_error('forbidden attribute ' ~ attr) -}}
     {%- endif -%}
     {%- if attr in ['formnovalidate', 'disabled', 'hidden'] -%}
@@ -151,6 +151,10 @@
     {% set ignored = translated.append({'label': t(entry.label_key), 'icon': entry.resolved_icon, 'value': item.value, 'detail': t(sem(item.detail_key).label_key) if item.detail_key|default(none) else none, 'variant': item.variant|default(variant), 'href': item.href|default(none)}) %}
   {% endfor %}
   {{ page_header(t(sem(title_key).label_key), description=t(sem(description_key).label_key) if description_key else none, actions=actions, status_items=translated) }}
+{%- endmacro %}
+
+{% macro filter_trigger(id='filters', count=0, explicit=false) -%}
+  <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="view.filter" data-ui-tooltip="{{ t(sem('view.filter').aria_key) }}" aria-label="{{ t(sem('view.filter').aria_key) }}"{% if count %} aria-describedby="{{ id }}-count"{% endif %}>{{ sem_icon('view.filter') }}<span id="{{ id }}-count" class="admin-filter-count"{% if explicit %} data-filter-count-explicit{% endif %}{% if not count %} hidden{% endif %}>{{ count }}</span></summary>
 {%- endmacro %}
 
 {% macro filter_bar_sem(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none) -%}

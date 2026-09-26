@@ -107,7 +107,7 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; no aliases for different business actions.
     assert len(seeds) == 187
-    assert len(registry) == 210
+    assert len(registry) == 211
     assert {r['semantic_key'] for r in seeds} <= registry.keys()
     assert len(read_json(ROOT / 'icon_fallbacks.json')) == 6
     available = sprite_icons()
@@ -257,7 +257,9 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
         html = render_template_string('''
             {% from 'admin/_macros.html' import form_footer %}
             {% from 'ui/_semantic.html' import icon_button %}
-            {{ form_footer({'label': 'Speichern', 'name': 'intent', 'value': 'save', 'form': 'editor'},
+            {{ form_footer({'label': 'Speichern', 'name': 'intent', 'value': 'save', 'form': 'editor',
+                'formaction': '/save', 'formmethod': 'post', 'formenctype': 'multipart/form-data',
+                'formtarget': 'result', 'formnovalidate': true},
                 '/cancel', rare=icon_button('actions.edit', href='#edit'),
                 secondary=[{'label': 'Vorschau', 'href': '#preview'}],
                 danger=icon_button('actions.delete', consequence_key='ui.request_failed')) }}
@@ -266,6 +268,14 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
     primary = document.select('.btn-primary')
     assert len(primary) == 1
     assert (primary[0]['name'], primary[0]['value'], primary[0]['form']) == ('intent', 'save', 'editor')
+    assert {key: primary[0][key] for key in ('formaction', 'formmethod', 'formenctype', 'formtarget')} == {
+        'formaction': '/save', 'formmethod': 'post', 'formenctype': 'multipart/form-data', 'formtarget': 'result'}
+    assert primary[0].has_attr('formnovalidate')
+    for control in document.select('.admin-form-main .btn'):
+        assert control['aria-label']
+        assert control['data-ui-tooltip'] == control['aria-label']
+        assert not control.get_text(strip=True)
+    assert primary[0].select_one('use')['href'].endswith('#tabler-device-floppy')
     assert document.select_one('.admin-form-main a[href="#preview"]')
     assert document.select_one('.admin-form-main a[href="/cancel"]')
     rare = document.select_one('details.admin-form-rare')
@@ -277,6 +287,64 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
     assert danger.select_one('.btn-danger')['aria-label'] == 'Löschen'
     assert danger.select_one('.btn-danger span') is None
     assert danger.select_one('.ui-sem-consequence').get_text(strip=True)
+
+
+@pytest.mark.parametrize('text', [None, '', '  \n '])
+@pytest.mark.parametrize('mode', ['inline', 'tooltip', 'dialog'])
+def test_c3_empty_hint_has_no_icon_or_spacing(semantic_app, text, mode):
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import hint %}{{ hint(text, 'help', mode=mode) }}",
+            text=text, mode=mode)
+    assert not html.strip()
+
+
+def test_c3_nonempty_hint_keeps_help_and_relationship(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import hint %}{{ hint('CSV ändert keinen Status.', 'help') }}")
+    document = BeautifulSoup(html, 'html.parser')
+    assert document.select_one('summary')['aria-describedby'] == 'help'
+    assert document.select_one('#help').get_text() == 'CSV ändert keinen Status.'
+
+def test_c3_legacy_actions_use_canonical_icons_and_keep_secondary_weight(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'admin/_macros.html' import actions %}
+            {{ actions(primary='Anlegen', secondary=[
+                {'label':'Entwurf sichern', 'icon':'device-floppy', 'type':'submit', 'name':'intent', 'value':'draft', 'formnovalidate':1},
+                {'label':'Record bearbeiten', 'icon':'pencil', 'href':'/edit', 'disabled':true}]) }}''')
+    document = BeautifulSoup(html, 'html.parser')
+    assert document.select_one('.btn-primary')['data-semantic'] == 'actions.add'
+    save = document.select_one('[name="intent"]')
+    assert save['data-semantic'] == 'actions.save' and save['value'] == 'draft'
+    assert save.has_attr('formnovalidate')
+    assert 'btn-primary' not in save['class']
+    edit = document.select_one('a[href="/edit"]')
+    assert edit['data-semantic'] == 'actions.edit'
+    assert edit['aria-disabled'] == 'true' and edit['tabindex'] == '-1'
+    assert not document.get_text(strip=True)
+
+
+@pytest.mark.parametrize('count', [0, 2])
+def test_c3_shared_filter_trigger_is_named_icon_with_optional_count(semantic_app, count):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'ui/_semantic.html' import filter_trigger %}{{ filter_trigger('test-filter', count, true) }}",
+            count=count)
+    summary = BeautifulSoup(html, 'html.parser').summary
+    assert summary['aria-label'] == 'Filter'
+    assert summary['data-ui-tooltip'] == 'Filter'
+    assert summary.select_one('use')['href'].endswith('#tabler-filter')
+    assert summary.select_one('.admin-filter-count').has_attr('hidden') == (count == 0)
+    assert summary.has_attr('aria-describedby') == bool(count)
+    assert summary.get_text(strip=True) == str(count)
+
 
 def test_registry_icons_in_sprite():
     from cafeteria.ui.semantics import load_registry, sprite_icons
@@ -291,6 +359,12 @@ def test_registry_icons_in_sprite():
                 missing.append(item.resolved_icon)
             
     assert not missing, f"Missing icons in sprite: {missing}"
+
+
+def test_c3_categories_and_overflow_have_distinct_icons():
+    registry = load_registry()
+    assert registry['navigation.categories'].resolved_icon == 'grid-dots'
+    assert {item.key for item in registry.values() if item.resolved_icon == 'dots'} == {'actions.more'}
 
 
 def test_row_actions_keep_one_direct_action_and_native_form_fields(semantic_app):
@@ -353,8 +427,8 @@ def test_admin_shell_locale_and_single_semantic_stylesheet(semantic_app, locale)
 
 
 @pytest.mark.parametrize('locale,options,more', [
-    ('de', 'Weitere Optionen', 'Mehr'),
-    ('en', 'More options', 'More'),
+    ('de', 'Weitere Optionen', 'Weitere Aktionen'),
+    ('en', 'More options', 'More actions'),
 ])
 def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options, more):
     from bs4 import BeautifulSoup
@@ -381,7 +455,11 @@ def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options
     assert document.select_one('#details').has_attr('open')
     assert document.select_one('#custom summary').get_text(strip=True).startswith('Custom')
     assert document.select_one('#custom').has_attr('open')
-    assert document.select_one('.admin-compact-actions summary').get_text(strip=True) == more
+    overflow = document.select_one('.admin-compact-actions summary')
+    assert overflow['aria-label'] == more
+    assert overflow['data-ui-tooltip'] == more
+    assert overflow.get_text(strip=True) == ''
+    assert overflow.select_one('svg use') is not None
 
 
 @pytest.mark.parametrize('mode', ['tooltip', 'inline', 'dialog'])

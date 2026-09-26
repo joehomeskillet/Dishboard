@@ -1,5 +1,16 @@
 [
   {
+    "key": "navigation.categories",
+    "category": "navigation",
+    "ascii": "[CAT]",
+    "icon": "grid-dots",
+    "label_key": "navigation.categories.label",
+    "tooltip_key": "navigation.categories.tooltip",
+    "aria_key": "navigation.categories.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
     "key": "actions.check",
     "category": "actions",
     "ascii": "[?]",

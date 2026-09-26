@@ -196,6 +196,30 @@ MEASURE_JS = r"""() => {
     return ![...menu.querySelectorAll('a[href], button, input[type=submit]')].some(el =>
       !trigger.contains(el) && !el.hidden && !el.closest('[hidden], [inert]'));
   }).length;
+  const doubleMarkers = [...main.querySelectorAll('summary')].filter(summary => {
+    if (!visible(summary)) return false;
+    const chevrons = iconNames(summary).filter(name => /^tabler-chevron-(right|down)$/.test(name));
+    const style = getComputedStyle(summary);
+    const native = style.display === 'list-item' && style.listStyleType !== 'none' &&
+      !['none', '""'].includes(getComputedStyle(summary, '::marker').content);
+    return chevrons.length > 1 || (chevrons.length === 1 && native);
+  }).length;
+  const emptyInfo = [...main.querySelectorAll('svg')].filter(svg => {
+    if (!visible(svg) || !iconNames(svg).includes('tabler-info-circle')) return false;
+    const hint = svg.closest('.admin-hint');
+    if (hint) return ![...hint.children].filter(el => el.tagName !== 'SUMMARY')
+      .some(el => el.textContent.trim() || el.querySelector('a[href], button, input, img'));
+    if (svg.closest('a[href], button, summary, [data-ui-tooltip], [title]')) return false;
+    const content = svg.closest('.empty, .alert') || svg.parentElement;
+    return !content.textContent.trim();
+  }).length;
+  // Compare the same visible action in both viewports, not responsive copies or navigation.
+  const actionTexts = {};
+  [...main.querySelectorAll('a, button, summary')].forEach((el, index) => {
+    if (!isControl(el) || el.closest('.ui-sem-action-items, dialog, .dropdown-menu, .admin-filter-chips')) return;
+    const key = [index, el.tagName, el.id, el.getAttribute('href'), el.getAttribute('name'), el.getAttribute('value')].join('|');
+    actionTexts[key] = visibleText(el);
+  });
   const kindCount = {};
   const lists = groups.map((group) => {
     kindCount[group.kind] = (kindCount[group.kind] || 0) + 1;
@@ -230,7 +254,7 @@ MEASURE_JS = r"""() => {
       rowActions: {count: worst.count, withText: Math.max(0, ...rowPacks.map((pack) => pack.withText), 0), texts, icons, family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins', hits: worst.hits},
     };
   });
-  return {header, filters: filterEntries.length, filtersWithText, emptyOverflow, lists};
+  return {header, filters: filterEntries.length, filtersWithText, emptyOverflow, doubleMarkers, emptyInfo, actionTexts, lists};
 }"""
 
 
@@ -251,6 +275,41 @@ def test_filter_and_empty_overflow_measurement():
             assert measured['filters'] == 2
             assert measured['filtersWithText'] == 1
             assert measured['emptyOverflow'] == 1
+        finally:
+            browser.close()
+
+
+def test_c3_measurements_distinguish_empty_help_native_markers_and_responsive_text():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox'])
+        try:
+            page = browser.new_page(viewport={'width': 1440, 'height': 900})
+            page.set_content('''<style>svg {width:20px;height:20px}
+                .single {list-style:none}
+                @media(max-width:500px){.responsive span{display:none}}</style><main>
+                <details><summary><svg><use href="#tabler-chevron-right"></use></svg>Double</summary>Text</details>
+                <details><summary class="single"><svg><use href="#tabler-chevron-right"></use></svg>Single</summary>Text</details>
+                <details><summary>Native only</summary>Text</details>
+                <details class="admin-hint"><summary><svg><use href="#tabler-info-circle"></use></svg></summary><p>Useful help</p></details>
+                <details class="admin-hint"><summary><svg><use href="#tabler-info-circle"></use></svg></summary><p> </p></details>
+                <div><svg><use href="#tabler-info-circle"></use></svg></div>
+                <p><svg><use href="#tabler-info-circle"></use></svg>Useful information</p>
+                <div class="empty"><div class="empty-icon"><svg><use href="#tabler-info-circle"></use></svg></div><p>No records</p></div>
+                <button class="btn responsive" aria-label="Save"><svg></svg><span>Save</span></button>
+                <button class="btn" aria-label="Edit"><svg></svg></button>
+                </main>''')
+            desktop = _flatten('probe', 'Probe', '/', 1440, 900, _measure(page))
+            page.set_viewport_size({'width': 390, 'height': 844})
+            mobile = _flatten('probe', 'Probe', '/', 390, 844, _measure(page))
+            assert desktop[0]['double_markers'] == mobile[0]['double_markers'] == 1
+            assert desktop[0]['empty_info'] == mobile[0]['empty_info'] == 2
+            codes = _deviations(desktop, mobile, _modes(desktop))
+            assert 'buttontext_viewport_unterschied' in codes
+            assert '1440:aufklappmarker_doppelt' in codes
+            assert '390:info_leer' in codes
+            page.locator('.responsive span').evaluate('el => el.remove()')
+            fixed = _flatten('probe', 'Probe', '/', 390, 844, _measure(page))
+            assert 'buttontext_viewport_unterschied' not in _deviations(fixed, fixed, _modes(fixed))
         finally:
             browser.close()
 
@@ -377,6 +436,8 @@ def _flatten(slug: str, title: str, path: str, width: int, height: int, data: di
             metrics.append(('Filtereinstiege', str(data['filters'])))
             metrics.append(('Filtereinstiege mit sichtbarem Text', str(data['filtersWithText'])))
             metrics.append(('Überlaufmenü ohne Einträge', str(data['emptyOverflow'])))
+            metrics.append(('Doppelte Aufklappmarker', str(data['doubleMarkers'])))
+            metrics.append(('Leere Info-Symbole', str(data['emptyInfo'])))
         container = item['container']
         if container:
             metrics.append(('Listencontainer', f"{container['tag']} · Rahmen {container['border']} · Radius {container['radius']} · Schatten {container['shadow']}"))
@@ -401,6 +462,8 @@ def _flatten(slug: str, title: str, path: str, width: int, height: int, data: di
             'row_count': item['rowActions']['count'], 'row_text': bool(item['rowActions']['withText']),
             'header_text': bool(header_pack['withText']), 'header_filled': header_pack['filled'],
             'filter_text': data['filtersWithText'], 'empty_overflow': data['emptyOverflow'],
+            'double_markers': data['doubleMarkers'], 'empty_info': data['emptyInfo'],
+            'action_texts': data['actionTexts'],
         })
     return rows
 
@@ -423,6 +486,14 @@ def _deviations(desktop: list[dict], mobile: list[dict], modes: dict[str, str | 
                 codes.add(f'{width}:filtereinstieg_text')
             if row['empty_overflow']:
                 codes.add(f'{width}:ueberlauf_leer')
+            if row['double_markers']:
+                codes.add(f'{width}:aufklappmarker_doppelt')
+            if row['empty_info']:
+                codes.add(f'{width}:info_leer')
+    if desktop and mobile:
+        wide, narrow = desktop[0]['action_texts'], mobile[0]['action_texts']
+        if any(wide[key] != narrow[key] for key in wide.keys() & narrow.keys()):
+            codes.add('buttontext_viewport_unterschied')
     for row in desktop:
         key = row['list_key']
         if row['row_text']:
@@ -559,7 +630,7 @@ def _mount_public_targets(application) -> None:
     application.add_url_rule('/signage/patienten/tag', endpoint='signage.patient_day', view_func=lambda: '')
 
 
-def test_list_family_across_admin_pages(admin_app, admin_engine, live_server):  # noqa: F811
+def test_list_family_across_admin_pages(admin_app, admin_engine, live_server, tmp_path):  # noqa: F811
     _mount_public_targets(admin_app)
     client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     entities = _prepare_inventory_entities(admin_app, admin_engine, actor)
@@ -609,6 +680,9 @@ def test_list_family_across_admin_pages(admin_app, admin_engine, live_server):  
     for slug, title, path, _hook_name in pages:
         rows = [row for row in desktop if row['slug'] == slug]
         current[slug] = _deviations(rows, mobile.get(slug, []), modes)
+    (tmp_path / 'list-family-measurements.json').write_text(
+        json.dumps({'desktop': desktop, 'mobile': mobile, 'deviations': current}, ensure_ascii=False, indent=2),
+        encoding='utf-8')
     if report:
         REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
         REPORT_PATH.write_text(_markdown(desktop, mobile), encoding='utf-8')
