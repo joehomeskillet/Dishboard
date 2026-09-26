@@ -1,5 +1,27 @@
 [
   {
+    "key": "actions.check",
+    "category": "actions",
+    "ascii": "[?]",
+    "icon": "list-check",
+    "label_key": "actions.check.label",
+    "tooltip_key": "actions.check.tooltip",
+    "aria_key": "actions.check.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
+    "key": "actions.publish",
+    "category": "actions",
+    "ascii": "[P]",
+    "icon": "send",
+    "label_key": "actions.publish.label",
+    "tooltip_key": "actions.publish.tooltip",
+    "aria_key": "actions.publish.aria",
+    "icon_only_allowed": true,
+    "role": "primary"
+  },
+  {
     "key": "actions.add",
     "category": "actions",
     "ascii": "[+]",
@@ -7,7 +29,7 @@
     "label_key": "actions.add.label",
     "tooltip_key": "actions.add.tooltip",
     "aria_key": "actions.add.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "primary"
   },
   {
@@ -18,7 +40,7 @@
     "label_key": "actions.add_existing.label",
     "tooltip_key": "actions.add_existing.tooltip",
     "aria_key": "actions.add_existing.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "primary"
   },
   {
@@ -29,7 +51,7 @@
     "label_key": "actions.activate.label",
     "tooltip_key": "actions.activate.tooltip",
     "aria_key": "actions.activate.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "neutral"
   },
   {
@@ -40,7 +62,7 @@
     "label_key": "actions.apply.label",
     "tooltip_key": "actions.apply.tooltip",
     "aria_key": "actions.apply.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "neutral"
   },
   {
@@ -73,7 +95,7 @@
     "label_key": "actions.save.label",
     "tooltip_key": "actions.save.tooltip",
     "aria_key": "actions.save.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "primary"
   },
   {
@@ -84,7 +106,7 @@
     "label_key": "actions.confirm.label",
     "tooltip_key": "actions.confirm.tooltip",
     "aria_key": "actions.confirm.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "primary"
   },
   {
@@ -117,7 +139,7 @@
     "label_key": "actions.delete.label",
     "tooltip_key": "actions.delete.tooltip",
     "aria_key": "actions.delete.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "danger"
   },
   {
@@ -179,7 +201,7 @@
     "key": "actions.open",
     "category": "actions",
     "ascii": "[>]",
-    "icon": "chevron-right",
+    "icon": "arrow-right",
     "label_key": "actions.open.label",
     "tooltip_key": "actions.open.tooltip",
     "aria_key": "actions.open.aria",
@@ -201,11 +223,11 @@
     "key": "actions.next",
     "category": "actions",
     "ascii": "[>]",
-    "icon": "arrow-right",
+    "icon": "chevron-right",
     "label_key": "actions.next.label",
     "tooltip_key": "actions.next.tooltip",
     "aria_key": "actions.next.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "primary"
   },
   {
@@ -289,7 +311,7 @@
     "key": "actions.import",
     "category": "actions",
     "ascii": "[IN]",
-    "icon": "file-import",
+    "icon": "upload",
     "label_key": "actions.import.label",
     "tooltip_key": "actions.import.tooltip",
     "aria_key": "actions.import.aria",
@@ -300,7 +322,7 @@
     "key": "actions.export",
     "category": "actions",
     "ascii": "[OUT]",
-    "icon": "file-export",
+    "icon": "download",
     "label_key": "actions.export.label",
     "tooltip_key": "actions.export.tooltip",
     "aria_key": "actions.export.aria",
@@ -315,7 +337,7 @@
     "label_key": "actions.retry.label",
     "tooltip_key": "actions.retry.tooltip",
     "aria_key": "actions.retry.aria",
-    "icon_only_allowed": false,
+    "icon_only_allowed": true,
     "role": "primary"
   },
   {

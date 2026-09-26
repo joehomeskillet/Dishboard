@@ -210,9 +210,9 @@ Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. 
 
 | ID | Regel | Prüfbar durch: |
 |---|---|---|
-| R14 | Pro Bereich genau eine visuell dominante Primäraktion (`btn-primary` / `icon_button` role=primary); weitere als Secondary (`btn-outline-*`) oder Tertiary (`btn-ghost-*`, Icon+Text). | `git grep` je Template: höchstens ein `.btn-primary` im `page_header`-Aktionsbereich und je `form_footer` |
-| R15 | Destruktive Aktionen (`btn-danger`, Registry `role=danger`) nie gleich gestaltet wie normale Speichern/Öffnen-Aktionen; mit explizitem Label und Folgetext (`consequence_key`). | `status_badge_sem`/`icon_button` mit `actions.delete`: sichtbares Label + `ui-sem-consequence`; kein `btn-primary` für Löschen |
-| R16 | Kleine/häufige Aktionen als Icon+Text, `icon_button` oder `action_menu` — keine Reihe gleich starker Buttons. | Zeilenaktionen: `list_row` + maximal eine sichtbare Primärzeilenaktion; Rest in `action_menu` (`_semantic.html:56`) |
+| R14 | Pro Bereich höchstens eine visuell dominante Primäraktion (`btn-primary` / `icon_button` role=primary); weitere neutral. Aktionsbuttons folgen dem Symbolstandard aus Spezifikation 2026-09-26. | Höchstens eine `.btn-primary` je Kontext; alle Symbolbuttons mit zugänglichem Namen |
+| R15 | Destruktive Aktionen (`btn-danger`, Registry `role=danger`) bleiben klar unterscheidbar und haben zugänglichen Namen plus Folgetext (`consequence_key`). Die alte sichtbare Labelpflicht ist durch Spezifikation 2026-09-26 §5 ersetzt. | `actions.delete`: Symbolbutton + `ui-sem-consequence`; sichtbarer Text im Bestätigungsdialog; kein `btn-primary` für Löschen |
+| R16 | Kleine/häufige Aktionen als Symbolbutton über `icon_button`; weitere in `action_menu`. Alte Icon+Text-Regel ersetzt durch Spezifikation 2026-09-26 §5. | Zeilenaktionen: maximal eine Direktaktion plus Überlauf; Menüeinträge mit Kurztext |
 
 #### Textreduktion (Prompt §5)
 
@@ -250,7 +250,7 @@ Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. 
 | ID | Regel | Prüfbar durch: |
 |---|---|---|
 | R28 | Icons nur über Registry/Sprite (`sem_icon`, `icon` Makro, `tabler-{{ name }}`); gleiche Semantik = gleiches Symbol projektweit. | `test_ui_semantics.py`: Registry-Keys, Assets, verbotene Icon-only-Aufrufe |
-| R29 | Wichtige Aktionen nicht icon-only ohne Erlaubnis (`icon_only_allowed=yes` in Registry); Navigation immer Icon + Text. | `icon_button` mit `icon_only=false` für `icon_only_allowed=no`; Sidebar-Links mit sichtbarem Text |
+| R29 | Ersetzt durch Spezifikation 2026-09-26 §5: Aktionsbuttons standardmässig nur Symbol, auch primär und gefährlich; Navigation bleibt Icon + Text. | `icon_button` standardmässig icon-only; Text nur explizit in geöffneten Aktionsmenüs und sicherheitsrelevanten Bestätigungsdialogen |
 
 #### Navigation (Prompt §10)
 
@@ -294,8 +294,9 @@ Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. 
 
 **P2 Aktionsvertrag:** Primär `btn btn-primary` (genau eine je `main`, P3 prüft
 die Modul-Aufrufer), sekundär `btn` oder `btn-outline-*`, tertiär `btn btn-ghost`
-oder `icon_button` mit Kurztext bzw. erlaubtem Icon-only samt Tooltip. Destruktiv
-`btn btn-danger` mit Icon, Label und Folgetext; `confirm_dialog` prüft
+oder `icon_button` als Symbolbutton samt zugänglichem Namen und gemeinsamem Tooltip.
+Die alte Pflicht zu sichtbarem Primär-/Gefahrentext ist durch die Spezifikation
+2026-09-26 §5 ersetzt. Destruktiv `btn btn-danger` mit Symbol und Folgetext; `confirm_dialog` prüft
 `consequence_key` vor Ausgabe für Titel- und Bestätigungsrolle. `form_footer`
 erhält zusätzlich `secondary` und `danger`: häufige Aktionen in `admin-form-main`,
 seltene in geschlossenem `details.admin-form-rare` mit `admin-form-tertiary`,
@@ -348,7 +349,7 @@ destruktive separat in `admin-form-danger`. Bestehende Positionsargumente bleibe
 | M42 | Radius | `--app-radius-control` 8 px, `--app-radius-card` 12 px (`tokens.css:177–178`) | Controls 8 px, Cards 12 px | Erledigt: bestehende Radius-Tokens erhalten |
 | M43 | Schatten | `--app-card-shadow` (`tokens.css:189`) | Dezent, keine Schmuckschatten | Erledigt: verschachtelte Cards ohne Schatten |
 | M44 | Buttons | Tabler `.btn-*` themed in `admin-tabler.css:135–162` | Primary/Outline/Ghost/Danger konsistent | Erledigt: vier Aktionsstufen; genau eine Primäraktion je main in P3 prüfen |
-| M45 | Icon-Buttons | `icon_button` in `_semantic.html:17`; `ui-sem-control` 48 px | 48 px, Tooltip+aria bei icon-only | Erledigt: bestehender 48-px-/Tooltip-/Aria-Vertrag erhalten |
+| M45 | Icon-Buttons | `icon_button` in `_semantic.html`; `ui-sem-control` | 36 px fein / mindestens 44 px grob, Icon 20 px, Tooltip und aria immer | WP2a ersetzt alten 48-px-/Textvertrag gemäss Spezifikation 2026-09-26; Modulmigration getrennt |
 | M46 | Badges | `.badge.bg-*-lt` `admin-tabler.css:265–312`; `status_badge_sem` | Icon + Text, Soft-Background | Erledigt: status_badge_sem nutzt admin-status--* mit Icon und Text |
 | M47 | Statusanzeigen | `admin-statusbar-*` `admin-tabler.css:509–545`; `status_bar` `_semantic.html:85` | 6 Stile; kompakt unter Titel | Erledigt: sechs Stile samt --info/--active; semantische Icons; Legacy ohne Icon unverändert |
 | M48 | Inputs | `.form-control` themed `admin-tabler.css:175–178` | 48 px Höhe, Fokus `--app-focus` | Erledigt: >=48 px, 4-px-Labelabstand und feldnahe Fehler geprüft |
@@ -510,33 +511,49 @@ einzige Symbolquelle für semantische Aktionen. Vorhandene Schlüssel wiederverw
 
 P2c ergänzt drei eigenständige Aktionen: `actions.activate` (Aktivieren/Activate,
 `circle-check`), `actions.apply` (Übernehmen/Apply, `check`) und `actions.history`
-(Verlauf/History, `history`). Alle neutral; nur Verlauf erlaubt Icon-only.
+(Verlauf/History, `history`). Alle neutral und seit WP2a standardmässig icon-only.
 Aktivieren ist kein Bereitschaftsstatus, Übernehmen ist nicht Kopieren.
+WP2a ergänzt `actions.check` (`list-check`) und `actions.publish` (`send`, bereits
+lokal vorhanden). Speichern (`device-floppy`), Prüfen, Veröffentlichen und Bestätigen
+(`check`) bleiben getrennt. Öffnen nutzt `arrow-right`, Weiter `chevron-right`,
+Import `upload`, Export `download`, Mehr `dots`.
 
 ### R44 — Kurze Aktionen und sichere Icon-only-Bedienung
 
-Sichtbare Buttonlabels höchstens zwei Wörter und 18 Zeichen. Erklärung bleibt
-im übersetzten `title` oder verknüpften Hilfetext. Pseudo-Locale darf zur
-Umbruchprüfung länger sein. Primär- und destruktive Aktionen behalten Text;
-`require_icon_only` und `require_consequence` bleiben verbindlich. Icon-only
-hat immer `title` und `aria-label`, sichtbaren Fokus und quadratische 48-px-Ziele
-(strenger als die 44-px-Untergrenze). Grössen ausschliesslich über Tokens.
+**Ersetzt:** Die P2c/P2d-Regel «Primär- und destruktive Aktionen behalten sichtbaren
+Kurztext» sowie native Button-Tooltips gelten nicht mehr. Quelle:
+`2026-09-26-icon-first-simplification-spec.md` §5–7, §12.3, §12.5.
 
-P2c: Wiederholzeilen sollen `aria_label` mit Datensatzkontext übergeben, etwa
-«Vorlage X bearbeiten». Ohne expliziten `title` wird dieser Name bei Icon-only
-auch Tooltip. Bei sichtbarem Text bleibt `aria_label` unverändert, wenn es diesen
-Text ohne Beachtung der Gross-/Kleinschreibung enthält (Label in Name, WCAG 2.5.3).
-Andernfalls setzt der Baustein den Namen als «sichtbarer Text: aria_label» zusammen,
-statt das Rendern abzubrechen; ohne expliziten `title` wird dieser zusammengesetzte
-Name auch Tooltip. Bei Icon-only bleibt `aria_label` unverändert. Fehlende oder
-bereits passende Namen behalten die bisherige Ausgabe einschliesslich Tooltip.
-Zielspezifisches `text` bleibt auf zwei Wörter/18 Zeichen begrenzt und behält das
-Registry-Symbol. Registry-Defaults und Pseudo-Locale bleiben unverändert.
+Aktionsbuttons zeigen standardmässig nur ihr Registry-Symbol, auch primäre und
+gefährliche Aktionen. Toolbar-, Zeilen- und Kopfbuttons bleiben icon-only.
+`show_text=true` ist ausschliesslich für Einträge geöffneter Aktionsmenüs und
+sicherheitsrelevante Bestätigungsdialoge vorgesehen. Diese sichtbaren Kurztexte
+haben höchstens zwei Wörter/18 Zeichen; Pseudo-Locale darf länger sein.
+`action_menu` und `confirm_dialog` setzen die Ausnahme selbst. Fachinhalte,
+Navigation, Formularlabels, Status und notwendige Warntexte bleiben sichtbar.
+
+`aria-label` ist immer gesetzt. Vorrang: `aria_label` > lokalisiertes `object`-Muster
+> `text` > Registry-Name. `object='Broccoli'` ergibt «Broccoli bearbeiten» bzw.
+«Edit Broccoli»; Objektwerte werden als Text escaped, auch bei Markup-Eingaben.
+Vorhandene `text`-Argumente liefern Namen statt sichtbaren Text. Bei einer Textausnahme
+muss ein expliziter Name den sichtbaren Text enthalten. SVGs bleiben dekorativ.
+
+Tooltip-Markup verwendet `data-ui-tooltip`, niemals natives `title` am Button.
+`title=` bleibt als optionaler Tooltiptext kompatibel. Gemeinsames Tabler-JS öffnet
+bei Hover und Fokus, lässt den Zeiger in den Tooltip wechseln und schliesst mit
+Escape. Kein zeitgesteuertes Verschwinden während Hover/Fokus; vorhandene
+`aria-describedby`-Hilfetexte bleiben erhalten. Ohne JS bleibt der Name verfügbar.
+`require_consequence` und sichere Formularverträge bleiben verbindlich.
+
+Geometrie über `--app-sem-control-*`: 36 × 36 px bei feinem Zeiger, mindestens
+44 × 44 px bei `(pointer: coarse)` oder `(any-pointer: coarse)`, Icon 20 × 20 px,
+gemeinsamer Control-Radius. Auch ein laufender Symbolbutton behält seine Breite.
 
 ### R45 — Eine Direktaktion pro Zeile
 
 `row_actions(items)` zeigt höchstens das erste Element direkt. Alle weiteren
-liegen in `action_menu`, geschlossenem nativem `details` mit «⋯ Mehr».
+liegen in `action_menu`, geschlossenem nativem `details` mit einem Drei-Punkte-Symbol
+und zugänglichem Namen «Weitere Aktionen». Leere Menüs werden nicht gerendert.
 Tastaturbedienung über Tab, Enter und Space funktioniert ohne JavaScript.
 Reihenfolge, Berechtigungen, URLs, CSRF und native Formularzuordnung gehören
 weiterhin dem Aufrufer. Keine automatische Änderung von Submit-Verträgen.
@@ -544,8 +561,9 @@ weiterhin dem Aufrufer. Keine automatische Änderung von Submit-Verträgen.
 Direkt- und Menüaktionen reichen dieselben Kontextparameter durch (M64).
 Pro Kontext eine Primäraktion: `emphasis='secondary'` stuft zusätzliche
 Anlegen-Aktionen zurück; `emphasis='primary'` hebt etwa Bearbeiten im Kopf hervor.
-Destruktive Registry-Aktionen lassen sich nicht herabstufen und behalten Text
-und Konsequenz. Auch eine explizite Danger-Variante verlangt beides.
+Destruktive Registry-Aktionen lassen sich nicht herabstufen und behalten ihre
+Konsequenz. Auch eine explizite Danger-Variante verlangt diese. Sichtbarer
+Buttontext folgt ausschliesslich den Ausnahmen in R44.
 
 ### R46 — Ein Label-System
 
@@ -584,9 +602,11 @@ R46/R47 und ihre gemeinsamen Metriken gelten unverändert.
 ### M64 — Button- und Aktionsvertrag
 
 In `templates/ui/_semantic.html`: bisherige Positionsparameter von `icon_button`
-bleiben, einschliesslich `size='default'` (`large` optional). P2c ergänzt
+bleiben, einschliesslich `size='default'` (Legacy-`large` verändert Symbolbuttons nicht). P2c ergänzt
 `text=none, aria_label=none, title=none, class='', emphasis=none, attrs=none`.
-Ohne neue Parameter bleibt die bisherige Ausgabe bytegleich. `emphasis=none`
+WP2a ergänzt `object=none, show_text=false`; Standard ist `icon_only=true`.
+Legacy-`icon_only=false` erzwingt keinen sichtbaren Text. Die P2c-Zusage bytegleicher
+Buttonausgabe ist durch Spezifikation 2026-09-26 ersetzt. `emphasis=none`
 nutzt die Registry-Rolle; `primary`, `secondary`, `danger` wählen die Variante.
 Zusatzklassen ergänzen Basisklassen; `dropdown-item` bleibt über volle Menübreite
 links ausgerichtet. Klassen `.ui-sem-control`,
@@ -600,8 +620,9 @@ Andere Schlüssel verursachen `SemanticError` beim Rendern. Werte werden escaped
 `disabled`, `hidden`, `formnovalidate` verlangen boolesche Werte, true gibt das
 Attribut ohne Wert aus, false lässt es weg. ARIA-/Data-Booleans bleiben Texte.
 `target='_blank'` ergänzt `noopener` unter Erhalt bestehender `rel`-Tokens.
-Tokens: `--app-button-size` 48 px, `--app-button-size-large` 56 px,
-`--app-button-icon-gap` 8 px. DE/EN-Kurzlabels bleiben übersetzt.
+Semantische Controls nutzen `--app-sem-control-size` 36 px,
+`--app-sem-control-touch-size` 44 px und `--app-sem-control-icon-size` 20 px.
+Andere Controls behalten ihre bestehenden Tokens. DE/EN-Namen bleiben übersetzt.
 
 ### M65 — Label-Vertrag
 
@@ -707,11 +728,12 @@ Speichern = persistieren; Bestätigen = Entscheidung bestätigen; Löschen = des
 entfernen; Archivieren = aufbewahren, aus aktiver Nutzung nehmen; Kopieren = Duplikat;
 Vorschau = Ausgabe prüfen. Gleiche Bedeutung verwendet denselben Schlüssel.
 
-**Darstellungsstufen:** Icon-only ausschliesslich bei expliziter Registry-Erlaubnis,
-immer mit übersetztem `title` und `aria-label`; sonst Icon + kurzes Label.
-Destruktive Aktionen benötigen Icon + explizites Label + Folgetext. Navigation bleibt
-Icon + Text. Status besitzt sichtbaren Text; Farbe ergänzt nur. Bedienziele mindestens
-48 × 48 px, sichtbarer Tastaturfokus, native Bedienbarkeit ohne JavaScript.
+**Darstellungsstufen (ersetzt durch Spezifikation 2026-09-26):** Aktionsbuttons sind
+standardmässig icon-only mit übersetztem `aria-label` und gemeinsamem Tooltip,
+36 × 36 px bzw. mindestens 44 × 44 px bei grobem Zeiger. Destruktive Aktionen
+behalten ihren Folgetext. Textausnahmen folgen R44. Navigation bleibt Icon + Text;
+Status besitzt sichtbaren Text, Farbe ergänzt nur. Sichtbarer Tastaturfokus und
+native Bedienbarkeit ohne JavaScript bleiben verbindlich.
 
 **Polish P2 (2026-09-23):** 184 unveränderte Seeds + 10 Projektschlüssel = 194.
 Neu `status.neutral` mit DE/EN-Label/Aria/Tooltip und vorhandenem `circle-dashed`.

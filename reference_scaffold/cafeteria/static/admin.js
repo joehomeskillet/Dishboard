@@ -57,20 +57,52 @@
         });
     });
 
-    // Tabler already initializes these tooltips. Keep its instance and positioning.
-    const iconActions = document.querySelectorAll('[data-admin-icon-action]');
-    iconActions.forEach(link => {
+    // One Tabler tooltip per action. Text stays text, including record names.
+    const iconActions = new Set(document.querySelectorAll('[data-admin-icon-action]'));
+    function actionTooltip(link) {
+        return (link.getAttribute('aria-describedby') || '').split(/\s+/)
+            .map(id => document.getElementById(id)).find(node => node?.getAttribute('role') === 'tooltip');
+    }
+    function bindActionTooltip(link) {
+        const description = link.getAttribute('aria-describedby');
         link.addEventListener('inserted.bs.tooltip', () => {
-            const tip = document.getElementById(link.getAttribute('aria-describedby'));
+            const tip = actionTooltip(link);
+            if (!tip) return;
+            tip.classList.add('ui-sem-tooltip');
             tip.addEventListener('mouseleave', () => {
                 if (!link.matches(':hover, :focus')) window.tabler.Tooltip.getInstance(link).hide();
             });
+            if (description) link.setAttribute('aria-describedby', description + ' ' + tip.id);
+        });
+        link.addEventListener('hidden.bs.tooltip', () => {
+            if (description) link.setAttribute('aria-describedby', description);
         });
         link.addEventListener('hide.bs.tooltip', event => {
-            const tip = document.getElementById(link.getAttribute('aria-describedby'));
+            const tip = actionTooltip(link);
             if (tip?.matches(':hover') && !tip.dataset.dismissed) event.preventDefault();
         });
-    });
+    }
+    iconActions.forEach(bindActionTooltip);
+    function initSemanticTooltip(link) {
+        if (!link || iconActions.has(link) || !window.tabler?.Tooltip) return;
+        iconActions.add(link);
+        bindActionTooltip(link);
+        new window.tabler.Tooltip(link, {
+            title: () => link.getAttribute('data-ui-tooltip'),
+            html: false, trigger: 'hover focus', animation: false,
+            delay: {show: 0, hide: 150}, offset: [0, 0],
+            container: link.closest('dialog') || document.body,
+            customClass: 'ui-sem-tooltip',
+        });
+    }
+    document.querySelectorAll('[data-ui-tooltip]').forEach(initSemanticTooltip);
+    // Cloned editor rows get the same enhancement on their first interaction.
+    ['mouseover', 'focusin'].forEach(type => document.addEventListener(type, event => {
+        const link = event.target.closest('[data-ui-tooltip]');
+        if (!link || iconActions.has(link)) return;
+        initSemanticTooltip(link);
+        window.tabler?.Tooltip.getInstance(link)?.show();
+    }));
 
     // 1. Dirty-Tracking
     const forms = document.querySelectorAll('form:not([data-dirty-tracking="off"])');
@@ -116,14 +148,14 @@
             link.setAttribute('aria-disabled', 'true');
             link.classList.add('disabled');
             link.addEventListener('click', preventDefaultClick);
-            link.textContent = 'Zuerst speichern';
+            if (!link.classList.contains('ui-sem-control--icon-only')) link.textContent = 'Zuerst speichern';
         });
 
         publishForms.forEach(form => {
             const btn = form.querySelector('button[type="submit"]');
             if (btn) {
                 btn.setAttribute('disabled', 'true');
-                btn.textContent = 'Zuerst speichern';
+                if (!btn.classList.contains('ui-sem-control--icon-only')) btn.textContent = 'Zuerst speichern';
             }
         });
 
@@ -623,7 +655,7 @@
         if (e.key === 'Escape') {
             let dismissedTooltip = false;
             iconActions.forEach(link => {
-                const tip = document.getElementById(link.getAttribute('aria-describedby'));
+                const tip = actionTooltip(link);
                 if (tip?.classList.contains('show')) {
                     tip.dataset.dismissed = 'true';
                     window.tabler.Tooltip.getInstance(link).hide();

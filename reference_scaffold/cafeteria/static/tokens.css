@@ -182,6 +182,9 @@
   --app-control-min-height: 44px;
   --app-button-size: var(--app-space-12);
   --app-button-size-large: 56px;
+  --app-sem-control-size: 36px;
+  --app-sem-control-touch-size: 44px;
+  --app-sem-control-icon-size: 20px;
   --app-button-icon-gap: var(--app-space-2);
   --app-table-row-height: 56px;
   --app-list-row-min-height: var(--app-table-row-height);
