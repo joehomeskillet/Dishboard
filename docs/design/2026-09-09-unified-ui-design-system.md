@@ -451,8 +451,13 @@ P5a vereinheitlicht Listeninhalte zentral in `static/tokens.css` und
 | Sekundär | Zusatzinfo, zweite Textzeile, `.admin-list-secondary`, `.admin-list-subtitle`, `.text-secondary` innerhalb einer Zeile | `--app-list-secondary-size` = `--app-font-size-small` (13 px), `--app-list-secondary-weight` = 400 | `--app-text-muted` |
 | Meta | übrige Zellen, `.admin-list-meta` | `--app-list-meta-size` = `--app-font-size-label` (14 px), `--app-list-meta-weight` = 400 | `--app-text` |
 
-Keine Kursivschrift oder zusätzlichen Modulgrössen/-farben. Status bleibt Aufgabe
-von `label()`, Leerwerte von `empty_value()`. Labels, Icons und Bedienelemente
+Keine Kursivschrift oder zusätzlichen Modulgrössen/-farben.
+Alle drei Textrollen verwenden `--app-list-line-height: 20px`: ganzzahlige
+Zeilenhöhen statt geerbter Faktoren verhindern Bruchteilhöhen bei 13-/14-px-Text.
+Auch der gemeinsame mobile Seitenkopf verwendet ganzzahlige Titel- und
+Statuslabel-Zeilenhöhen, damit native Scrollziele nicht durch einen geerbten
+Bruchteilversatz über den Viewport ragen. Desktop-Kopfmetriken bleiben erhalten.
+Status bleibt Aufgabe von `label()`, Leerwerte von `empty_value()`. Labels, Icons und Bedienelemente
 behalten ihre eigenen Komponentenverträge. `list_row()` gibt die expliziten
 Primär-/Sekundärklassen aus; seine Parameter bleiben unverändert.
 
