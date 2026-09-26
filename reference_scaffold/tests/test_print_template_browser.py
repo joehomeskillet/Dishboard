@@ -141,8 +141,11 @@ def _targets(page):
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if control.is_visible():
             box = control.bounding_box()
-            assert box is not None and box['height'] >= 48
-            assert control.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 16
+            classes = control.get_attribute('class') or ''
+            minimum = 36 if 'ui-sem-control' in classes else 48
+            assert box is not None and box['height'] >= minimum
+            if 'ui-sem-control--icon-only' not in classes:
+                assert control.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 16
 
 
 def _wait_for_pdf_paint(page, frame, path: Path) -> None:
@@ -217,11 +220,14 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_disabled()
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-        expect(page.locator('main .btn-primary')).to_have_text('Archivierte Vorlage prüfen')
+        expect(page.locator('main .btn-primary')).to_have_accessible_name('Archivierte Vorlage prüfen')
         page.get_by_label('Vorlage', exact=True).select_option('standard')
         page.get_by_role('button', name='Woche öffnen', exact=True).click()
-        page.locator('details[data-template-versions] summary').click()
-        page.get_by_role('button', name='Version 1 wiederherstellen: als neuen Entwurf laden', exact=True).click()
+        page.keyboard.press('Escape')
+        page.locator('details[data-template-versions] > summary').click()
+        restore = page.locator('details[data-template-versions] button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]')
+        restore.locator('xpath=ancestor::details[1]').locator('summary').click()
+        restore.click()
         expect(page.get_by_role('heading', name='PDF-Vorschau · Version 3', exact=True)).to_be_visible()
         expect(page.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('')
         assert 'Guten Appetit' in pdf_text(client.get(f'/admin/{family}/preview/print?week={DAY}'))

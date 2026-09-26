@@ -57,32 +57,10 @@
     "einkaufslisten": [],
     "bestellungen": [],
     "kalkulation": [],
-    "vorlagen": [
-      "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:zeilen-1",
-      "1440:zeilenaktion_text:zeilen-2",
-      "1440:zeilenaktion_text:zeilen-3",
-      "390:kopfaktion_text",
-      "390:zeilenaktion_text:zeilen-1",
-      "390:zeilenaktion_text:zeilen-2",
-      "390:zeilenaktion_text:zeilen-3",
-      "karte_je_zeile:karten-1"
-    ],
-    "bildschirme": [
-      "1440:zeilenaktion_text:karten-1",
-      "390:zeilenaktion_text:karten-1",
-      "haupt_typografie:karten-1",
-      "karte_je_zeile:karten-1",
-      "sekundaer_typografie:karten-1"
-    ],
-    "bildschirmvorlagen-cafeteria": [
-      "haupt_typografie:karten-1",
-      "karte_je_zeile:karten-1"
-    ],
-    "bildschirmvorlagen-patienten": [
-      "haupt_typografie:karten-1",
-      "karte_je_zeile:karten-1"
-    ],
+    "vorlagen": [],
+    "bildschirme": [],
+    "bildschirmvorlagen-cafeteria": [],
+    "bildschirmvorlagen-patienten": [],
     "benutzer": [
       "1440:filtereinstieg_text",
       "1440:ueberlauf_leer",

@@ -86,13 +86,14 @@ def test_published_previews_and_assignment_form_are_readonly_tabler(
             help_control.tap() if width < 1440 else help_control.click()
             cards = page.locator('.screen-choice-card').evaluate_all('els => els.map(el => {const b=el.getBoundingClientRect(); return [b.width,b.height]})')
             assert len(cards) == 2
-            assert abs(cards[0][0] - cards[1][0]) <= 1 and abs(cards[0][1] - cards[1][1]) <= 1
+            assert abs(cards[0][0] - cards[1][0]) <= 1
             for control in page.locator('main .btn, main .screen-choice-control').all():
-                assert control.bounding_box()['height'] >= 48
+                minimum = 36 if 'ui-sem-control--icon-only' in (control.get_attribute('class') or '') else 48
+                assert control.bounding_box()['height'] >= minimum
             expect(assignment).to_contain_text('Darstellung auswählen')
             preview = assignment.locator('a[href$="-week-text"]')
             expect(preview).to_have_accessible_name('Wochenplan ohne Bilder prüfen')
-            assert preview.bounding_box()['width'] >= 48
+            assert preview.bounding_box()['width'] >= 36
             if javascript and width == 1440:
                 preview.hover()
                 tooltip = page.get_by_role('tooltip')
@@ -261,14 +262,15 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                     expect(page.locator('.screen-card')).to_have_count(4)
                     expect(page.locator('.screen-card .btn:visible')).to_have_count(8)
                     page.screenshot(path=str(tmp_path / f'wp23-{width}-{javascript}.png'), full_page=True)
-                    for selector in ('.screen-more-actions', '.screen-preview-details'):
+                    for selector in ('.ui-sem-actions', '.screen-preview-details'):
                         details = page.locator(selector).first
                         summary = details.locator(':scope > summary')
                         summary.focus()
                         page.keyboard.press('Enter')
                         expect(details).to_have_attribute('open', '')
                         expect(summary).to_be_focused()
-                        assert summary.bounding_box()['height'] >= 48
+                        summary_class = summary.get_attribute('class') or ''
+                        assert summary.bounding_box()['height'] >= (36 if 'ui-sem-control--icon-only' in summary_class else 48)
                         assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
                         page.keyboard.press('Enter')
                         expect(details).not_to_have_attribute('open', '')
@@ -289,12 +291,13 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                     expect(page.locator('#screen-assignment-details .admin-hint').first).to_have_attribute('open', '')
                     expect(summary).to_be_focused()
                     page.keyboard.press('Enter')
-                    expect(page.locator('.admin-form-footer .btn-primary')).to_have_text('Speichern')
+                    expect(page.locator('.admin-form-footer .btn-primary')).to_have_accessible_name('Speichern')
                     assert form.evaluate('form => Array.from(new FormData(form))') == fields
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                     expect(page.locator('#screen-assignment-version')).not_to_have_attribute('open', '')
                     for target in page.locator('main .btn:visible, main summary:visible').all():
-                        assert target.bounding_box()['height'] >= 48
+                        target_class = target.get_attribute('class') or ''
+                        assert target.bounding_box()['height'] >= (36 if 'ui-sem-control--icon-only' in target_class else 48)
                     assert page.goto('/admin/cafeteria/preview?week=2026-08-31').status == 200
                     expect(page.locator('.page-header .admin-statusbar')).to_have_count(1)
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

@@ -237,7 +237,7 @@ def test_editor_prioritises_form_and_one_primary_save_action(
         expect(page.locator("details[data-template-activation] summary")).to_have_text(
             "Aktivieren"
         )
-        expect(page.locator("details[data-template-versions] summary")).to_have_text(
+        expect(page.locator("details[data-template-versions] > summary")).to_have_text(
             "Versionen"
         )
         expect(page.locator("details[data-template-more-actions] summary")).to_have_text(
@@ -308,7 +308,7 @@ def test_save_activate_and_load_version_keep_native_requests(
         assert activate["action"] == ["activate"]
         assert activate["revision"] == ["2"]
 
-        page.locator("details[data-template-versions] summary").click()
+        page.locator("details[data-template-versions] > summary").click()
         with page.expect_request(lambda request: request.method == "POST") as sent:
             page.get_by_role(
                 "button", name="Version 1 als neuen Entwurf laden", exact=True

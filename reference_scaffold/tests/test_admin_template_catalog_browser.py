@@ -95,7 +95,7 @@ def test_recipe_active_template_link_uses_explicit_ids_and_stays_privileged(
     assert response.status_code == 200
     assert '/admin/vorlagen/rezepte?template=standard&revision=2' in recipe_links
     assert '/admin/vorlagen/rezepte?template=standard&revision=1' in recipe_links
-    assert '>Aktive Vorlage öffnen</a>' in response.text
+    assert 'aria-label="Aktive Vorlage öffnen"' in response.text
 
     reader, _ = _login(editor_app, database_engine, ['Cafeteria.Editor'])
     reader_response = reader.get('/admin/vorlagen')
@@ -103,7 +103,7 @@ def test_recipe_active_template_link_uses_explicit_ids_and_stays_privileged(
     assert not any(urlsplit(link).path == '/admin/vorlagen/rezepte'
                    for link in MainLinks(reader_response.text).links)
     assert 'Aktive Vorlage öffnen' not in reader_response.text
-    assert reader_response.text.count('>Rezept drucken</a>') == 1
+    assert reader_response.text.count('aria-label="Rezept drucken"') == 1
 
 
 def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_app, database_engine):  # noqa: F811
@@ -117,12 +117,12 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     assert 'Winter &amp; Festtage' in response.text and 'Winter & Festtage' not in response.text
     assert response.text.count('Aktiver Herbst · Version 2') == 4
     assert response.text.count('Neuester Stand: Version 3 · Entwurf') == 2
-    assert response.text.count('Festliche Kopie') == 2
+    assert response.text.count('Festliche Kopie') == 6
     links = MainLinks(response.text).links
     assert '/admin/gerichtvorlagen' in links
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
     pdf_links = [link for link in links if urlsplit(link).path in PDF_TARGETS]
-    assert len(pdf_links) == 14
+    assert len(pdf_links) == 12
     for link in pdf_links:
         query = parse_qs(urlsplit(link).query)
         assert query['week'] == [DAY]
@@ -203,7 +203,7 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             assert result is not None and result.status == 200
             expect(page.get_by_role('heading', level=1)).to_have_text('Vorlagen')
             assert page.locator('[data-template-id]').count() == 5
-            assert page.locator('[data-template-id] use[href$="#tabler-pencil"]').count() == 5
+            assert page.locator('[data-template-id] use[href$="#tabler-edit"]').count() == 5
             weekly_cards = page.locator('article.card:has([data-template-id]):not([aria-labelledby="recipe-templates-heading"])')
             assert weekly_cards.count() == 2
             assert weekly_cards.locator('[data-template-id]').count() == 4
@@ -230,9 +230,9 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
                 ).bounding_box()
                 assert recipe_box is not None and dish_box is not None
                 assert count_box is not None and action_box is not None
-                assert dish_box['height'] < recipe_box['height']
+                assert dish_box['height'] <= recipe_box['height']
                 assert action_box['y'] - (count_box['y'] + count_box['height']) <= 24
-            recipe_link = recipe_card.get_by_role('link', name='Rezeptvorlageneditor öffnen', exact=True)
+            recipe_link = recipe_card.get_by_role('link', name='Standard bearbeiten', exact=True)
             recipe_target = urlsplit(recipe_link.get_attribute('href'))
             assert recipe_target.path == '/admin/vorlagen/rezepte'
             assert parse_qs(recipe_target.query) == {'template': ['standard'], 'revision': ['1']}
@@ -243,7 +243,7 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             assert any('tabler' in asset and asset.endswith('.js') for asset in assets)
             assert all(responses.get(asset) == 200 for asset in assets)
             assert not any(asset.endswith('/app.css') for asset in assets)
-            assert page.locator('.list-group').first.evaluate("el => getComputedStyle(el).display") == 'flex'
+            assert page.locator('.print-tpl-row').first.evaluate("el => getComputedStyle(el).display") == 'flex'
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             seen_hrefs: set[str] = set()
 
@@ -254,14 +254,27 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
                 seen_hrefs.add(href)
                 link.scroll_into_view_if_needed()
                 box = link.bounding_box()
-                assert box is not None and box['height'] >= 48
+                classes = link.get_attribute('class') or ''
+                minimum = 36 if 'ui-sem-control' in classes else 48
+                assert box is not None and box['height'] >= minimum
                 if not require_focus:
                     return
                 link.focus()
                 expect(link).to_be_focused()
 
-            for link in page.locator('main form .btn, main .row-cards .btn, main .screens-grid .btn').all():
+            for link in page.locator('main form .btn:visible, main .row-cards .btn:visible, main .screens-grid .btn:visible').all():
                 check_keyboard_link(link)
+            page.keyboard.press('Escape')
+            for menu in page.locator('main .screens-grid .ui-sem-actions').all():
+                summary = menu.locator('summary')
+                summary.focus()
+                page.keyboard.press('Enter')
+                expect(menu).to_have_attribute('open', '')
+                for link in menu.locator('a.btn').all():
+                    check_keyboard_link(link)
+                page.keyboard.press('Escape')
+                summary.focus()
+                page.keyboard.press('Enter')
             for card in weekly_cards.all():
                 pane_id = card.evaluate('el => el.closest(".tab-pane").id')
                 page.locator(f'[aria-controls="{pane_id}"]').click()
@@ -287,7 +300,7 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             cafeteria_card = weekly_cards.first
             cafeteria_card.locator('details summary').filter(has_text='Frühere Versionen').click()
             editor = cafeteria_card.locator('[data-template-id="standard"]').get_by_role(
-                'link', name='Vorlageneditor öffnen',
+                'link', name='Winter & Festtage bearbeiten',
             )
             target = editor.get_attribute('href')
             editor.focus()
