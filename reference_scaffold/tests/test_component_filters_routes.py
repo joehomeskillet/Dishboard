@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from bs4 import BeautifulSoup
 from sqlalchemy import text
 from werkzeug.datastructures import MultiDict
 
@@ -42,7 +43,9 @@ def test_filter_get_keeps_values_count_and_legacy_archive_links(request, family)
     body = response.get_data(as_text=True)
     assert '1 Treffer' in body
     assert f'href="{created.headers["Location"]}"' in body
-    assert f'href="{path}">' in body and 'Zurücksetzen</a>' in body
+    reset = BeautifulSoup(body, 'html.parser').select_one('a[data-semantic="view.reset"]')
+    assert reset is not None and reset['href'] == path
+    assert reset['aria-label'] == 'Zurücksetzen'
     assert '«Nicht erfasst» bedeutet keine bestätigte Allergenfreiheit.' in body
     for key, value in params.items():
         if key == 'q':
