@@ -17,10 +17,8 @@
 }
 
 .dishboard-admin [data-shopping-lists] .shopping-filter .btn.active {
-  font-weight: 700;
   border: 2px solid var(--app-primary);
   background: var(--app-primary-soft);
-  color: var(--app-primary);
 }
 
 .dishboard-admin [data-shopping-lists] .shopping-list .admin-list-row {

@@ -5,8 +5,6 @@
 .lager-count { min-width: 0; }
 .lager-section-title {
   margin: 0 0 var(--app-space-2);
-  font-size: var(--app-font-size-title);
-  font-weight: var(--app-font-weight-semibold, 600);
 }
 .lager-table { width: 100%; table-layout: fixed; }
 .dishboard-admin .lager-table.admin-table--stack tbody tr { height: auto; }
