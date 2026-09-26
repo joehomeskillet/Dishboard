@@ -203,6 +203,7 @@
 .dishboard-admin .btn:is(:disabled, [aria-disabled="true"]) { border-style: dashed; cursor: not-allowed; }
 .dishboard-admin a[aria-disabled="true"] { cursor: not-allowed; text-decoration: line-through; }
 .dishboard-admin .admin-btn-loading::after {
+  position: absolute;
   content: ''; width: 1em; height: 1em; flex: none;
   margin-inline-start: var(--app-space-2);
   border: var(--app-focus-width) solid currentColor; border-inline-end-color: transparent;
@@ -522,21 +523,35 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--app-space-2); min-width: 0;
 }
 .dishboard-admin .admin-filter-bar { align-items: end; margin-bottom: var(--app-space-3); }
-.dishboard-admin .admin-filter-search { flex: 1 1 16rem; min-width: 0; }
+.dishboard-admin .admin-filter-search { display: flex; align-items: end; gap: var(--app-space-2); flex: 1 1 16rem; min-width: 0; }
+.dishboard-admin .admin-filter-query { flex: 1; min-width: 0; }
 .dishboard-admin .admin-filter-slots { flex: 1 1 12rem; }
 .dishboard-admin .admin-filter-slots > * { max-width: 100%; }
+.dishboard-admin .admin-filter-more { position: relative; }
+.dishboard-admin .admin-filter-more > summary { list-style: none; }
+.dishboard-admin .admin-filter-more > summary::-webkit-details-marker { display: none; }
 .dishboard-admin .admin-filter-more[open] { flex-basis: 100%; }
+.dishboard-admin .admin-filter-more[open] > .admin-filter-slots { margin-top: var(--app-space-2); }
+.dishboard-admin .admin-filter-count:not([hidden]) { position: absolute; inset-block-start: 0; inset-inline-end: 0; background: var(--app-surface-soft); color: var(--app-text); border-radius: var(--app-radius-pill); font-size: var(--app-list-header-size); padding-inline: var(--app-space-1); }
+.dishboard-admin .admin-filter-chips { display: flex; flex-wrap: wrap; gap: var(--app-space-2); flex-basis: 100%; }
+.dishboard-admin .admin-filter-chip { gap: var(--app-space-1); font-size: var(--app-list-secondary-size); }
 .dishboard-admin .admin-list-row {
   min-height: var(--app-list-row-min-height);
   padding: var(--app-list-pad-y) var(--app-list-pad-x);
   border-bottom: var(--app-list-line-width) solid var(--app-border);
   font-size: var(--app-list-font-size);
+  box-shadow: none;
+}
+.dishboard-admin .admin-list-row:has(.admin-list-secondary, .admin-list-subtitle) { min-height: var(--app-list-row-two-line-height); }
+.dishboard-admin :is(.admin-list, .cookbook-list, .recipe-list, .card:has(.admin-table, .admin-table--stack, .admin-list-row)) {
+  border: var(--app-list-line-width) solid var(--app-border);
+  border-radius: var(--app-list-radius); box-shadow: none;
 }
 .dishboard-admin :is(.admin-list-row, .admin-table tbody tr):hover { background: var(--app-list-hover); }
 .dishboard-admin .admin-empty-value { color: var(--app-text-muted); }
 .dishboard-admin .admin-list-status { margin-inline-start: auto; }
 .dishboard-admin .admin-list-name { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
-.dishboard-admin .admin-list-subtitle { overflow-wrap: anywhere; color: var(--app-text-muted); font-size: var(--app-font-size-small); }
+.dishboard-admin .admin-list-subtitle { overflow-wrap: anywhere; }
 .dishboard-admin .admin-list-actions { margin-inline-start: auto; }
 .dishboard-admin .admin-form-footer { padding: var(--app-space-2) 0; background: var(--app-bg); }
 .dishboard-admin .admin-form-main { margin-inline-start: auto; }
@@ -554,16 +569,22 @@
 .dishboard-admin :is(.form-hint, small, .small) { font-size: calc(var(--app-font-size-small) * var(--app-font-scale)); }
 .dishboard-admin .form-hint { color: var(--app-text-muted); }
 .dishboard-admin .table { --tblr-table-color: var(--app-text); --tblr-table-border-color: var(--app-border); }
-/* One row metric: 56px minimum; controls plus 8px padding may grow it. */
+/* Shared list anatomy: minimum row heights; content and zoom may grow rows. */
 .dishboard-admin :is(table.admin-table, table.admin-table--stack) {
   width: 100%; border-collapse: collapse; font-size: var(--app-list-font-size);
 }
 .dishboard-admin :is(.admin-table, .admin-table--stack) tbody tr { height: var(--app-list-row-min-height); }
+.dishboard-admin :is(.admin-table, .admin-table--stack) tbody tr:has(.admin-list-secondary, .admin-list-subtitle) { height: var(--app-list-row-two-line-height); }
 .dishboard-admin :is(.admin-table, .admin-table--stack) :is(th, td) {
   padding: var(--app-list-pad-y) var(--app-list-pad-x); vertical-align: middle; overflow-wrap: anywhere;
   border-bottom: var(--app-list-line-width) solid var(--app-border);
 }
-.dishboard-admin .admin-table thead th { color: var(--app-text-muted); background: var(--app-surface-soft); }
+.dishboard-admin :is(.admin-table, .admin-table--stack) thead th {
+  height: var(--app-list-header-height); font-size: var(--app-list-header-size);
+  font-weight: var(--app-list-header-weight); text-transform: uppercase;
+  line-height: var(--app-list-line-height); padding-block: var(--app-space-1);
+  color: var(--app-text-muted); background: var(--app-surface-soft);
+}
 .dishboard-admin .admin-table :is(.admin-table-status, .admin-table-actions) { width: 1%; white-space: nowrap; }
 .dishboard-admin .admin-table-actions { text-align: end; }
 .dishboard-admin .admin-table-status .badge { white-space: nowrap; }

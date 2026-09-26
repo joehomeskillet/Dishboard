@@ -186,8 +186,13 @@
   --app-sem-control-touch-size: 44px;
   --app-sem-control-icon-size: 20px;
   --app-button-icon-gap: var(--app-space-2);
-  --app-table-row-height: 56px;
+  --app-table-row-height: 48px;
   --app-list-row-min-height: var(--app-table-row-height);
+  --app-list-row-two-line-height: 64px;
+  --app-list-header-height: 33px;
+  --app-list-header-size: .75rem;
+  --app-list-header-weight: 500;
+  --app-list-radius: var(--app-radius-control);
   --app-list-pad-x: var(--app-space-3);
   --app-list-pad-y: var(--app-space-2);
   --app-list-line-width: 1px;

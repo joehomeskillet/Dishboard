@@ -174,6 +174,99 @@ def test_polish_stack_table_reflows_without_losing_labels(width, tmp_path):
     _run_polish_check(markup, verify, width, javascript=False)
 
 
+@pytest.mark.parametrize('width', [390, 1440])
+def test_wp2c_list_shell_header_and_growing_rows(width):
+    markup = '''{% from 'admin/_macros.html' import list_row %}
+        <section class="admin-list">{{ list_row('Einzeilig') }}
+        {{ list_row('Zweizeilig', 'Zusatzinformation') }}</section>
+        <div class="card"><table class="admin-table"><thead><tr><th>Name</th></tr></thead>
+        <tbody><tr><td>Einzeilig</td></tr><tr><td><strong class="admin-list-primary">Zweizeilig</strong>
+        <div class="admin-list-secondary">Zusatzinformation</div></td></tr></tbody></table></div>'''
+
+    def verify(page):
+        expect(page.locator('.admin-table th')).to_have_css('font-size', '12px')
+        expect(page.locator('.admin-table th')).to_have_css('font-weight', '500')
+        expect(page.locator('.admin-table th')).to_have_css('text-transform', 'uppercase')
+        assert page.locator('.admin-table thead tr').bounding_box()['height'] == 33
+        for shell in page.locator('.admin-list, .card').all():
+            expect(shell).to_have_css('box-shadow', 'none')
+            expect(shell).to_have_css('border-radius', '8px')
+        for selector in ('.admin-list-row', '.admin-table tbody tr'):
+            assert page.locator(selector).nth(0).bounding_box()['height'] >= 48
+            assert page.locator(selector).nth(1).bounding_box()['height'] >= 64
+        expect(page.locator('.admin-list-row').first).to_have_css('border-bottom-width', '1px')
+        expect(page.locator('.admin-table td').first).to_have_css('border-bottom-width', '1px')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+    _run_polish_check(markup, verify, width=width, javascript=False)
+
+
+def test_wp2c_menu_focus_escape_and_disabled_actions():
+    markup = '''{% from 'ui/_semantic.html' import row_actions, icon_button %}
+        <p id="reason">Zuerst speichern</p>
+        {{ icon_button('actions.edit', href='#forbidden', id='disabled-link',
+            attrs={'aria-disabled': true, 'aria-describedby': 'reason'}) }}
+        <form id="disabled-form" method="post">
+        {{ icon_button('actions.save', id='disabled-button',
+            attrs={'aria-disabled': true, 'aria-describedby': 'reason'}) }}</form>
+        <form id="editor" method="post"></form>
+        {{ row_actions([{'key':'actions.edit','href':'#edit'},
+            {'key':'actions.copy','form':'editor','name':'intent','value':'copy'},
+            {'key':'actions.history','href':'#history'}], object='Broccoli') }}'''
+
+    def verify(page):
+        page.evaluate('''() => {
+            window.executed = 0;
+            document.querySelectorAll('#disabled-link, #disabled-button').forEach(el =>
+                el.addEventListener('click', () => window.executed++));
+        }''')
+        for target in ('#disabled-link', '#disabled-button'):
+            control = page.locator(target)
+            control.focus()
+            expect(control).to_have_accessible_description('Zuerst speichern')
+            control.press('Enter')
+            control.press('Space')
+            # Browser mouse input; Playwright click waits for aria-disabled=false.
+            box = control.bounding_box()
+            page.mouse.click(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
+        assert page.evaluate('window.executed') == 0
+        assert '#forbidden' not in page.url
+        summary = page.locator('.ui-sem-actions summary')
+        expect(summary).to_have_accessible_name('Weitere Aktionen für Broccoli')
+        summary.focus()
+        summary.press('Enter')
+        first = page.locator('.ui-sem-action-items button')
+        expect(first).to_be_focused()
+        assert page.url.endswith('/__polish__')
+        first.press('Escape')
+        expect(page.locator('.ui-sem-actions')).not_to_have_attribute('open', '')
+        expect(summary).to_be_focused()
+        summary.click()
+        expect(first).to_be_focused()
+        with page.expect_navigation():
+            first.press('Enter')
+        assert json.loads(page.locator('body').inner_text()) == {'intent': ['copy']}
+
+    _run_polish_check(markup, verify)
+
+
+def test_wp2c_filter_chips_remove_one_value_and_keep_other_fields():
+    markup = '''{% from 'ui/_semantic.html' import filter_bar_sem %}
+        {{ filter_bar_sem('/__polish__', search_value='Reis', active=true, reset_url='/__polish__',
+            filters='<label><input type="checkbox" name="archived" value="1" checked>Archiviert</label>'|safe,
+            more_filters='<label for="kind">Art</label><select id="kind" name="kind"><option value="">Alle</option><option value="soup" selected>Suppe</option></select><input type="hidden" name="revision" value="keep">'|safe) }}'''
+
+    def verify(page):
+        expect(page.locator('[data-semantic="view.filter"]')).to_have_count(1)
+        expect(page.locator('.admin-filter-count')).to_have_text('2')
+        expect(page.locator('.admin-filter-chips button')).to_have_count(2)
+        with page.expect_navigation():
+            page.get_by_role('button', name='Archiviert: Zurücksetzen', exact=True).click()
+        assert parse_qs(urlsplit(page.url).query) == {'q': ['Reis'], 'kind': ['soup'], 'revision': ['keep']}
+
+    _run_polish_check(markup, verify)
+
+
 def test_polish_loading_preserves_native_submitter_and_resets_on_pageshow():
     markup = '''<iframe name="result" title="Ergebnis"></iframe>
         <form id="editor" method="post" action="/__polish__" target="result" data-loading>
@@ -184,17 +277,25 @@ def test_polish_loading_preserves_native_submitter_and_resets_on_pageshow():
 
     def verify(page):
         button = page.locator('#save')
-        button.click()
+        width = button.bounding_box()['width']
+        submitted = []
+        page.on('request', lambda req: submitted.append(req) if req.method == 'POST' else None)
+        page.evaluate('''() => {
+            document.querySelector('#save').click();
+            document.querySelector('#editor').requestSubmit();
+        }''')
         expect(button).to_be_disabled()
         expect(button).to_have_attribute('aria-busy', 'true')
         assert 'admin-btn-loading' in button.get_attribute('class').split()
         expect(button.locator('span')).to_be_visible()
         expect(button).to_have_text('Speichern')
+        assert abs(button.bounding_box()['width'] - width) <= 1
         expect(button).not_to_have_css('color', 'rgba(0, 0, 0, 0)')
         assert button.evaluate('el => getComputedStyle(el, "::after").animationName') == 'none'
         body = page.frame_locator('iframe').locator('body')
         expect(body).to_contain_text('intent')
         assert json.loads(body.inner_text()) == {'intent': ['save'], 'note': ['Behalten']}
+        assert len(submitted) == 1
         page.evaluate('window.dispatchEvent(new PageTransitionEvent("pageshow", {persisted: true}))')
         expect(button).to_be_enabled()
         expect(button).to_have_attribute('aria-busy', 'false')
@@ -405,7 +506,8 @@ def test_shared_patterns_semantics_reflow_focus_and_targets(shared_site, javascr
                 const target = el.type === 'checkbox' || el.type === 'radio' ? el.closest('label') : el;
                 const r = target.getBoundingClientRect(); return [r.width, r.height];
             }''')
-            assert measured[0] >= 48 and measured[1] >= 48, measured
+            minimum = 36 if 'ui-sem-control' in (target.get_attribute('class') or '').split() else 48
+            assert measured[0] >= minimum and measured[1] >= minimum, measured
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         for glyph in page.locator('main svg use').all():
             assert glyph.evaluate('el => el.getBBox().width > 0'), glyph.get_attribute('href')
@@ -423,9 +525,10 @@ def test_filter_get_parameters_and_disclosure_content(shared_site):
     try:
         expect(page.locator('#optional')).to_have_attribute('open', '')
         expect(page.locator('#optional summary')).to_contain_text('enthält Angaben')
-        expect(page.get_by_role('link', name='Filter zurücksetzen')).to_have_count(0)
+        # The rendered search value is active even when the legacy flag is false.
+        expect(page.locator('[data-semantic="view.reset"]')).to_have_count(1)
         with page.expect_navigation():
-            page.get_by_role('button', name='Filtern', exact=True).click()
+            page.get_by_role('searchbox').press('Enter')
         assert parse_qs(urlsplit(page.url).query) == {'query': ['Reis'], 'category': ['soup'], 'source': ['Küche']}
         expect(page.locator('#optional')).not_to_have_attribute('open', '')
     finally:
@@ -606,9 +709,9 @@ def test_p2b_labels_rows_actions_and_sorting_without_js(width, tmp_path):
         expect(group.locator('details a:visible')).to_have_count(0)
         direct = group.locator(':scope > a')
         expect(direct).to_have_attribute('aria-label', 'Bearbeiten')
-        expect(direct).to_have_attribute('title', 'Bearbeiten')
+        expect(direct).to_have_attribute('data-ui-tooltip', 'Bearbeiten')
         size = direct.bounding_box()
-        assert size['height'] >= 48 and abs(size['width'] - size['height']) <= 1
+        assert size['height'] >= 36 and abs(size['width'] - size['height']) <= 1
         page.keyboard.press('Tab')
         expect(direct).to_be_focused()
         assert direct.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
@@ -638,10 +741,10 @@ def test_p2b_labels_rows_actions_and_sorting_without_js(width, tmp_path):
         assert abs(row.locator('.admin-label').bounding_box()['height'] - table_row.locator('.admin-label').bounding_box()['height']) <= 1
         for control in table_row.locator('a:visible, summary').all():
             box = control.bounding_box()
-            assert box['x'] >= 0 and box['width'] >= 48 and box['height'] >= 48
+            assert box['x'] >= 0 and box['width'] >= 36 and box['height'] >= 36
         sizes = page.locator('#sizes a').all()
         assert abs(sizes[0].bounding_box()['height'] - sizes[1].bounding_box()['height']) <= 1
-        assert sizes[2].bounding_box()['height'] == sizes[2].bounding_box()['width'] == 56
+        assert sizes[2].bounding_box()['height'] == sizes[2].bounding_box()['width'] == 36
         assert sizes[3].bounding_box()['height'] == sizes[2].bounding_box()['height']
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         (tmp_path / f'p2b-{width}.json').write_text(json.dumps({

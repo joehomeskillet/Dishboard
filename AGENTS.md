@@ -47,7 +47,8 @@ This project is indexed by GitNexus as **menuplan** (12946 symbols, 25095 relati
 Vor jeder Frontend-Änderung das [zentrale UI-Manifest](docs/design/2026-09-09-unified-ui-design-system.md)
 vollständig lesen; passende R-/M-/A-Regeln verwenden. Jede interne Oberfläche nutzt
 die volle Arbeitsbreite, kompakte Wiederholungszeilen, direkt bedienbare häufige Felder
-und konsistente Icons mit sichtbarem Text. Details, Fehler, Formulardaten und
+und Symbolbuttons als Standard mit Textausnahmen gemäss Icon-first-Spezifikation §5.4,
+gemeinsamer Listenanatomie und höchstens einer Hauptaktion plus Überlauf je Zeile. Details, Fehler, Formulardaten und
 Speicherzustände sicher behandeln. Gemeinsame Tokens/Komponenten erhalten; keine
 Framework- oder fachlichen Änderungen als Nebenprodukt. Route, Rolle/Zustand,
 Muster und tatsächliche Tests im vorhandenen UI-Inventar nachführen. Alte

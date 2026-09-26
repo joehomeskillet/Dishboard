@@ -107,7 +107,7 @@ def test_semantic_macros_keyboard_names_reflow(semantic_site, width, tmp_path):
         messages = app.extensions['ui_translator'].locales[locale]
         expect(page.locator('html')).to_have_attribute('lang', locale)
         edit = page.get_by_role('link', name=messages['actions.edit.aria'], exact=True)
-        expect(edit).to_have_attribute('title', messages['actions.edit.tooltip'])
+        expect(edit).to_have_attribute('data-ui-tooltip', messages['actions.edit.tooltip'])
         page.keyboard.press('Tab')
         expect(edit).to_be_focused()
         assert edit.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
@@ -140,7 +140,7 @@ def test_semantic_macros_keyboard_names_reflow(semantic_site, width, tmp_path):
         expect(page.locator('.ui-sem-actions')).not_to_have_attribute('open', '')
         for control in page.locator('.ui-sem-control:visible').all():
             size = control.bounding_box()
-            assert size['width'] >= 48 and size['height'] >= 48, size
+            assert size['width'] >= 36 and size['height'] >= 36, size
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         assert page.locator('.ui-sem-label, .ui-sem-control').evaluate_all('''els => els.filter(e => e.getClientRects().length).every(e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1)''')
         expect(page.locator('.admin-statusbar-value')).to_have_text('0')
@@ -159,7 +159,7 @@ def test_p2c_context_actions_dropdown_and_active_filters(semantic_site, width, t
         assert page.goto(origin + '/__context__').status == 200
         edit = page.get_by_role('link', name='Vorlage X bearbeiten', exact=True)
         expect(edit).to_have_accessible_name('Vorlage X bearbeiten')
-        expect(edit).to_have_attribute('title', 'Vorlage X bearbeiten')
+        expect(edit).to_have_attribute('data-ui-tooltip', 'Vorlage X bearbeiten')
         page.keyboard.press('Tab')
         expect(edit).to_be_focused()
         assert edit.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
@@ -171,13 +171,13 @@ def test_p2c_context_actions_dropdown_and_active_filters(semantic_site, width, t
         page.keyboard.press('Tab')
         apply = page.get_by_role('button', name='Übernehmen: Wochenvorgaben', exact=True)
         expect(apply).to_be_focused()
-        expect(apply).to_have_attribute('title', 'Wochenvorgaben übernehmen')
+        expect(apply).to_have_attribute('data-ui-tooltip', 'Wochenvorgaben übernehmen')
         expect(apply).to_have_attribute('form', 'week')
         expect(apply).to_have_attribute('formnovalidate', '')
         for control in page.locator('.dropdown-item').all():
             size = control.bounding_box()
             parent = control.locator('..').bounding_box()
-            assert size['height'] >= 48 and abs(size['width'] - parent['width']) <= 1
+            assert size['height'] >= 36 and abs(size['width'] - parent['width']) <= 1
             assert control.evaluate('el => getComputedStyle(el).justifyContent') == 'flex-start'
             assert control.evaluate('el => el.scrollWidth <= el.clientWidth + 1')
         history = page.get_by_role('link', name='Zugriffsverlauf', exact=True)
@@ -209,13 +209,13 @@ def test_proof_page_locales_and_layout(semantic_site, width, tmp_path):
         messages = app.extensions['ui_translator'].locales[locale]
         expect(page.get_by_role('heading', level=1)).to_have_text(messages['ui.print_unavailable.label'])
         expect(page.get_by_role('alert')).to_contain_text(messages['ui.request_failed.label'])
-        link = page.get_by_role('link', name=messages['ui.templates_back.label'], exact=True)
+        link = page.get_by_role('link', name=messages['ui.templates_back.aria'], exact=True)
         expect(link).to_have_attribute('href', '/templates')
         page.keyboard.press('Tab')
         expect(link).to_be_focused()
         assert link.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         size = link.bounding_box()
-        assert size['height'] >= 48 and size['width'] >= 48
+        assert size['height'] >= 36 and size['width'] >= 36
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         assert page.locator('h1, .alert, .ui-sem-control').evaluate_all('els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1)')
         page.screenshot(path=str(tmp_path / f'proof-{locale}-{width}.png'), full_page=True)
