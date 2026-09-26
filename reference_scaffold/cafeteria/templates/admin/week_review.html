@@ -7,9 +7,7 @@
 {% block main_attributes %}data-week="{{ week }}"{% endblock %}
 {% block page_header %}
 <div class="text-break">
-{% call page_header('Wochenangaben prüfen', 'Gespeicherten Wochenkopf und Ausgabeangaben bestätigen.', status_items=[
-  {'label': 'Bereich', 'value': area_names[profile]},
-  {'label': 'Woche ab', 'value': week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]},
+{% call page_header('Wochenangaben prüfen', week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4] ~ ' · ' ~ area_names[profile], status_items=[
   {'label': 'Prüfstatus', 'value': 'Geprüft' if review.receipt else 'Noch zu prüfen', 'variant': 'success' if review.receipt else 'warning'}
 ]) %}
   {% if not review.receipt and can_write %}{{ icon_button('actions.confirm', form='week-review-form', emphasis='primary', text='Bestätigen', aria_label='Wochenkopf und alle Ausgabehinweise als geprüft bestätigen', show_text=true) }}{% endif %}
@@ -42,14 +40,21 @@
 </section>
 <h2 class="h3">Ausgabeangaben</h2>
 {% if context.services %}
+{% set normal = namespace(open=true, quiet=true) %}
+{% for service in context.services %}
+  {% if service.state != 'open' %}{% set normal.open = false %}{% endif %}
+  {% if service.notice %}{% set normal.quiet = false %}{% endif %}
+{% endfor %}
+<p class="admin-list-secondary" id="week-service-normal">Normalzustand: geöffnet, kein Ausgabehinweis. In der Liste stehen nur Abweichungen.{% if normal.open and normal.quiet %} Alle gespeicherten Angaben entsprechen diesem Normalzustand.{% endif %}</p>
 <div class="admin-table mb-3" role="list" aria-label="Ausgabeangaben">
   {% for service in context.services %}
   {% set primary %}
       <h3 class="admin-list-primary mb-0" id="service-{{ loop.index }}"><time datetime="{{ service.date }}">{{ service.date[8:10] }}.{{ service.date[5:7] }}.{{ service.date[:4] }}</time> · {{ 'Mittagessen' if service.meal == 'LUNCH' else 'Abendessen' }}</h3>
   {% endset %}
-  {% set secondary %}<span class="text-break">{{ service.notice or 'Kein Ausgabehinweis' }}</span>{% endset %}
-  {% set times %}{% if service.get('start') or service.get('end') %}{{ service.get('start') or '–' }}–{{ service.get('end') or '–' }}{% else %}{{ empty_value() }}{% endif %}{% endset %}
-  <div role="listitem">{{ list_row(primary=primary, secondary=secondary, meta=times, status=label(service_labels[service.state], 'active' if service.state == 'open' else 'neutral')) }}</div>
+  {% set secondary %}{% if service.notice %}<span class="text-break">{{ service.notice }}</span>{% endif %}{% endset %}
+  {% set times %}{% if service.get('start') or service.get('end') %}{{ service.get('start') or '–' }}–{{ service.get('end') or '–' }}{% endif %}{% endset %}
+  {% set state_label %}{% if service.state != 'open' %}{{ label(service_labels[service.state], 'neutral') }}{% endif %}{% endset %}
+  <div role="listitem">{{ list_row(primary=primary, secondary=secondary if service.notice else none, meta=times if service.get('start') or service.get('end') else none, status=state_label if service.state != 'open' else none) }}</div>
   {% endfor %}
 </div>
 {% else %}

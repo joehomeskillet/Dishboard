@@ -1,0 +1,54 @@
+{% set allergen_stats = namespace(missing=0, review_open=0) %}
+{% for cell in cells if cell.row_version > 0 and cell.title %}
+  {% if not cell.allergens %}
+    {% set allergen_stats.missing = allergen_stats.missing + 1 %}
+  {% elif cell.allergen_review_status|default('not_checked') != 'checked' %}
+    {% set allergen_stats.review_open = allergen_stats.review_open + 1 %}
+  {% endif %}
+{% endfor %}
+{% set time_ns = namespace(keys=[], missing=0) %}
+{% for cell in cells %}
+  {% set key = cell.day ~ '|' ~ cell.meal %}
+  {% if key not in time_ns.keys %}
+    {% set time_ns.keys = time_ns.keys + [key] %}
+    {% if not cell.service_start and not cell.service_end %}
+      {% set time_ns.missing = time_ns.missing + 1 %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+{% set course_count = course_issues.affected_assignments if course_issues is defined and course_issues.affected_assignments else 0 %}
+{% set has_checks = allergen_stats.missing or allergen_stats.review_open or open_checks or time_ns.missing or course_count %}
+{% if has_checks %}
+<div class="container-xl" id="week-check-summary">
+  <p class="admin-week-checkline admin-list-secondary" role="status">
+    {%- if open_checks %} {{ open_checks }} {{ 'Menü' if open_checks == 1 else 'Menüs' }} mit offener Kartenprüfung.{% endif %}
+    {%- if allergen_stats.missing %} {{ allergen_stats.missing }} {{ 'Menü' if allergen_stats.missing == 1 else 'Menüs' }}: Allergenangaben nicht erfasst (nicht allergenfrei).{% endif %}
+    {%- if allergen_stats.review_open %} {{ allergen_stats.review_open }} {{ 'Menü' if allergen_stats.review_open == 1 else 'Menüs' }}: Allergenprüfung offen.{% endif %}
+    {%- if time_ns.missing %} {{ time_ns.missing }} {{ 'Mahlzeit' if time_ns.missing == 1 else 'Mahlzeiten' }}: Zeiten nicht eingetragen.{% endif %}
+    {%- if course_count %} {{ course_count }} {{ 'Gang' if course_count == 1 else 'Gänge' }} prüfen.{% if course_issues.missing_allergens %} {{ course_issues.missing_allergens }} ohne Allergenangaben (nicht allergenfrei).{% endif %}{% endif %}
+  </p>
+  <details class="admin-week-check-entries" id="week-check-entries">
+    <summary>Betroffene Einträge</summary>
+    <div class="admin-week-check-list">
+      {% for cell in cells if cell.row_version > 0 and cell.title and cell.review_open %}
+      <a href="#week-slot-{{ cell.day }}-{{ cell.meal }}-{{ cell.option }}">{{ cell.day_label }} · {{ cell.meal_label }} · {{ cell.option_label }}: Kartenprüfung offen</a>
+      {% endfor %}
+      {% for cell in cells if cell.row_version > 0 and cell.title and not cell.allergens %}
+      <a href="#week-slot-{{ cell.day }}-{{ cell.meal }}-{{ cell.option }}">{{ cell.day_label }} · {{ cell.meal_label }} · {{ cell.option_label }}: Allergenangaben nicht erfasst</a>
+      {% endfor %}
+      {% for cell in cells if cell.row_version > 0 and cell.title and cell.allergens and cell.allergen_review_status|default('not_checked') != 'checked' %}
+      <a href="#week-slot-{{ cell.day }}-{{ cell.meal }}-{{ cell.option }}">{{ cell.day_label }} · {{ cell.meal_label }} · {{ cell.option_label }}: Allergenprüfung offen</a>
+      {% endfor %}
+      {% set listed = namespace(keys=[]) %}
+      {% for cell in cells if not cell.service_start and not cell.service_end %}
+        {% set key = cell.day ~ '|' ~ cell.meal %}
+        {% if key not in listed.keys %}
+          {% set listed.keys = listed.keys + [key] %}
+          <a href="#service-{{ cell.day }}-{{ cell.meal }}">{{ cell.day_label }} · {{ cell.meal_label }}: Zeiten nicht eingetragen</a>
+        {% endif %}
+      {% endfor %}
+      {% if course_count %}<a href="#course-issues">{{ course_count }} {{ 'Gang' if course_count == 1 else 'Gänge' }} prüfen</a>{% endif %}
+    </div>
+  </details>
+</div>
+{% endif %}

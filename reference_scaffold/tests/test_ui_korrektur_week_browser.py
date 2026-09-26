@@ -251,34 +251,27 @@ def test_a06_live_checked_and_missing_allergens_are_separate(
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, family)
     expect(page.locator('main')).to_have_attribute('data-status', 'live')
-    status = page.locator('.admin-statusbar')
-    status_copy = status.locator('.admin-statusbar-value-text').nth(1)
-    expect(status_copy).to_have_text('Gespeicherter Stand veröffentlicht')
-    expect(status_copy.locator('..').locator('..')).to_have_class(re.compile('admin-statusbar-item--success'))
+    context = page.locator('.page-header-subtitle')
+    expect(context).to_contain_text('Gespeicherter Stand veröffentlicht')
     filled = SLOT_COUNT[family]
-    expect(status).to_contain_text(f'{filled} Menükarten geprüft')
+    expect(page.locator('.slot-badge')).to_have_count(0)
+    checks = page.locator('#week-check-summary')
+    expect(checks).to_contain_text('1 Menü: Allergenangaben nicht erfasst')
+    expect(checks).to_contain_text('nicht allergenfrei')
+    expect(checks).not_to_contain_text(f'{filled} Menükarten geprüft')
     expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_be_visible()
-    expect(status).to_contain_text('1 ohne Allergenangaben')
-    expect(status).not_to_contain_text('Keine offenen Prüfungen')
-    text_line_tops = status.locator('.admin-statusbar-item').evaluate_all(
-        'items => [...new Set(items.map(e => Math.round(e.getBoundingClientRect().top)))]'
-    )
-    assert len(text_line_tops) == 1, text_line_tops
+    expect(page.locator('main')).not_to_contain_text('Keine offenen Prüfungen')
     _assert_no_overflow(page)
-    card = page.locator('.menu-slot').first
-    expect(card.locator('.slot-badge')).to_have_text('Geprüft')
-    expect(card).to_contain_text('Allergenangaben nicht erfasst')
+    card = page.locator('.menu-slot').filter(has_text='Allergenangaben nicht erfasst').first
+    expect(card.locator('[data-menu-metadata] .admin-status--warning')).to_contain_text('Allergenangaben nicht erfasst')
+    expect(card.locator('[data-menu-metadata]')).to_contain_text('nicht allergenfrei')
     _shot(page, family, 'a06', 1366, 768)
 
     values['title'] = f"{values['title']} geändert"
     _save_reviewed(engine, profile, values)
     _goto(page, family)
     expect(page.locator('main')).to_have_attribute('data-status', 'changed')
-    changed_status = page.locator('.admin-statusbar')
-    expect(changed_status.locator('.admin-statusbar-value-text').nth(1)).to_have_text(
-        'Veröffentlicht · Änderungen offen'
-    )
-    expect(changed_status.locator('.admin-statusbar-item').nth(1)).to_have_class(re.compile('admin-statusbar-item--warning'))
+    expect(page.locator('.page-header-subtitle')).to_contain_text('Veröffentlicht · Änderungen offen')
 
 
 @pytest.mark.parametrize(('family', 'profile'), (('cafeteria', 'staff_guest'), ('patienten', 'patient')))

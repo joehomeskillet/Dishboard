@@ -1,13 +1,5 @@
 {# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, week_row_version, schedule_defaults_csrf. #}
 {% from 'ui/_semantic.html' import icon_button, sem_icon %}
-{% set allergen_stats = namespace(missing=0, review_open=0) %}
-{% for cell in cells if cell.row_version > 0 and cell.title %}
-  {% if not cell.allergens %}
-    {% set allergen_stats.missing = allergen_stats.missing + 1 %}
-  {% elif cell.allergen_review_status|default('not_checked') != 'checked' %}
-    {% set allergen_stats.review_open = allergen_stats.review_open + 1 %}
-  {% endif %}
-{% endfor %}
 {% if status == 'live' %}
   {% set publish_label = 'Erneut veröffentlichen' %}
   {% set status_plain = 'Veröffentlicht · entspricht dem gespeicherten Stand' %}
@@ -40,22 +32,7 @@
 {% set csv_profile = 'patienten' if family == 'patienten' else 'cafeteria' %}
 
 {% macro overview_header(heading, description) %}
-  {% set items = [
-    {'label': 'Woche', 'value': 'KW ' ~ iso_week, 'detail': date_range},
-    {'label': 'Wochenstatus', 'value': status_short, 'variant': 'success' if status == 'live' else ('warning' if publish_blocked or status == 'changed' else 'neutral')}
-  ] %}
-  {% if filled_slots %}
-    {% set items = items + [{'label': 'Kartenprüfungen', 'value': (open_checks ~ ' offen') if open_checks else (filled_slots ~ ' Menükarten geprüft'), 'variant': 'warning' if open_checks else 'neutral'}] %}
-  {% endif %}
-  {% if allergen_stats.missing or allergen_stats.review_open %}
-    {% set items = items + [{'label': 'Allergenangaben', 'value': allergen_stats.missing ~ ' ohne Allergenangaben', 'detail': (allergen_stats.review_open ~ ' Allergenprüfungen offen') if allergen_stats.review_open else none, 'variant': 'warning'}] %}
-  {% endif %}
-  {% if course_issues is defined and (course_issues.affected_assignments or course_issues.missing_allergens) %}
-    {% set course_noun = 'Gang' if course_issues.affected_assignments == 1 else 'Gänge' %}
-    {% set missing_noun = 'Gang' if course_issues.missing_allergens == 1 else 'Gänge' %}
-    {% set items = items + [{'label': 'Gänge', 'value': course_issues.affected_assignments ~ ' ' ~ course_noun ~ ' prüfen', 'detail': (course_issues.missing_allergens ~ ' ' ~ missing_noun ~ ' ohne Allergenangaben') if course_issues.missing_allergens else none, 'variant': 'warning'}] %}
-  {% endif %}
-  {% call page_header(heading, description, status_items=items) %}
+  {% call page_header(heading, date_range ~ ' · KW ' ~ iso_week ~ ' · ' ~ status_short) %}
     {% if publish_blocked and status == 'review_open' %}
     {{ icon_button('actions.check', href='/admin/' ~ family ~ '/wochen/pruefung?week=' ~ week_value ~ '#week-review-form', aria_label='Offene Punkte prüfen', emphasis='primary') }}
     {% else %}

@@ -71,7 +71,7 @@
     <section class="kitchen-cal-area" aria-label="{{ group.profile_label }}">
       {% for meal in group.meals %}
       <div class="kitchen-cal-meal">
-        <div class="kitchen-cal-meal-label admin-list-secondary">{{ group.profile_label }} · {{ meal.meal_label }}{% if meal.state_label %} · {{ meal.state_label }}{% endif %}</div>
+        <div class="kitchen-cal-meal-label admin-list-secondary">{% if loop.first %}<span class="kitchen-cal-area-title">{{ group.profile_label }}</span> · {% endif %}{{ meal.meal_label }}{% if meal.state_label %} · {{ meal.state_label }}{% endif %}</div>
         {% if meal.notice and meal.state != 'open' %}<p class="kitchen-cal-notice admin-list-meta">{{ meal.notice }}</p>{% endif %}
         {% if meal.courses %}
         <p class="kitchen-cal-course admin-list-meta">
@@ -124,8 +124,8 @@
           {% if cell.in_month and not cell.groups and not cell.events %}<span class="kitchen-cal-empty visually-hidden">Keine Einträge für diesen Tag.</span>{% endif %}
           <a class="kitchen-cal-day-head admin-list-primary" href="{{ plan_href(cell.date, (cell.groups[0].family if cell.groups else plan_family), cell.plan_week_start) }}">
             <span class="kitchen-cal-day-num">{{ cell.date.day }}</span>
-            {% if cell.is_today %}{{ label('Heute', 'info', class='kitchen-cal-today-mark') }}{% endif %}
           </a>
+          {% if cell.is_today %}{{ label('Heute', 'info', class='kitchen-cal-today-mark') }}{% endif %}
           {{ day_plan_btn(cell) }}
         </div>
         {% if cell.groups or cell.events %}{{ day_body(cell) }}{% endif %}

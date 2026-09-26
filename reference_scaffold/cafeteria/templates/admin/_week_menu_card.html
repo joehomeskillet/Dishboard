@@ -5,7 +5,7 @@
 {% set slot_name = cell.title if cell.title else 'Noch kein Gericht' %}
 {% set slot_action = 'actions.edit' if cell.title else 'actions.add' %}
 <div class="col-12 col-md-6">
-  <div class="menu-slot admin-list-row h-100" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
+  <div class="menu-slot admin-list-row h-100" id="week-slot-{{ cell.day }}-{{ cell.meal }}-{{ cell.option }}" data-day="{{ cell.day }}" data-meal="{{ cell.meal }}" data-option="{{ cell.option }}" data-row-version="{{ cell.row_version }}">
     <div class="card-body{% if family == 'patienten' %} patient-admin-option{% endif %}">
       <div class="admin-week-card-title">
       <small class="text-secondary dish-type admin-list-secondary">{{ cell.option_label }}</small>
@@ -30,9 +30,9 @@
       {% if cell.title %}
       <div data-menu-metadata>
         {% if not cell.allergens %}
-        <p>Allergenangaben nicht erfasst</p>
+        <p>{{ ui_label('Allergenangaben nicht erfasst', 'warning', detail='Nicht erfasst bedeutet nicht allergenfrei') }}</p>
         {% elif cell.allergen_review_status|default('not_checked') != 'checked' %}
-        <p>Allergenprüfung offen</p>
+        <p>{{ ui_label('Allergenprüfung offen', 'warning') }}</p>
         {% endif %}
         <div class="labels badge-list">
           {% for label in cell.labels if label.code|lower in ('vegan', 'vegetarian') %}
@@ -55,7 +55,9 @@
       </div>
       {% endif %}
       <p class="admin-week-review-line">
-        <span class="slot-badge" data-review="{{ 'open' if cell.review_open else 'checked' }}">{{ status_badge_sem('review.pending' if cell.review_open else 'review.approved') }}</span>
+        {% if cell.title and cell.review_open and review_badges|default(false) %}
+        <span class="slot-badge" data-review="open">{{ status_badge_sem('review.pending') }}</span>
+        {% endif %}
       </p>
       {% if show_prices %}
       <p>
@@ -85,7 +87,7 @@
           <figcaption class="visually-hidden">KI-generierter Serviervorschlag</figcaption>
         </figure>
         {% else %}
-        <p class="admin-list-secondary admin-week-image-missing" data-menu-image>Kein passendes Menübild</p>
+        <p class="admin-list-secondary admin-week-image-missing" data-menu-image>{{ ui_label('Kein passendes Menübild', 'neutral') }}</p>
         {% endif %}
       {% endif %}
       {% if cell.title and (cell.description or cell.note) %}

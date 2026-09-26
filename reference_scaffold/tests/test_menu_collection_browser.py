@@ -44,10 +44,11 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
             row_height = page.locator('[data-menu-list-id]').first.bounding_box()['height']
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             expect(page.locator('main .btn-primary')).to_have_count(1)
-            expect(page.locator('.admin-statusbar')).to_contain_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
-            expect(page.locator('#menu-list .admin-table-status summary .badge')).to_have_count(1)
+            expect(page.locator('nav.profile-tabs a[aria-current="true"]')).to_have_text(
+                'Cafeteria' if family == 'cafeteria' else 'Patienten')
+            expect(page.locator('#menu-review-summary')).to_contain_text('1 Menü: Prüfung offen')
+            expect(page.locator('#menu-list .admin-table-status .admin-label')).to_have_count(0)
             expect(page.locator('#menu-list table.admin-table.admin-table--stack')).to_have_count(1)
-            expect(page.locator('#menu-list summary .admin-label.admin-status--warning')).to_be_visible()
             expect(page.locator('#menu-list [data-semantic="actions.edit"]')).to_have_accessible_name('Referenzmenü vom 31.08.2026 bearbeiten')
             expect(page.locator('#menu-list [data-semantic="actions.edit"]')).to_have_text('')
             expect(page.locator('main .btn-primary')).to_have_count(1)
@@ -58,15 +59,10 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
                     return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
                 }''')
                 assert stacked, width
-            hint = page.locator('#menu-list details.admin-disclosure').first
-            summary = hint.locator('summary')
-            expect(summary).to_be_visible()
-            summary.focus()
-            expect(summary).to_be_focused()
-            if hint.get_attribute('open') is None:
-                page.keyboard.press('Enter')
-            expect(hint).to_have_attribute('open', '')
-            page.keyboard.press('Enter')
+            edit = page.locator('#menu-list [data-semantic="actions.edit"]').first
+            edit.focus()
+            expect(edit).to_be_focused()
+            expect(page.locator('#menu-list details.admin-disclosure')).to_have_count(0)
             assert row_height < (284 if width < 1440 else 86)
             page.screenshot(path=str(tmp_path / f'list-{width}.png'), full_page=True)
             page.locator('#menu-list [data-semantic="actions.edit"]').first.click()
@@ -188,7 +184,7 @@ def test_collection_navigation_search_and_mobile_layout(page_context, admin_app,
         assert not page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
         expect(page.locator('#menu-list')).to_be_visible()
         assert page.locator('[data-menu-list-id]').first.bounding_box()['width'] >= 250
-    page.get_by_role('searchbox', name='Suchen', exact=True).fill('Kartoffelgratin')
+    page.locator('#menu-query-search').fill('Kartoffelgratin')
     page.get_by_role('button', name='Suchen', exact=True).click()
     expect(page.locator('[data-menu-id]')).to_have_count(1)
     page.get_by_role('link', name='Kartoffelgratin mit Gemüse vom 31.08.2026 bearbeiten').click()
@@ -333,7 +329,7 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
     expect(cards).to_be_focused()
     expect(cards).to_have_attribute('aria-selected', 'true')
     expect(page.locator('#menu-cards')).to_be_visible()
-    page.get_by_role('searchbox', name='Suchen', exact=True).fill('Kartoffelgratin')
+    page.locator('#menu-query-search').fill('Kartoffelgratin')
     page.get_by_role('button', name='Suchen', exact=True).click()
     assert parse_qs(urlsplit(page.url).query) == {'q': ['Kartoffelgratin']}
     listing.click()
