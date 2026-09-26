@@ -34,28 +34,17 @@
       "haupt_typografie:tabelle-1"
     ],
     "zutaten": [
-      "1440:filtereinstieg_text",
-      "390:filtereinstieg_text",
       "haupt_typografie:zeilen-1",
       "sekundaer_typografie:zeilen-1"
     ],
     "einheiten": [
-      "1440:filtereinstieg_text",
-      "390:filtereinstieg_text",
       "haupt_typografie:zeilen-1"
     ],
-    "kategorien": [
-      "1440:filtereinstieg_text",
-      "390:filtereinstieg_text"
-    ],
+    "kategorien": [],
     "kennzeichnungen": [
-      "1440:filtereinstieg_text",
-      "390:filtereinstieg_text",
       "haupt_typografie:zeilen-1"
     ],
     "lagerorte": [
-      "1440:filtereinstieg_text",
-      "390:filtereinstieg_text",
       "haupt_typografie:zeilen-1"
     ],
     "rezepte": [
