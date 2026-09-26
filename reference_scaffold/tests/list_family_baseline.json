@@ -15,18 +15,14 @@
       "kopf_typografie:tabelle-1"
     ],
     "wochenplan-cafeteria": [
-      "1440:kopfaktion_text",
       "1440:zeilenaktion_text:karten-1",
-      "390:kopfaktion_text",
       "390:zeilenaktion_text:karten-1",
       "haupt_typografie:karten-1",
       "karte_je_zeile:karten-1",
       "sekundaer_typografie:karten-1"
     ],
     "wochenplan-patienten": [
-      "1440:kopfaktion_text",
       "1440:zeilenaktion_text:karten-1",
-      "390:kopfaktion_text",
       "390:zeilenaktion_text:karten-1",
       "haupt_typografie:karten-1",
       "karte_je_zeile:karten-1",
@@ -50,72 +46,45 @@
     ],
     "bausteine-cafeteria": [
       "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:tabelle-1",
       "390:kopfaktion_text",
-      "390:zeilenaktion_text:tabelle-1",
       "kopf_typografie:tabelle-1"
     ],
     "bausteine-patienten": [
       "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:tabelle-1",
       "390:kopfaktion_text",
-      "390:zeilenaktion_text:tabelle-1",
       "kopf_typografie:tabelle-1"
     ],
     "kuechenkalender": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:tabelle-1",
       "kopf_typografie:tabelle-1"
     ],
     "zutaten": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:zeilen-1",
       "sekundaer_typografie:zeilen-1"
     ],
     "einheiten": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:zeilen-1"
     ],
-    "kategorien": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text"
-    ],
+    "kategorien": [],
     "kennzeichnungen": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:zeilen-1"
     ],
     "lagerorte": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:zeilen-1"
     ],
     "rezepte": [
-      "1440:kopfaktion_text",
       "1440:zeilenaktion_text:karten-1",
-      "390:kopfaktion_text",
       "390:zeilenaktion_text:karten-1",
       "karte_je_zeile:karten-1"
     ],
     "gerichtvorlagen": [
-      "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:tabelle-1",
-      "390:kopfaktion_text",
-      "390:zeilenaktion_text:tabelle-1",
       "haupt_typografie:tabelle-1"
     ],
     "lager": [
-      "1440:zeilenaktion_text:tabelle-1",
-      "390:zeilenaktion_text:tabelle-1",
       "haupt_typografie:tabelle-1"
     ],
     "kochbuecher": [
-      "1440:kopfaktion_text",
       "1440:zeilenaktion_text:zeilen-1",
-      "390:kopfaktion_text",
       "390:zeilenaktion_text:zeilen-1"
     ],
     "einkaufslisten": [
@@ -126,14 +95,9 @@
     ],
     "bestellungen": [
       "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:zeilen-1",
-      "390:kopfaktion_text",
-      "390:zeilenaktion_text:zeilen-1"
-    ],
-    "kalkulation": [
-      "1440:kopfaktion_text",
       "390:kopfaktion_text"
     ],
+    "kalkulation": [],
     "vorlagen": [
       "1440:kopfaktion_text",
       "1440:zeilenaktion_text:zeilen-1",
@@ -161,61 +125,32 @@
       "karte_je_zeile:karten-1"
     ],
     "benutzer": [
-      "1440:kopfaktion_text",
       "1440:zeilenaktion_text:zeilen-1",
-      "390:kopfaktion_text",
       "390:zeilenaktion_text:zeilen-1"
     ],
-    "benutzerprotokoll": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text"
-    ],
+    "benutzerprotokoll": [],
     "api-schluessel": [
-      "1440:kopfaktion_text",
       "1440:zeilenaktion_text:tabelle-1",
-      "390:kopfaktion_text",
       "390:zeilenaktion_text:tabelle-1"
     ],
-    "zugriffsverlauf": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text"
-    ],
+    "zugriffsverlauf": [],
     "importe": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:tabelle-1"
     ],
     "datenimport": [],
-    "bereiche-zeiten": [
-      "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:tabelle-1",
-      "390:kopfaktion_text",
-      "390:zeilenaktion_text:tabelle-1"
-    ],
+    "bereiche-zeiten": [],
     "rezept-revisionen": [
-      "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:tabelle-2",
-      "390:kopfaktion_text",
-      "390:zeilenaktion_text:tabelle-2",
       "haupt_typografie:tabelle-2"
     ],
     "rezept-skalierung": [],
-    "rezept-bilder": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text"
-    ],
+    "rezept-bilder": [],
     "kochbuch": [],
-    "einkaufsliste": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text"
-    ],
+    "einkaufsliste": [],
     "bestellkorb": [
       "1440:kopfaktion_text",
       "390:kopfaktion_text"
     ],
     "import-detail": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:tabelle-1"
     ]
   }
