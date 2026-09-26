@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, disclosure_section, hint, list_row, label %}
-{% from 'ui/_semantic.html' import icon_label, icon_button %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, filter_trigger %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}{{ t('navigation.ingredients.label') }} · Menüplanung{% endblock %}
 {% block page_header %}
@@ -53,7 +53,8 @@
 {% if kind == 'zutaten' %}
 <div><label class="form-label" for="q">Zutat suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ request.args.get('q', '') }}"></div>
 {% endif %}
-<details class="admin-compact-details grundlagen-filter-options"{% if filters_active %} open{% endif %}><summary>{{ icon_label('view.filter') }}</summary><div class="grundlagen-filter-fields">
+{% set filter_count = (1 if kind == 'zutaten' and request.args.get('category') else 0) + (1 if kind == 'zutaten' and request.args.get('tag') else 0) + (1 if request.args.get('archived') == '1' else 0) %}
+<details class="admin-compact-details admin-filter-more grundlagen-filter-options"{% if filters_active %} open{% endif %}>{{ filter_trigger(id='master-filter', count=filter_count, explicit=true) }}<div class="grundlagen-filter-fields">
 {% if kind == 'zutaten' %}
 {% for field, label, choices in [('category', 'Kategorie', categories), ('tag', 'Kennzeichnung', tags)] %}
 <div><label class="form-label" for="{{ field }}">{{ label }}</label><select class="form-select" id="{{ field }}" name="{{ field }}"><option value="">Alle</option>

@@ -153,6 +153,10 @@
   {{ page_header(t(sem(title_key).label_key), description=t(sem(description_key).label_key) if description_key else none, actions=actions, status_items=translated) }}
 {%- endmacro %}
 
+{% macro filter_trigger(id='filters', count=0, explicit=false) -%}
+  <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="view.filter" data-ui-tooltip="{{ t(sem('view.filter').aria_key) }}" aria-label="{{ t(sem('view.filter').aria_key) }}"{% if count %} aria-describedby="{{ id }}-count"{% endif %}>{{ sem_icon('view.filter') }}<span id="{{ id }}-count" class="admin-filter-count"{% if explicit %} data-filter-count-explicit{% endif %}{% if not count %} hidden{% endif %}>{{ count }}</span></summary>
+{%- endmacro %}
+
 {% macro filter_bar_sem(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none) -%}
   {{ filter_bar(action, search_name=search_name, search_value=search_value, filters=filters, more_filters=more_filters, active=active, reset_url=reset_url, id=id, maxlength=maxlength, describedby=describedby, loading=loading, open=open, profile=profile, active_filters=active_filters, active_count=active_count) }}
 {%- endmacro %}

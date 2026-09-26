@@ -309,6 +309,23 @@ def test_c3_nonempty_hint_keeps_help_and_relationship(semantic_app):
     assert document.select_one('summary')['aria-describedby'] == 'help'
     assert document.select_one('#help').get_text() == 'CSV ändert keinen Status.'
 
+@pytest.mark.parametrize('count', [0, 2])
+def test_c3_shared_filter_trigger_is_named_icon_with_optional_count(semantic_app, count):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'ui/_semantic.html' import filter_trigger %}{{ filter_trigger('test-filter', count, true) }}",
+            count=count)
+    summary = BeautifulSoup(html, 'html.parser').summary
+    assert summary['aria-label'] == 'Filtern'
+    assert summary['data-ui-tooltip'] == 'Filtern'
+    assert summary.select_one('use')['href'].endswith('#tabler-filter')
+    assert summary.select_one('.admin-filter-count').has_attr('hidden') == (count == 0)
+    assert summary.has_attr('aria-describedby') == bool(count)
+    assert summary.get_text(strip=True) == str(count)
+
+
 def test_registry_icons_in_sprite():
     from cafeteria.ui.semantics import load_registry, sprite_icons
     

@@ -460,7 +460,7 @@
 {%- endmacro %}
 
 {%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none) -%}
-{% from 'ui/_semantic.html' import icon_button, sem_icon %}
+{% from 'ui/_semantic.html' import icon_button, filter_trigger %}
 {# Compatibility for the existing profile-only slot; new callers use profile=. #}
 {% if profile is none and filters and 'profile-tabs' in filters %}{% set profile = filters %}{% set filters = none %}{% endif %}
 {% set count = active_count if active_count is not none else active_filters|length if active_filters else 0 %}
@@ -469,7 +469,7 @@
   {% if profile %}<div class="admin-filter-profile">{{ profile }}</div>{% endif %}
   {% if filters or more_filters %}
   <details class="admin-filter-more"{% if open %} open{% endif %}>
-    <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="view.filter" data-ui-tooltip="{{ t(sem('view.filter').aria_key) }}" aria-label="{{ t(sem('view.filter').aria_key) }}"{% if count %} aria-describedby="{{ id }}-count"{% endif %}>{{ sem_icon('view.filter') }}<span id="{{ id }}-count" class="admin-filter-count"{% if active_count is not none %} data-filter-count-explicit{% endif %}{% if not count %} hidden{% endif %}>{{ count }}</span></summary>
+    {{ filter_trigger(id=id, count=count, explicit=active_count is not none) }}
     <div class="admin-filter-slots">{{ filters or '' }}{{ more_filters or '' }}{{ icon_button('actions.apply') }}</div>
   </details>
   {% endif %}
