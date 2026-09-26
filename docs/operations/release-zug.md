@@ -47,23 +47,13 @@ geteilten Haupt-Tree. Neue Dateien vorher mit `git add` erfassen.
 Das Gate (Schritt 6) läuft in vier Teilen parallel auf eigenen Pools (A Signage/Public, B Shell/Woche,
 C Routen/Stores/Semantik, D Paket- und Label-Treffer) und wertet die JUnit-Dateien gegen
 `tools/release/known_red.txt` aus. Danach Ledger-Eintrag: Revision, Deploy-Zeit, Inhalt, Gate-Zahlen.
-Teil D wird anhand der Starter und tatsächlich angeforderten Fixture-Abhängigkeiten aufgeteilt:
-
-- **D1:** reine eigene `sync_playwright(`-Starter, auch über importierte Fixtures, ohne
-  Session-Browser-Abhängigkeit; alle Dateien gemeinsam in einem pytest-Prozess.
-- **D2:** reine Session-Fixture-Dateien sowie Nicht-Browser-Dateien; gemeinsam in einem zweiten Prozess.
-- **D3:** Mischdateien mit eigenem Starter und Session-Browser-Abhängigkeit; **jede Datei in einem
-  eigenen pytest-Prozess**, nacheinander nach D2.
-
-Die Erkennung verfolgt Fixture-Parameter wie `browser`, `page`, `context`, `browser_context`,
-`page_context` oder `site` durch lokale Definitionen, importierte Testmodule und `conftest.py` bis
-zur Playwright-Session-Fixture. Lokale/importierte Ersatz-Fixtures werden nach ihren Abhängigkeiten
-und ihrem Scope bewertet; ein eigener sessionweiter Playwright-Starter zählt ebenfalls als Mischung.
-D1, D2 und alle D3-Prozesse laufen strikt nacheinander auf `POOL_D`; A–C können parallel weiterlaufen.
-Leere Gruppen starten keinen Prozess. Logs und JUnit-Dateien heissen `d1.log`/`d1.xml`,
-`d2.log`/`d2.xml` und `d3-<n>.log`/`d3-<n>.xml` (ab 1). `new_failures.py` erhält alle XML-Dateien
-im Log-Ordner, einschliesslich sämtlicher D3-Ergebnisse. Infrastruktur-Exitcodes blockieren weiterhin.
-`RELEASE_GATE_DRY_RUN=1` vor dem Gate-Befehl zeigt nur die Gruppen, ohne Pools oder Tests zu starten.
+In Teil D läuft **jede Browserdatei in einem eigenen pytest-Prozess**, weil Playwright-Sync-API
+und Session-Fixtures sich nicht in einem Prozess vertragen. Dateien mit `playwright`, `_browser`
+oder `test_rendered_ui` im Inhalt laufen vorsorglich einzeln; im Zweifel ebenfalls einzeln.
+Nicht-Browser-Dateien laufen gemeinsam (`d0.xml`), danach Browserdateien nacheinander auf `POOL_D`
+(`d-<n>.xml`, ab 1; Logs gleichnamig mit `.log`). Leere Gruppen starten keinen Prozess.
+`new_failures.py` wertet weiterhin alle XML-Dateien aus; Infrastrukturfehler blockieren weiterhin.
+`RELEASE_GATE_DRY_RUN=1` zeigt «gemeinsam» und «einzeln», ohne Pools oder Tests zu starten.
 
 ## 4. Entscheidungsregeln
 

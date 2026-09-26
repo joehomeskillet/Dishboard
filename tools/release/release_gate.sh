@@ -19,7 +19,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT="/var/tmp/dishboard-release-gate/$(date +%Y%m%d-%H%M%S)"
 COMMON=(-p no:cacheprovider -p no:randomly --tb=line --show-capture=no -rfE)
 
-# Feste Leitplanken; zusätzliche Dateien werden unten auf D1/D2/D3 verteilt.
+# Feste Leitplanken; zusätzliche Dateien werden unten in Teil D aufgeteilt.
 part_a=(tests/test_signage_patient.py tests/test_signage_ops_browser.py tests/test_signage_cafeteria_day.py
         tests/test_signage_cafeteria_week.py tests/test_public_contracts.py tests/test_public_equal_cards_browser.py
         tests/test_preview_equal_cards_browser.py)
@@ -53,170 +53,22 @@ for f in "$@" "${label_hits[@]}"; do
   fi
   candidates+=("$f")
 done
-if ! groups="$(python3 - "$WT/reference_scaffold" "${candidates[@]}" <<'PY'
-import ast
-import sys
-from pathlib import Path
-
-root = Path(sys.argv[1]).resolve()
-session_names = {'browser', 'browser_type', 'playwright', 'context', 'page', 'new_context',
-                 'browser_context'}
-modules = {}
-
-
-def module(path):
-    if path not in modules:
-        source = path.read_text(encoding='utf-8')
-        modules[path] = (source, ast.parse(source, filename=str(path)))
-    return modules[path]
-
-
-def imported_path(path, node):
-    if not node.module:
-        return None
-    relative = Path(*node.module.split('.'))
-    bases = [path.parent, root, root / 'tests']
-    if node.level:
-        bases = [path.parents[node.level - 1]]
-    for base in bases:
-        candidate = (base / relative).with_suffix('.py')
-        if candidate.is_file():
-            return candidate.resolve()
-    return None
-
-
-def resolve(path, name, visiting=frozenset()):
-    key = (path, name)
-    if key in visiting:
-        return None
-    for node in reversed(module(path)[1].body):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
-            return path, node
-        if isinstance(node, ast.ImportFrom):
-            for alias in node.names:
-                if (alias.asname or alias.name) == name or alias.name == '*':
-                    imported = imported_path(path, node)
-                    if imported:
-                        found = resolve(imported, name if alias.name == '*' else alias.name,
-                                        visiting | {key})
-                        if found:
-                            return found
-    return None
-
-
-def definitions(path):
-    result = {}
-    for node in module(path)[1].body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            result[node.name] = (path, node)
-        elif isinstance(node, ast.ImportFrom):
-            for alias in node.names:
-                if alias.name == '*':
-                    raise ValueError(f'{path}: Sternimport verhindert sichere Fixture-Einteilung')
-                name = alias.asname or alias.name
-                found = resolve(path, name)
-                if found:
-                    result[name] = found
-    return result
-
-
-def fixture_options(node):
-    for decorator in node.decorator_list:
-        target = decorator.func if isinstance(decorator, ast.Call) else decorator
-        if getattr(target, 'attr', getattr(target, 'id', None)) == 'fixture':
-            return {kw.arg: kw.value.value for kw in getattr(decorator, 'keywords', [])
-                    if isinstance(kw.value, ast.Constant)}
-    return None
-
-
-def dependencies(node):
-    names = {arg.arg for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs}
-    for decorator in node.decorator_list:
-        if not isinstance(decorator, ast.Call):
-            continue
-        mark = getattr(decorator.func, 'attr', '')
-        if mark == 'parametrize' and decorator.args:
-            value = decorator.args[0]
-            indirect = any(kw.arg == 'indirect' and not
-                           (isinstance(kw.value, ast.Constant) and kw.value.value is False)
-                           for kw in decorator.keywords)
-            if isinstance(value, ast.Constant) and isinstance(value.value, str) and not indirect:
-                names.difference_update(name.strip() for name in value.value.split(','))
-        if mark == 'usefixtures':
-            names.update(arg.value for arg in decorator.args if isinstance(arg, ast.Constant))
-    for call in ast.walk(node):
-        if (isinstance(call, ast.Call) and getattr(call.func, 'attr', '') == 'getfixturevalue'
-                and call.args and isinstance(call.args[0], ast.Constant)):
-            names.add(call.args[0].value)
-    return names
-
-
-for filename in sys.argv[2:]:
-    path = root / filename
-    source, tree = module(path)
-    own = 'sync_playwright(' in source
-    visible = {}
-    # Pytest löst Fixture-Abhängigkeiten im Kontext der konsumierenden Datei auf.
-    for parent in reversed(path.parents):
-        if parent != root.parent and not parent.is_relative_to(root):
-            continue
-        conftest = parent / 'conftest.py'
-        if conftest.is_file():
-            visible.update(definitions(conftest))
-    visible.update(definitions(path))
-    fixtures = {}
-    for name, (origin, node) in visible.items():
-        options = fixture_options(node)
-        if options is not None:
-            fixtures[options.get('name', name)] = (origin, node, options)
-    pending = set()
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith('test_'):
-            pending.update(dependencies(node))
-    pending.update(name for name, (_, _, opts) in fixtures.items() if opts.get('autouse'))
-    visited = set()
-    session = False
-    while pending:
-        name = pending.pop()
-        if name in visited:
-            continue
-        visited.add(name)
-        if name not in fixtures:
-            session |= name in session_names
-            continue
-        origin, node, options = fixtures[name]
-        starter = 'sync_playwright(' in ast.get_source_segment(module(origin)[0], node)
-        own |= starter
-        session |= starter and options.get('scope') == 'session'
-        deps = dependencies(node)
-        # Eine gleichnamige Override-Fixture kann die Plugin-Fixture anfordern.
-        session |= name in deps and name in session_names
-        pending.update(deps - {name})
-    print(('d3' if own and session else 'd1' if own else 'd2') + '\t' + filename)
-PY
-)"; then
-  echo 'FEHLER: Teil-D-Einteilung fehlgeschlagen' >&2
-  exit 2
-fi
-own=(); fixture=(); mixed=()
-while IFS=$'\t' read -r group f; do
-  case "$group" in
-    d1) own+=("$f") ;;
-    d2) fixture+=("$f") ;;
-    d3) mixed+=("$f") ;;
-  esac
-done <<<"$groups"
+# Browser-Hinweise bewusst breit: im Zweifel ein eigener Prozess.
+together=(); single=()
+for f in "${candidates[@]}"; do
+  grep -E 'playwright|_browser|test_rendered_ui' "$WT/reference_scaffold/$f" >/dev/null
+  if (($? == 1)); then together+=("$f"); else single+=("$f"); fi
+done
 echo "Teil D: ${#candidates[@]} Dateien (${#label_hits[@]} aus Label-Grep)"
-echo "D1: ${#own[@]} Dateien; D2: ${#fixture[@]} Dateien; D3: ${#mixed[@]} Dateien (je ein Prozess)"
+echo "gemeinsam: ${#together[@]} Dateien; einzeln: ${#single[@]} Dateien (je ein Prozess)"
 if [[ "${RELEASE_GATE_DRY_RUN:-0}" == 1 ]]; then
   for group in a b c; do
     declare -n files="part_$group"
     printf '%s: %s Dateien\n' "$group" "${#files[@]}"
     printf '  %s\n' "${files[@]}"
   done
-  for f in "${own[@]}"; do printf 'D1: %s\n' "$f"; done
-  for f in "${fixture[@]}"; do printf 'D2: %s\n' "$f"; done
-  for f in "${mixed[@]}"; do printf 'D3: %s\n' "$f"; done
+  for f in "${together[@]}"; do printf 'gemeinsam: %s\n' "$f"; done
+  for f in "${single[@]}"; do printf 'einzeln: %s\n' "$f"; done
   exit 0
 fi
 mkdir -p "$OUT"
@@ -232,21 +84,16 @@ run_part a "${part_a[@]}" & pids[a]=$!
 run_part b "${part_b[@]}" & pids[b]=$!
 run_part c "${part_c[@]}" & pids[c]=$!
 parts=(a b c)
-if ((${#own[@]})); then
-  run_part d1 "${own[@]}" & pids[d1]=$!
-  parts+=(d1)
+previous=""
+if ((${#together[@]})); then
+  run_part d0 "${together[@]}" & pids[d0]=$!
+  parts+=(d0)
+  previous="${pids[d0]}"
 fi
-if ((${#fixture[@]})); then
-  # Bash bewahrt den Exit-Code für das zweite wait in der Auswertung unten auf.
-  if [[ -n "${pids[d1]:-}" ]]; then wait "${pids[d1]}"; fi
-  run_part d2 "${fixture[@]}" & pids[d2]=$!
-  parts+=(d2)
-fi
-previous="${pids[d2]:-${pids[d1]:-}}"
-for i in "${!mixed[@]}"; do
+for i in "${!single[@]}"; do
   if [[ -n "$previous" ]]; then wait "$previous"; fi
-  part="d3-$((i + 1))"
-  run_part "$part" "${mixed[$i]}" & pids[$part]=$!
+  part="d-$((i + 1))"
+  run_part "$part" "${single[$i]}" & pids[$part]=$!
   parts+=("$part")
   previous="${pids[$part]}"
 done
