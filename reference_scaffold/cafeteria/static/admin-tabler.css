@@ -459,6 +459,9 @@
 .dishboard-admin .admin-compact-summary:empty { display: none; }
 .dishboard-admin .admin-compact-detail-body { padding-top: var(--app-space-3); }
 .dishboard-admin .admin-compact-details > summary { margin-top: var(--app-space-2); }
+/* A rendered disclosure icon replaces the native triangle, including no-JS. */
+.dishboard-admin summary:has(use[href$="#tabler-chevron-right"], use[href$="#tabler-chevron-down"]) { list-style: none; }
+.dishboard-admin summary:has(use[href$="#tabler-chevron-right"], use[href$="#tabler-chevron-down"])::-webkit-details-marker { display: none; }
 .dishboard-admin :is(.admin-compact-details, .admin-compact-actions) > summary {
   min-height: var(--app-space-12); padding: var(--app-space-2) var(--app-space-3);
   white-space: normal; overflow-wrap: anywhere; cursor: pointer;

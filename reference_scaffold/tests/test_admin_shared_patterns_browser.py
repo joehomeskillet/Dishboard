@@ -122,6 +122,30 @@ def _polish_check(markup, check, width, javascript):
         server.server_close()
 
 
+@pytest.mark.parametrize('width', [390, 1440])
+@pytest.mark.parametrize('javascript', [False, True])
+def test_c3_disclosure_has_one_marker_and_native_keyboard_state(width, javascript):
+    markup = '''{% from 'admin/_macros.html' import disclosure_section %}
+        {% from 'ui/_semantic.html' import icon_label %}
+        {% call disclosure_section(id='shared') %}<p>Inhalt</p>{% endcall %}
+        <details id="nested"><summary>{{ icon_label('ui.disclosure.details') }}</summary>Details</details>
+        <details id="native"><summary>Ohne SVG</summary>Inhalt</details>'''
+
+    def verify(page):
+        for selector in ('#shared', '#nested'):
+            summary = page.locator(selector + ' > summary')
+            expect(summary).to_have_css('list-style-type', 'none')
+            expect(summary.locator('svg')).to_have_count(1)
+            summary.focus()
+            summary.press('Enter')
+            expect(page.locator(selector)).to_have_attribute('open', '')
+            summary.press('Space')
+            expect(page.locator(selector)).not_to_have_attribute('open', '')
+        assert page.locator('#native > summary').evaluate('el => getComputedStyle(el).listStyleType') != 'none'
+
+    _run_polish_check(markup, verify, width, javascript)
+
+
 @pytest.mark.parametrize('width,columns', [(360, 1), (768, 2), (1024, 2), (1440, 3), (1920, 3)])
 def test_polish_field_grid_targets_and_adjacent_error(width, columns):
     markup = '''{% from 'admin/_macros.html' import field, select, check %}
