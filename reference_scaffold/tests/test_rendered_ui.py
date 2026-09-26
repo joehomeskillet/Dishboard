@@ -1237,7 +1237,7 @@ def test_admin_components_list_marks_archived_and_usage(
     archive_component(engine, scope, str(rice['public_id']), int(rice['row_version']))
     html = client.get('/admin/patienten/komponenten?include_archived=1').get_data(as_text=True)
     assert 'Archiviert' in html
-    assert 'verwendet in 1 Gerichten' in html
+    assert '1 Gericht' in html
     assert f'data-public-id="{potato["public_id"]}"' in html
     assert 'data-active="1"' in html
     assert 'data-active="0"' in html

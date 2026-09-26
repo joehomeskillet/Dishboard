@@ -64,6 +64,8 @@
 {{ icon_button('view.search') }}
 {% if filters_active %}{{ icon_button('view.reset', href=url_for('admin.master_data_list', kind=query_kinds[kind])) }}{% endif %}
 </form>
+{% if kind == 'zutaten' %}{% set missing_storage = rows|rejectattr('storage_locations')|list|length %}
+{% if missing_storage %}<p class="admin-list-secondary" role="status">Lagerort fehlt: {{ missing_storage }} {{ 'Zutat' if missing_storage == 1 else 'Zutaten' }} in dieser Liste.</p>{% endif %}{% endif %}
 <div class="card grundlagen-list">
 {% for item in rows %}
 {% set primary %}<a class="admin-list-primary text-break" href="{{ url_for('admin.master_data_detail', kind=kind, public_id=item.public_id) }}">{{ item.display_name if kind == 'einheiten' else item.name }}</a>{% endset %}

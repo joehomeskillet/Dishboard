@@ -314,7 +314,7 @@ def test_component_food_selection_browser_roundtrip(
     assert receipts[0]['food_public_id'] == food['public_id']
     page.goto(list_path)
     row = page.locator(f'.component-row[data-public-id="{public_id}"]')
-    expect(row.locator('.admin-list-secondary')).to_contain_text(str(food['name']))
+    expect(row.locator('.component-row-name .admin-list-secondary')).to_contain_text(str(food['name']))
     page.goto(f'{list_path}/{public_id}')
     page.locator('#c-food').select_option('')
     with page.expect_response(lambda response: response.request.method == 'POST') as denied:
