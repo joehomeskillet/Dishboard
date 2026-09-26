@@ -20,7 +20,7 @@ from test_master_data_routes import (  # noqa: F401
 )
 from test_recipe_store_db import payload as recipe_payload
 
-COLUMNS = ('Titel', 'Menüart', 'Geltungsbereich', 'Gebundenes Rezept', 'Dazu', 'Aktivstatus')
+COLUMNS = ('Titel', 'Menüart', 'Geltungsbereich', 'Dazu')
 
 
 def snapshot(owner):
@@ -97,6 +97,10 @@ def test_list_columns_sidebar_and_create_without_target(b3):  # noqa: F811
     assert path.startswith('/admin/gerichtvorlagen/')
     assert 'Ohne Ziel' in filled.text
     assert all(column in filled.text for column in COLUMNS)
+    assert 'Nur aktive Gerichtvorlagen' in filled.text
+    assert '<th scope="col">Aktivstatus</th>' not in filled.text
+    mixed = client.get('/admin/gerichtvorlagen?archived=1')
+    assert '<th scope="col">Aktivstatus</th>' in mixed.text
     assert len(snapshot(owner)['dish_templates']) == len(before['dish_templates']) + 1
     assert len(snapshot(owner)['audit_events']) == len(before['audit_events']) + 1
 
@@ -280,9 +284,11 @@ def test_prefill_get_does_not_write_and_uses_the_existing_recipe_editor(b3):  # 
     assert snapshot(owner) == before
     path = create(client, recipe_public_id=recipe.public_id)
     listing = client.get('/admin/gerichtvorlagen')
-    assert f'href="/admin/rezepte/{recipe.public_id}/ansicht"' in listing.text
-    assert 'Rezept: Vorbelegte Suppe' in listing.text
-    assert 'Noch kein gespeicherter Stand' in listing.text and 'In 0 Menüs verwendet' in listing.text
+    assert 'Noch kein gespeicherter Stand' not in listing.text
+    detail = client.get(path)
+    assert f'href="/admin/rezepte/{recipe.public_id}/ansicht"' in detail.text
+    assert 'Rezept: Vorbelegte Suppe' in detail.text
+    assert 'Noch kein gespeicherter Stand' in detail.text and 'In 0 Menüs verwendet' in detail.text
     assert client.get('/admin/rezepte/' + recipe.public_id + '/ansicht').status_code == 200
     assert client.get(path).status_code == 200
 
@@ -351,7 +357,11 @@ def test_read_only_navigation_has_no_write_actions(b3, monkeypatch):  # noqa: F8
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
     for target in ('/admin/gerichtvorlagen', path):
         response = client.get(target)
-        assert response.status_code == 200 and 'Rezept: Gebundenes Rezept' in response.text
+        assert response.status_code == 200
+        if target == path:
+            assert 'Rezept: Gebundenes Rezept' in response.text
+        else:
+            assert f'href="{path}"' in response.text
         assert 'Vorlage anlegen</a>' not in response.text and 'name="action"' not in response.text
         assert 'Als Menü einplanen' not in response.text
     viewed = client.get('/admin/rezepte/' + recipe.public_id + '/ansicht')

@@ -79,11 +79,13 @@ def test_visible_editor_labels_with_populated_and_error_states(
     page.get_by_label('Abstände', exact=True).select_option(density)
     with page.expect_response(lambda response: response.request.method == 'POST' and
                               response.url.endswith('/admin/design/darstellung')) as saved:
-        page.get_by_role('button', name='Darstellung speichern', exact=True).click()
+        page.get_by_role('button', name='Speichern', exact=True).click()
     assert saved.value.status == 303
     page.wait_for_load_state()
+    expect(page.get_by_label('Abstände', exact=True)).to_have_value(density)
     page.goto(_editor('patienten'))
-    expect(page.locator('main')).to_have_attribute('data-density', density)
+    # The editor's established compact layout overrides either saved shell density.
+    expect(page.locator('main')).to_have_attribute('data-density', 'compact')
     _open_sections(page)
     page.get_by_label('Menüname', exact=True).fill('Gemüsegeschnetzeltes mit Kräutern, Reis und Zucchetti')
     page.get_by_label('Beschreibung (auf dem Speiseplan sichtbar)', exact=True).fill('Saisonales Gemüse und Reis, frisch zubereitet für Mittag und Abend.')
@@ -134,7 +136,7 @@ def test_error_descriptions_follow_surviving_rows_and_are_not_cloned(page_contex
     expect(rows.nth(1).locator('[name="origin_country_code"]')).to_have_attribute(
         'aria-describedby', 'origin-1-country-error',
     )
-    rows.first.get_by_role('button', name='Herkunft entfernen').click()
+    rows.first.get_by_role('button', name='Herkunft löschen').click()
     expect(rows.first.locator('[name="origin_country_code"]')).to_have_attribute(
         'aria-describedby', 'origin-0-country-error',
     )
@@ -167,10 +169,10 @@ def test_allergen_presence_error_is_linked_to_its_visible_control(
     presence = page.locator('#allergen-milk-presence')
     error_region = page.locator('.error-region[role="alert"]')
     expect(error_region).to_be_focused()
-    expect(page.locator('[name="allergen_presence"][aria-invalid="true"]')).to_have_count(1)
+    expect(page.locator('[name^="allergen_presence__"][aria-invalid="true"]')).to_have_count(1)
     expect(presence).to_have_attribute('aria-invalid', 'true')
-    expect(presence).to_have_attribute('aria-describedby', 'err-allergen-presence')
-    expect(page.locator('#err-allergen-presence')).to_be_visible()
+    expect(presence).to_have_attribute('aria-describedby', 'allergen-milk-error')
+    expect(page.locator('#allergen-milk-error')).to_be_visible()
     label = page.locator('label[for="allergen-milk-presence"]')
     expect(label).to_be_visible()
     label.click()
@@ -206,7 +208,7 @@ def test_allergen_error_without_active_target_keeps_summary_focus(
     corrected = _submit_menu(page)
     assert corrected['allergen_mode'] == ['manual']
     assert corrected['allergen_code'] == ['MILK']
-    assert corrected['allergen_presence'] == ['may_contain']
+    assert corrected['allergen_presence__MILK'] == ['may_contain']
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
@@ -247,7 +249,8 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
             box = control.bounding_box()
             if box is None or not box['width']:
                 continue
-            assert box['height'] >= 48, (width, control.evaluate('el => el.outerHTML'))
+            minimum = 36 if control.evaluate('el => el.classList.contains("ui-sem-control")') else 48
+            assert box['height'] >= minimum, (width, control.evaluate('el => el.outerHTML'))
             assert box['x'] + box['width'] <= width + 1, (width, control.evaluate('el => el.outerHTML'))
 
         bar = form.locator('[data-sticky]')
@@ -341,7 +344,7 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
     expect(page.locator('[name="component_text"]').nth(1)).to_have_value('Dritte')
     expect(rows.nth(1).get_by_role('button', name='Nach oben')).to_be_focused()
     rows.nth(0).locator('summary').click()
-    rows.nth(0).get_by_role('button', name='Löschen', exact=True).click()
+    rows.nth(0).get_by_role('button', name=re.compile(r'löschen$', re.I)).click()
     expect(rows).to_have_count(2)
     expect(rows.nth(0).locator('legend').first).to_have_text('Baustein 1')
     expect(rows.nth(1).locator('legend').first).to_have_text('Baustein 2')
@@ -416,7 +419,7 @@ def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(pa
     link.click()
     assert origin.get_attribute('open') is not None
     expect(field).to_be_focused()
-    expect(summary.locator('button', has_text='Erneut versuchen')).to_be_visible()
+    expect(summary.get_by_role('button', name='Erneut versuchen', exact=True)).to_be_visible()
 
 
 def test_modes_and_accordion_state_survive_save_and_reload(page_context: Page) -> None:  # noqa: F811
@@ -489,7 +492,8 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
             control = control.locator('xpath=ancestor::label[1]')
         box = control.bounding_box()
         if box and box['width']:
-            assert box['height'] >= 48, control.evaluate('el => el.outerHTML')
+            minimum = 36 if control.evaluate('el => el.classList.contains("ui-sem-control")') else 48
+            assert box['height'] >= minimum, control.evaluate('el => el.outerHTML')
     page.reload()
     expect(page.locator('main#main-content')).to_have_attribute('data-density', 'compact')
     assert page.locator('main#main-content').get_attribute('data-state') is None

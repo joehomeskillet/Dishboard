@@ -1,15 +1,11 @@
 .dishboard-menu-table { table-layout: fixed; width: 100%; min-width: 0; }
 .dishboard-menu-table.admin-table--stack tbody tr { height: auto; }
-.dishboard-menu-table th:nth-child(1) { width: 24%; }
+.dishboard-menu-table th:nth-child(1) { width: 40%; }
 .dishboard-menu-table th:nth-child(2) { width: 14%; }
 .dishboard-menu-table th:nth-child(3) { width: 16%; }
-.dishboard-menu-table th:nth-child(4) { width: 28%; }
-.dishboard-menu-table th:nth-child(5) { width: 18%; }
+.dishboard-menu-table th:nth-child(4) { width: 20%; }
+.dishboard-menu-table th:nth-child(5) { width: 10%; }
 .dishboard-menu-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; }
-.dishboard-admin .dishboard-menu-table th {
-  font-size: calc(var(--app-font-size-label) * var(--app-font-scale));
-  text-transform: none; letter-spacing: normal;
-}
 .dishboard-menu-table:has(td[colspan]) { min-width: 0; }
 .dishboard-admin .dishboard-menu-table .badge { white-space: normal; text-align: left; }
 .dishboard-admin .menu-toolbar .profile-tabs { margin-bottom: 0; }
@@ -19,7 +15,6 @@
 .dishboard-admin .menu-toolbar .admin-filter-bar { flex: 1 1 auto; margin: 0; }
 .dishboard-admin .menu-toolbar .profile-tabs { display: flex; flex-wrap: wrap; gap: var(--app-space-1); }
 .dishboard-admin .menu-toolbar .profile-tabs .btn { padding-inline: var(--app-space-2); }
-.dishboard-admin .dishboard-menu-table .btn { padding-inline: var(--app-space-2); gap: var(--app-space-1); }
 .dishboard-admin .menu-grid .menu-photo img { max-height: calc(var(--app-space-12) * 3); width: auto; object-fit: contain; }
 .dishboard-admin .menu-grid .badge-list .green { order: 1; }
 .dishboard-admin .menu-grid .badge-list .amber { order: 2; }
@@ -119,8 +114,4 @@
   .dishboard-menu-table tr[data-menu-list-id] > th { grid-column: 1 / -1; }
   .dishboard-menu-table tr[data-menu-list-id] > td:nth-child(5) { align-self: center; }
   .dishboard-menu-table.admin-table--stack [data-label]::before { display: none; }
-}
-
-@media (min-width: 768px) {
-  .dishboard-admin .dishboard-menu-table :is(th, td) { padding: var(--app-space-2); }
 }

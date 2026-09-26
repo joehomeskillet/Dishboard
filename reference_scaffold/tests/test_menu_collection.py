@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import re
 
 import pytest
 import cafeteria
@@ -166,7 +167,8 @@ def test_metadata_is_escaped_and_stale_component_review_is_visible(client, datab
     assert '&lt;script&gt;Hinweis&lt;/script&gt;' in body
     assert 'Enthält: ' in body and 'Kann enthalten: ' in body
     assert 'Kartoffel: CH' in body and 'Vegetarisch' in body
-    assert 'Komponenten geändert · Erneute Prüfung erforderlich' in body
+    assert 'Menüs mit geändertem Bausteinstand benötigen erneute Prüfung' in body
+    assert 'Erneute Prüfung erforderlich' in body
 
 
 @pytest.mark.parametrize('query', [
@@ -193,8 +195,11 @@ def test_collection_requires_capability_and_fails_closed_for_bad_location(app, c
 def test_empty_collection_has_navigation_and_empty_state(client):
     body = client.get('/admin/patienten/menues').get_data(as_text=True)
     assert 'Noch keine Menüs auf dieser Seite.' in body
-    assert '/admin/patienten/menues" class="nav-link active" aria-current="page"' in body
-    assert '/admin/patienten/komponenten' in body and 'Zum Wochenplan' in body
+    current_link = re.search(r'<a\b[^>]*href="/admin/patienten/menues"[^>]*>', body)
+    assert current_link and 'class="nav-link active"' in current_link.group()
+    assert 'aria-current="page"' in current_link.group()
+    assert '/admin/patienten/komponenten' in body
+    assert 'aria-label="Wochenplan"' in body
     for family in ('cafeteria', 'patienten'):
         overview = client.get('/admin/' + family).get_data(as_text=True)
         assert '/admin/' + family + '/menues' in overview

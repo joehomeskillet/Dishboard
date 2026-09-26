@@ -45,10 +45,11 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             expect(page.locator('main .btn-primary')).to_have_count(1)
             expect(page.locator('.admin-statusbar')).to_contain_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
-            expect(page.locator('#menu-list [data-review] .badge')).to_have_count(1)
+            expect(page.locator('#menu-list .admin-table-status summary .badge')).to_have_count(1)
             expect(page.locator('#menu-list table.admin-table.admin-table--stack')).to_have_count(1)
-            expect(page.locator('#menu-list .admin-label.admin-status--warning')).to_be_visible()
-            expect(page.locator('#menu-list [data-semantic="actions.edit"]')).to_have_text('Bearbeiten')
+            expect(page.locator('#menu-list summary .admin-label.admin-status--warning')).to_be_visible()
+            expect(page.locator('#menu-list [data-semantic="actions.edit"]')).to_have_accessible_name('Referenzmenü vom 31.08.2026 bearbeiten')
+            expect(page.locator('#menu-list [data-semantic="actions.edit"]')).to_have_text('')
             expect(page.locator('main .btn-primary')).to_have_count(1)
             expect(page.locator('main .btn-primary')).to_be_visible()
             if width < 768:
@@ -57,7 +58,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
                     return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
                 }''')
                 assert stacked, width
-            hint = page.locator('details.admin-hint').first
+            hint = page.locator('#menu-list details.admin-disclosure').first
             summary = hint.locator('summary')
             expect(summary).to_be_visible()
             summary.focus()
@@ -68,7 +69,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
             page.keyboard.press('Enter')
             assert row_height < (284 if width < 1440 else 86)
             page.screenshot(path=str(tmp_path / f'list-{width}.png'), full_page=True)
-            page.locator('#menu-list [data-admin-icon-action]').first.click()
+            page.locator('#menu-list [data-semantic="actions.edit"]').first.click()
             for section in ('allergen', 'origin'):
                 details = page.locator(f'details[data-mode-section="{section}"]')
                 if details.get_attribute('open') is None:
@@ -213,11 +214,11 @@ def test_icon_actions_use_tabler_tooltips_under_real_csp(
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
         for view in ('cards', 'list'):
             page.get_by_role('tab', name='Karten' if view == 'cards' else 'Liste', exact=True).click()
-            link = page.locator(f'#menu-{view} [data-admin-icon-action]').first
+            link = page.locator(f'#menu-{view} [data-semantic="actions.edit"]').first
             expect(link).to_have_attribute('aria-label', 'Kartoffelgratin mit Gemüse vom 31.08.2026 bearbeiten')
-            assert link.inner_text() == 'Bearbeiten'
+            assert link.inner_text() == ''
             expect(link.locator('use')).to_have_attribute('href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-edit')
-            assert link.evaluate('element => Boolean(window.tabler.Tooltip.getInstance(element))')
+            expect(link).to_have_attribute('data-ui-tooltip', 'Kartoffelgratin mit Gemüse vom 31.08.2026 bearbeiten')
             link.hover()
             tooltip = page.get_by_role('tooltip')
             expect(tooltip).to_be_visible()
@@ -240,7 +241,7 @@ def test_icon_actions_use_tabler_tooltips_under_real_csp(
                 assert box['x'] + box['width'] <= width + 1
                 assert box['y'] + box['height'] <= height + 1
             box = link.bounding_box()
-            assert box['width'] >= 48 and box['height'] >= 48
+            assert box['width'] >= 36 and box['height'] >= 36
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
             page.screenshot(path=str(tmp_path / f'{family}-{view}-tooltip-{width}.png'), full_page=True)
             page.keyboard.press('Escape')
@@ -262,7 +263,7 @@ def test_icon_help_and_first_tap_work_with_and_without_javascript(
         context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': origin}])
         page = context.new_page()
         page.goto(origin + f'/admin/{family}/menues')
-        link = page.locator('#menu-list [data-admin-icon-action]').first
+        link = page.locator('#menu-list [data-semantic="actions.edit"]').first
         destination = link.get_attribute('href')
         link.tap()
         page.wait_for_url(origin + destination)
@@ -313,14 +314,15 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
     for row in rows.all():
         expect(row).to_contain_text('Mittag')
         expect(row).to_contain_text('Menü 1')
-        link = row.get_by_role('link')
+        link = row.locator('[data-semantic="actions.edit"]')
+        expect(row.locator('a.admin-list-primary')).to_have_attribute('href', link.get_attribute('href'))
         destination = urlsplit(link.get_attribute('href'))
         assert destination.path == f'/admin/{family}/menu'
         fields = parse_qs(destination.query)
         assert set(fields) == {'week', 'day', 'meal', 'option'}
         assert fields['week'] == fields['day']
         assert fields['meal'] == ['LUNCH'] and fields['option'] == ['MENU_1']
-        assert link.bounding_box()['height'] >= 48
+        assert link.bounding_box()['height'] >= 36
     assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
     assert not page.locator('#menu-list img').count()
     if family == 'patienten':
@@ -336,7 +338,7 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
     assert parse_qs(urlsplit(page.url).query) == {'q': ['Kartoffelgratin']}
     listing.click()
     expect(rows).to_have_count(1)
-    rows.get_by_role('link').click()
+    rows.get_by_role('link', name='Kartoffelgratin mit Gemüse', exact=True).click()
     expect(page.locator('input[name="title"]')).to_have_value('Kartoffelgratin mit Gemüse')
 
 

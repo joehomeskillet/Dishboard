@@ -9,11 +9,3 @@
   .dishboard-admin main .admin-table :is(th:last-child, .admin-table-actions) { width: calc(var(--app-button-size) * 3); }
   .dishboard-admin main .admin-table :is(th:nth-child(6), .admin-table-status) { width: calc(var(--app-button-size) * 2); }
 }
-.dishboard-admin main a:not(.btn) {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--app-space-12);
-  min-width: var(--app-space-12);
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}

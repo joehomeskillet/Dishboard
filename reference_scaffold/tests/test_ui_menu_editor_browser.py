@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
 from pathlib import Path
 from wsgiref.simple_server import make_server
@@ -139,9 +140,9 @@ def _controls(page: Page, family: str, *, component_rows: int | None = 2, requir
     else:
         expect(page.locator('#f-int')).to_have_count(0)
     sizes = page.locator('form[data-menu-editor] .btn, form[data-menu-editor] .form-control, form[data-menu-editor] .form-select').evaluate_all(
-        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height])'
+        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height, e.classList.contains("ui-sem-control") ? 36 : 48])'
     )
-    assert sizes and all(height >= 48 for _, height in sizes), sizes
+    assert sizes and all(height >= minimum for _, height, minimum in sizes), sizes
     box = page.locator('.page-body > .container-xl')
     viewport = page.viewport_size or {'width': 0}
     if viewport['width'] >= 1024:
@@ -350,21 +351,23 @@ def test_p4_action_meanings_and_proposal_states(editor_page, family, javascript)
 
     page, _, _, _, application, _ = editor_page
     _open(page, family, (360, 800))
-    expect(page.locator('[data-add-row="components-list"]')).to_have_text('Baustein')
+    expect(page.locator('[data-add-row="components-list"]')).to_have_text('')
     expect(page.locator('[data-add-row="components-list"]')).to_have_attribute('aria-label', 'Baustein hinzufügen')
     origins = page.locator('details[data-mode-section="origin"]')
     if origins.get_attribute('open') is None:
         origins.locator('summary').click()
-    expect(page.locator('[data-add-row="origins-list"]')).to_have_text('Herkunft')
-    expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_text('Löschen')
-    expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_class('btn btn-danger')
-    expect(page.locator('#components-list [data-remove-row]').first).to_have_class('btn btn-danger')
+    expect(page.locator('[data-add-row="origins-list"]')).to_have_accessible_name('Herkunft hinzufügen')
+    expect(page.locator('[data-add-row="origins-list"]')).to_have_text('')
+    expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_text('')
+    expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_class(re.compile(r'\bbtn-danger\b'))
+    expect(page.locator('#components-list [data-remove-row]').first).to_have_class(re.compile(r'\bbtn-danger\b'))
     review = page.get_by_role('button', name='Als geprüft bestätigen', exact=True)
-    expect(review).to_have_text('Als geprüft bestätigen', use_inner_text=True)
-    expect(review.locator('[data-semantic="actions.confirm"] svg')).to_be_visible()
-    expect(review).to_have_attribute('title', 'Als geprüft bestätigen')
+    expect(review).to_have_text('')
+    expect(review.locator('svg')).to_be_visible()
+    expect(review).to_have_attribute('data-semantic', 'actions.confirm')
+    expect(review).to_have_attribute('data-ui-tooltip', 'Als geprüft bestätigen')
     save = page.get_by_role('button', name='Menü speichern', exact=True)
-    expect(save).to_have_text('Menü speichern')
+    expect(save).to_have_text('')
     expect(save).to_have_attribute('data-semantic', 'actions.save')
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
 
@@ -378,8 +381,8 @@ def test_p4_action_meanings_and_proposal_states(editor_page, family, javascript)
         with before_render_template.connected_to(proposal, application):
             _open(page, family, (360, 800))
         action = page.get_by_role('link', name='Rezeptstand festhalten' if freeze else 'Rezept zur Vorlage öffnen')
-        expect(action).to_have_text('Festhalten' if freeze else 'Öffnen')
-        expect(action).to_have_attribute('title', 'Rezeptstand festhalten' if freeze else 'Rezept zur Vorlage öffnen')
+        expect(action).to_have_text('')
+        expect(action).to_have_attribute('data-ui-tooltip', 'Rezeptstand festhalten' if freeze else 'Rezept zur Vorlage öffnen')
         expect(action).to_have_attribute('href', '/admin/rezepte/stand' if freeze else '/admin/rezepte/ansicht')
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

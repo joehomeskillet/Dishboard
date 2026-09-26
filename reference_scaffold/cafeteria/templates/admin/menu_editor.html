@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, hint, label, list_row %}
-{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon, row_actions %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set layout_variant = 'standard' %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
@@ -69,13 +69,13 @@
     <li>{% if cell.review_conflict %}{{ origin_conflict or message }}{% else %}<a href="#{{ error_targets.get(name, 'f-title') }}" data-error-link>{{ message }}</a>{% endif %}</li>
     {% endfor %}
   </ul>
-  {% if not cell.review_conflict %}<button type="button" class="btn" data-retry-page>{{ icon_label('actions.retry') }}</button>{% endif %}
+  {% if not cell.review_conflict %}{{ icon_button('actions.retry', type='button', attrs={'data-retry-page': true}) }}{% endif %}
 </div>
 {% endif %}
 
 {% if cell.review_conflict %}
 <p>Öffnen Sie das bestehende Menü, um den aktuellen Stand zu prüfen.</p>
-<a class="btn btn-primary" href="{{ cell.existing_url }}" aria-label="Bestehendes Menü öffnen">{{ icon_label('actions.open') }}</a>
+{{ icon_button('actions.open', href=cell.existing_url, aria_label='Bestehendes Menü öffnen', emphasis='primary') }}
 {% else %}
 <div class="admin-editor-layout">
   <div class="menu-editor-main">
@@ -108,7 +108,7 @@
             {% endif %}
           </div>
           {% endif %}
-          {% if errors %}<a class="btn mb-2" href="{{ cell.existing_url }}" aria-label="Bestehendes Menü öffnen">{{ icon_label('actions.open') }}</a>{% endif %}
+          {% if errors %}{{ icon_button('actions.open', href=cell.existing_url, aria_label='Bestehendes Menü öffnen', class='mb-2') }}{% endif %}
           <label class="form-label" for="f-title">Menüname</label>
           <input class="form-control{{ invalid_class('title') }}" id="f-title" name="title" value="{{ submitted.get('title', '') }}"{{ error_attributes('title', 'err-title') }}>
           {{ field_error('title', 'err-title') }}
@@ -170,15 +170,14 @@
               <fieldset class="component-row menu-editor-component-row{% if errors.get('component_public_id') or errors.get('component_text') or errors.get('recipe_revision_public_id') %} is-editing{% endif %}" data-row>
                 <legend class="form-label" data-row-legend>Baustein {{ i + 1 }}</legend>
                 <div class="menu-editor-component-summary" data-component-summary-view hidden>
-                  <strong data-component-summary>{{ c_text|default('') }}</strong>
+                  <strong class="admin-list-primary" data-component-summary>{{ c_text|default('') }}</strong>
                   <div class="menu-editor-row-actions">
-                    <button type="button" class="btn" data-edit-row>{{ icon_label('actions.edit') }}</button>
-                    <details class="admin-compact-actions">
-                      <summary class="btn btn-ghost">{{ icon_label('actions.more') }}</summary>
-                      <button type="button" class="btn" data-move-row="up">{{ sem_icon('actions.move') }}Nach oben</button>
-                      <button type="button" class="btn" data-move-row="down">{{ sem_icon('actions.move') }}Nach unten</button>
-                      <button type="button" class="btn{% if sem('actions.delete').role == 'danger' %} btn-danger{% endif %}" data-remove-row>{{ icon_label('actions.delete') }}</button>
-                    </details>
+                    {{ row_actions([
+                      {'key': 'actions.edit', 'type': 'button', 'object': 'Baustein', 'attrs': {'data-edit-row': true}},
+                      {'key': 'actions.move', 'type': 'button', 'text': 'Nach oben', 'attrs': {'data-move-row': 'up'}},
+                      {'key': 'actions.move', 'type': 'button', 'text': 'Nach unten', 'attrs': {'data-move-row': 'down'}},
+                      {'key': 'actions.delete', 'type': 'button', 'object': 'Baustein', 'consequence_key': 'actions.delete', 'attrs': {'data-remove-row': true}}
+                    ]) }}
                   </div>
                 </div>
                 <div class="menu-editor-row-body" data-component-edit-view>
@@ -234,7 +233,7 @@
                     <input type="hidden" name="target_quantity_unit_code" value="{{ revision_unit_code }}" data-target-quantity-unit>
                     <p class="form-hint" id="component-{{ i }}-target-quantity-hint" data-target-quantity-hint>{% if not r_id %}Nur mit gebundener Rezeptrevision verfügbar.{% elif revision_yield_text %}leer = deklarierte Ausbeute ({{ revision_yield_text }}). Dezimalpunkt verwenden, z. B. 2.5.{% else %}Angaben zur deklarierten Ausbeute für diese Revision derzeit nicht verfügbar. Dezimalpunkt verwenden, z. B. 2.5.{% endif %}</p>
                   </div>
-                  <button type="button" class="btn mt-3" data-finish-row hidden>{{ icon_label('actions.confirm') }}</button>
+                  {{ icon_button('actions.confirm', type='button', emphasis='secondary', class='mt-3', attrs={'data-finish-row': true, 'hidden': true}) }}
                 </div>
               </fieldset>
             {% endfor %}
@@ -282,7 +281,7 @@
                   </div>
                 </div>
                 <div class="menu-editor-row-actions mt-2">
-                  <button type="button" class="btn{% if sem('actions.delete').role == 'danger' %} btn-danger{% endif %}" aria-label="Herkunft löschen" title="Herkunft löschen" data-remove-row{% if is_auto['origin'] %} disabled{% endif %}>{{ icon_label('actions.delete') }}</button>
+                  {{ icon_button('actions.delete', type='button', object='Herkunft', consequence_key='actions.delete', attrs={'data-remove-row': true, 'disabled': is_auto['origin']}) }}
                 </div>
               </div>
             </fieldset>
@@ -412,7 +411,7 @@
           <input type="hidden" name="option" value="{{ cell.option }}">
           <input type="hidden" name="row_version" value="{{ cell.row_version }}">
           <input type="hidden" name="component_version" value="{{ review_token }}">
-          <button type="submit" class="btn menu-review-confirm" title="Als geprüft bestätigen"><span aria-hidden="true">{{ icon_label('actions.confirm') }}</span><span>Als geprüft bestätigen</span></button>
+          {{ icon_button('actions.confirm', text='Als geprüft bestätigen', class='menu-review-confirm', emphasis='secondary') }}
         </form>
       </div>
       {% endif %}
