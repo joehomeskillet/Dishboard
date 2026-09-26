@@ -54,6 +54,27 @@ def test_csv_preview_registered_semantics(locale: str, pending: str, more: str) 
     assert 'id="csv-more"' in rendered
 
 
+def test_csv_preview_invalid_error_position_uses_strong() -> None:
+    from types import SimpleNamespace
+    application = Flask(__name__, template_folder=str(ROOT / 'reference_scaffold/cafeteria/templates'))
+    application.config.update(TESTING=True, UI_LOCALE='de')
+    register_ui(application)
+    register_template_filters(application)
+    application.jinja_env.loader = ChoiceLoader([
+        DictLoader({'admin/base_tabler.html': '{% block page_header %}{% endblock %}{% block content %}{% endblock %}'}),
+        application.jinja_env.loader,
+    ])
+    for endpoint in ('import_preview', 'import_csv', 'cafeteria'):
+        application.add_url_rule('/' + endpoint, endpoint='admin.' + endpoint, view_func=lambda: '')
+    issue = SimpleNamespace(line=3, column='B', message='Ungültiger Wert')
+    result = SimpleNamespace(issues=[issue], valid=False)
+    with application.test_request_context():
+        rendered = render_template(TEMPLATE, invalid=True, result=result, csrf_token=lambda: 'test-csrf')
+    assert '<strong>Zeile 3, Spalte B:</strong>' in rendered
+    assert '<span class="admin-list-primary">Zeile 3' not in rendered
+    assert '<span class="admin-list-meta">Ungültiger Wert</span>' in rendered
+
+
 @pytest.mark.parametrize('width', (360, 1440))
 def test_csv_preview_review_evidence(
     page_context: Page, tmp_path: Path, width: int,  # noqa: F811
@@ -229,6 +250,8 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     expect(alert).to_contain_text('Datei korrigieren')
     expect(alert).to_contain_text('erneut aus')
     expect(alert).to_contain_text('Zeile 1, Spalte')
+    expect(alert.locator('.csv-issue-row strong')).to_contain_text('Zeile 1, Spalte')
+    expect(page.locator('.csv-issue-row .admin-list-primary')).to_have_count(0)
     expect(page.get_by_label('Korrigierte CSV-Datei')).to_be_visible()
     expect(page.locator('main .btn-primary')).to_have_text('Prüfen')
     expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau prüfen')

@@ -45,7 +45,7 @@
         {% if result.warnings %}
         <div class="csv-warning-list" id="csv-warnings" data-csv-warnings>
           {% for warning in result.warnings %}
-          <p class="csv-warning-row">{{ icon('alert-triangle', class='me-2') }}<span>{{ warning }}</span></p>
+          <p class="csv-warning-row">{{ icon('alert-triangle', class='me-2') }}<span class="admin-list-meta">{{ warning }}</span></p>
           {% endfor %}
         </div>
         {% endif %}
@@ -63,7 +63,7 @@
       <p>Korrigieren Sie die genannten Stellen in der CSV-Datei. Wählen Sie danach die korrigierte Datei erneut aus und prüfen Sie sie.</p>
       <ul class="csv-issue-list">
         {% for issue in result.issues %}
-        <li class="csv-issue-row"><strong>Zeile {{ issue.line }}, Spalte {{ issue.column }}:</strong> {{ issue.message }}</li>
+        <li class="csv-issue-row"><strong>Zeile {{ issue.line }}, Spalte {{ issue.column }}:</strong> <span class="admin-list-meta">{{ issue.message }}</span></li>
         {% endfor %}
       </ul>
     </div>

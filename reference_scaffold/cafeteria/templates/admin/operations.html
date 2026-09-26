@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import icon, page_header, flash_region, label, empty_state %}
+{% from 'admin/_macros.html' import icon, page_header, flash_region, label, empty_state, empty_value %}
 {% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button %}
 {% set workflow_nav = 'operations' %}
 {% set layout_variant = 'standard' %}
@@ -58,8 +58,8 @@
             {% set day, meal = slot %}
             {% if rule.state == 'open' and not rule.start and not rule.end %}{% set missing_times.found = true %}{% endif %}
             <li>
-              <strong>{{ day_names[day - 1] }} · {{ meal_labels[meal] }}:</strong>
-              {{ state_labels[rule.state] }}{% if rule.state == 'open' and not rule.start and not rule.end %} · Zeiten nicht eingetragen{% elif rule.start or rule.end %} · {{ rule.start or '–' }}–{{ rule.end or '–' }}{% endif %}
+              <span class="admin-list-primary">{{ day_names[day - 1] }} · {{ meal_labels[meal] }}:</span>
+              <span class="admin-list-meta">{{ state_labels[rule.state] }}{% if rule.state == 'open' and not rule.start and not rule.end %} · Zeiten nicht eingetragen{% elif rule.start or rule.end %} · {{ rule.start or '–' }}–{{ rule.end or '–' }}{% endif %}</span>
             </li>
           {% endfor %}
           </ul>
@@ -205,8 +205,8 @@
     <thead><tr><th scope="col">Datum / Bereich</th><th scope="col">Betrieb</th><th scope="col">Zeiten / Hinweis</th><th scope="col">Woche</th></tr></thead>
     <tbody>{% for item in exceptions %}<tr>
       <th scope="row" data-label="Datum / Bereich">{{ item.service_date.strftime('%d.%m.%Y') }} · {{ area_names[item.profile_code] }} · {{ meal_labels[item.meal_code] }}</th>
-      <td data-label="Betrieb"><span data-kind="{{ item.kind }}">{{ label({'closure': 'Schliessung', 'time': 'Andere Zeit', 'open': 'Zusätzlich offen'}[item.kind], 'neutral', icon='calendar-week') }}</span><div>{{ state_labels[item.service_state] }}</div></td>
-      <td data-label="Zeiten / Hinweis">{% if item.service_start or item.service_end %}{{ item.service_start or '–' }}–{{ item.service_end or '–' }}{% endif %}<div>{{ item.notice }}</div></td>
+      <td data-label="Betrieb"><span data-kind="{{ item.kind }}">{{ label({'closure': 'Schliessung', 'time': 'Andere Zeit', 'open': 'Zusätzlich offen'}[item.kind], 'neutral', icon='calendar-week') }}</span><div class="admin-list-secondary">{{ state_labels[item.service_state] }}</div></td>
+      <td data-label="Zeiten / Hinweis">{% if item.service_start or item.service_end %}{{ item.service_start or '–' }}–{{ item.service_end or '–' }}{% elif not item.notice %}{{ empty_value() }}{% endif %}{% if item.notice %}<div class="admin-list-secondary">{{ item.notice }}</div>{% endif %}</td>
       <td data-label="Woche" class="admin-table-actions">{{ icon_button('actions.open', href=url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()), text='Woche öffnen', title='Woche öffnen') }}</td>
     </tr>{% endfor %}</tbody>
   </table></div>
