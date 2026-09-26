@@ -48,10 +48,13 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         page.get_by_label('Zutat', exact=True).fill('rüebli')
         page.get_by_label('Kennzeichnung', exact=True).select_option(tag)
         page.get_by_label('Archivierte einschliessen', exact=True).check()
-        page.get_by_role('button', name='Suchen', exact=True).focus()
+        page.get_by_role('button', name='Filtern', exact=True).focus()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         expect(page.locator('.recipe-card')).to_have_count(50)
+        expect(page.locator('form[role="search"] .admin-filter-more')).to_have_attribute('open', '')
+        expect(page.get_by_label('Suche', exact=True)).to_have_attribute('maxlength', '200')
+        expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_attribute('maxlength', '200')
         filters = {'q': ['Seitensuppe'], 'ingredient': ['rüebli'], 'tag': [tag], 'archived': ['1']}
         assert parse_qs(urlsplit(page.url).query) == filters
         next_link = page.locator('nav[aria-label="Rezeptseiten"] a[href*="page=2"]')
@@ -70,7 +73,9 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         page.screenshot(path=str(evidence / f'recipes-{width}-js-{javascript}.png'), caret='initial')
         page.locator('nav[aria-label="Rezeptseiten"] a[href*="page=1"]').click()
         expect(page.locator('.recipe-card')).to_have_count(50)
-        page.get_by_role('link', name='Filter zurücksetzen', exact=True).click()
+        expect(page.locator('.admin-list-row')).to_have_count(50)
+        expect(page.locator('.admin-list-row .admin-status--info')).to_have_count(50)
+        page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         assert urlsplit(page.url).query == ''
         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_value('')
         expect(page.get_by_label('Zutat', exact=True)).to_have_value('')
@@ -79,8 +84,11 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         form.locator('.admin-filter-more > summary').click()
         page.get_by_label('Kennzeichnung', exact=True).select_option(filter_catalog['tag'])
         page.get_by_label('Zutat', exact=True).fill('keine solche Zutat')
-        page.get_by_role('button', name='Suchen', exact=True).click()
+        page.get_by_role('button', name='Filtern', exact=True).click()
         expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_have_text('Keine passenden Rezepte')
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('[data-empty-kind="no_match"] .btn-primary')).to_have_count(0)
+        expect(page.locator('[data-empty-kind="no_match"] [data-semantic="view.reset"]')).to_be_visible()
         expect(page.get_by_label('Kennzeichnung', exact=True)).to_have_value(filter_catalog['tag'])
         expect(page.locator('#tag option:checked')).to_have_text('Regional · archiviert')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -154,8 +162,14 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                 assert metrics['primary'] == 1
                 assert not metrics['overflow']
                 assert page.locator('main .btn-primary:visible').bounding_box()['y'] < 900
+                if name == 'rezepte':
+                    expect(page.locator('.admin-list-row')).to_be_visible()
+                    expect(page.locator('.admin-list-row .admin-label').first).to_be_visible()
+                elif name in ('images', 'scale', 'revisionen'):
+                    expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
                 for table in page.locator('main table').all():
-                    expect(table).to_have_class('table table-vcenter card-table admin-table--stack')
+                    classes = table.get_attribute('class').split()
+                    assert 'admin-table' in classes and 'admin-table--stack' in classes
                     assert table.locator('thead th:not([scope="col"]), tbody td:not([data-label])').count() == 0
                     row_style = table.locator('tbody tr').first.evaluate('e => getComputedStyle(e).display')
                     assert row_style == ('grid' if width < 768 else 'table-row')
@@ -171,8 +185,12 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                 page.keyboard.press('Enter')
                 if name == 'revisionen':
                     expected = page.locator('#recipe-freeze-form').evaluate('f => [...new FormData(f)]')
+                    freeze = page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)
+                    expect(freeze).to_contain_text('Festhalten')
+                    assert 'festhalten' in (freeze.get_attribute('aria-label') or '').lower()
+                    assert 'btn-primary' in (freeze.get_attribute('class') or '').split()
                     with page.expect_request(lambda request: request.method == 'POST') as request:
-                        page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True).click()
+                        freeze.click()
                     from urllib.parse import parse_qsl
                     assert sorted(parse_qsl(request.value.post_data)) == sorted(map(tuple, expected))
                     expect(page.locator('#recipe-error')).to_be_visible()

@@ -1,7 +1,7 @@
 {% extends 'admin/base_tabler.html' %}
 {% set layout_variant = 'standard' %}
 {% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% from 'admin/rezepte_ansicht.html' import print_reference %}
 {% set workflow_nav = 'recipes' %}
 {% macro recorded(value) %}
@@ -14,9 +14,9 @@
 {% block page_header %}
 {% call page_header(t('navigation.recipes.label'), document.title,
   status_items=[{'label': t('recipe.recipe.label'), 'value': t('status.readonly.label'), 'variant': 'neutral'}]) %}
-<a class="btn" href="{{ url_for('admin.recipe_revisions', recipe_id=recipe_id) }}">{{ icon('arrow-left') }}Zur Rezept-History</a>
-<a class="btn" href="{{ scale_url }}">{{ icon('refresh') }}Mengen berechnen</a>
-<a class="btn btn-primary" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=document.yield.amount) }}">{{ icon('printer') }}PDF öffnen</a>
+{{ icon_button('actions.back', href=url_for('admin.recipe_revisions', recipe_id=recipe_id), icon_only=true, aria_label='Zur Rezept-History') }}
+{{ icon_button('recipe.quantity', href=scale_url, text='Berechnen', aria_label='Mengen berechnen', title='Mengen berechnen') }}
+{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=document.yield.amount), text='Drucken', aria_label='Drucken · PDF öffnen', title='Drucken · PDF öffnen', emphasis='primary') }}
 {% endcall %}
 {% endblock %}
 {% block content %}

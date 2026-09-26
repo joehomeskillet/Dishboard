@@ -71,15 +71,18 @@ def test_native_upload_freeze_history_scaling_and_assets(a3, recipe_server, brow
         page.on('response', lambda response: responses.setdefault(urlsplit(response.url).path, []).append(response.status))
         path = f'/admin/rezepte/{public_id}'
         assert page.goto(base + path + '/bilder').status == 200
-        expect(page.get_by_role('heading', name='Rezeptbilder', exact=True)).to_be_visible()
+        expect(page.get_by_role('heading', name='Bild hochladen', exact=True)).to_be_visible()
         before = snapshot(owner)
-        page.get_by_role('button', name='Bild hochladen', exact=True).click()
+        upload = page.get_by_role('button', name='Hochladen', exact=True)
+        expect(upload).to_contain_text('Hochladen')
+        assert 'Hochladen' in (upload.get_attribute('aria-label') or '')
+        upload.click()
         assert posts == [] and snapshot(owner) == before
         expect(page.locator('#image-file')).to_be_focused()
         page.get_by_label('Bilddatei', exact=True).set_input_files({'name': 'recipe.png', 'mimeType': 'image/png', 'buffer': png()})
         page.get_by_label('Bildunterschrift · optional', exact=True).fill('Bild aus dem Browser')
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Bild hochladen', exact=True).click()
+            page.get_by_role('button', name='Hochladen', exact=True).click()
         assert outcome.value.status == 303 and len(posts) == 1
         expect(page.locator('td[data-label="Bildunterschrift"]')).to_have_text('Bild aus dem Browser')
         expect(page.locator('td[data-label="Bildunterschrift"]')).to_be_visible()
@@ -105,7 +108,7 @@ def test_native_upload_freeze_history_scaling_and_assets(a3, recipe_server, brow
         expect(page.locator('td').get_by_text('0.1875', exact=True)).to_be_visible()
         assert len(posts) == 2 and snapshot(owner) == before
         page.get_by_role('link', name='Rezept ansehen', exact=True).click()
-        page.locator('details.card > summary').filter(has_text='Technische Details').click()
+        page.locator('details.admin-disclosure > summary').filter(has_text='Weitere Optionen').click()
         expect(page.get_by_text('quantity_places', exact=True)).to_be_visible()
         geometry(page)
         capture(page, tmp_path, f'revision-{width}-js{javascript}')
@@ -141,7 +144,7 @@ def test_upload_stale_cas_retains_original_copyable_text_and_focus(a3, recipe_se
         edit(a3, title='Anderer Tab')
         before = snapshot(owner)
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Bild hochladen', exact=True).click()
+            page.get_by_role('button', name='Hochladen', exact=True).click()
         assert outcome.value.status == 409 and snapshot(owner) == before
         expect(page.locator('#recipe-error')).to_be_focused()
         expect(page.get_by_label('Bildunterschrift', exact=True)).to_have_value('Meine erhaltene Bildunterschrift')

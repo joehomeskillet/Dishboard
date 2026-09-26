@@ -1,27 +1,27 @@
-{% from 'admin/_macros.html' import page_header, icon, hint %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'admin/_macros.html' import page_header, icon, hint, empty_value %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% macro amount_form(calculated, action, error=none, target_value=none, converts_units=false, mode=none) %}
 {% if error %}<div class="alert alert-danger error-region" id="yield-error" role="alert">{{ error }}</div>{% endif %}
 <form method="get" action="{{ action }}" class="row g-3 align-items-end mb-3" data-loading>
 {% if mode %}<input type="hidden" name="mode" value="{{ mode }}">{% endif %}
 <div class="col-12 col-sm-6 col-lg-4"><div class="d-flex align-items-center gap-2"><label class="form-label" for="target-yield">Zielmenge · {{ calculated.unit }}</label>{{ hint('Positiv, Dezimalpunkt; gleiche Einheit wie die gespeicherte Ausbeute.', 'yield-hint') }}</div><input class="form-control{% if error %} is-invalid{% endif %}" type="text" inputmode="decimal" id="target-yield" name="yield" value="{{ target_value if target_value is not none else calculated.target }}" required aria-describedby="{{ 'yield-error' if error else 'yield-hint' }}"{% if error %} aria-invalid="true" autofocus{% endif %}></div>
-<div class="col-12 col-sm-auto"><button class="btn btn-primary" type="submit">Mengen berechnen</button></div>
+<div class="col-12 col-sm-auto">{{ icon_button('recipe.quantity', text='Berechnen', aria_label='Mengen berechnen', title='Mengen berechnen', emphasis='primary') }}</div>
 </form>
 <p>Ausbeute/Menge im Original: <strong>{{ calculated.source }} {{ calculated.unit }}</strong>. Ziel: <strong>{{ calculated.target }} {{ calculated.unit }}</strong>.</p>
 <p class="text-secondary">Nur berechnet · Keine Speicherung{% if converts_units %}. Erfasste Zubereitungen werden mit den festgehaltenen Einheiten und Dichten umgerechnet{% else %} und keine Einheitenumrechnung{% endif %}. Berechnungswerte werden nicht auf sechs Nachkommastellen gerundet.</p>
 {% endmacro %}
 {% macro ingredients(calculated) %}
 <section class="card mb-3"><div class="card-header"><h2 class="card-title">Zutaten und Mengen</h2></div>
-<table class="table table-vcenter card-table admin-table--stack"><thead><tr><th scope="col">Zutat</th><th scope="col">Original</th><th scope="col">Berechnet</th><th scope="col">Einheit</th></tr></thead><tbody>
-{% for row in calculated.rows %}<tr><td class="text-break" data-label="Zutat">{% if row.ingredient.group_label %}<strong>{{ row.ingredient.group_label }}</strong><br>{% endif %}{{ row.ingredient.ingredient_text }}{% if row.ingredient.note %}<br>{{ row.ingredient.note }}{% endif %}</td><td class="text-break" data-label="Original">{{ row.original if row.original is not none else 'Ohne Mengenangabe' }}</td><td class="text-break" data-label="Berechnet">{{ row.scaled if row.scaled is not none else 'Ohne Mengenangabe' }}</td><td data-label="Einheit">{{ row.unit or '—' }}</td></tr>{% else %}<tr><td colspan="4" data-label="Zutaten">Keine Zutaten gespeichert.</td></tr>{% endfor %}
+<table class="table table-vcenter card-table admin-table admin-table--stack"><thead><tr><th scope="col">Zutat</th><th scope="col">Original</th><th scope="col">Berechnet</th><th scope="col">Einheit</th></tr></thead><tbody>
+{% for row in calculated.rows %}<tr><td class="text-break" data-label="Zutat">{% if row.ingredient.group_label %}<strong>{{ row.ingredient.group_label }}</strong><br>{% endif %}{{ row.ingredient.ingredient_text }}{% if row.ingredient.note %}<br>{{ row.ingredient.note }}{% endif %}</td><td class="text-break" data-label="Original">{{ row.original if row.original is not none else 'Ohne Mengenangabe' }}</td><td class="text-break" data-label="Berechnet">{{ row.scaled if row.scaled is not none else 'Ohne Mengenangabe' }}</td><td data-label="Einheit">{{ row.unit or empty_value() }}</td></tr>{% else %}<tr><td colspan="4" data-label="Zutaten">Keine Zutaten gespeichert.</td></tr>{% endfor %}
 </tbody></table></section>
 {% endmacro %}
 {% if payload is defined %}
 {% extends 'admin/base_tabler.html' %}
 {% block title %}Mengen berechnen · {{ payload.title }}{% endblock %}
 {% block page_header %}{% call page_header(t('navigation.recipes.label'), payload.title, status_items=[{'label': t('recipe.quantity.label'), 'value': calculated.target ~ ' ' ~ calculated.unit, 'variant': 'neutral'}, {'label': t('recipe.recipe.label'), 'value': t('status.readonly.label'), 'variant': 'neutral'}]) %}
-<a class="btn" href="{{ read_url }}">{{ icon_label('actions.open') }}</a>
-{% if revision is defined %}<a class="btn" href="{{ url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target) }}">{{ icon('printer') }}PDF öffnen</a>{% endif %}
+{{ icon_button('actions.open', href=read_url, icon_only=true, aria_label='Rezept ansehen') }}
+{% if revision is defined %}{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target), text='Drucken', aria_label='Drucken · PDF öffnen', title='Drucken · PDF öffnen') }}{% endif %}
 {% endcall %}{% endblock %}
 {% block content %}
 <div class="alert alert-info" role="status">{% if revision is defined %}Gespeicherter Stand {{ revision.revision_number }} · unverändert{% else %}Gespeicherter Entwurf{% if not recipe.active %} · Archiviert{% endif %}{% endif %}. Diese Ansicht verändert das Rezept nicht.</div>

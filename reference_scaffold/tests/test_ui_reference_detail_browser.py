@@ -12,6 +12,7 @@ from werkzeug.serving import make_server
 
 from cafeteria import recipe_store as store, roles
 from test_master_data_db import make_actor, signed_in
+from test_recipe_navigation_browser import active
 from test_recipe_revision_routes import (  # noqa: F401
     a3, app_engine, b3, complete_a3, edit, installed_pg16, pg16, png, seeded_pg16, snapshot,
 )
@@ -191,15 +192,12 @@ def test_detail_reference_normal_all_viewports(detail_revisions, detail_server, 
         # Layout variant attribute
         expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'standard')
 
-        # Breadcrumbs
-        breadcrumbs = page.locator('nav[aria-label="Breadcrumb"] .breadcrumb-item')
-        expect(breadcrumbs.first).to_contain_text('Rezepte')
-        expect(breadcrumbs.nth(1)).to_be_visible()
-        expect(breadcrumbs.last).to_contain_text('Rezept-History')
+        # Module context now lives in the sidebar; history remains a header action.
+        active(page, 'Rezepte')
 
         # H1 & Subtitle
-        expect(page.locator('h1.page-title')).to_be_visible()
-        expect(page.locator('.page-header-subtitle')).to_contain_text(f'Unveränderlicher Revisionsstand {rev_num}')
+        expect(page.locator('h1.page-title')).to_have_text('Rezepte')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Suppe')
         expect(page.locator('#recipe-document')).to_contain_text('Erstellt:')
         assert page.locator('#recipe-document time').first.get_attribute('datetime')
         expect(page.locator('#recipe-document time').first).to_be_visible()
@@ -216,7 +214,7 @@ def test_detail_reference_normal_all_viewports(detail_revisions, detail_server, 
         # Status badge & Immutable card
         expect(page.get_by_role('heading', name=f'Gespeicherter Stand {rev_num}')).to_be_visible()
         expect(page.get_by_text('Dieser gespeicherte Stand bleibt unverändert.', exact=False)).to_be_visible()
-        page.locator('details.card > summary').filter(has_text='Technische Details').click()
+        page.locator('.recipe-reading-actions details > summary').filter(has_text='Weitere Optionen').click()
         expect(page.get_by_text(sha256, exact=True).first).to_be_visible()
         expect(page.get_by_text(rev_id, exact=True).first).to_be_visible()
 
@@ -240,7 +238,7 @@ def test_detail_reference_normal_all_viewports(detail_revisions, detail_server, 
         assert gallery_img.first.evaluate('el => el.naturalHeight > 0')
 
         # Snapshot details
-        summary = page.locator('details.card > summary').filter(has_text='Technische Details')
+        summary = page.locator('.recipe-reading-actions details > summary').filter(has_text='Weitere Optionen')
         expect(summary).to_be_visible()
         expect(page.locator('details[open]')).to_be_visible()
         expect(page.get_by_role('heading', name='Vollständige Daten', exact=True)).to_be_visible()
@@ -288,7 +286,8 @@ def test_detail_reference_long_text_state(detail_revisions, detail_server, brows
         assert page.goto(url).status == 200
 
         # Verify long texts are present and wrapped
-        expect(page.locator('h1.page-title')).to_contain_text('Traditioneller geschmorter Rindsbraten')
+        expect(page.locator('h1.page-title')).to_have_text('Rezepte')
+        expect(page.locator('.page-header-subtitle')).to_contain_text('Traditioneller geschmorter Rindsbraten')
         expect(page.locator('main')).to_contain_text('Zimmertemperatur annehmen lassen')
         expect(page.locator('main')).to_contain_text('Streng handwerkliche Zubereitung')
 
@@ -308,7 +307,8 @@ def test_detail_reference_empty_state(detail_revisions, detail_server, browser, 
         page = context.new_page()
         assert page.goto(url).status == 200
 
-        expect(page.locator('h1.page-title')).to_contain_text('Leeres Rezept ohne Inhalt')
+        expect(page.locator('h1.page-title')).to_have_text('Rezepte')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Leeres Rezept ohne Inhalt')
         expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         expect(page.get_by_text('Keine Zutaten gespeichert.')).to_be_visible()
         expect(page.get_by_text('Keine Schritte gespeichert.')).to_be_visible()
@@ -332,7 +332,8 @@ def test_detail_reference_zoom_200_percent(detail_revisions, detail_server, brow
         page.evaluate("document.documentElement.style.zoom = '2'")
 
         expect(page.locator('h1.page-title')).to_be_visible()
-        expect(page.locator('.page-header-subtitle')).to_contain_text(f'Unveränderlicher Revisionsstand {rev_num}')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Suppe')
+        expect(page.get_by_text('Dieser gespeicherte Stand bleibt unverändert.', exact=False)).to_be_visible()
         expect(page.get_by_role('link', name='Zur Rezept-History')).to_be_visible()
         expect(page.get_by_role('link', name='PDF öffnen')).to_be_visible()
         expect(page.get_by_role('heading', name=f'Gespeicherter Stand {rev_num}')).to_be_visible()

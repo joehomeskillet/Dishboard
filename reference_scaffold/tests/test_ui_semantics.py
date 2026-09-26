@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import re
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 
@@ -652,3 +653,150 @@ def test_p2c_canonical_actions(semantic_app, locale, labels):
         doc = _p2c_action(semantic_app, key)
         assert doc.button.span.text == doc.button['title'] == label
         assert doc.select_one('use')['href'].endswith('#tabler-' + item.resolved_icon)
+
+
+@pytest.mark.parametrize('locale', ['de', 'en'])
+@pytest.mark.parametrize('key,text,aria', [
+    ('data.revision', 'Festhalten', 'Gespeicherten Stand festhalten'),
+    ('recipe.quantity', 'Berechnen', 'Mengen berechnen'),
+    ('recipe.quantity', 'Originalmengen', 'Originalmengen ansehen'),
+    ('actions.refresh', 'Originalausbeute', 'Originalausbeute verwenden'),
+    ('actions.activate', 'Aktivieren', 'Rezept aktivieren'),
+    ('actions.history', 'Rezept-History', 'Rezept-History'),
+    ('actions.back', 'Zur Liste', 'Zur Liste der Rezepte'),
+    ('actions.back', 'Zum Rezept', 'Zum Rezept'),
+    ('actions.back', 'Zu Rezepten', 'Zu Rezepten'),
+    ('actions.delete', 'Verwerfen', 'Stapel verwerfen'),
+    ('actions.delete', 'Verwerfen', 'Verwerfen bestätigen'),
+    ('actions.apply', 'Übernehmen', 'Importstapel übernehmen'),
+    ('actions.preview', 'Vorschau speichern', 'Vorschau speichern'),
+    ('actions.print', 'Drucken', 'Drucken · PDF öffnen'),
+    ('actions.print', 'PDF öffnen', 'PDF öffnen · Stand 1 · Suppe'),
+    ('actions.history', 'Verlauf', 'Verlauf · Suppe'),
+])
+def test_p4_recipe_context_labels_survive_en_and_keep_name(semantic_app, locale, key, text, aria):
+    semantic_app.config['UI_LOCALE'] = locale
+    extra = {'consequence_key': 'actions.delete'} if key == 'actions.delete' else {}
+    doc = _p2c_action(semantic_app, key, href='/x', text=text, aria_label=aria, title=aria, **extra)
+    control = doc.a or doc.button
+    assert control.span.text == text
+    assert text.lower() in control['aria-label'].lower()
+    assert control['aria-label'] == aria == control['title']
+
+
+@pytest.mark.parametrize('template,key,text,aria,icon', [
+    ('rezepte_revisionen.html', 'data.revision', 'Festhalten', 'Gespeicherten Stand festhalten', 'versions'),
+    ('rezepte_import.html', 'actions.apply', 'Übernehmen', 'Importstapel übernehmen', 'check'),
+    ('rezepte_editor.html', 'actions.back', 'Zur Liste', 'Zur Liste der Rezepte', 'arrow-left'),
+    ('rezepte_ansicht.html', 'actions.back', 'Zur Liste', 'Zur Liste der Rezepte', 'arrow-left'),
+    ('rezepte_images.html', 'actions.back', 'Zum Rezept', 'Zum Rezept', 'arrow-left'),
+    ('rezepte_import.html', 'actions.back', 'Zu Rezepten', 'Zu Rezepten', 'arrow-left'),
+    ('rezepte.html', 'actions.print', 'PDF öffnen', 'PDF öffnen · Stand 1 · Suppe', 'printer'),
+    ('rezepte.html', 'actions.history', 'Verlauf', 'Verlauf · Suppe', 'history'),
+    ('rezepte_editor.html', 'actions.activate', 'Aktivieren', 'Rezept aktivieren', 'circle-check'),
+])
+def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key, text, aria, icon):
+    """Exercise the actual action calls for all five judge findings."""
+    from types import SimpleNamespace
+
+    from bs4 import BeautifulSoup
+
+    source = (ROOT.parent / 'templates/admin' / template).read_text(encoding='utf-8')
+    calls = re.findall(r'\{\{\s*(icon_button\(.*?)\s*\}\}', source, re.S)
+    matching = [call for call in calls if call.startswith(f"icon_button('{key}',")
+                and f"text='{text}'" in call]
+    assert len(matching) == 1
+    recipe = SimpleNamespace(public_id='r1', active=False, payload=SimpleNamespace(title='Suppe'))
+    semantic_app.jinja_env.globals['url_for'] = lambda endpoint, **kwargs: '/target'
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'ui/_semantic.html' import icon_button %}{{ " + matching[0] + ' }}',
+            recipe=recipe, item=recipe, recipe_id='r1', can_write=False, token='token', batch=None,
+            links=SimpleNamespace(latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
+    control = BeautifulSoup(html, 'html.parser').select_one('a, button')
+    assert (control.get_text(strip=True), control['aria-label']) == (text, aria)
+    assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
+    assert control['title'] == aria
+    assert control.select_one('use')['href'].endswith('#tabler-' + icon)
+    if key == 'data.revision':
+        assert (control['type'], control['form']) == ('submit', 'recipe-freeze-form')
+
+
+def test_p4_german_aria_without_text_fails_in_en(semantic_app):
+    semantic_app.config['UI_LOCALE'] = 'en'
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'recipe.quantity', href='/scale', aria_label='Mengen berechnen')
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'actions.print', href='/pdf', aria_label='Drucken · PDF öffnen')
+    with pytest.raises(SemanticError, match='contain visible text'):
+        _p2c_action(semantic_app, 'actions.back', href='/', aria_label='Zurück zur Rezeptliste')
+
+
+def test_p4_owned_templates_pair_german_aria_with_text():
+    root = Path(__file__).resolve().parents[1] / 'cafeteria/templates/admin'
+    call = re.compile(r'icon_button\((.*?)\)', re.S)
+    files = (
+        '_recipe_template_selection.html', '_rezepte_fields.html', 'rezepte.html',
+        'rezepte_ansicht.html', 'rezepte_editor.html', 'rezepte_images.html',
+        'rezepte_import.html', 'rezepte_revision.html', 'rezepte_revisionen.html',
+        'rezepte_scale.html',
+    )
+    for name in files:
+        source = (root / name).read_text(encoding='utf-8')
+        for args in call.findall(source):
+            if 'aria_label=' not in args:
+                continue
+            if 'icon_only=true' in args.replace(' ', ''):
+                continue
+            assert 'text=' in args, f'{name}: visible text missing for {args[:160]}'
+
+
+def _visible_word_in_name(node, visible):
+    text = ' '.join(node.get_text(' ', strip=True).split())
+    assert visible in text, text
+    accessible = node.get('aria-label', text)
+    assert visible.lower() in accessible.lower(), (visible, accessible, text)
+
+
+@pytest.mark.parametrize('locale,more,image,upload,edit', [
+    ('de', 'Mehr', 'Bild', 'Hochladen', 'Bearbeiten'),
+    ('en', 'More', 'Image', 'Upload', 'Edit'),
+])
+def test_p4_registry_visible_text_is_in_accessible_name(semantic_app, locale, more, image, upload, edit):
+    """Judge-2: EN labels More/Image/Upload/Edit must occur in the accessible name."""
+    from types import SimpleNamespace
+
+    from bs4 import BeautifulSoup
+    from werkzeug.datastructures import MultiDict
+
+    semantic_app.config['UI_LOCALE'] = locale
+    semantic_app.jinja_env.globals['csrf_token'] = lambda: 'token'
+    for endpoint in ('admin.recipes_list', 'admin.recipe_status', 'admin.recipe_edit',
+                     'admin.recipe_form_rows', 'admin.recipe_images', 'admin.recipe_asset'):
+        semantic_app.add_url_rule('/stub/' + endpoint, endpoint=endpoint, view_func=lambda **_kwargs: '')
+    ingredient = SimpleNamespace(
+        food_public_id='', group_label='', note='', source_reference='', source_kind='',
+        fetched_at='', ingredient_text='Karotte', quantity='1', unit_code='G', line_public_id='')
+    step = SimpleNamespace(instruction='Kochen', duration_minutes='', image_sha256='')
+    payload = SimpleNamespace(
+        title='Suppe', source=SimpleNamespace(kind='manual', reference='', url='', note='', fetched_at=''),
+        ingredients=[ingredient], steps=[step], images=[])
+    recipe = SimpleNamespace(
+        payload=SimpleNamespace(title='Suppe', images=[]), active=True, public_id='r1', row_version=1)
+    with semantic_app.test_request_context():
+        editor = render_template_string(
+            "{% extends 'admin/rezepte_editor.html' %}{% block sidebar %}{% endblock %}",
+            confirmation=False, payload=payload, active=True, recipe_id='r1', can_write=True,
+            links={'recipe_images': '/bilder', 'recipe_revisions': '/revisionen', 'recipe_scale': '/skala'},
+            data=MultiDict(), choices=SimpleNamespace(units=[], foods=[], tags=[]),
+            source_names={}, image_names={}, action='recipe.update')
+        images = render_template_string(
+            "{% extends 'admin/rezepte_images.html' %}{% block sidebar %}{% endblock %}",
+            recipe=recipe, token='token')
+    editor_doc = BeautifulSoup(editor, 'html.parser')
+    for summary in editor_doc.select('.admin-compact-actions > summary'):
+        _visible_word_in_name(summary, more)
+    _visible_word_in_name(editor_doc.select_one('a[data-semantic="data.image"]'), image)
+    _visible_word_in_name(editor_doc.select_one('button[data-recipe-toggle^="step-details"]'), edit)
+    upload_button = BeautifulSoup(images, 'html.parser').select_one('button[data-semantic="actions.upload"]')
+    _visible_word_in_name(upload_button, upload)

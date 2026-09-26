@@ -112,6 +112,8 @@ def test_preview_and_list_are_native_readonly_with_exact_prepared_selection(prep
             assert page.goto(base + '/admin/rezepte').status == 200
             proof(page, tmp_path / f'freeze-list-{width}.png', expected_status=200, requests=methods.copy())
             link = page.locator(f'main a[href="/admin/rezepte/{public_id}/revisionen"]')
+            link.locator('xpath=ancestor::details/summary').focus()
+            page.keyboard.press('Enter')
             link.focus()
             expect(link).to_be_focused()
             with page.expect_navigation(wait_until='load'):
@@ -122,7 +124,11 @@ def test_preview_and_list_are_native_readonly_with_exact_prepared_selection(prep
         child = page.get_by_role('link', name='Hausgemachte Gemüsebasis · gespeicherter Stand', exact=True)
         expect(child.locator('..')).to_contain_text('Originalausbeute: 1000 G')
         assert '/revisionen/' in child.get_attribute('href')
-        expect(page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)).to_be_visible()
+        freeze = page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)
+        expect(freeze).to_be_visible()
+        expect(freeze).to_have_text('Festhalten')
+        expect(freeze).to_have_accessible_name('Gespeicherten Stand festhalten')
+        expect(freeze).to_have_attribute('data-semantic', 'data.revision')
         proof(page, tmp_path / f'freeze-preview-{width}.png', expected_status=200, requests=methods.copy())
         detail = page.get_by_text('Prüfnachweis anzeigen', exact=True)
         detail.focus()
@@ -152,12 +158,15 @@ def test_native_freeze_conflict_keeps_original_until_explicit_reload(ready, reci
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
             page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True).click()
         assert outcome.value.status == 409
-        expect(page.get_by_role('heading', name='Rezeptaktion nicht möglich', exact=True)).to_be_visible()
+        expect(page.get_by_role('heading', name='Rezepte', exact=True)).to_be_visible()
+        expect(page.locator('.page-header-subtitle')).to_have_text('Rezeptaktion nicht möglich')
         assert page.locator('input[name="_form_context"]').input_value() == original
         assert page.locator('button[type="submit"]').count() == 0 and full_state(owner) == before
         proof(page, tmp_path / f'freeze-conflict-{width}.png', expected_status=409, requests=methods.copy())
         page.get_by_role('link', name='Aktuellen Stand bewusst neu laden', exact=True).click()
         link = page.locator(f'main a[href="{revision_path(ready)}"]')
+        link.locator('xpath=ancestor::details/summary').focus()
+        page.keyboard.press('Enter')
         link.focus()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
@@ -166,7 +175,8 @@ def test_native_freeze_conflict_keeps_original_until_explicit_reload(ready, reci
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
             page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True).click()
         assert outcome.value.status == 303
-        expect(page.locator('.page-header-subtitle')).to_contain_text('Unveränderlicher Revisionsstand 1')
+        expect(page.get_by_role('heading', name='Gespeicherter Stand 1', exact=True)).to_be_visible()
+        expect(page.get_by_text('Dieser gespeicherte Stand bleibt unverändert.', exact=False)).to_be_visible()
         assert '/revisionen/' in urlsplit(page.url).path
 
 
@@ -216,6 +226,8 @@ def test_both_routes_reflow_at_native_chromium_200_percent_zoom(prepared_preview
             proof(page, tmp_path / 'freeze-list-native-200-percent.png', expected_status=200,
                   requests=methods.copy(), native_capture=True)
             link = page.locator(f'main a[href="/admin/rezepte/{public_id}/revisionen"]')
+            link.locator('xpath=ancestor::details/summary').focus()
+            page.keyboard.press('Enter')
             link.focus()
             with page.expect_navigation(wait_until='load'):
                 page.keyboard.press('Enter')

@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_label, icon_button %}
 {% from 'admin/_rezepte_fields.html' import field, hidden, select, row_button, row_actions with context %}
 {% set workflow_nav = 'recipes' %}
 {% block title %}Rezept · Menüplanung{% endblock %}
@@ -17,20 +17,23 @@
 <p>{{ 'Archivieren erhält Zutaten, Bilder und gespeicherte Stände. Das Rezept bleibt lesbar.' if active else 'Dieses Rezept wieder zur Bearbeitung freigeben?' }}</p>
 <form method="post" action="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ hidden('_csrf') }}{{ hidden('_form_context') }}{{ hidden('row_version') }}
 <input type="hidden" name="active" value="{{ '0' if active else '1' }}"><div class="d-flex flex-wrap gap-2">
-<button class="btn btn-primary" type="submit">{{ icon_label('actions.confirm') }}</button>
-<a class="btn" href="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) }}">Abbrechen</a></div></form></div></div>
+{{ icon_button('actions.confirm') }}
+{{ icon_button('actions.cancel', href=url_for('admin.recipe_edit', recipe_id=recipe_id)) }}</div></form></div></div>
 {% else %}
 <div class="admin-compact-toolbar" data-sticky-form="recipe-editor" data-sticky-edge="top">
-<a class="btn" href="{{ url_for('admin.recipes_list') }}">{{ icon('arrow-left') }}Zur Rezeptliste</a>
-{% if recipe_id and can_write or links %}<details class="admin-compact-actions"><summary class="btn">{{ icon('dots') }}Weitere Aktionen</summary><div class="d-flex flex-wrap gap-2 mt-2">
-{% if recipe_id and can_write %}<a class="btn" href="{{ url_for('admin.recipe_status', recipe_id=recipe_id) }}">{{ 'Archivieren' if active else 'Reaktivieren' }}</a>{% endif %}
-{% for name, label in [('recipe_images', 'Bilder verwalten'), ('recipe_revisions', 'Rezept-History'), ('recipe_scale', 'Mengen berechnen')] %}{% if name in links %}<a class="btn" href="{{ links[name] }}">{{ label }}</a>{% endif %}{% endfor %}</div></details>{% endif %}
+{{ icon_button('actions.back', href=url_for('admin.recipes_list'), text='Zur Liste', aria_label='Zur Liste der Rezepte', title='Zur Liste der Rezepte') }}
+{% if recipe_id and can_write or links %}<details class="admin-compact-actions"><summary class="btn">{{ icon_label('actions.more') }}</summary><div class="d-flex flex-wrap gap-2 mt-2">
+{% if recipe_id and can_write %}{% if active %}{{ icon_button('actions.archive', href=url_for('admin.recipe_status', recipe_id=recipe_id), text='Archivieren', aria_label='Archivieren', title='Archivieren') }}{% else %}{{ icon_button('actions.activate', href=url_for('admin.recipe_status', recipe_id=recipe_id), text='Aktivieren', aria_label='Rezept aktivieren', title='Rezept aktivieren') }}{% endif %}{% endif %}
+{% if 'recipe_images' in links %}<a class="btn" href="{{ links['recipe_images'] }}" data-semantic="data.image" aria-label="{{ t('data.image.label') }}">{{ icon_label('data.image') }}</a>{% endif %}
+{% if 'recipe_revisions' in links %}{{ icon_button('actions.history', href=links['recipe_revisions'], text='Rezept-History', aria_label='Rezept-History', title='Rezept-History') }}{% endif %}
+{% if 'recipe_scale' in links %}{{ icon_button('recipe.quantity', href=links['recipe_scale'], text='Berechnen', aria_label='Mengen berechnen', title='Mengen berechnen') }}{% endif %}
+</div></details>{% endif %}
 <span class="text-secondary" role="status">{{ 'Entwurf · Änderungen werden erst mit Speichern übernommen.' if active else 'Archiviert · Lesbar, zum Bearbeiten zuerst reaktivieren.' }}</span>
-{% if can_write and active %}<button class="btn btn-primary ms-auto" type="submit" form="recipe-editor">{{ icon_label('actions.save' if recipe_id else 'actions.add') }}</button>{% endif %}
+{% if can_write and active %}<span class="ms-auto">{{ icon_button('actions.save' if recipe_id else 'actions.add', form='recipe-editor') }}</span>{% endif %}
 </div>
 {% if payload.source.kind == 'ai_assisted' or payload.ingredients|selectattr('source_kind', 'equalto', 'ai_assisted')|list %}<p class="alert alert-warning" role="status">{{ icon('alert-triangle') }} KI-unterstützte Vorlage · Zutaten, Mengen und Zubereitung vor der Verwendung prüfen.</p>{% endif %}
 <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="Rezeptabschnitte">
-<a class="btn" href="#recipe-basics">Rezept</a><a class="btn" href="#ingredients-heading">Zutaten ({{ payload.ingredients|length }})</a><a class="btn" href="#steps-heading">Zubereitung ({{ payload.steps|length }})</a><a class="btn" href="#recipe-more">Weitere Angaben</a>
+{{ icon_button('recipe.recipe', href='#recipe-basics') }}{{ icon_button('recipe.ingredient', href='#ingredients-heading') }}{{ icon_button('recipe.step', href='#steps-heading') }}{{ icon_button('ui.disclosure.more_options', href='#recipe-more') }}
 </nav>
 {% set row_kind = request.args.get('row_kind') if request.method == 'POST' and request.endpoint == 'admin.recipe_form_rows' else none %}
 {% set row_operation = request.args.get('row_action') %}
@@ -52,11 +55,11 @@
 <div class="admin-compact-line">
 {{ hidden(prefix ~ 'line_public_id') }}<div class="admin-compact-name">{{ field(prefix ~ 'ingredient_text', 'Zutatenbezeichnung', required=true, maximum=500, focus=focus_row) }}</div>
 <div class="admin-compact-quantity">{{ field(prefix ~ 'quantity', 'Menge', numeric=true) }}</div><div class="admin-compact-unit">{{ select(prefix ~ 'unit_code', 'Einheit', choices.units) }}</div>
-<button class="btn" type="button" hidden data-recipe-toggle="ingredient-details-{{ loop.index0 }}" aria-controls="ingredient-details-{{ loop.index0 }}" aria-label="Details für Zutat {{ loop.index }}" aria-expanded="false">{{ icon('info-circle') }}Details</button>
+<button class="btn" type="button" hidden data-recipe-toggle="ingredient-details-{{ loop.index0 }}" aria-controls="ingredient-details-{{ loop.index0 }}" aria-label="Details für Zutat {{ loop.index }}" aria-expanded="false">{{ icon_label('ui.disclosure.details') }}</button>
 {{ row_actions('ingredients', loop.index0, payload.ingredients|length, 'Zutat ' ~ loop.index) }}</div>
 <p class="admin-compact-summary" data-recipe-ingredient-summary>{% if row.food_public_id %}Stammdaten: {{ dict(choices.foods).get(row.food_public_id, 'Ursprüngliche Auswahl · nicht mehr verfügbar') }}{% endif %}{% if row.group_label %}{{ ' · ' if row.food_public_id else '' }}Gruppe: {{ row.group_label }}{% endif %}{% if row.note %}{{ ' · ' if row.food_public_id or row.group_label else '' }}Notiz: {{ row.note }}{% endif %}</p>
 {% if row.source_reference %}<p class="admin-compact-summary text-break"><strong>Quelle:</strong> {{ row.source_reference }}</p>{% endif %}
-<details id="ingredient-details-{{ loop.index0 }}" class="admin-compact-details" data-recipe-details{% if focus_row or not row.ingredient_text %} open{% endif %}><summary class="btn">Details für Zutat {{ loop.index }}</summary><div class="admin-compact-detail-body">
+<details id="ingredient-details-{{ loop.index0 }}" class="admin-compact-details" data-recipe-details{% if focus_row or not row.ingredient_text %} open{% endif %}><summary class="btn" aria-label="Details für Zutat {{ loop.index }}">{{ icon_label('ui.disclosure.details') }}</summary><div class="admin-compact-detail-body">
 <div class="row g-2"><div class="col-12 col-md-6">{{ select(prefix ~ 'food_public_id', 'Zutat aus Stammdaten', choices.foods) }}</div><div class="col-12 col-md-6">{{ field(prefix ~ 'group_label', 'Gruppe', maximum=120) }}</div></div>
 {{ field(prefix ~ 'note', 'Zutatennotiz', maximum=500) }}
 {{ hidden(prefix ~ 'source_kind') }}{{ hidden(prefix ~ 'source_reference') }}{{ hidden(prefix ~ 'fetched_at') }}
@@ -74,10 +77,10 @@
 {% set focus_row = row_kind == 'steps' and loop.index0 == [row_index, payload.steps|length - 1]|min %}
 <div class="admin-compact-row" data-recipe-step aria-label="Schritt {{ loop.index }}">
 <div class="admin-compact-line"><div class="admin-compact-name"><h3 class="mb-0">Schritt {{ loop.index }}</h3><p class="admin-compact-summary" data-recipe-step-summary>{{ row.instruction|truncate(140) }}</p><p class="admin-compact-summary text-secondary" data-recipe-step-extra>{% if row.duration_minutes != '' %}Dauer: {{ row.duration_minutes }} Minuten{% endif %}{% if row.image_sha256 %} · Bild: {{ image_names.get(row.image_sha256, 'Bestehendes Schrittbild') }}{% endif %}</p></div>
-<button class="btn" type="button" hidden data-recipe-toggle="step-details-{{ loop.index0 }}" aria-controls="step-details-{{ loop.index0 }}" aria-label="Schritt {{ loop.index }} bearbeiten" aria-expanded="true">{{ icon('pencil') }}Bearbeiten</button>
+<button class="btn" type="button" hidden data-recipe-toggle="step-details-{{ loop.index0 }}" aria-controls="step-details-{{ loop.index0 }}" aria-label="{{ t('actions.edit.label') }}: Schritt {{ loop.index }}" aria-expanded="true">{{ icon_label('actions.edit') }}</button>
 {{ row_actions('steps', loop.index0, payload.steps|length, 'Schritt ' ~ loop.index) }}</div>
 {# Without JS, required instructions stay open: native validation cannot reveal a closed details reliably. #}
-<details id="step-details-{{ loop.index0 }}" class="admin-compact-details" data-recipe-details data-recipe-instruction open><summary class="btn"{% if can_write and active %} hidden{% endif %}>Details für Schritt {{ loop.index }}</summary><div class="admin-compact-detail-body">
+<details id="step-details-{{ loop.index0 }}" class="admin-compact-details" data-recipe-details data-recipe-instruction open><summary class="btn"{% if can_write and active %} hidden{% endif %} aria-label="Details für Schritt {{ loop.index }}">{{ icon_label('ui.disclosure.details') }}</summary><div class="admin-compact-detail-body">
 {{ field(prefix ~ 'instruction', 'Anleitung', multiline=true, required=true, maximum=8000, focus=focus_row) }}
 <div class="row g-2"><div class="col-12 col-md-6">{{ field(prefix ~ 'duration_minutes', 'Dauer in Minuten', numeric=true) }}</div><div class="col-12 col-md-6">{{ select(prefix ~ 'image_sha256', 'Bild zum Schritt', image_names.items()|list) }}</div></div>
 </div></details></div>

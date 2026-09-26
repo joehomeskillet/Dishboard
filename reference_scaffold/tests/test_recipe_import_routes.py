@@ -120,10 +120,11 @@ def test_commit_creates_recipe_link_and_rejects_editor(b3):  # noqa: F811
     assert client.post(commit_path, data=commit_form).status_code == 303
     imported = client.get(path)
     assert imported.status_code == 200
-    assert 'Rezept öffnen' in imported.text
+    imported_links = imported.text.split('<section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-links-title">', 1)[1].split('</section>', 1)[0]
+    assert '<span>Bearbeiten</span></a>' in imported_links
     assert 'imported' in imported.text
     assert client.post(commit_path, data=commit_form).status_code == 409
-    href = [line for line in imported.text.split('"') if line.startswith('/admin/rezepte/')]
+    href = [line for line in imported_links.split('"') if line.startswith('/admin/rezepte/')]
     recipe_href = next(item for item in href if item.count('/') == 3 and 'import' not in item)
     assert client.get(recipe_href).status_code == 200
     editor = make_actor(owner, 'Cafeteria.Editor')
