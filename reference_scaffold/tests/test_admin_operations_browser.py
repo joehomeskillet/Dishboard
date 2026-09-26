@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import pytest
 from playwright.sync_api import expect
@@ -33,15 +34,16 @@ def test_native_operations_controls_save_focus_and_original_exception(
         page = context.new_page()
         page.set_viewport_size({'width': width, 'height': 1100})
         page.goto(PATH)
-        expect(page.get_by_role('link', name='Bereiche & Öffnungszeiten', exact=True)).to_have_attribute(
-            'aria-current', 'page',
-        )
+        current_links = page.get_by_role('link', name='Bereiche & Öffnungszeiten', exact=True, include_hidden=True)
+        expect(current_links).to_have_count(1 if javascript else 2)
+        for current_link in current_links.all():
+            expect(current_link).to_have_attribute('aria-current', 'page')
         _assert_controls(page)
         assert page.locator('[style], [onclick], script:not([src])').count() == 0
         page.screenshot(path=str(tmp_path / f'operations-{width}-js-{javascript}.png'), full_page=True)
         _open_details(page, 'weekend-editor')
         page.locator('#allows_weekend').check()
-        page.get_by_role('button', name='Wochenendbetrieb speichern', exact=True).click()
+        page.locator('#weekend-form').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
         _open_details(page, 'weekend-editor')
         expect(page.locator('#allows_weekend')).to_be_checked()
         _open_details(page, 'schedule-editor-staff_guest')
@@ -67,13 +69,13 @@ def test_native_operations_controls_save_focus_and_original_exception(
         _open_details(page, 'exception-editor')
         page.locator('#exception-load-date').fill('2026-09-05')
         page.locator('#exception-load-meal').select_option('LUNCH')
-        page.locator('#exception-load').get_by_role('button', name='Ausgabe laden', exact=True).click()
+        page.locator('#exception-load').get_by_role('button', name=re.compile(r'.+ öffnen$')).click()
         expect(page.locator('#exception-editor')).to_have_attribute('open', '')
         expect(page.locator('#exception-save input[name="row_version"]')).to_have_value('0')
         expect(page.locator('#service_start')).to_have_value('11:30')
         page.locator('#service_end').fill('14:00')
         _assert_controls(page)
-        page.get_by_role('button', name='Ausnahme speichern', exact=True).click()
+        page.locator('#exception-save').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
         _open_details(page, 'saved-exceptions')
         expect(page.locator('[data-kind="time"]')).to_be_visible()
         page.screenshot(path=str(tmp_path / f'operations-saved-{width}-js-{javascript}.png'), full_page=True)

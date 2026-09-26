@@ -199,20 +199,23 @@ def _metrics(page: Page) -> dict[str, object]:
 
 def _assert_accessible_layout(page: Page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    action_size = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
     controls = page.locator('main a:visible, main button:visible, main input:not([type="hidden"]):visible, main summary:visible')
     for control in controls.all():
         if control.get_attribute('type') in {'checkbox', 'radio'}:
             control = control.locator('xpath=ancestor::label')
         box = control.bounding_box()
-        assert box is not None and box['height'] >= 48
-        assert box['width'] >= 48
+        minimum = action_size if control.evaluate("el => el.matches('.ui-sem-control')") else 48
+        assert box is not None and box['height'] >= minimum
+        assert box['width'] >= minimum
     assert page.locator('link[href$="/app.css"]').count() == 0
     assert page.locator('main').count() == 1
+    # Inspect server markup before focus creates the shared Bootstrap tooltip.
+    assert page.locator('[style], [onclick], script:not([src])').count() == 0
     back = page.get_by_role('link', name='Zurück')
     back.focus()
     expect(back).to_be_focused()
     assert back.evaluate('element => getComputedStyle(element).outlineStyle !== "none"')
-    assert page.locator('[style], [onclick], script:not([src])').count() == 0
 
 
 @pytest.mark.parametrize(('width', 'height'), ((360, 844), (1280, 1100)))
@@ -225,9 +228,9 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     page.goto('/admin/import-preview')
     expect(page.locator('main')).to_have_attribute('data-state', 'empty')
     expect(page.get_by_text('Die Vorschau speichert noch keinen Entwurf.')).to_be_visible()
-    expect(page.locator('main .btn-primary')).to_have_text('Prüfen')
+    expect(page.locator('main .btn-primary')).to_have_accessible_name('Vorschau prüfen')
     expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau prüfen')
-    expect(page.locator('main .btn-primary')).to_have_attribute('title', 'CSV-Datei prüfen')
+    expect(page.locator('main .btn-primary')).to_have_attribute('data-ui-tooltip', 'CSV-Datei prüfen')
     expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.preview')
     expect(page.locator('main .btn-primary')).to_have_count(1)
     expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
@@ -253,7 +256,7 @@ def test_csv_preview_empty_and_invalid_have_clear_next_actions(
     expect(alert.locator('.csv-issue-row strong')).to_contain_text('Zeile 1, Spalte')
     expect(page.locator('.csv-issue-row .admin-list-primary')).to_have_count(0)
     expect(page.get_by_label('Korrigierte CSV-Datei')).to_be_visible()
-    expect(page.locator('main .btn-primary')).to_have_text('Prüfen')
+    expect(page.locator('main .btn-primary')).to_have_accessible_name('Vorschau prüfen')
     expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau prüfen')
     expect(page.locator('main .btn-primary')).to_have_count(1)
     expect(page.locator('dl.admin-statusbar')).to_contain_text('Fehlerhaft')
@@ -290,7 +293,7 @@ def test_csv_preview_ready_exposes_destination_before_import(
     assert 'staff_guest' not in page.locator('main').inner_text()
     assert 'Profil patient' not in page.locator('main').inner_text()
     primary = page.locator('main .btn-primary')
-    expect(primary).to_have_text('Importieren')
+    expect(primary).to_have_accessible_name('Geprüfte Datei importieren')
     expect(primary).to_have_attribute('aria-label', 'Geprüfte Datei importieren')
     expect(primary).to_have_count(1)
     expect(page.get_by_role('button', name='Prüfen', exact=True)).to_have_count(0)
@@ -449,7 +452,7 @@ def test_csv_preview_frame_viewports_statusbar_nojs_keyboard(
                         more.press('Enter')
                         expect(page.locator('#csv-more')).not_to_have_attribute('open', '')
                         expect(page.locator('dl.admin-statusbar')).to_contain_text('Offen')
-                        expect(page.locator('main .btn-primary')).to_have_text('Prüfen')
+                        expect(page.locator('main .btn-primary')).to_have_accessible_name('Vorschau prüfen')
                         expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau prüfen')
                         if width == 360:
                             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -484,7 +487,7 @@ def test_csv_preview_frame_viewports_statusbar_nojs_keyboard(
                 assert metric['primary'] == 1, metric
                 expect(page.locator('dl.admin-statusbar')).to_contain_text('Cafeteria')
                 expect(page.locator('dl.admin-statusbar')).to_contain_text('Bereit')
-                expect(page.locator('main .btn-primary')).to_have_text('Importieren')
+                expect(page.locator('main .btn-primary')).to_have_accessible_name('Geprüfte Datei importieren')
                 assert page.locator('form[action$="/import"] input').evaluate_all(
                     'elements => elements.map(element => element.name)'
                 ) == list(IMPORT_FIELDS)

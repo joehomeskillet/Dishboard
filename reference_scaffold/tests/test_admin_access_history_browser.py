@@ -71,7 +71,7 @@ def test_native_history_filters_pagination_keyboard_and_outage(
 
         page.get_by_label('Zugang', exact=True).select_option('entra')
         page.get_by_label('Ereignis', exact=True).select_option('auth.login.accepted')
-        page.get_by_role('button', name='Filtern', exact=True).click()
+        page.get_by_role('button', name='Filter', exact=True).click()
         expect(page.locator('tbody tr')).to_have_count(9)
         assert parse_qs(urlsplit(page.url).query) == {'provider': ['entra'], 'action': ['auth.login.accepted']}
         assert page.locator('tbody td[data-label="Zugang"]').all_text_contents() == ['Microsoft Entra'] * 9

@@ -10,7 +10,7 @@
 {% block content %}
 <section class="card admin-users-history" aria-labelledby="events-title"><h2 class="visually-hidden" id="events-title">Kontoereignisse</h2>
 {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table admin-table admin-table--stack"><thead><tr><th scope="col">Zeitpunkt</th><th scope="col">Konto</th><th scope="col">Ereignis</th><th scope="col">Ausgeführt von</th></tr></thead><tbody>
-{% for item in rows %}<tr><td data-label="Zeitpunkt">{{ format_time(item.occurred_at) }}</td><td data-label="Konto" class="text-break">{{ item.target_display_name }}</td><td data-label="Ereignis">{{ item.summary }}</td><td data-label="Ausgeführt von" class="text-break">{{ item.actor_display_name or 'Anmeldeschutz' }}</td></tr>{% endfor %}
+{% for item in rows %}<tr><td data-label="Zeitpunkt">{{ format_time(item.occurred_at) }}</td><td data-label="Konto" class="admin-list-primary text-break">{{ item.target_display_name }}</td><td data-label="Ereignis">{{ item.summary }}</td><td data-label="Ausgeführt von" class="text-break">{{ item.actor_display_name or 'Anmeldeschutz' }}</td></tr>{% endfor %}
 </tbody></table></div>{% else %}{{ empty_state('none', 'Noch keine Kontoereignisse' if page == 1 else 'Keine Kontoereignisse auf dieser Seite', 'Erfolgreiche Kontoaktionen erscheinen hier automatisch.') }}{% endif %}
 <div class="card-footer text-secondary small">{{ hint('Lokale Kontoänderungen und vorübergehende Anmeldesperren · Zeitangaben Schweiz. Anmeldungen und Abmeldungen stehen im Zugriffsverlauf.', 'account-events-hint') }}</div></section>
 {{ pagination(page,has_next,prev_url,next_url,'Ereignisseiten') }}

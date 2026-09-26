@@ -50,7 +50,12 @@ def _layout(page):
         'els=>els.every(el=>el.getAttribute("aria-describedby").split(/\\s+/).every(id=>document.getElementById(id)))')
     targets = page.locator('main .btn:visible,main .form-control:visible,main .form-select:visible,main .form-check:visible')
     assert targets.count() > 0
-    assert targets.evaluate_all('els=>els.every(el=>el.getBoundingClientRect().height>=47.5)'), targets.evaluate_all(
+    assert targets.evaluate_all('''els=>els.every(el=>{
+        const minimum = el.matches('.ui-sem-control')
+            ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48;
+        const box = el.getBoundingClientRect();
+        return box.height >= minimum - 0.5 && (!el.matches('.ui-sem-control') || box.width >= minimum - 0.5);
+    })'''), targets.evaluate_all(
         'els=>els.map(el=>({tag:el.tagName,text:el.textContent,height:el.getBoundingClientRect().height}))')
 
 

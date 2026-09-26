@@ -207,9 +207,10 @@ def test_exception_menu_preservation_weekend_guard_and_status_mismatch(client, d
     body = client.get(PATH).get_data(as_text=True)
     assert all(f'data-kind="{kind}"' in body for kind in ('open', 'closure', 'time'))
     assert 'admin-label' in body
-    assert 'Woche öffnen' in body
     saved = re.search(r'id="saved-exceptions".*?</details>', body, re.S)
     assert saved is not None
+    assert re.search(r'class="admin-list-primary"><a href="/admin/patienten\?week=2026-08-31">', saved.group())
+    assert 'data-semantic="actions.open"' not in saved.group()
     assert '<span class="admin-empty-value">—</span>' in saved.group()
     assert '<div class="admin-list-secondary">' in saved.group()
     assert '<span class="admin-list-primary">' in body
@@ -450,7 +451,10 @@ def test_operations_browser_compact_rows_payload_keyboard_and_360px(client, app,
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 for control in page.locator('#schedule-patient :is(input:not([type=hidden]), select, button, summary):visible').all():
                     size = control.bounding_box()
-                    assert size['height'] >= 48 and size['width'] >= 48, size
+                    semantic = control.evaluate("el => el.matches('.ui-sem-control')")
+                    action_size = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
+                    minimum = action_size if semantic else 48
+                    assert size['height'] >= minimum and size['width'] >= minimum, size
                 page.screenshot(path=str(tmp_path / f'wp14-{width}-js-{javascript}.png'), full_page=True)
                 measurements.append(metrics)
             page.locator('#patient-slot_1_LUNCH_start').fill('14:00')

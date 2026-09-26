@@ -74,7 +74,7 @@ def test_display_frame_viewports_nojs_and_keyboard(
                         expect(status).to_contain_text('Aktiv')
                         expect(status).to_contain_text('Kompakt')
                         expect(status).to_contain_text('Anzeigen')
-                        expect(page.locator('main .btn-primary')).to_have_text('Speichern')
+                        expect(page.locator('main .btn-primary')).to_have_accessible_name('Speichern')
                         _assert_controls(page)
                         page.screenshot(path=str(tmp_path / f'display-frame-{width}-{javascript}.png'), full_page=True)
                         summary = page.locator('#display-more > summary')
@@ -192,11 +192,17 @@ def _context(playwright_browser, server_url, client, *, javascript=True):
 
 def _assert_controls(page):
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    action_size = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
     for locator in page.locator('main :is(.btn, .form-select, .form-control)').all():
         if locator.is_visible():
             box = locator.bounding_box()
-            assert box is not None and box['height'] >= 48
-            assert locator.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 16
+            semantic = locator.evaluate("el => el.matches('.ui-sem-control')")
+            assert box is not None and box['height'] >= (action_size if semantic else 48)
+            if semantic:
+                assert box['width'] >= action_size
+                assert locator.get_attribute('aria-label')
+            else:
+                assert locator.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 16
 
 
 @pytest.mark.parametrize('width', [390, 820, 1440])
@@ -323,5 +329,5 @@ def test_csv_states_remain_independent_of_density_and_old_local_storage(page_con
     expect(page.locator('main')).to_have_attribute('data-state', 'ready')
     expect(page.locator('main')).to_have_attribute('data-density', 'compact')
     expect(page.get_by_role('button', name='Geprüfte Datei importieren')).to_be_visible()
-    expect(page.locator('main .btn-primary span')).to_have_text('Importieren')
+    expect(page.locator('main .btn-primary')).to_have_accessible_name('Geprüfte Datei importieren')
     expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)

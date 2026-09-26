@@ -43,7 +43,7 @@
       <tbody>
       {% for code, schedule in schedules.items() %}
       <tr>
-        <th scope="row" data-label="Bereich">{{ area_names[code] }}</th>
+        <th scope="row" data-label="Bereich" class="admin-list-primary"><a href="#schedule-{{ code }}">{{ area_names[code] }}</a></th>
         <td data-label="Wochenendbetrieb für neue Ausgaben">
           {% if code == 'staff_guest' %}{{ 'Möglich' if schedule.allows_weekend else 'Nicht möglich' }}
           {% else %}Je Mahlzeit festgelegt{% endif %}
@@ -64,8 +64,7 @@
           {% endfor %}
           </ul>
           </details>
-          {% if missing_times.found %}<p class="form-hint mb-0">Offene Ausgaben ohne Zeit: Zeiten nicht eingetragen.</p>{% endif %}
-          {{ icon_button('actions.edit', href='#schedule-' ~ code) }}
+          {% if missing_times.found %}{{ label('Zeiten nicht eingetragen', 'warning', icon='alert-triangle') }}{% endif %}
           </div>
         </td>
       </tr>
@@ -87,7 +86,7 @@
         {{ input('name_' ~ code, 'Bereichsname', values.get('name_' ~ code, area_names[code])) }}
         <div class="form-hint">Bereits veröffentlichte Pläne behalten ihren Namen.</div>
       </div>
-      <div class="card-footer"><button class="btn" type="submit">{{ icon_label('actions.save') }}</button></div>
+      <div class="card-footer">{{ icon_button('actions.save', emphasis='secondary', object=area_names[code]) }}</div>
     </form>
   </details>
 {% endfor %}
@@ -105,7 +104,7 @@
       {{ error_text('allows_weekend') }}
       <p class="form-hint">Bereits erfasste Öffnungszeiten bleiben beim Abschalten erhalten.</p>
     </div>
-    <div class="card-footer"><button class="btn" type="submit">{{ icon_label('actions.save') }}</button></div>
+    <div class="card-footer">{{ icon_button('actions.save', emphasis='secondary', object=area_names.staff_guest) }}</div>
   </form>
 </details>
 
@@ -148,7 +147,7 @@
       </tbody>
     </table>
   </div>
-  <div class="card-footer"><button class="btn" type="submit">{{ icon_label('actions.save') }}</button></div>
+  <div class="card-footer">{{ icon_button('actions.save', emphasis='secondary', object=area_names[code]) }}</div>
 </form>
 </details>
 {% endfor %}
@@ -176,7 +175,7 @@
           <label class="form-label" for="{{ load_id }}-meal">Mahlzeit</label>
           <select class="form-select" id="{{ load_id }}-meal" name="meal"{% if values.get('profile') == code %}{{ validation('meal') }}{% endif %}>{% for meal, label in meal_labels.items() %}<option value="{{ meal }}"{% if values.get('profile') == code and values.get('meal') == meal %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% if values.get('profile') == code %}{{ error_text('meal') }}{% endif %}
         </div>
-        <div class="col-12 col-lg-2"><button class="btn" type="submit">{{ icon_label('actions.open') }}</button></div>
+        <div class="col-12 col-lg-2">{{ icon_button('actions.open', object=area_names[code]) }}</div>
       </div>
     </form>
     {% endfor %}
@@ -191,7 +190,7 @@
         <div class="col-12 col-lg-4 operations-time{% if values.service_start or errors.get('service_start') %} has-content{% endif %}">{{ input('service_start', 'Beginn', values.service_start, 'time') }}</div>
         <div class="col-12 col-lg-4 operations-time{% if values.service_end or errors.get('service_end') %} has-content{% endif %}">{{ input('service_end', 'Ende', values.service_end, 'time') }}</div>
         <div class="col-12"><details class="operations-notice"{% if values.notice or errors.get('notice') %} open{% endif %}><summary>{{ icon_label('ui.disclosure.more_options') }}</summary>{{ input('notice', 'Hinweis', values.notice) }}</details></div>
-        <div class="col-12"><button class="btn btn-primary ui-sem-control" type="submit" data-semantic="actions.save" title="{{ t(sem('actions.save').tooltip_key) }}">{{ icon_label('actions.save') }}</button></div>
+        <div class="col-12">{{ icon_button('actions.save', object=area_names[values.profile]) }}</div>
       </div>
     </form>
     {% endif %}
@@ -204,10 +203,10 @@
   <div class="table-responsive"><table class="table table-vcenter card-table admin-table admin-table--stack">
     <thead><tr><th scope="col">Datum / Bereich</th><th scope="col">Betrieb</th><th scope="col">Zeiten / Hinweis</th><th scope="col">Woche</th></tr></thead>
     <tbody>{% for item in exceptions %}<tr>
-      <th scope="row" data-label="Datum / Bereich">{{ item.service_date.strftime('%d.%m.%Y') }} · {{ area_names[item.profile_code] }} · {{ meal_labels[item.meal_code] }}</th>
+      <th scope="row" data-label="Datum / Bereich" class="admin-list-primary"><a href="{{ url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()) }}">{{ item.service_date.strftime('%d.%m.%Y') }} · {{ area_names[item.profile_code] }} · {{ meal_labels[item.meal_code] }}</a></th>
       <td data-label="Betrieb"><span data-kind="{{ item.kind }}">{{ label({'closure': 'Schliessung', 'time': 'Andere Zeit', 'open': 'Zusätzlich offen'}[item.kind], 'neutral', icon='calendar-week') }}</span><div class="admin-list-secondary">{{ state_labels[item.service_state] }}</div></td>
       <td data-label="Zeiten / Hinweis">{% if item.service_start or item.service_end %}{{ item.service_start or '–' }}–{{ item.service_end or '–' }}{% elif not item.notice %}{{ empty_value() }}{% endif %}{% if item.notice %}<div class="admin-list-secondary">{{ item.notice }}</div>{% endif %}</td>
-      <td data-label="Woche" class="admin-table-actions">{{ icon_button('actions.open', href=url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()), text='Woche öffnen', title='Woche öffnen') }}</td>
+      <td data-label="Woche" class="admin-list-meta">{{ item.week_start.strftime('%d.%m.%Y') }}</td>
     </tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<div class="card-body">{{ empty_state('none', 'Keine gespeicherten Ausnahmen im Zeitraum von sieben Tagen vor heute bis acht Wochen danach.', '', action=icon_button('actions.add', href='#exception-load', emphasis='secondary')) }}</div>{% endif %}

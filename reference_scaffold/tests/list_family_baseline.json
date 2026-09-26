@@ -124,10 +124,7 @@
       "haupt_typografie:karten-1",
       "karte_je_zeile:karten-1"
     ],
-    "benutzer": [
-      "1440:zeilenaktion_text:zeilen-1",
-      "390:zeilenaktion_text:zeilen-1"
-    ],
+    "benutzer": [],
     "benutzerprotokoll": [],
     "api-schluessel": [
       "1440:zeilenaktion_text:tabelle-1",
