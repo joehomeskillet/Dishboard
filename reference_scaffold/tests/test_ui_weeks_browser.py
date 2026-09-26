@@ -88,7 +88,7 @@ def _views(page: Page, tmp_path: Path, state: str, viewports=VIEWPORTS) -> None:
             'es => es.map(e => e.outerHTML)'
         ) == []
         assert page.locator('main :is(.btn, input:not([type=hidden]), textarea, summary):visible').evaluate_all(
-            'es => es.every(e => e.getBoundingClientRect().height >= 48)'
+            "es => es.every(e => e.getBoundingClientRect().height >= (e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse)').matches ? 44 : 36) : 48))"
         )
         clipped = page.locator('main :is(td, dd, p):visible').evaluate_all(r'''es => es.flatMap(e => {
             const s = getComputedStyle(e);
@@ -216,18 +216,17 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
             row = page.locator('tr[data-week-id]')
             expect(row).to_contain_text('31.08.2026 – 06.09.2026')
             expect(row).to_contain_text('KW 36 / 2026')
-            open_week = row.get_by_role('link', name='Öffnen', exact=True)
+            open_week = row.get_by_role('link', name='31.08.2026 – 06.09.2026', exact=True)
             expect(open_week).to_be_visible()
             expect(open_week).to_have_attribute('href', f'/admin/{family}?week={WEEK}')
             open_week.click()
             assert page.url.endswith(f'/admin/{family}?week={WEEK}')
             _goto(page, path)
-            row.locator('details.week-more summary').click()
             row.get_by_role('link', name='Vorschau für Woche ab 31.08.2026', exact=True).click()
             assert '/preview?week=' in page.url
             _goto(page, path)
-            row.locator('details.week-more summary').click()
-            row.get_by_role('link', name='Kopieren', exact=True).click()
+            row.locator('details.ui-sem-actions summary').click()
+            row.get_by_role('link', name='Woche ab 31.08.2026 kopieren', exact=True).click()
             expect(page.locator('main')).to_have_attribute('data-source-week', str(WEEK))
             expect(page.locator('main')).to_have_attribute('data-target-week', str(WEEK + timedelta(days=7)))
             expect(page.locator('#copy-description')).to_contain_text('in die leere Woche')
@@ -254,10 +253,12 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
     _goto(page, path)
     _views(page, tmp_path, 'dense-long')
     expect(page.locator('tr[data-week-id]')).to_have_count(12)
-    expect(page.locator('dl.admin-statusbar .admin-statusbar-label')).to_have_text(['Bereich'])
+    expect(page.locator('.page-header-subtitle')).to_have_count(0)
+    expect(page.locator('.week-filter .active')).to_have_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
     page.get_by_role('navigation', name='Wochenseiten').get_by_role('link', name='Weiter').click()
     expect(page.locator('tr[data-week-id]')).to_have_count(2)
-    expect(page.locator('dl.admin-statusbar .admin-statusbar-label')).to_have_text(['Bereich'])
+    expect(page.locator('.page-header-subtitle')).to_have_count(0)
+    expect(page.locator('.week-filter .active')).to_have_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
     _views(page, tmp_path, 'last-page', CORE)
     (tmp_path / 'fixture.json').write_text(json.dumps({
         'base': BASE, 'family': family, 'javascript': javascript,

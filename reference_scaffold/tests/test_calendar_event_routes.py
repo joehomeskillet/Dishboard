@@ -64,9 +64,9 @@ def test_calendar_template_uses_shared_statusbar_and_primary_action(
     browser, live_server, admin_app, admin_engine, monkeypatch, can_write, width,  # noqa: F811
 ) -> None:
     text = CALENDAR_TEMPLATE.read_text(encoding='utf-8')
-    assert 'status_items=calendar_status' in text
-    assert "'label': 'Monat'" in text
-    assert "'label': 'Geplante Tage'" in text
+    assert "page_header('Küchenkalender · ' ~ month_label" in text
+    assert 'description=planned_display' in text
+    assert 'Tage geplant' in text
     capabilities = {'draft.read', 'draft.write'} if can_write else {'draft.read'}
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Editor', capabilities)
     client, _ = _login(admin_app, admin_engine, ['Cafeteria.Editor'])
@@ -80,11 +80,16 @@ def test_calendar_template_uses_shared_statusbar_and_primary_action(
         response = page.goto('/admin/kuechenkalender?jump=2026-09')
         assert response is not None and response.status == 200
         header = page.locator('.admin-page-header')
+        expect(header.get_by_role('heading', level=1)).to_contain_text('September')
+        expect(header.get_by_role('region', name='Kalendersteuerung')).to_have_count(1)
+        expect(header).to_contain_text('Keine Tage geplant')
+        expect(header.get_by_role('group', name='Bereich filtern')).to_be_visible()
         primary = header.locator('.btn-primary')
         if can_write:
             expect(primary).to_have_count(1)
             expect(primary).to_be_visible()
-            expect(primary).to_have_text('Anlass anlegen')
+            expect(primary).to_have_accessible_name('Anlass anlegen')
+            expect(primary).to_have_text('')
             expect(primary).to_have_attribute('href', event_url)
             expect(header.locator(f'a.btn-primary[href="{event_url}"]')).to_have_count(1)
             plan_buttons = page.get_by_role('link', name=re.compile(r'^Planen für '))
@@ -112,7 +117,9 @@ def test_anlass_template_preserves_post_fields_and_shared_patterns() -> None:
     assert 'name="row_version"' in text
     assert 'name="_csrf"' in text
     assert 'status_items=event_status' in text
-    assert 'form_footer(' in text
+    assert 'data-sticky-form="kitchen-event-form"' in text
+    assert "icon_button('actions.save')" in text
+    assert "icon_button('actions.cancel', href=url_for('admin.kitchen_calendar'))" in text
     assert 'disclosure_section(' in text
     assert 'Anlass anlegen' in text
     assert 'Anlass bearbeiten' in text

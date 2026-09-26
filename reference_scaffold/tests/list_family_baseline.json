@@ -2,17 +2,11 @@
   "pages": {
     "wochenuebersicht-cafeteria": [
       "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:tabelle-1",
-      "390:kopfaktion_text",
-      "390:zeilenaktion_text:tabelle-1",
-      "kopf_typografie:tabelle-1"
+      "390:kopfaktion_text"
     ],
     "wochenuebersicht-patienten": [
       "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:tabelle-1",
-      "390:kopfaktion_text",
-      "390:zeilenaktion_text:tabelle-1",
-      "kopf_typografie:tabelle-1"
+      "390:kopfaktion_text"
     ],
     "wochenplan-cafeteria": [
       "1440:zeilenaktion_text:karten-1",
@@ -55,8 +49,7 @@
       "kopf_typografie:tabelle-1"
     ],
     "kuechenkalender": [
-      "haupt_typografie:tabelle-1",
-      "kopf_typografie:tabelle-1"
+      "haupt_typografie:tabelle-1"
     ],
     "zutaten": [
       "haupt_typografie:zeilen-1",

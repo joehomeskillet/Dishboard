@@ -5,11 +5,6 @@
   margin-bottom: var(--app-space-2);
 }
 
-.dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-toolbar .btn {
-  min-height: 48px;
-  min-width: 48px;
-}
-
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-jump .form-control {
   min-height: 48px;
 }
@@ -20,10 +15,6 @@
   border: 2px solid var(--app-primary);
   background: var(--app-primary-soft);
   color: var(--app-primary);
-}
-
-.dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-table th {
-  padding: var(--app-space-1) var(--app-space-2);
 }
 
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-day {
@@ -60,20 +51,10 @@
   gap: var(--app-space-1);
   margin-bottom: 0;
   padding-block: 0;
-  line-height: 1.35;
 }
 
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-plan {
   flex: 0 0 auto;
-  min-height: 48px;
-  padding-inline: var(--app-space-2);
-  font-size: var(--app-font-size-small);
-}
-
-.dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-today-mark {
-  font-size: var(--app-font-size-small);
-  font-weight: 600;
-  padding-inline: var(--app-space-1);
 }
 
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-event {
@@ -81,9 +62,6 @@
   min-height: 0;
   margin-bottom: var(--app-space-1);
   padding-block: 0;
-  line-height: 1.35;
-  font-size: var(--app-font-size-small);
-  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -106,10 +84,7 @@
 }
 
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-meal-label {
-  margin: 7px 0 0;
-  font-size: var(--app-font-size-small);
-  line-height: 1.35;
-  color: var(--app-text-muted);
+  margin: var(--app-space-1) 0 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -122,8 +97,6 @@
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-notice,
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-course {
   margin: 2px 0 0;
-  font-size: var(--app-font-size-small);
-  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -134,8 +107,6 @@
   min-height: 0;
   margin: 2px 0 0;
   padding-block: 0;
-  line-height: 1.35;
-  font-size: var(--app-font-size-small);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -148,8 +119,6 @@
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-more summary {
   min-height: 48px;
   padding-block: 0;
-  line-height: 1.35;
-  font-size: var(--app-font-size-small);
 }
 
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-empty {
@@ -170,7 +139,6 @@
   justify-content: space-between;
   gap: var(--app-space-1);
   margin: 0;
-  line-height: 1.35;
 }
 
 .dishboard-admin .admin-main[data-layout="calendar"] .kitchen-cal-list-head > h2 {

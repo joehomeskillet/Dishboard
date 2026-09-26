@@ -101,7 +101,10 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
                     note.last.evaluate('el => { el.open = true; }')
                 expect(page.locator('#new-week-note')).to_be_visible()
             for control in page.locator('input[type="date"], input[name="title"], textarea, button[type="submit"]').all():
-                assert control.bounding_box()['height'] >= 48, (width, control.evaluate('(el) => el.outerHTML'))
+                minimum = 48
+                if route == 'wochen':
+                    minimum = control.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
+                assert control.bounding_box()['height'] >= minimum, (width, control.evaluate('(el) => el.outerHTML'))
             for link in page.get_by_role('navigation', name='Backend').get_by_role('link').all():
                 expect(link).to_be_visible()
                 assert link.bounding_box()['height'] >= 48

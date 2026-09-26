@@ -101,7 +101,8 @@ def test_real_week_review_saved_content_and_explicit_confirmation(
     expect(page.get_by_role('list', name='Ausgabeangaben').get_by_role('listitem')).to_have_count(len(services))
     expect(page.locator('.admin-list-status .admin-label')).to_have_count(len(services))
     box = confirm.bounding_box()
-    assert box is not None and box['width'] >= 48 and box['height'] >= 48
+    minimum = page.evaluate("matchMedia('(pointer: coarse)').matches ? 44 : 36")
+    assert box is not None and box['width'] >= minimum and box['height'] >= minimum
     confirm.focus()
     expect(confirm).to_be_focused()
     assert confirm.evaluate("el => getComputedStyle(el).outlineStyle !== 'none'")

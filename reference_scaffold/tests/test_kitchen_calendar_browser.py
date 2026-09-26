@@ -208,6 +208,9 @@ def test_overflow_details_keyboard_accessible(
         details = cell.locator('details.kitchen-cal-more')
         assert details.count() == 1
         summary = details.locator('summary')
+        hidden_count = details.locator('.kitchen-cal-dish').count()
+        expect(summary).to_have_text(f'+ {hidden_count} weitere')
+        assert hidden_count == EXPECTED_DISHES_FULL_DAY - _dish_counts(cell)['visible']
         summary.focus()
         page.keyboard.press('Enter')
         assert details.evaluate('element => element.open') is True
@@ -231,15 +234,14 @@ def test_calendar_has_no_horizontal_overflow(
         })''')
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_be_visible()
-        hint = page.locator('details.admin-hint').first
-        summary = hint.locator('summary')
-        expect(summary).to_be_visible()
-        summary.focus()
-        expect(summary).to_be_focused()
-        if hint.get_attribute('open') is None:
-            page.keyboard.press('Enter')
-        expect(hint).to_have_attribute('open', '')
-        page.keyboard.press('Enter')
+        # Redundant layout hint is replaced by the single, keyboard-accessible header.
+        header = page.locator('.admin-page-header')
+        expect(header.get_by_role('region', name='Kalendersteuerung')).to_have_count(1)
+        next_month = header.get_by_role('link', name='Nächster Monat', exact=True)
+        expect(next_month).to_be_visible()
+        next_month.focus()
+        expect(next_month).to_be_focused()
+        expect(header.get_by_role('link', name='Anlass anlegen')).to_have_text('')
         if width == 360:
             list_visible = page.evaluate('''() => {
                 const list = document.querySelector('.kitchen-cal-list');

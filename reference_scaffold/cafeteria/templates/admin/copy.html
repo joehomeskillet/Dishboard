@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, icon %}
-{% from 'ui/_semantic.html' import icon_button, icon_label %}
+{% from 'admin/_macros.html' import page_header %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'weeks' %}
 {% set layout_variant = 'standard' %}
 {% set week = target.isoformat() %}
@@ -13,7 +13,7 @@
   {'label': 'Quellwoche', 'value': 'KW ' ~ source.isocalendar().week ~ ' / ' ~ source.isocalendar().year, 'detail': source.strftime('%d.%m.%Y')},
   {'label': 'Zielwoche', 'value': 'KW ' ~ target.isocalendar().week ~ ' / ' ~ target.isocalendar().year, 'detail': target.strftime('%d.%m.%Y')}
 ]) %}
-{{ icon_button('actions.copy', form='week-copy-form', emphasis='primary', text='Vorwoche kopieren') }}
+{{ icon_button('actions.copy', form='week-copy-form', emphasis='primary', text='Vorwoche kopieren', show_text=true) }}
 {% endcall %}
 {% endblock %}
 {% block content %}
