@@ -11,35 +11,12 @@
 {% block page_header %}
 {%- set policy_labels = {'leaf': 'Blattbedarf', 'prepared': 'Vorbereiteter Bedarf'} -%}
 {%- set week_value = week_labels.get(detail.menu_week_public_id, 'Keine Woche') -%}
-{%- set pos = namespace(open=0, checked=0) -%}
-{%- if selected -%}
-  {%- for line in selected.lines -%}
-    {%- if line.checked_status == 'checked' -%}{%- set pos.checked = pos.checked + 1 -%}
-    {%- elif line.checked_status != 'not_current' -%}{%- set pos.open = pos.open + 1 -%}{%- endif -%}
-  {%- endfor -%}
-  {%- for item in detail.manual_items -%}
-    {%- if item.checked -%}{%- set pos.checked = pos.checked + 1 -%}
-    {%- else -%}{%- set pos.open = pos.open + 1 -%}{%- endif -%}
-  {%- endfor -%}
-{%- endif -%}
-{%- set status_items = [
-  {'label': 'Woche', 'value': week_value, 'variant': 'warning' if not detail.menu_week_public_id else 'neutral'},
-  {'label': 'Liste', 'value': 'Archiviert' if detail.archived_at else 'Aktiv', 'variant': 'neutral' if detail.archived_at else 'success'},
-  {'label': 'Berechnung', 'value': selected.computed_at.strftime('%d.%m.%Y %H:%M') if selected else 'Noch nicht berechnet', 'variant': 'warning' if not selected else ('warning' if not selected.is_latest else 'neutral'), 'detail': policy_labels.get(selected.policy, selected.policy) if selected else none}
-] -%}
-{%- if selected -%}
-  {%- set pos_variant = 'warning' if pos.open else ('success' if pos.checked else 'neutral') -%}
-  {%- set status_items = status_items + [{'label': 'Positionen', 'value': pos.open ~ ' offen / ' ~ pos.checked ~ ' abgehakt', 'variant': pos_variant}] -%}
-  {%- if selected.incomplete_lines -%}
-    {%- set status_items = status_items + [{'label': 'Unvollständig', 'value': selected.incomplete_lines|length, 'variant': 'warning'}] -%}
-  {%- endif -%}
-{%- endif -%}
 {%- if selected -%}
   {%- set pdf_href = url_for('admin.shopping_list_pdf', public_id=detail.public_id, revision=selected.public_id) -%}
 {%- else -%}
   {%- set pdf_href = url_for('admin.shopping_list_pdf', public_id=detail.public_id) -%}
 {%- endif -%}
-{% call page_header('Einkaufslisten', description=detail.title ~ ' · ' ~ week_value ~ (' · Stand ' ~ selected.revision_number if selected else ''), breadcrumbs=[('Einkaufslisten', url_for('admin.shopping_lists_index')), (detail.title, none)], status_items=status_items) %}
+{% call page_header('Einkaufslisten', description=detail.title ~ ' · ' ~ week_value ~ (' · Stand ' ~ selected.revision_number if selected else ''), breadcrumbs=[('Einkaufslisten', url_for('admin.shopping_lists_index')), (detail.title, none)]) %}
 {{ icon_button('actions.print', href=pdf_href) }}
 {% endcall %}
 {% endblock %}
@@ -53,7 +30,7 @@
 {%- set policy_labels = {'leaf': 'Blattbedarf', 'prepared': 'Vorbereiteter Bedarf'} -%}
 {%- set detail_url = url_for('admin.shopping_list_detail', public_id=detail.public_id) -%}
 {% if summary %}{{ form_errors(summary) }}{% endif %}
-{{ hint('Abhaken und Neu berechnen gelten nur im aktuellen Berechnungsstand.', 'einkauf-stand-hint') }}
+{% if detail.archived_at %}<p>{{ label('Archiviert', 'neutral', icon='archive') }}</p>{% endif %}
 {% if selected and not selected.is_latest %}
 <div class="alert alert-warning mb-3" role="status">
   <div class="d-flex flex-wrap align-items-center gap-3">
@@ -81,10 +58,10 @@
   </div>
 </form>
 {% endif %}
-{% call disclosure_section(title='Weitere Optionen', id='einkaufsliste-extra', has_content=detail.note, has_error=false) %}
+{% if detail.note %}{% call disclosure_section(title='Weitere Optionen', id='einkaufsliste-extra', has_content=detail.note, has_error=false) %}
   <div class="text-secondary">Notiz</div>
   <div class="text-break">{{ detail.note or '—' }}</div>
-{% endcall %}
+{% endcall %}{% endif %}
 {% if can_write and not detail.archived_at and is_latest_view %}
 <section class="shopping-compute mb-3" aria-labelledby="berechnen-title">
   <h2 class="h3" id="berechnen-title">Neu berechnen</h2>
@@ -151,6 +128,7 @@
 {%- set line_actions = can_write and selected.is_latest -%}
 <section class="shopping-result mb-3" aria-labelledby="ergebnis-title">
   <h2 class="h3" id="ergebnis-title">Ergebnis</h2>
+  <p class="admin-list-secondary">{{ policy_labels.get(selected.policy, selected.policy) }}</p>
   {% if selected.lines %}
   <table class="table table-vcenter shopping-result-table admin-table admin-table--stack">
     <thead><tr>

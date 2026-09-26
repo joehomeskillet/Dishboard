@@ -6,18 +6,13 @@
 {% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
 {% set create_kind = 'korb' if suppliers else 'lieferant' %}
 {% set create_url = url_for('admin.order_home', open=create_kind, _anchor='basket_supplier' if suppliers else 'code') %}
-{% set order_status = [
-  {'label': t('order.cart.label'), 'value': baskets|length, 'variant': 'warning' if not baskets else 'neutral'},
-  {'label': t('order.supplier.label'), 'value': suppliers|length, 'variant': 'warning' if not suppliers else 'neutral'},
-  {'label': t('ui.order_articles.label'), 'value': articles|length, 'variant': 'warning' if not articles else 'neutral'},
-] %}
 {% block title %}Bestellung · Menüplanung{% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-bestellung.css') }}">
 {% endblock %}
 {% block page_header %}
-{% call page_header(t('navigation.orders.label'), description=t('ui.order_description.label'), status_items=order_status) %}
+{% call page_header(t('navigation.orders.label')) %}
 {{ icon_button('actions.add', href=create_url) }}
 {% endcall %}
 {% endblock %}

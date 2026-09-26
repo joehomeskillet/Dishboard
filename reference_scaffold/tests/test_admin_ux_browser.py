@@ -161,7 +161,7 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
 def test_admin_escape_closes_details_and_restores_focus(page_context: Page):
     page = page_context
     page.goto('/admin/cafeteria/komponenten')
-    summary = page.locator('#create-component summary')
+    summary = page.locator('.page-header [data-semantic="actions.add"]')
     summary.click()
     assert page.locator('#create-component').get_attribute('open') is not None
     page.keyboard.press('Escape')

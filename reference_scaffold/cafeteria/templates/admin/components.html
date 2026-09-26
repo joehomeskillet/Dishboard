@@ -2,7 +2,7 @@
 {% from '_food_symbols.html' import symbol %}
 {% from 'admin/_macros.html' import icon, page_header, profile_tabs, field, check, label as ui_label, empty_state %}
 {% from 'admin/_country_select.html' import country_select, countries %}
-{% from 'ui/_semantic.html' import icon_button %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem %}
 {% set workflow_nav = 'components' %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
@@ -14,7 +14,7 @@
 {% block page_header %}
 {% call page_header(t('navigation.components.label')) %}
   {{ profile_tabs({'cafeteria': '/admin/cafeteria/komponenten', 'patienten': '/admin/patienten/komponenten'}, family) }}
-  {{ icon_button('actions.add', href='#c-name', attrs={'data-error-link': ''}) }}
+  {{ icon_button('actions.add', href='#c-name', attrs={'data-error-link': '', 'aria-controls': 'create-component'}) }}
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -30,11 +30,9 @@
 </div>
 {% endif %}
 
-<form method="get" action="/admin/{{ family }}/komponenten" class="search-form component-filter-toolbar admin-filter-bar mb-3" data-dirty-tracking="off" aria-labelledby="component-filter-heading">
-  <div>
-    <h2 class="visually-hidden" id="component-filter-heading">Bausteine filtern</h2>
-    <div class="component-filter-primary row g-2 align-items-end">
-      <div class="col-12 col-lg-4">{{ field('q', 'Suche', value=query|default(''), type='search', id='f-q') }}</div>
+{% set selected_status = active_filters.status if active_filters else ('all' if include_archived else 'active') %}
+{% set component_filters %}
+    <div class="row g-2 align-items-end">
       <div class="col-6 col-lg-2">
         <label class="form-label" for="f-cat">Kategorie</label>
         <select class="form-select" id="f-cat" name="category">
@@ -44,31 +42,13 @@
       </div>
       <div class="col-6 col-lg-2">
         <label class="form-label" for="f-status">Status</label>
-        {% set selected_status = active_filters.status if active_filters else ('all' if include_archived else 'active') %}
         <select class="form-select" id="f-status" name="status">
           {% for value, label in [('active', 'Aktiv'), ('archived', 'Archiviert'), ('all', 'Aktiv und archiviert')] %}
           <option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-12 col-lg-4 d-flex flex-wrap gap-2 align-items-center component-filter-actions">
-        {{ icon_button('view.search') }}
-        {% if filtered %}{{ icon_button('view.reset', href='/admin/' ~ family ~ '/komponenten') }}{% endif %}
-        <span id="component-result-count" class="text-secondary" role="status">{{ rows|length }} Treffer</span>
-      </div>
     </div>
-    <details class="component-filter-advanced mt-2"{% if active_filters and (active_filters.usage or active_filters.allergen or active_filters.presence or active_filters.label or active_filters.origin) %} open{% endif %}>
-      <summary class="component-filter-advanced-summary">{{ icon('chevron-right') }}Weitere Filter
-        {% if active_filters %}
-        <span class="component-active-filters">
-          {% if active_filters.usage %}<span>Verwendung: {{ 'verwendet' if active_filters.usage == 'used' else 'nicht verwendet' }}</span>{% endif %}
-          {% if active_filters.allergen %}<span>Allergen: {% if active_filters.allergen == 'unknown' %}nicht erfasst{% else %}{{ (allergens|selectattr('code', 'equalto', active_filters.allergen)|map(attribute='name')|first)|default(active_filters.allergen) }}{% endif %}</span>{% endif %}
-          {% if active_filters.presence %}<span>{{ 'enthält' if active_filters.presence == 'contains' else 'kann Spuren enthalten' }}</span>{% endif %}
-          {% if active_filters.label %}<span>{{ (labels|selectattr('code', 'equalto', active_filters.label)|map(attribute='name')|first)|default(active_filters.label) }}</span>{% endif %}
-          {% if active_filters.origin %}<span>Herkunft: {{ 'nicht erfasst' if active_filters.origin == 'unknown' else countries.get(active_filters.origin, active_filters.origin) }}</span>{% endif %}
-        </span>
-        {% endif %}
-      </summary>
       <div class="component-filter-fields row g-2 align-items-end mt-2">
         <div class="col-12 col-md-6 col-xl-3">
           <label class="form-label" for="f-usage">Verwendung in Menüs</label>
@@ -109,9 +89,9 @@
         </div>
       </div>
       <p class="form-hint mt-2 mb-0" id="component-allergen-filter-hint">«Nicht erfasst» bedeutet keine bestätigte Allergenfreiheit.</p>
-    </details>
-  </div>
-</form>
+{% endset %}
+{{ filter_bar_sem('/admin/' ~ family ~ '/komponenten', search_value=query|default(''), filters=component_filters, active=filtered, reset_url='/admin/' ~ family ~ '/komponenten', id='component', open=filtered) }}
+<p id="component-result-count" class="admin-list-meta" role="status">{{ rows|length }} Treffer · {{ 'Aktiv' if selected_status == 'active' else 'Archiviert' if selected_status == 'archived' else 'Aktiv und archiviert' }}</p>
 
 <div class="component-list-container">
   {% if rows %}
@@ -120,7 +100,7 @@
   <div class="card dishboard-component-results">
     <table class="table table-vcenter card-table dishboard-component-table admin-table admin-table--stack">
       <caption class="visually-hidden">Bausteine der aktuellen Suche</caption>
-      <thead><tr><th scope="col">Name</th><th scope="col">Kategorie</th><th scope="col">Herkunft / Kennzeichnungen</th><th scope="col">Verwendung</th>{% if selected_status == 'all' %}<th scope="col">Status</th>{% endif %}</tr></thead>
+      <thead><tr><th scope="col">Name</th><th scope="col">Kategorie</th><th scope="col">Herkunft / Kennzeichnungen</th><th scope="col">Verwendung</th>{% if selected_status == 'all' %}<th scope="col">Status</th>{% endif %}<th scope="col">Aktionen</th></tr></thead>
       <tbody>
         {% for row in rows %}
         <tr class="component-row" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
@@ -138,6 +118,9 @@
           </td>
           <td class="usage" data-label="Verwendung">{{ row.usage_count }} {{ 'Gericht' if row.usage_count == 1 else 'Gerichte' }}</td>
           {% if selected_status == 'all' %}<td class="component-status admin-table-status" data-label="Status">{{ ui_label('Aktiv' if row.active else 'archiviert', 'active' if row.active else 'neutral', icon=sem('status.active' if row.active else 'actions.archive').resolved_icon) }}</td>{% endif %}
+          <td class="admin-table-actions" data-label="Aktionen">
+            {{ row_actions([{'key': 'actions.edit', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}, {'key': 'actions.archive' if row.active else 'actions.activate', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}], object=row.name) }}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -152,8 +135,8 @@
   {% endif %}
 </div>
 
-<details id="create-component" class="card mt-3"{% if errors or submitted %} open{% endif %}>
-  <summary class="card-header dishboard-component-summary">{{ icon('plus') }}<span class="card-title mb-0">Baustein anlegen</span></summary>
+<details id="create-component"{% if errors or submitted %} open{% endif %}>
+  <summary class="d-none" hidden>Baustein anlegen</summary>
   <div class="card-body">
     <form id="component-form" method="post" action="/admin/{{ family }}/komponenten" data-loading>
       <input type="hidden" name="_csrf" value="{{ csrf }}">

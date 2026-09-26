@@ -52,9 +52,10 @@ def test_filter_get_keeps_values_count_and_legacy_archive_links(request, family)
             assert 'value="Kartoffel"' in body
             continue
         # Restrict to the GET form; create/editor fields have independent values.
-        form = body.split('class="search-form', 1)[1].split('</form>', 1)[0]
-        select = form.split(f'name="{key}"', 1)[1].split('</select>', 1)[0]
-        assert f'value="{value}" selected' in select, key
+        form = BeautifulSoup(body, 'html.parser').select_one('form[role="search"]')
+        assert form is not None and form['method'] == 'get'
+        selected = form.select_one(f'select[name="{key}"] option[selected]')
+        assert selected is not None and selected['value'] == value, key
     assert '0 Treffer' in http.get(path, query_string={**params, 'origin': 'DE'}).get_data(as_text=True)
     legacy = http.get(path, query_string={'include_archived': '1'})
     assert legacy.status_code == 200
@@ -68,7 +69,9 @@ def test_filter_get_keeps_values_count_and_legacy_archive_links(request, family)
         connection.execute(text("UPDATE cafeteria.dietary_labels SET active=false WHERE code='VEGAN'"))
     inactive = http.get(path, query_string=params)
     assert inactive.status_code == 200
-    form = inactive.get_data(as_text=True).split('class="search-form', 1)[1].split('</form>', 1)[0]
-    assert '1 Treffer' in form
-    assert 'value="GLUTEN" selected>GLUTEN (inaktiv)' in form
-    assert 'value="VEGAN" selected>VEGAN (inaktiv)' in form
+    document = BeautifulSoup(inactive.get_data(as_text=True), 'html.parser')
+    form = document.select_one('form[role="search"]')
+    assert '1 Treffer' in document.select_one('#component-result-count[role="status"]').get_text()
+    for key, value in [('allergen', 'GLUTEN'), ('label', 'VEGAN')]:
+        selected = form.select_one(f'select[name="{key}"] option[selected]')
+        assert selected['value'] == value and selected.get_text() == f'{value} (inaktiv)'

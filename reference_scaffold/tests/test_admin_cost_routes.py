@@ -16,7 +16,7 @@ from cafeteria.ui import register_ui
 
 def test_kalkulation_template_preview_not_send() -> None:
     text = (Path(__file__).resolve().parents[1] / 'cafeteria' / 'templates' / 'admin' / 'kalkulation.html').read_text(encoding='utf-8')
-    assert 'Vorschau schreibt nichts' in text
+    assert 'Bestätigen speichert einen unveränderlichen Beleg.' in text
     assert 'unvollständig, nie 0' in text
     assert 'BESTELLEN' not in text
     assert 'admin.cost_preview' in text
@@ -111,27 +111,27 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             page.evaluate('document.fonts.ready')
             expect(page.locator('h1')).to_have_text('Kalkulation')
             expect(page.locator('main .btn-primary')).to_have_count(1)
-            expect(page.locator('.admin-statusbar')).to_be_visible()
+            expect(page.locator('.admin-statusbar')).to_have_count(0)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             assert page.locator('main details[open]').count() == 0
             assert page.locator('#menu_revision_public_id').is_hidden()
             if state == 'empty':
-                expect(page.locator('.admin-statusbar')).to_contain_text('Offen')
-                expect(page.locator('.cost-empty a')).to_have_attribute('href', '#kind')
+                expect(page.locator('main')).to_contain_text('Fehlender Preis bleibt unvollständig, nie 0.')
+                expect(page.locator('#kind')).to_be_visible()
                 expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau')
             else:
                 expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Bestätigen')
                 expect(page.locator('.cost-lines tbody tr')).to_have_count(6)
                 assert FOOD_ID not in page.locator('.cost-lines').inner_text()
                 if state == 'incomplete':
-                    expect(page.locator('.admin-statusbar')).to_contain_text('unvollständig')
-                    expect(page.locator('.admin-statusbar')).to_contain_text('6 · Offen')
-                    assert 'CHF' not in page.locator('.admin-statusbar').inner_text()
+                    expect(page.locator('.cost-lines .admin-status--warning')).to_have_count(6)
+                    expect(page.locator('.cost-lines tbody tr')).to_have_count(6)
+                    assert 'CHF' not in page.locator('.cost-lines').inner_text()
                     expect(page.get_by_text('Unvollständig — fehlender Preis oder fehlende Umrechnung, nicht als 0.')).to_be_visible()
                     assert page.locator('.cost-lines tbody tr td:last-child').all_inner_texts() == ['—'] * 6
                 else:
-                    expect(page.locator('.admin-statusbar-item--success')).to_contain_text('vollständig')
-                    expect(page.locator('.admin-statusbar')).to_contain_text('0.00 CHF' if state == 'zero' else '6.00 CHF')
+                    expect(page.locator('.cost-calculation p .admin-status--success')).to_have_text('vollständig')
+                    expect(page.locator('.cost-calculation p')).to_contain_text('0.00 CHF' if state == 'zero' else '6.00 CHF')
             measured = page.evaluate('''() => ({height: document.documentElement.scrollHeight,
                 form: document.querySelector('#cost-preview').getBoundingClientRect().height,
                 row: document.querySelector('.cost-lines tbody tr')?.getBoundingClientRect().height ?? null,
@@ -146,15 +146,11 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
                 assert stacked, (state, width, javascript)
                 expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
                 expect(page.locator('.admin-label').first).to_be_visible()
-            hint = page.locator('details.admin-hint').first
-            summary = hint.locator('summary')
-            expect(summary).to_be_visible()
-            summary.focus()
-            expect(summary).to_be_focused()
-            if hint.get_attribute('open') is None:
-                page.keyboard.press('Enter')
-            expect(hint).to_have_attribute('open', '')
-            page.keyboard.press('Enter')
+            expect(page.locator('details.admin-hint')).to_have_count(0)
+            page.locator('#kind').focus()
+            expect(page.locator('#kind')).to_be_focused()
+            page.keyboard.press('Tab')
+            expect(page.locator('#revision_public_id')).to_be_focused()
             if measured['row'] is not None:
                 assert measured['row'] < (109 if width == 360 else 72)
                 if width >= 768:

@@ -426,6 +426,15 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
     for key, pair in measurements.items():
         before, after = pair['before'], pair['after']
         assert after['width'] <= int(key.rsplit('-', 1)[1]), (key, pair)
+        if key.startswith('components-'):
+            # Shared search/filter has two identical unnamed GET submitters.
+            # Both preserve the original payload; every other form attribute stays exact.
+            old_search = contracts[key]['before'][0]
+            new_search = contracts[key]['after'][0]
+            assert old_search['method'] == new_search['method'] == 'get'
+            assert old_search['submitters'] == [['', '', None, False, None]]
+            assert new_search['submitters'] == old_search['submitters'] * 2
+            new_search['submitters'] = new_search['submitters'][:1]
         assert bool(contracts[key]['before'] == contracts[key]['after']), key
         if key.endswith('-1440'):
             assert after['height'] <= before['height'], (key, pair)

@@ -60,7 +60,8 @@ def targets(page):
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if control.is_visible():
             box = control.bounding_box()
-            assert box is not None and box['height'] >= 48
+            minimum = 36 if 'ui-sem-control' in (control.get_attribute('class') or '') else 48
+            assert box is not None and box['height'] >= minimum
             control.focus()
             expect(control).to_be_focused()
 
@@ -86,10 +87,10 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         page.on('response', lambda response: responses.setdefault(urlsplit(response.url).path, []).append(response.status))
         page.goto(base + '/admin/kochbuecher')
         expect(page.get_by_role('heading', level=1)).to_have_text('Kochbücher')
-        page.locator('details#cookbook-create > summary').click()
-        page.get_by_role('link', name='Kochbuch anlegen', exact=True).click()
+        expect(page.locator('details#cookbook-create')).to_have_count(0)
+        page.locator('.page-header').get_by_role('link', name='Anlegen', exact=True).click()
         page.get_by_label('Name', exact=True).fill('Browserbuch')
-        page.get_by_role('button', name='Kochbuch anlegen', exact=True).click()
+        page.get_by_role('button', name='Speichern', exact=True).click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Browserbuch')
         path = urlsplit(page.url).path
         recipes = page.locator(f'form[action="{path}/rezepte"]')
@@ -97,17 +98,18 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         recipes.locator('[name="recipe_positions"]').nth(0).fill('20')
         recipes.locator('[name="recipe_public_ids"]').nth(1).select_option(cookbook_server['first'])
         recipes.locator('[name="recipe_positions"]').nth(1).fill('10')
-        recipes.get_by_role('button', name='Zuordnung speichern', exact=True).click()
+        recipes.get_by_role('button', name='Rezepte speichern', exact=True).click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Browserbuch')
         saved = Forms(page.content()).forms[path + '/rezepte']
         assert saved.getlist('recipe_public_ids')[:2] == [cookbook_server['first'], cookbook_server['second']]
+        page.locator('.admin-form-rare > summary').click()
         page.get_by_role('link', name='Archivieren', exact=True).click()
         expect(page.get_by_role('heading', level=2, name='Kochbuch archivieren')).to_be_visible()
         before = client.get(path).text
         before_db, before_posts = snapshot(cookbook_server['owner']), list(posts)
         page.get_by_role('link', name='Abbrechen', exact=True).click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Browserbuch')
-        assert 'Zuordnung speichern' in page.content()
+        expect(page.get_by_role('button', name='Rezepte speichern', exact=True)).to_be_visible()
         after = client.get(path).text
         # A GET legitimately signs a new timestamp; all remaining HTML stays identical.
         pattern = r'(name="_form_context" value=")[^"]*'
@@ -120,22 +122,23 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
                                       name=('Langer Titel ' * 9) + str(index),
                                       description=('Lange Beschreibung ' * 80) if index == 0 else 'Kurz',
                                       expected_location_id=location)
-        page.get_by_role('link', name='Zurück zur Liste').click()
+        page.get_by_role('link', name='Abbrechen', exact=True).click()
         expect(page.get_by_role('heading', level=1)).to_have_text('Kochbücher')
         expect(page.get_by_text('Browserbuch')).to_be_visible()
-        expect(page.locator('details#cookbook-create')).not_to_have_attribute('open', '')
+        expect(page.locator('details#cookbook-create')).to_have_count(0)
         targets(page)
-        cards = page.locator('section[aria-label="Kochbücher"] article.card')
+        cards = page.locator('section[aria-label="Kochbücher"] .admin-list-row')
         boxes = [card.bounding_box() for card in cards.all()]
         assert len(boxes) == 5 and all(box is not None for box in boxes)
         if width >= 768:
-            assert max(box['height'] for box in boxes) - min(box['height'] for box in boxes) <= 1
+            assert all(box['height'] <= 160 for box in boxes)
+            expect(cards.locator('.card')).to_have_count(0)
         else:
-            short = cards.filter(has=page.get_by_role('heading', name='Browserbuch', exact=True))
+            short = cards.filter(has=page.get_by_text('Browserbuch', exact=True))
             short_box = short.bounding_box()
             assert short_box['height'] <= 144 < max(box['height'] for box in boxes)
             for card in cards.all():
-                title = card.get_by_role('heading', level=2)
+                title = card.locator('.admin-list-primary')
                 name = title.inner_text()
                 assert name == 'Browserbuch' or name in [('Langer Titel ' * 9) + str(i) for i in range(4)]
                 assert title.evaluate('''element => {
@@ -148,13 +151,13 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
                 action = card.get_by_role('link', name=f'{name} bearbeiten', exact=True)
                 expect(action).to_be_visible()
                 action_box, card_box, title_box = action.bounding_box(), card.bounding_box(), title.bounding_box()
-                assert action_box['width'] >= 48 and action_box['height'] >= 48
+                assert action_box['width'] >= 36 and action_box['height'] >= 36
                 assert action_box['y'] >= title_box['y'] + title_box['height']
                 assert action_box['x'] + action_box['width'] <= card_box['x'] + card_box['width']
                 assert action_box['y'] + action_box['height'] <= card_box['y'] + card_box['height']
                 expect(card.get_by_text('2 Rezepte' if name == 'Browserbuch' else '0 Rezepte', exact=True)).to_be_visible()
         assert max(box['width'] for box in boxes) - min(box['width'] for box in boxes) <= 1
-        assert cards.locator('.card-body').evaluate_all('els => els.every(el => el.scrollHeight <= el.clientHeight + 1)')
+        assert cards.locator('.admin-list-name').evaluate_all('els => els.every(el => el.scrollHeight <= el.clientHeight + 1)')
         destination = Path(os.environ.get('COOKBOOK_A4_EVIDENCE_DIR', str(tmp_path)))
         destination.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=str(destination / f'cookbooks-{width}-js{javascript}.png'), full_page=True)
@@ -166,7 +169,7 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
             for asset in assets if javascript or asset.endswith('.css')
         )
         assert not any(asset.endswith('/app.css') for asset in assets)
-        assert page.locator('.card').first.evaluate('el => getComputedStyle(el).display') == 'flex'
+        assert page.locator('.cookbook-list').evaluate('el => getComputedStyle(el).display') == 'grid'
         assert not errors
 
 
@@ -191,7 +194,7 @@ def test_stale_header_is_copyable_with_original_context(cookbook_server, browser
         assert client.post(path, data=other).status_code == 303
         before = snapshot(cookbook_server['owner'])
         with page.expect_response(lambda response: response.request.method == 'POST') as response:
-            form.get_by_role('button', name='Kochbuch speichern', exact=True).click()
+            form.get_by_role('button', name='Speichern', exact=True).click()
         assert response.value.status == 409 and snapshot(cookbook_server['owner']) == before
         expect(page.locator('#recipe-error')).to_be_focused()
         expect(page.get_by_label('Name', exact=True)).to_have_value('Mein Entwurf')

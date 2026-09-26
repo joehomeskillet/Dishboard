@@ -372,11 +372,10 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                 delete_name = (delete.get_attribute('aria-label') or '').lower()
                 assert 'löschen' in delete_name and 'servietten' in delete_name
                 detail_bar = page.locator('dl.admin-statusbar')
-                expect(detail_bar).to_be_visible()
-                for label in ('Woche', 'Liste', 'Berechnung', 'Positionen'):
-                    expect(detail_bar.locator('.admin-statusbar-item').filter(
-                        has=page.get_by_text(label, exact=True)
-                    )).to_have_count(1)
+                expect(detail_bar).to_have_count(0)
+                expect(page.locator('.page-header')).to_contain_text('Stand')
+                expect(page.locator('#revision')).to_be_visible()
+                expect(page.locator('.shopping-result-table')).to_be_visible()
                 expect(page.get_by_role('button', name='Abhaken', exact=True)).to_have_count(2)
                 expect(page.get_by_role('button', name='Neu berechnen', exact=True)).to_have_count(1)
                 expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)

@@ -21,8 +21,8 @@ PAGES = (
     # .text-secondary → .admin-list-secondary. Grund: Zeitraum und KW-Zusatz tragen die Rollen.
     ('Wochen', '/admin/cafeteria/wochen', 'tbody tr', 'td:first-child .admin-list-primary', '.admin-list-secondary', 'td:nth-child(2)'),
     ('Wochen Patienten', '/admin/patienten/wochen', 'tbody tr', '.admin-list-primary', '.admin-list-secondary', 'td:nth-child(2)'),
-    ('Bausteine', '/admin/cafeteria/komponenten', '.component-row', 'th[scope=row]', '.admin-list-secondary', 'td.category'),
-    ('Bausteine Patienten', '/admin/patienten/komponenten', '.component-row', 'th[scope=row]', '.admin-list-secondary', 'td.category'),
+    ('Bausteine', '/admin/cafeteria/komponenten', '.component-row', 'a.admin-list-primary', '.admin-list-secondary', '.admin-list-meta'),
+    ('Bausteine Patienten', '/admin/patienten/komponenten', '.component-row', 'a.admin-list-primary', '.admin-list-secondary', '.admin-list-meta'),
     ('Menüs Cafeteria', '/admin/cafeteria/menues', '.dishboard-menu-table tbody tr', '.admin-list-primary', '.admin-list-secondary', 'td:nth-child(2)'),
     ('Menüs Patienten', '/admin/patienten/menues', '.dishboard-menu-table tbody tr', '.admin-list-primary', '.admin-list-secondary', 'td:nth-child(2)'),
     # Aktive Vorlage mit Rezept: keine Warn-/Sekundärzeile; die Abwesenheit wird unten geprüft.
