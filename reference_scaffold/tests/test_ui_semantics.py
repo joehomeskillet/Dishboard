@@ -341,6 +341,12 @@ def test_registry_icons_in_sprite():
     assert not missing, f"Missing icons in sprite: {missing}"
 
 
+def test_c3_categories_and_overflow_have_distinct_icons():
+    registry = load_registry()
+    assert registry['navigation.categories'].resolved_icon == 'grid-dots'
+    assert {item.key for item in registry.values() if item.resolved_icon == 'dots'} == {'actions.more'}
+
+
 def test_row_actions_keep_one_direct_action_and_native_form_fields(semantic_app):
     from bs4 import BeautifulSoup
 

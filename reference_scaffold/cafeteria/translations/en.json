@@ -1,4 +1,7 @@
 {
+  "navigation.categories.label": "Categories",
+  "navigation.categories.tooltip": "Open categories",
+  "navigation.categories.aria": "Categories",
   "ui.action_object": "{action}: {object}",
   "actions.add.object": "Create {object}",
   "actions.add_existing.object": "Add {object}",

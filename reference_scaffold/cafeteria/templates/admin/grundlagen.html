@@ -9,7 +9,7 @@
 {% endcall %}
 {% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-grundlagen.css') }}">{% endblock %}
-{% set kind_icons = {'zutaten': 'components', 'einheiten': 'copy', 'kategorien': 'dots', 'tags': 'clipboard-check', 'lagerorte': 'archive'} %}
+{% set kind_icons = {'zutaten': 'components', 'einheiten': 'copy', 'kategorien': sem('navigation.categories').resolved_icon, 'tags': 'clipboard-check', 'lagerorte': 'archive'} %}
 {% macro form_start(purpose) %}
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="_form_context" value="{{ tokens[purpose] }}">
