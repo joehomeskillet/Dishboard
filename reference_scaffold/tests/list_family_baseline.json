@@ -58,10 +58,7 @@
     "bildschirmvorlagen-cafeteria": [],
     "bildschirmvorlagen-patienten": [],
     "benutzer": [
-      "1440:filtereinstieg_text",
-      "1440:ueberlauf_leer",
-      "390:filtereinstieg_text",
-      "390:ueberlauf_leer"
+      "haupt_typografie:zeilen-1"
     ],
     "benutzerprotokoll": [],
     "api-schluessel": [
@@ -70,15 +67,14 @@
       "390:ueberlauf_leer",
       "390:zeilenaktion_text:tabelle-1"
     ],
-    "zugriffsverlauf": [
-      "1440:filtereinstieg_text",
-      "390:filtereinstieg_text"
-    ],
+    "zugriffsverlauf": [],
     "importe": [
       "haupt_typografie:tabelle-1"
     ],
     "datenimport": [],
-    "bereiche-zeiten": [],
+    "bereiche-zeiten": [
+      "haupt_typografie:tabelle-1"
+    ],
     "rezept-revisionen": [],
     "rezept-skalierung": [],
     "rezept-bilder": [],
