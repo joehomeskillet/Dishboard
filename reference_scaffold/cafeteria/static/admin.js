@@ -663,6 +663,16 @@
             if (addButton) {
                 list = document.getElementById(addButton.dataset.addRow);
                 const clone = list.lastElementChild.cloneNode(true);
+                // Tooltip nodes belong to the original control, never to its clone.
+                clone.querySelectorAll('[data-ui-tooltip][aria-describedby]').forEach(control => {
+                    const descriptions = control.getAttribute('aria-describedby').split(/\s+/)
+                        .filter(id => {
+                            const node = document.getElementById(id);
+                            return node && node.getAttribute('role') !== 'tooltip';
+                        });
+                    if (descriptions.length) control.setAttribute('aria-describedby', descriptions.join(' '));
+                    else control.removeAttribute('aria-describedby');
+                });
                 clone.querySelectorAll('input[name], select[name]').forEach(control => {
                     control.value = '';
                     control.classList.remove('is-invalid');

@@ -1,4 +1,13 @@
 /* Recipe lists use the shared admin table; opening one action menu stays in its row. */
+.dishboard-admin .recipe-list { table-layout: fixed; }
+.dishboard-admin .recipe-list thead th:nth-child(1) { width: 45%; }
+.dishboard-admin .recipe-list thead th:nth-child(2) { width: 15%; }
+.dishboard-admin .recipe-list thead th:nth-child(3) { width: 20%; }
+.dishboard-admin .recipe-list thead th:nth-child(4) { width: 20%; }
+.dishboard-admin .recipe-list .admin-row-actions { min-width: 0; align-items: flex-start; }
+.dishboard-admin .recipe-list .ui-sem-actions { min-width: 0; }
+.dishboard-admin .recipe-list .ui-sem-action-items { white-space: normal; }
+.dishboard-admin .recipe-list .ui-sem-actions > summary { display: flex; }
 .recipe-tag-options { display: grid; gap: var(--app-space-2); grid-template-columns: minmax(0, 1fr); }
 .recipe-image-thumb { width: calc(var(--app-space-6) * 4); height: calc(var(--app-space-6) * 4); object-fit: contain; }
 .recipe-recovery > div { min-width: 0; overflow-wrap: anywhere; }

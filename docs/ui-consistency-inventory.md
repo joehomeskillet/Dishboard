@@ -13,6 +13,19 @@ Diese Quellenzählung unterscheidet bewusst nicht zwischen wirksamen und überst
 Aktualisieren: `rtk python3 tools/ui_consistency_inventory.py --update-baseline`.
 Bestehende Obergrenzen dürfen nur sinken; neue Dateien starten bei null.
 
+## Release 17: Formularlabels und Symbolaktionen (2026-09-27)
+
+`/admin/{cafeteria,patienten}/menu`, Admin, befüllt und Feldfehler:
+Herkunft und Allergen-Präsenz haben sichtbare, klickbare Formularlabels.
+Geklonte Zeilen übernehmen keine flüchtigen Tooltip-IDs. Beschreibung/Hinweis
+bleiben im erreichbaren nativen Detailabschnitt. Menüeditor: `20 passed in 115.03s (0:01:55)`.
+`/admin/rezepte`, Admin, lange Titel, JS/No-JS, 390/820/1440 px:
+feste Spaltenanteile verhindern Höhenänderungen anderer Zeilen beim Öffnen
+eines Aktionsmenüs. Navigation: `7 passed in 66.58s (0:01:06)`.
+Symbolaktionen: 36 px bei feinem Zeiger, 44 px bei echter Touch-Emulation;
+zugängliche Namen geprüft. Tabler: `11 passed in 44.04s`.
+Formular-, Navigations- und Fachtexte bleiben sichtbar. Keine Baseline angehoben.
+
 ## P5a-Fixup: ganzzahlige Zeilenhöhen (2026-09-26)
 
 `/admin/{cafeteria,patienten}/komponenten`, Admin mit Daten, 390×844 und

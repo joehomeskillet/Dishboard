@@ -261,7 +261,6 @@
         {{ mode_summary('origin', 'Herkunft', 'origin-mode-badge') }}
         <div class="card-body">
           {{ mode_radios('origin') }}
-          <div class="menu-origin-heading" aria-hidden="true"><span>Zutat</span><span>Land</span><span></span></div>
           <div class="origin-list menu-editor-row-list" id="origins-list" data-row-list="origin" data-row-title="Herkunft">
             {% set o_ings = submitted.getlist('origin_ingredient') if submitted.getlist else submitted.get('origin_ingredient', []) %}
             {% set o_ccs = submitted.getlist('origin_country_code') if submitted.getlist else submitted.get('origin_country_code', []) %}
@@ -272,11 +271,11 @@
               <div class="menu-editor-row-body menu-origin-fields">
                 <div class="row g-2">
                   <div class="col-12 col-lg-6">
-                    <label class="visually-hidden" for="origin-{{ i }}-ingredient">Zutat</label>
+                    <label class="form-label" for="origin-{{ i }}-ingredient">Zutat</label>
                     <input class="form-control{{ invalid_class('origin_ingredient') }}" id="origin-{{ i }}-ingredient" name="origin_ingredient" placeholder="Zutat" aria-label="Zutat" value="{{ o_ings[i] if i < o_ings|length else '' }}"{{ error_attributes('origin_ingredient', 'err-origin-ingredient') }}{% if is_auto['origin'] %} disabled{% endif %}>
                   </div>
                   <div class="col-12 col-lg-6">
-                    <label class="visually-hidden" for="origin-{{ i }}-country">Land</label>
+                    <label class="form-label" for="origin-{{ i }}-country">Land</label>
                     {{ country_select('origin_country_code', o_ccs[i] if i < o_ccs|length else '', 'origin-' ~ i ~ '-country', error=errors.get('origin_country_code')) }}
                   </div>
                 </div>
