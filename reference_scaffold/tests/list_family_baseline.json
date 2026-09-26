@@ -2,38 +2,66 @@
   "pages": {
     "wochenuebersicht-cafeteria": [
       "1440:kopfaktion_text",
-      "390:kopfaktion_text"
+      "390:kopfaktion_text",
+      "haupt_typografie:tabelle-1"
     ],
     "wochenuebersicht-patienten": [
       "1440:kopfaktion_text",
-      "390:kopfaktion_text"
+      "390:kopfaktion_text",
+      "haupt_typografie:tabelle-1"
     ],
     "wochenplan-cafeteria": [],
     "wochenplan-patienten": [],
     "wochenpruefung-cafeteria": [],
     "wochenpruefung-patienten": [],
-    "menues-cafeteria": [],
-    "menues-patienten": [],
-    "bausteine-cafeteria": [],
-    "bausteine-patienten": [],
+    "menues-cafeteria": [
+      "haupt_typografie:tabelle-1"
+    ],
+    "menues-patienten": [
+      "haupt_typografie:tabelle-1"
+    ],
+    "bausteine-cafeteria": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text",
+      "haupt_typografie:tabelle-1"
+    ],
+    "bausteine-patienten": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text",
+      "haupt_typografie:tabelle-1"
+    ],
     "kuechenkalender": [
       "haupt_typografie:tabelle-1"
     ],
     "zutaten": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text",
       "haupt_typografie:zeilen-1",
       "sekundaer_typografie:zeilen-1"
     ],
     "einheiten": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text",
       "haupt_typografie:zeilen-1"
     ],
-    "kategorien": [],
+    "kategorien": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text"
+    ],
     "kennzeichnungen": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text",
       "haupt_typografie:zeilen-1"
     ],
     "lagerorte": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text",
       "haupt_typografie:zeilen-1"
     ],
-    "rezepte": [],
+    "rezepte": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text"
+    ],
     "gerichtvorlagen": [
       "haupt_typografie:tabelle-1"
     ],
@@ -71,15 +99,24 @@
       "karte_je_zeile:karten-1"
     ],
     "benutzer": [
+      "1440:filtereinstieg_text",
+      "1440:ueberlauf_leer",
       "1440:zeilenaktion_text:zeilen-1",
+      "390:filtereinstieg_text",
+      "390:ueberlauf_leer",
       "390:zeilenaktion_text:zeilen-1"
     ],
     "benutzerprotokoll": [],
     "api-schluessel": [
+      "1440:ueberlauf_leer",
       "1440:zeilenaktion_text:tabelle-1",
+      "390:ueberlauf_leer",
       "390:zeilenaktion_text:tabelle-1"
     ],
-    "zugriffsverlauf": [],
+    "zugriffsverlauf": [
+      "1440:filtereinstieg_text",
+      "390:filtereinstieg_text"
+    ],
     "importe": [
       "haupt_typografie:tabelle-1"
     ],
