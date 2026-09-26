@@ -107,7 +107,7 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; no aliases for different business actions.
     assert len(seeds) == 187
-    assert len(registry) == 210
+    assert len(registry) == 211
     assert {r['semantic_key'] for r in seeds} <= registry.keys()
     assert len(read_json(ROOT / 'icon_fallbacks.json')) == 6
     available = sprite_icons()
