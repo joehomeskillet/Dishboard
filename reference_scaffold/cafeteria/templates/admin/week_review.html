@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, status, empty_state, icon, list_row, label, empty_value %}
+{% from 'admin/_macros.html' import page_header, empty_state, list_row, label, empty_value %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenprüfung · {{ area_names[profile] }}{% endblock %}
@@ -12,7 +12,7 @@
   {'label': 'Woche ab', 'value': week[8:10] ~ '.' ~ week[5:7] ~ '.' ~ week[:4]},
   {'label': 'Prüfstatus', 'value': 'Geprüft' if review.receipt else 'Noch zu prüfen', 'variant': 'success' if review.receipt else 'warning'}
 ]) %}
-  {% if not review.receipt and can_write %}<button class="btn btn-primary text-wrap" type="submit" form="week-review-form">{{ icon('check') }}Wochenkopf und alle Ausgabehinweise als geprüft bestätigen</button>{% endif %}
+  {% if not review.receipt and can_write %}{{ icon_button('actions.confirm', form='week-review-form', emphasis='primary', text='Bestätigen', aria_label='Wochenkopf und alle Ausgabehinweise als geprüft bestätigen', show_text=true) }}{% endif %}
   {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=week), icon_only=true, aria_label='Zur Wochenübersicht') }}
 {% endcall %}
 </div>
@@ -21,12 +21,12 @@
 {% set context = review.context %}
 {% if review.receipt %}
 <div class="alert alert-success d-block text-break py-2" role="status">
-  <p class="mb-1">{{ status('success', 'Geprüft') }} Wochenkopf und Ausgabeangaben für diesen gespeicherten Stand.</p>
+  <p class="mb-1">{{ label('Geprüft', 'success', status='success') }} Wochenkopf und Ausgabeangaben für diesen gespeicherten Stand.</p>
   <p class="mb-0">Dieser Stand wurde von {{ review.receipt.actor_name }} am {{ review.receipt.occurred_at|datetime_short }} geprüft.</p>
 </div>
 {% else %}
 <div class="alert alert-warning d-block py-2">
-  <p class="mb-1">{{ status('review_open', 'Noch zu prüfen') }}</p>
+  <p class="mb-1">{{ label('Noch zu prüfen', 'warning', status='review_open') }}</p>
   <p class="mb-0">Für den gespeicherten Wochenkopf und seine Ausgabeangaben liegt keine gültige Prüfung vor. Nach Änderungen ist eine erneute Prüfung erforderlich.</p>
 </div>
 {% endif %}
@@ -42,10 +42,10 @@
 </section>
 <h2 class="h3">Ausgabeangaben</h2>
 {% if context.services %}
-<div class="mb-3" role="list" aria-label="Ausgabeangaben">
+<div class="admin-table mb-3" role="list" aria-label="Ausgabeangaben">
   {% for service in context.services %}
   {% set primary %}
-      <h3 class="h4 mb-1" id="service-{{ loop.index }}"><time datetime="{{ service.date }}">{{ service.date[8:10] }}.{{ service.date[5:7] }}.{{ service.date[:4] }}</time> · {{ 'Mittagessen' if service.meal == 'LUNCH' else 'Abendessen' }}</h3>
+      <h3 class="admin-list-primary mb-0" id="service-{{ loop.index }}"><time datetime="{{ service.date }}">{{ service.date[8:10] }}.{{ service.date[5:7] }}.{{ service.date[:4] }}</time> · {{ 'Mittagessen' if service.meal == 'LUNCH' else 'Abendessen' }}</h3>
   {% endset %}
   {% set secondary %}<span class="text-break">{{ service.notice or 'Kein Ausgabehinweis' }}</span>{% endset %}
   {% set times %}{% if service.get('start') or service.get('end') %}{{ service.get('start') or '–' }}–{{ service.get('end') or '–' }}{% else %}{{ empty_value() }}{% endif %}{% endset %}

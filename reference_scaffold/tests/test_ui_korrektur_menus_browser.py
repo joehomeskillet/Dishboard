@@ -42,7 +42,7 @@ def _shot(page, name: str, *, native=False, viewport_only=False) -> None:
     for action in page.locator('main .btn, main summary').all():
         if action.is_visible():
             box = action.bounding_box()
-            minimum = 36 if action.evaluate('el => el.classList.contains("ui-sem-control")') else 48
+            minimum = action.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
             assert box['height'] >= minimum and box['width'] >= minimum
             assert box['x'] >= 0 and box['x'] + box['width'] <= page.evaluate('innerWidth') + 1
     destination = EVIDENCE_DIR / f'{name}.png'
@@ -101,7 +101,7 @@ def _zoom_shot(browser, tmp_path, origin, session_cookie, route, name):
             viewport_only = route.endswith('/wochen')
             _shot(page, name, native=True, viewport_only=viewport_only)
             if viewport_only:
-                page.locator('.week-action-primary').first.scroll_into_view_if_needed()
+                page.locator('[data-week-id] .admin-row-actions [data-semantic="actions.preview"]').first.scroll_into_view_if_needed()
                 _shot(page, name + '-actions', native=True, viewport_only=True)
             cdp.detach()
 
@@ -267,30 +267,31 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
             ))
 
             # 5. One direct row action; with n rows it is neutral, the page keeps a single primary action.
-            primary_btn = first_row.locator('.week-actions .week-action-primary')
+            primary_btn = first_row.get_by_role('link', name='Vorschau für Woche ab 31.08.2026', exact=True)
             expect(primary_btn).to_be_visible()
             expect(primary_btn).not_to_have_class(re.compile(r'\bbtn-primary\b'))
             expect(page.locator('main .btn-primary')).to_have_count(1)
-            expect(primary_btn).to_have_text('Öffnen')
-            assert primary_btn.bounding_box()['height'] >= 48
+            expect(primary_btn).to_have_text('')
+            minimum = page.evaluate("matchMedia('(pointer: coarse)').matches ? 44 : 36")
+            assert primary_btn.bounding_box()['height'] >= minimum
 
-            secondary_btns = first_row.locator('.week-actions [data-admin-icon-action]')
+            secondary_btns = first_row.locator('.admin-row-actions .ui-sem-control:visible')
             if secondary_btns.count() > 0:
                 for idx in range(secondary_btns.count()):
                     btn = secondary_btns.nth(idx)
                     expect(btn).not_to_have_class('btn-primary')
-                    assert btn.bounding_box()['height'] >= 48
+                    assert btn.bounding_box()['height'] >= minimum
 
             # The creation form is closed while selecting a week; copy effects open on demand.
             expect(page.locator('.week-filter')).to_be_visible()
             expect(page.locator('#new-week-date')).to_be_hidden()
-            copy = first_row.locator('.week-more')
-            expect(copy.locator('p')).to_be_hidden()
+            copy = first_row.locator('.ui-sem-actions')
+            copy_link = copy.get_by_role('link', name='Woche ab 31.08.2026 kopieren', exact=True)
+            expect(copy_link).to_be_hidden()
             copy.locator('summary').focus()
             copy.locator('summary').press('Enter')
-            expect(copy.locator('p')).to_contain_text('Quelle: 31.08.2026 → Ziel: 07.09.2026')
-            expect(copy.locator('p')).to_contain_text('Ziel muss leer und unveröffentlicht sein')
-            expect(copy.get_by_role('link', name='Kopieren', exact=True)).to_have_attribute(
+            expect(copy_link).to_be_visible()
+            expect(copy_link).to_have_attribute(
                 'href', f'/admin/{family}/copy?week=2026-09-07')
             if width in (390, 1440):
                 _shot(page, f'{family}-wochen-copy-{width}x{height}')
@@ -302,7 +303,7 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         page.goto(f'{origin}/admin/cafeteria/wochen')
         live_row = page.locator('tr[data-status="live"]')
         expect(live_row).to_be_visible()
-        expect(live_row.locator('td[data-label="Status"]')).to_contain_text('Veröffentlicht · entspricht dem gespeicherten Stand')
+        expect(live_row.locator('td[data-label="Status"]')).to_have_text('Veröffentlicht')
         _shot(page, f'{family}-wochen-live-1366x768')
 
     _zoom_shot(browser, tmp_path, origin, session_cookie,
@@ -340,17 +341,18 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         page = context.new_page()
         page.goto(f'{origin}/admin/{family}/wochen')
         row = page.locator('tr[data-week-id]').first
-        link = row.locator('.week-action-primary')
+        link = row.locator('a.admin-list-primary')
         dest = link.get_attribute('href')
         assert f'/admin/{family}?week=' in dest
         requests = []
         page.on('request', lambda request: requests.append(request.method))
         with database_engine.connect() as connection:
             before_copy = connection.execute(text('SELECT id,row_version FROM cafeteria.menu_weeks ORDER BY id')).all()
-        row.locator('.week-more summary').click()
-        row.get_by_role('link', name='Kopieren', exact=True).click()
+        row.locator('.ui-sem-actions summary').click()
+        row.get_by_role('link', name='Woche ab 31.08.2026 kopieren', exact=True).click()
         expect(page.locator('main')).to_have_attribute('data-source-week', '2026-08-31')
         expect(page.locator('main')).to_have_attribute('data-target-week', '2026-09-07')
+        expect(page.locator('#copy-effects')).to_contain_text('Die Zielwoche muss leer sein und darf keine aktive Veröffentlichung haben.')
         expect(page.locator('input[name="source_week"]')).to_have_value('2026-08-31')
         expect(page.locator('input[name="target_week"]')).to_have_value('2026-09-07')
         assert page.locator('.admin-copy-actions input[name="_csrf"]').input_value()

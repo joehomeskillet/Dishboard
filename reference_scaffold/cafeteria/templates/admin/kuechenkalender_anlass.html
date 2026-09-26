@@ -1,5 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, field, select, textarea, form_errors, form_footer, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, field, select, textarea, form_errors, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'calendar' %}
 {% set layout_variant = 'calendar' %}
 {% block title %}{{ 'Anlass bearbeiten' if event else 'Anlass anlegen' }} · Küchenkalender{% endblock %}
@@ -42,6 +43,11 @@
     </div>
     {% endcall %}
   </div>
-  {{ form_footer({'label': 'Speichern', 'icon': 'device-floppy'}, url_for('admin.kitchen_calendar'), sticky=true, form_id='kitchen-event-form') }}
+  <div class="admin-form-footer" data-sticky data-sticky-form="kitchen-event-form">
+    <div class="admin-form-main">
+      {{ icon_button('actions.cancel', href=url_for('admin.kitchen_calendar')) }}
+      {{ icon_button('actions.save') }}
+    </div>
+  </div>
 </form>
 {% endblock %}

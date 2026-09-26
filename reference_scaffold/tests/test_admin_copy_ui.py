@@ -52,13 +52,16 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
             'width=device-width,initial-scale=1'
         )
         expect(page.get_by_role('heading', name='Vorwoche kopieren', exact=True)).to_be_visible()
-        expect(page.locator('.admin-copy-profile')).to_have_text(label)
-        expect(page.locator('#copy-description')).to_have_text(
-            'Quelle: Woche vom 28.12.2026. Ziel: in die leere Woche vom 04.01.2027.'
-        )
+        status = page.locator('.admin-statusbar')
+        expect(status.locator('.admin-statusbar-item').filter(has=page.get_by_text('Bereich', exact=True)).locator('dd')).to_have_text(label)
+        expect(page.locator('#copy-description')).to_have_text('Die gespeicherte Quellwoche wird in die leere Woche übernommen.')
         expect(page.locator('#copy-effects')).to_contain_text('Prüfbestätigungen werden nicht übernommen')
-        expect(page.locator('.admin-copy-weeks')).to_contain_text('KW 53 / 2026')
-        expect(page.locator('.admin-copy-target')).to_contain_text('KW 1 / 2027')
+        source_status = status.locator('.admin-statusbar-item').filter(has=page.get_by_text('Quellwoche', exact=True))
+        target_status = status.locator('.admin-statusbar-item').filter(has=page.get_by_text('Zielwoche', exact=True))
+        expect(source_status).to_contain_text('KW 53 / 2026')
+        expect(source_status).to_contain_text('28.12.2026')
+        expect(target_status).to_contain_text('KW 1 / 2027')
+        expect(target_status).to_contain_text('04.01.2027')
         assert page.locator('main').get_attribute('data-profile') == profile
         assert page.locator('main').get_attribute('data-source-week') == source.isoformat()
         assert page.locator('main').get_attribute('data-target-week') == target.isoformat()
@@ -68,8 +71,8 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
         assert page.locator('body').evaluate(
             "el => getComputedStyle(el).fontFamily.includes('Fira Sans')"
         )
-        assert page.locator('.admin-copy-weeks').evaluate(
-            "el => getComputedStyle(el).display === 'flex'"
+        assert status.evaluate(
+            "el => getComputedStyle(el).display === 'grid'"
         )
         assert page.evaluate(
             'document.documentElement.scrollWidth <= document.documentElement.clientWidth'
@@ -85,11 +88,14 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
         assert fields['target_week'] == target.isoformat()
         assert fields['target_row_version'] == '0'
         assert form.locator('input[type="hidden"]').count() == 4
-        primary = form.get_by_role('button', name='Vorwoche kopieren', exact=True)
+        primary = page.get_by_role('button', name='Vorwoche kopieren', exact=True)
+        expect(primary).to_have_attribute('form', 'week-copy-form')
+        expect(primary).to_have_text('Vorwoche kopieren')
         cancel = form.get_by_role('link', name='Zurück zur Wochenübersicht', exact=True)
         for action in (primary, cancel):
             box = action.bounding_box()
-            assert box is not None and box['width'] >= 48 and box['height'] >= 48
+            minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+            assert box is not None and box['width'] >= minimum and box['height'] >= minimum
         if proof_dir := os.environ.get('COPY_TABLER_PROOF_DIR'):
             directory = Path(proof_dir)
             directory.mkdir(parents=True, exist_ok=True)
@@ -103,11 +109,9 @@ def test_copy_confirmation_is_readable_and_submits_without_javascript(
         page.keyboard.press('Tab')
         expect(page.locator('.skip-link')).to_be_focused()
         page.keyboard.press('Enter')
+        primary.focus()
+        page.keyboard.press('Shift+Tab')
         page.keyboard.press('Tab')
-        area_links = page.locator('.admin-area-tabs a')
-        expect(area_links.first).to_be_focused()
-        for _ in range(area_links.count()):
-            page.keyboard.press('Tab')
         expect(primary).to_be_focused()
         assert primary.evaluate("el => getComputedStyle(el).outlineStyle !== 'none'")
         with page.expect_response(lambda response: response.request.method == 'POST') as saved:
