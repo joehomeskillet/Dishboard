@@ -109,7 +109,6 @@
 .brand-history-row.active {
   background: var(--app-primary);
   border-color: var(--app-primary);
-  color: var(--app-on-primary);
 }
 
 .brand-history-row.active .admin-list-row {
