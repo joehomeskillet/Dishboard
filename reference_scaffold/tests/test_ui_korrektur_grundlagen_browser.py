@@ -206,7 +206,7 @@ def test_ingredient_list_is_first_full_width_and_visible(
         assert box is not None
         if width in {1366, 1440, 1920, 2560}:
             assert box['y'] + box['height'] <= height
-        expect(page.locator('details').filter(has_text='Filter').first).not_to_have_attribute('open', '')
+        expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).not_to_have_attribute('open', '')
         _assert_no_horizontal_scroll(page)
 
         if width >= 1024:
@@ -225,7 +225,7 @@ def test_ingredient_list_is_first_full_width_and_visible(
 
         page.goto(base + '/admin/grundlagen?q=zzzz-kein-treffer', wait_until='networkidle')
         expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
-        expect(page.locator('details').filter(has_text='Filter').first).to_have_attribute('open', '')
+        expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).to_have_attribute('open', '')
         _assert_no_horizontal_scroll(page)
         _screenshot(page, f'liste-leer-{state}-{width}x{height}.png')
 
@@ -268,7 +268,7 @@ def test_ingredient_list_genuine_browser_zoom_200(
             )
             first = page.locator('.grundlagen-list .admin-list-row').first
             expect(first).to_be_visible()
-            expect(page.locator('details').filter(has_text='Filter').first).not_to_have_attribute('open', '')
+            expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).not_to_have_attribute('open', '')
             _assert_no_horizontal_scroll(page)
             _prepare_evidence()
             _screenshot(page, 'liste-regulaer-zoom-200-1440x900.png')
@@ -284,7 +284,7 @@ def test_ingredient_list_genuine_browser_zoom_200(
             assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
             assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
             expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
-            expect(page.locator('details').filter(has_text='Filter').first).to_have_attribute('open', '')
+            expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).to_have_attribute('open', '')
             _assert_no_horizontal_scroll(page)
             _screenshot(page, 'liste-leer-zoom-200-1440x900.png')
             empty_proof = cdp.send('Page.getLayoutMetrics')
