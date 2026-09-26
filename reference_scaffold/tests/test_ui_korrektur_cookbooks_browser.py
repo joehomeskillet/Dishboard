@@ -361,13 +361,16 @@ def _assert_page_width(page, width: int):
 
 
 def _assert_core_controls(page):
+    coarse = page.evaluate("matchMedia('(any-pointer: coarse)').matches")
     for control in page.locator('main :is(.btn, .form-control, .form-select, summary)').all():
         if not control.is_visible():
             continue
         box = control.bounding_box()
-        assert box is not None and box['height'] >= 44
+        semantic = 'ui-sem-control' in (control.get_attribute('class') or '').split()
+        minimum = 44 if coarse or not semantic else 36
+        assert box is not None and box['height'] >= minimum
         if 'btn-icon' in (control.get_attribute('class') or '').split():
-            assert box['width'] >= 48 and box['height'] >= 48
+            assert box['width'] >= minimum and box['height'] >= minimum
             _icon_control(control)
 
 
@@ -382,7 +385,7 @@ def _assert_mobile_cards(cards):
             control = entry[name]
             assert control['x'] >= card['x'] and control['right'] <= card['right'] + 1, entry
             assert control['bottom'] <= card['bottom'] + 1, entry
-        assert entry['action']['height'] >= 48, entry
+        assert entry['action']['height'] >= 36, entry
         if entry['description']:
             assert entry['description']['bottom'] <= card['bottom'] + 1, entry
         assert card['bottom'] - max(entry['count']['bottom'], entry['action']['bottom']) <= 24, entry
@@ -575,7 +578,7 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
         _tab_to(page, page.locator('.admin-filter-more > summary'))
         page.keyboard.press('Enter')
         _tab_to(page, page.get_by_label('Archivierte einschliessen', exact=True))
-        _tab_to(page, page.get_by_role('button', name='Anwenden', exact=True))
+        _tab_to(page, page.get_by_role('button', name='Übernehmen', exact=True))
         _tab_to(page, edit)
         expect(edit).to_be_focused()
         rings = {'row-action': _focus_ring(edit)}

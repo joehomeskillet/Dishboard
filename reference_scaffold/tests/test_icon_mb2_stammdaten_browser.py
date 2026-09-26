@@ -28,6 +28,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                                      viewport={'width': width, 'height': 900}) as context:
                 context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
                 page = context.new_page()
+                page.on('dialog', lambda dialog: dialog.accept())
                 for family in ('cafeteria', 'patienten'):
                     page.goto(f'/admin/{family}/komponenten')
                     expect(page.locator('.admin-filter-more')).to_have_count(1)
@@ -42,12 +43,21 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     more.press('Enter')
                     archive = row.locator('[data-semantic="actions.archive"]')
                     expect(archive).to_be_visible()
-                    form = page.locator('#' + archive.get_attribute('form'))
+                    archive.click()
+                    page.locator('.component-secondary-actions > summary').click()
+                    form = page.locator('.component-secondary-actions form')
                     expect(form).to_have_attribute('method', 'post')
                     assert form.get_attribute('action').endswith('/archive')
                     assert form.locator('[name="_csrf"]').input_value()
                     assert form.locator('[name="row_version"]').input_value()
-                    more.press('Enter')
+                    with page.expect_response(lambda response: response.request.method == 'POST') as response:
+                        form.locator('[data-semantic="actions.archive"]').click()
+                    assert response.value.status == 303
+                    page.locator('.component-secondary-actions > summary').click()
+                    with page.expect_response(lambda response: response.request.method == 'POST') as response:
+                        page.locator('.component-secondary-actions [data-semantic="actions.activate"]').click()
+                    assert response.value.status == 303
+                    page.goto(f'/admin/{family}/komponenten')
                     page.locator('.admin-filter-more summary').click()
                     expect(page.locator('#f-cat')).to_be_visible()
                     expect(page.locator('#f-status')).to_be_visible()

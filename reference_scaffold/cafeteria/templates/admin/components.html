@@ -119,11 +119,7 @@
           <td class="usage" data-label="Verwendung">{{ row.usage_count }} {{ 'Gericht' if row.usage_count == 1 else 'Gerichte' }}</td>
           {% if selected_status == 'all' %}<td class="component-status admin-table-status" data-label="Status">{{ ui_label('Aktiv' if row.active else 'archiviert', 'active' if row.active else 'neutral', icon=sem('status.active' if row.active else 'actions.archive').resolved_icon) }}</td>{% endif %}
           <td class="admin-table-actions" data-label="Aktionen">
-            {{ row_actions([{'key': 'actions.edit', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}, {'key': 'actions.archive' if row.active else 'actions.activate', 'form': 'component-status-' ~ row.public_id}], object=row.name) }}
-            <form id="component-status-{{ row.public_id }}" method="post" action="/admin/{{ family }}/komponenten/{{ row.public_id }}/{{ 'archive' if row.active else 'unarchive' }}" data-confirm="{{ 'Baustein wirklich archivieren?' if row.active else 'Baustein reaktivieren?' }}">
-              <input type="hidden" name="_csrf" value="{{ csrf }}">
-              <input type="hidden" name="row_version" value="{{ row.row_version }}">
-            </form>
+            {{ row_actions([{'key': 'actions.edit', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}, {'key': 'actions.archive' if row.active else 'actions.activate', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}], object=row.name) }}
           </td>
         </tr>
         {% endfor %}
