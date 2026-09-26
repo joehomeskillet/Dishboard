@@ -42,10 +42,10 @@ def test_preview_global_consumers_reset_and_fresh_login(
             shell_width = a.locator('.page-body > .container-xl').bounding_box()['width']
             a.set_viewport_size({'width': width, 'height': 1100})
         a.get_by_label('Abstände', exact=True).select_option('comfortable')
-        a.get_by_label('Schriftgröße', exact=True).select_option('large')
+        a.get_by_label('Schriftgrösse', exact=True).select_option('large')
         a.get_by_label('Inhaltsbreite', exact=True).select_option('full')
         a.get_by_label('Menübilder', exact=True).select_option('hide')
-        a.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        a.get_by_role('button', name='Vorschau', exact=True).click()
         expect(a.get_by_text('Vorschau der Auswahl – noch nicht gespeichert.', exact=True)).to_be_visible()
         expect(a.locator('.display-preview')).to_have_attribute('data-font-size', 'large')
         expect(a.locator('.display-preview .menu-photo')).to_have_count(0)
@@ -64,7 +64,7 @@ def test_preview_global_consumers_reset_and_fresh_login(
         assert get_admin_display(admin_engine) == DEFAULT_ADMIN_DISPLAY
         b.goto('/admin/cafeteria/menues')
         expect(b.locator('.menu-photo')).to_have_count(1)
-        a.get_by_role('button', name='Darstellung speichern', exact=True).click()
+        a.get_by_role('button', name='Speichern', exact=True).click()
         for family in ('cafeteria', 'patienten'):
             for path, cards in [(f'/admin/{family}?week={DAY}', '.menu-slot'),
                                 (f'/admin/{family}/menues', '.menu-grid article[data-menu-id]')]:
@@ -123,14 +123,15 @@ def test_preview_global_consumers_reset_and_fresh_login(
                     assert 'Wichtiger langer Rezepturhinweis bleibt vollständig sichtbar.' in (last_card.text_content() or '')
             b.screenshot(path=str(tmp_path / f'display-large-{family}-{width}.png'), full_page=True)
         a.goto(PATH)
+        a.locator('#display-more > summary').click()
         a.get_by_role('button', name='Standardwerte speichern', exact=True).click()
         assert get_admin_display(admin_engine) == DEFAULT_ADMIN_DISPLAY
         b.goto('/admin/cafeteria/menues')
         expect(b.locator('.menu-photo')).to_have_count(1)
         expect(b.locator('main')).to_have_attribute('data-font-size', 'normal')
         a.screenshot(path=str(tmp_path / f'display-default-{width}.png'), full_page=True)
-        a.get_by_label('Schriftgröße', exact=True).select_option('large')
-        a.get_by_role('button', name='Darstellung speichern', exact=True).click()
+        a.get_by_label('Schriftgrösse', exact=True).select_option('large')
+        a.get_by_role('button', name='Speichern', exact=True).click()
     fresh, _ = _login(admin_app, admin_engine, ['Cafeteria.Editor'])
     with _context(browser, live_server, fresh) as context:
         page = context.new_page()

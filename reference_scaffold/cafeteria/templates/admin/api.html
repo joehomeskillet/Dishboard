@@ -58,7 +58,7 @@
                       <details class="admin-compact-details">
                         <summary class="btn btn-danger ui-sem-control" data-semantic="actions.delete" title="Schlüssel {{ key.label }} widerrufen" aria-label="Schlüssel {{ key.label }} widerrufen">{{ sem_icon('actions.delete') }}<span>{{ 'Widerrufen' }}</span></summary>
                         <p class="my-2 ui-sem-consequence">Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.</p>
-                        <button type="submit" class="btn btn-danger ui-sem-control" data-semantic="actions.confirm" title="{{ t(sem('actions.confirm').tooltip_key) }}">{{ icon_label('actions.confirm') }}</button>
+                        {{ icon_button('actions.confirm', text='Widerrufen', aria_label='Schlüssel ' ~ key.label ~ ' widerrufen', emphasis='secondary', class='btn-danger', show_text=true) }}
                       </details>
                     </form>
                     {% endif %}
@@ -115,7 +115,7 @@
               </div>
             </div>
             <div class="card-footer d-flex">
-              <div class="btn-list ms-auto"><button type="submit" class="btn ui-sem-control" data-semantic="actions.add" title="{{ t(sem('actions.add').tooltip_key) }}">{{ icon_label('actions.add') }}</button></div>
+              <div class="btn-list ms-auto">{{ icon_button('actions.add', emphasis='secondary') }}</div>
             </div>
           </form>
         </details>

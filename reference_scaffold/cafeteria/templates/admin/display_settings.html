@@ -45,7 +45,7 @@
           <summary>{{ t('ui.disclosure.more_options.label') }}</summary>
           <div class="admin-compact-detail-body">
             <p class="form-hint" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
-            <button type="submit" class="btn" id="display-reset-btn" name="action" value="reset" aria-label="Standardwerte speichern" aria-describedby="display-reset-hint">{{ icon_label('view.reset') }}</button>
+            {{ icon_button('view.reset', id='display-reset-btn', name='action', value='reset', aria_label='Standardwerte speichern', attrs={'aria-describedby': 'display-reset-hint'}) }}
           </div>
         </details>
         <div class="admin-form-main">

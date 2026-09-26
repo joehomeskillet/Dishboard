@@ -1,5 +1,5 @@
 {% from 'admin/_macros.html' import check, field, icon, label %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% macro hidden(csrf, page, status, account=none) %}
 <input type="hidden" name="_csrf" value="{{ csrf }}">
 <input type="hidden" name="return_page" value="{{ page }}"><input type="hidden" name="return_status" value="{{ status }}">
@@ -43,7 +43,7 @@
       {{ roles(role_labels, selected_roles, 'create') }}
       {{ password('create') }}
     </div>
-    <div class="card-footer"><button class="btn btn-primary" type="submit"{% if not can_mutate %} disabled{% endif %}>{{ icon_label('actions.save') }}</button></div>
+    <div class="card-footer">{{ icon_button('actions.save', attrs={'disabled': not can_mutate}) }}</div>
   </form>
 </details>
 {% endmacro %}

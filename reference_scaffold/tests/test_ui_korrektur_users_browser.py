@@ -83,9 +83,9 @@ def test_wp19_measured_page_frame(live_accounts, browser, javascript):
                     contentHeight: document.querySelector('main').getBoundingClientRect().height,
                 })''')
                 assert not metric['overflow'], metric
-                assert metric['primary'] == 1, metric
+                assert metric['primary'] == (0 if name == 'detail' else 1), metric
                 if name in ('detail', 'events', 'history'):
-                    expect(page.locator('main .btn-primary:visible')).to_have_count(1)
+                    expect(page.locator('main .btn-primary:visible')).to_have_count(0 if name == 'detail' else 1)
                     expect(page.locator('table.table-mobile-lg')).to_have_count(0)
                     for table in page.locator('table.admin-table--stack').all():
                         expect(table.locator('tbody td:not([data-label])')).to_have_count(0)
@@ -112,8 +112,10 @@ def test_wp19_measured_page_frame(live_accounts, browser, javascript):
                     expect(page.locator('.admin-statusbar')).to_contain_text('Aktiv')
                     expect(page.locator('.admin-statusbar')).to_contain_text('Editor')
                     expect(page.locator('.admin-statusbar')).to_contain_text('Nicht vorübergehend gesperrt')
-                    primary = page.locator('main .btn-primary')
-                    assert primary.evaluate('el => getComputedStyle(el).backgroundColor') != page.locator('main .btn').first.evaluate('el => getComputedStyle(el).backgroundColor')
+                    expect(page.locator('#roles-action > summary')).not_to_have_class(re.compile(r'\bbtn-primary\b'))
+                    page.locator('#roles-action > summary').click()
+                    expect(page.locator('#roles-action button[data-semantic="actions.save"]')).to_have_accessible_name('ui.measure.target speichern')
+                    page.locator('#roles-action > summary').click()
                 if name == 'list':
                     assert metric['row'] <= (144 if width < 1024 else 96), metric
                     row = page.locator('[data-account-row]').first
@@ -130,6 +132,7 @@ def test_wp19_measured_page_frame(live_accounts, browser, javascript):
                     assert metric['row'] < 200, metric
                 measurements.append(dict(page=name, javascript=javascript, **metric))
                 first = page.locator('main a.btn:visible, main button:visible, main summary:visible').first
+                page.keyboard.press('Tab')
                 first.focus()
                 expect(first).to_be_focused()
                 assert first.evaluate('el => getComputedStyle(el).outlineStyle !== "none"')
@@ -175,10 +178,11 @@ def _icons_and_focus(page):
     })''')
     assert icons and all(item['id'] in symbols and item['width'] > 0 and item['height'] > 0 for item in icons)
     assert all(item['renderedWidth'] >= 16 for item in icons), icons
-    for control in page.locator('main .btn-icon:visible').all():
-        assert control.get_attribute('aria-label') and control.get_attribute('title')
+    action_size = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
+    for control in page.locator('main .ui-sem-control--icon-only:visible').all():
+        assert control.get_attribute('aria-label') and control.get_attribute('data-ui-tooltip')
         box = control.bounding_box()
-        assert box and box['width'] >= 48 and box['height'] >= 48
+        assert box and box['width'] >= action_size and box['height'] >= action_size
         control.focus()
         expect(control).to_be_focused()
         assert control.evaluate('el => getComputedStyle(el).outlineStyle !== "none"')
@@ -213,10 +217,10 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         assert box is not None and box["y"] + box["height"] <= 900
         assert box["height"] <= 96
         expect(first_row.get_by_text("Aktiv", exact=True)).to_be_visible()
-        edit = first_row.locator('a[data-semantic="actions.edit"]')
-        expect(edit).to_have_attribute('aria-label', re.compile(r'Konto ui\.list\.(js|nojs) bearbeiten'))
-        expect(edit).to_have_attribute('title', re.compile(r'Konto ui\.list\.(js|nojs) bearbeiten'))
-        expect(edit.locator('svg.icon')).to_have_count(1)
+        edit = first_row.locator('.admin-list-primary a')
+        expect(edit).to_have_accessible_name('Lokales Testkonto')
+        expect(edit).to_have_attribute('href', re.compile(r'/admin/benutzer/[^?]+\?page=1&status=all'))
+        expect(first_row.locator('a[data-semantic="actions.edit"], a[data-semantic="actions.open"]')).to_have_count(0)
         metrics = first_row.locator('.admin-list-row').evaluate('''el => {
             const host = document.querySelector('.dishboard-admin');
             const probe = document.createElement('div');
@@ -238,12 +242,15 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         history_nav = page.get_by_role('navigation', name='Kontoverlauf')
         expect(history_nav.get_by_role('link', name='Kontoereignisse', exact=True)).to_be_visible()
         expect(history_nav.get_by_role('link', name='Zugriffsverlauf', exact=True)).to_be_visible()
-        info = first_row.locator('summary')
-        info.focus()
+        edit.focus()
         page.keyboard.press('Enter')
-        expect(first_row.get_by_text('Keine vorübergehende Anmeldesperre', exact=True)).to_be_visible()
-        page.keyboard.press('Enter')
-        assert not first_row.locator('details').evaluate('el => el.open')
+        info = page.locator('#account-login-details')
+        info.locator('summary').click()
+        expect(info.get_by_text('Nicht vorübergehend gesperrt', exact=True)).to_be_visible()
+        expect(info.get_by_text('Letzte lokale Passwortprüfung', exact=True)).to_be_visible()
+        info.locator('summary').click()
+        assert not info.evaluate('el => el.open')
+        page.get_by_role('link', name='Zurück', exact=True).click()
 
         page.get_by_role('link', name='Anlegen', exact=True).click()
         create = page.locator("#create-local-user")
@@ -319,7 +326,7 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
             checkbox.uncheck()
         page.get_by_label("Rollenänderung für ui.error.target bestätigen", exact=True).check()
         with page.expect_navigation() as navigation:
-            page.get_by_role("button", name="Speichern", exact=True).click()
+            page.get_by_role("button", name="ui.error.target speichern", exact=True).click()
         assert navigation.value.status == 400
         assert page.locator("#roles-action").evaluate("details => details.open")
         assert not page.locator("#password-action").evaluate("details => details.open")
@@ -345,7 +352,7 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
         context.add_cookies([{"name": cookie_name, "value": cookie.value, "url": origin}])
         page = context.new_page()
         cases = (
-            ("#roles-action", "Speichern", "rollen", {"roles"}),
+            ("#roles-action", f"ui.actions.{'js' if javascript else 'nojs'} speichern", "rollen", {"roles"}),
             (
                 "#password-action", "Passwort zurücksetzen", "passwort",
                 {"password", "password_confirm"},
@@ -355,7 +362,7 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
         )
         for selector, button, action, extra_fields in cases:
             _open(page, origin, f"/admin/benutzer/{target.public_id}")
-            expect(page.locator('main .btn-primary')).to_have_count(1)
+            expect(page.locator('main .btn-primary')).to_have_count(0)
             if action == 'aktivieren':
                 expect(page.locator('.admin-statusbar')).to_contain_text('Deaktiviert')
             details = page.locator(selector)
@@ -369,20 +376,20 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
             submit = details.get_by_role("button", name=button, exact=True)
             if action == "passwort":
                 expect(submit).to_have_attribute("data-semantic", "actions.refresh")
-                expect(submit).to_have_attribute("title", "Passwort zurücksetzen")
+                expect(submit).to_have_attribute("data-ui-tooltip", "Passwort zurücksetzen")
                 expect(submit.locator("span")).to_have_text("Zurücksetzen")
                 expect(submit).to_have_class(re.compile(r"\bbtn-danger\b"))
                 expect(details.locator('[data-semantic="view.reset"]')).to_have_count(0)
             elif action == "deaktivieren":
                 expect(submit).to_have_attribute("data-semantic", "status.locked")
-                expect(submit).to_have_attribute("title", "Konto deaktivieren")
+                expect(submit).to_have_attribute("data-ui-tooltip", "Konto deaktivieren")
                 expect(submit.locator("span")).to_have_text("Deaktivieren")
                 expect(submit).to_have_class(re.compile(r"\bbtn-danger\b"))
                 expect(details.locator('[data-semantic="actions.archive"]')).to_have_count(0)
                 expect(details.get_by_role("button", name="Archivieren", exact=True)).to_have_count(0)
             elif action == "aktivieren":
                 expect(submit).to_have_attribute("data-semantic", "actions.activate")
-                expect(submit).to_have_attribute("title", "Konto reaktivieren")
+                expect(submit).to_have_attribute("data-ui-tooltip", "Konto reaktivieren")
                 expect(submit.locator("span")).to_have_text("Reaktivieren")
                 expect(details.locator('[data-semantic="actions.restore"]')).to_have_count(0)
                 expect(details.get_by_role("button", name="Wiederherstellen", exact=True)).to_have_count(0)
@@ -469,7 +476,7 @@ def test_stale_roles_reopen_original_choice_without_silent_write(live_accounts, 
         details.locator('input[name=confirm]').check()
         csrf = details.locator('input[name=_csrf]').input_value()
         with page.expect_navigation() as navigation:
-            details.get_by_role('button', name='Speichern', exact=True).click()
+            details.get_by_role('button', name='ui.conflict.target speichern', exact=True).click()
         assert navigation.value.status == 409
         assert details.evaluate('el => el.open')
         expect(page.locator('.error-region')).to_be_focused()
@@ -506,7 +513,7 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         _open(page, origin, '/admin/benutzer')
         target = _create(issuer, 'ui.states.target')
         page.get_by_label('Kontostatus', exact=True).select_option('disabled')
-        page.get_by_role('button', name='Filtern', exact=True).click()
+        page.get_by_role('button', name='Filter', exact=True).click()
         expect(page.get_by_text('Keine lokalen Konten in dieser Auswahl.', exact=True)).to_be_visible()
         expect(page.get_by_label('Kontostatus', exact=True)).to_have_value('disabled')
         page.get_by_role('link', name='Zurücksetzen', exact=True).first.click()
@@ -514,7 +521,7 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         _open(page, origin, '/admin/benutzer/zugriffsverlauf')
         expect(page.get_by_text('Noch keine Zugriffsereignisse erfasst.', exact=True)).to_be_visible()
         page.get_by_label('Zugang', exact=True).select_option('entra')
-        page.get_by_role('button', name='Filtern', exact=True).click()
+        page.get_by_role('button', name='Filter', exact=True).click()
         expect(page.get_by_text('Keine Zugriffsereignisse in dieser Auswahl.', exact=True)).to_be_visible()
         expect(page.get_by_label('Zugang', exact=True)).to_have_value('entra')
         _screenshot(page, f'access-history-filter-empty-{width}-{javascript}.png')
@@ -526,7 +533,7 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
                            ('detail', f'/admin/benutzer/{target.public_id}')]:
             _open(page, origin, path)
             expect(page.get_by_role('status')).to_contain_text('Die Konten bleiben lesbar')
-            expect(page.locator('main .btn-primary')).to_have_count(1)
+            expect(page.locator('main .btn-primary')).to_have_count(0 if name == 'detail' else 1)
             if name in ('local-users', 'create'):
                 expect(page.locator('.admin-statusbar')).to_contain_text('Nur lesen')
             for summary in page.locator('details > summary').all():
@@ -574,7 +581,7 @@ def test_history_rows_and_native_filters_keep_scope_and_pagination(live_accounts
         expect(page.get_by_label('Ereignis', exact=True)).to_be_focused()
         page.get_by_label('Zugang', exact=True).select_option('entra')
         page.get_by_label('Ereignis', exact=True).select_option('auth.login.accepted')
-        page.get_by_role('button', name='Filtern', exact=True).click()
+        page.get_by_role('button', name='Filter', exact=True).click()
         assert parse_qs(urlsplit(page.url).query) == {'provider': ['entra'], 'action': ['auth.login.accepted']}
         expect(page.locator('tbody tr')).to_have_count(9)
         page.get_by_role('link', name='Zurücksetzen', exact=True).click()

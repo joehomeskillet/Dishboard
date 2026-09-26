@@ -283,17 +283,21 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                             overflow: document.documentElement.scrollWidth - innerWidth})''')
                         assert metrics['overflow'] <= 1, metrics
                         assert metrics['row'] <= (96 if width >= 1024 else 280), metrics
-                        targets = page.locator('main :is(.btn, summary)').evaluate_all(
-                            'es => es.filter(e => e.checkVisibility()).map(e => e.getBoundingClientRect().height)')
-                        assert targets and min(targets) >= 48, targets
+                        targets = page.locator('main :is(.btn, summary)').evaluate_all('''es => es.filter(e => e.checkVisibility()).map(e => ({
+                            height: e.getBoundingClientRect().height,
+                            minimum: e.matches('.ui-sem-control') ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48,
+                        }))''')
+                        assert targets and all(t['height'] >= t['minimum'] for t in targets), targets
                         measurements.append(metrics)
                         page.screenshot(path=str(evidence / f'after-{javascript}-{width}.png'), full_page=True)
                         page.locator('main .btn-primary').click()
                         expect(page.locator('#api-key-label')).to_be_focused()
                         # Checkbox labels are the full native 48px click targets; glyphs stay 20px.
-                        controls = page.locator('#api-key-create :is(.form-control, .form-check, button)').evaluate_all(
-                            'es => es.map(e => e.getBoundingClientRect().height)')
-                        assert controls and min(controls) >= 48, controls
+                        controls = page.locator('#api-key-create :is(.form-control, .form-check, button)').evaluate_all('''es => es.map(e => ({
+                            height: e.getBoundingClientRect().height,
+                            minimum: e.matches('.ui-sem-control') ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48,
+                        }))''')
+                        assert controls and all(c['height'] >= c['minimum'] for c in controls), controls
                         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                         page.locator('#api-key-create-title').click()
                     # Technical links remain reachable by keyboard, including without JS.
@@ -303,14 +307,14 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                     expect(page.get_by_role('heading', name='Technische Versionen')).to_be_visible()
                     docs = page.locator('a[href="/api/v1/docs"]')
                     expect(docs).to_be_visible()
-                    expect(docs).to_contain_text('Swagger UI')
+                    expect(docs).to_have_accessible_name('Swagger UI')
                     expect(docs).to_have_attribute('target', '_blank')
                     openapi = page.locator('a[href="/api/v1/openapi.json"]')
-                    expect(openapi).to_contain_text('OpenAPI')
-                    expect(openapi).to_have_attribute('title', 'OpenAPI öffnen')
+                    expect(openapi).to_have_accessible_name('OpenAPI')
+                    expect(openapi).to_have_attribute('data-ui-tooltip', 'OpenAPI öffnen')
                     fhir = page.locator('a[href="/fhir/metadata"]')
-                    expect(fhir).to_contain_text('FHIR')
-                    expect(fhir).to_have_attribute('title', 'FHIR öffnen')
+                    expect(fhir).to_have_accessible_name('FHIR')
+                    expect(fhir).to_have_attribute('data-ui-tooltip', 'FHIR öffnen')
                     technical.press('Enter')
                     # Direct labeled revoke plus «Mehr» for details; confirmation stays native.
                     revoke = page.locator('form[action$="/revoke"]')

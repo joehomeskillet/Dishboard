@@ -13,7 +13,7 @@
 <form method="get" class="admin-filter-bar" aria-label="Konten filtern" data-dirty-tracking="off">
   <div><label class="form-label" for="user-status">Kontostatus</label><select class="form-select" id="user-status" name="status">
   {% for value,label in [('all','Alle lokalen Konten'),('active','Aktiv'),('disabled','Deaktiviert')] %}<option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-  <div class="col-auto"><button class="btn{% if not can_mutate %} btn-primary{% endif %} ui-sem-control" type="submit" data-semantic="view.filter" title="{{ t(sem('view.filter').tooltip_key) }}">{{ icon_label('view.filter') }}</button></div>
+  <div class="col-auto">{{ icon_button('view.filter', emphasis='primary' if not can_mutate else none) }}</div>
   {% if status != 'all' or page > 1 %}{{ icon_button('view.reset', href=url_for('admin.local_users_list'), icon_only=true) }}{% endif %}
 </form>
 <section class="card mb-3" aria-labelledby="users-title">
@@ -21,12 +21,12 @@
 {% if rows %}<div class="admin-users-list">
 {% for account in rows %}
 {% set role_meta %}{% for role in account.roles %}<span class="admin-list-meta">{{ role_labels[role] }}</span>{% endfor %}{% endset %}
-{% set account_status %}{% if account.disabled_at %}{{ label('Deaktiviert', 'warning') }}{% endif %}{% endset %}
-{% set more_info %}
-<div class="pt-2">{% if not (account.locked_until and account.locked_until > now) %}<p class="admin-list-secondary mb-1">Keine vorübergehende Anmeldesperre</p>{% endif %}<p class="admin-list-secondary mb-0">Letzte lokale Passwortprüfung: {{ format_time(account.last_login_at) }}</p></div>
+{% set account_status %}{% if status == 'all' %}{{ label('Deaktiviert', 'warning') if account.disabled_at else label(t('status.active.label'), 'active') }}{% endif %}{% endset %}
+{% set account_name %}
+<a href="{{ url_for('admin.local_user_detail', public_id=account.public_id, page=page, status=status) }}">{{ account.display_name }}</a>
 {% endset %}
 <div data-account-row{% if account.locked_until and account.locked_until > now %} class="admin-users-row-locked"{% endif %}>
-{{ list_row(account.display_name, account.username, 'active' if not account.disabled_at else none, meta=role_meta, status=account_status if account.disabled_at else none, actions=row_actions([{'key': 'actions.edit' if can_mutate else 'actions.open', 'href': url_for('admin.local_user_detail', public_id=account.public_id, page=page, status=status), 'icon_only': true, 'aria_label': 'Konto ' ~ account.username ~ (' bearbeiten' if can_mutate else ' öffnen')}]), more_actions=more_info) }}
+{{ list_row(primary=account_name, secondary=account.username, meta=role_meta, status=account_status) }}
 {% if account.locked_until and account.locked_until > now %}<div class="admin-users-lock">{{ label('Gesperrt', 'warning', icon='alert-triangle') }}<span>Lokale Anmeldung gesperrt bis {{ format_time(account.locked_until) }}</span></div>{% endif %}
 </div>
 {% endfor %}
