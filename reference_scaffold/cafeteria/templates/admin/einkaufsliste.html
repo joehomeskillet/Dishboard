@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, field, select, form_errors, empty_state, disclosure_section, hint, label %}
-{% from 'ui/_semantic.html' import icon_label, icon_button %}
+{% from 'ui/_semantic.html' import icon_button, row_actions %}
 {% set workflow_nav = 'shopping_lists' %}
 {% block title %}Einkaufslisten · {{ detail.title }}{% endblock %}
 {% block page_styles %}
@@ -64,7 +64,7 @@
         <div>{{ policy_labels.get(selected.policy, selected.policy) }}. Abhaken und Neu berechnen sind nur in der aktuellen Revision möglich.</div>
       </div>
     </div>
-    <a class="btn" href="{{ detail_url }}">{{ icon_label('actions.open') }}</a>
+    {{ icon_button('actions.open', href=detail_url) }}
   </div>
 </div>
 {% endif %}
@@ -77,7 +77,7 @@
       <option value="{{ rev.public_id }}"{% if selected.public_id == rev.public_id %} selected{% endif %}>Stand {{ rev.revision_number }} · {{ rev.computed_at.strftime('%d.%m.%Y %H:%M') }}</option>
       {% endfor %}
     </select>
-    <button class="btn" type="submit">{{ icon_label('actions.open') }}</button>
+    {{ icon_button('actions.open') }}
   </div>
 </form>
 {% endif %}
@@ -165,7 +165,7 @@
       {% for line in selected.lines %}
       <tr>
         <td data-label="Zutat">
-          {% if line.food_public_id %}<a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=line.food_public_id) }}">{{ line.food_name or line.food_public_id }}</a>{% else %}{{ line.food_name or line.food_public_id }}{% endif %}
+          {% if line.food_public_id %}<a class="admin-list-primary" href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=line.food_public_id) }}">{{ line.food_name or line.food_public_id }}</a>{% else %}<strong class="admin-list-primary">{{ line.food_name or line.food_public_id }}</strong>{% endif %}
         </td>
         <td data-label="Bedarf" class="text-nowrap">{{ line.quantity }} {{ line.unit_name or line.unit_code }}</td>
         <td data-label="Bestand">{% if line.stock and line.stock.captured %}{{ line.stock.label }}{% else %}Kein Bestand erfasst{% endif %}</td>
@@ -242,13 +242,12 @@
                 {% endcall %}
               </div>
               <div class="shopping-item-actions">
-                <button class="btn" type="submit" name="action" value="save">{{ icon_label('actions.save') }}</button>
-                {% if item.checked %}
-                {{ icon_button('actions.undo', name='action', value='uncheck', text='Wieder öffnen', emphasis='secondary', attrs={'formnovalidate': true}) }}
-                {% else %}
-                {{ icon_button('actions.confirm', name='action', value='check', text='Abhaken', emphasis='secondary', attrs={'formnovalidate': true}) }}
-                {% endif %}
-                <button class="btn btn-danger ms-3" type="submit" name="action" value="delete" formnovalidate data-confirm="Diese Position löschen?" aria-describedby="shopping-delete-hint">{{ icon_label('actions.delete') }}</button>
+                {% set check_label = 'Wieder öffnen' if item.checked else 'Abhaken' %}
+                {{ row_actions([
+                  {'key': 'actions.undo' if item.checked else 'actions.confirm', 'name': 'action', 'value': 'uncheck' if item.checked else 'check', 'text': check_label, 'aria_label': check_label, 'emphasis': 'secondary', 'attrs': {'formnovalidate': true}},
+                  {'key': 'actions.save', 'name': 'action', 'value': 'save', 'emphasis': 'secondary', 'object': shown.item_text},
+                  {'key': 'actions.delete', 'name': 'action', 'value': 'delete', 'consequence_key': 'actions.delete', 'object': shown.item_text, 'attrs': {'formnovalidate': true, 'data-confirm': 'Diese Position löschen?', 'aria-describedby': 'shopping-delete-hint'}},
+                ]) }}
               </div>
             </div>
           </form>
@@ -266,7 +265,7 @@
   {% if item_actions %}<p class="form-hint" id="shopping-delete-hint">Löschen entfernt die Position von der Liste.</p>{% endif %}
   {% else %}
   <p class="text-secondary">Noch keine manuellen Positionen.</p>
-  {% if item_actions %}<a class="btn mb-3" href="#new-item-text">{{ icon_label('actions.add') }}</a>{% endif %}
+  {% if item_actions %}{{ icon_button('actions.add', href='#new-item-text', emphasis='secondary', class='mb-3') }}{% endif %}
   {% endif %}
   {% if item_actions %}
   {%- set new_errors = field_errors if error_form == 'new_item' else {} -%}
@@ -280,7 +279,7 @@
         {% for unit in units %}<option value="{{ unit.code }}"{% if new_item_values.unit_code == unit.code %} selected{% endif %}>{{ unit.display_name }}</option>{% endfor %}
         {% endcall %}
       </div>
-      <div class="shopping-item-actions"><button class="btn" type="submit">{{ icon_label('actions.add') }}</button></div>
+      <div class="shopping-item-actions">{{ icon_button('actions.add', emphasis='secondary') }}</div>
     </div>
   </form>
   {% endif %}

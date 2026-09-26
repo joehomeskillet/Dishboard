@@ -8,14 +8,7 @@
 }
 .lager-table { width: 100%; table-layout: fixed; }
 .dishboard-admin .lager-table.admin-table--stack tbody tr { height: auto; }
-.lager-row-action { width: 9rem; }
-.lager-row-action .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--app-space-12);
-  max-width: 100%;
-}
+.lager-row-action { width: calc(var(--app-sem-control-size) + var(--app-space-4)); }
 .lager-form { min-width: 0; }
 .lager-form-grid { margin-bottom: var(--app-space-2); }
 .lager-form-actions {

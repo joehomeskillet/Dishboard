@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, disclosure_section, hint, icon, label, empty_value %}
-{% from 'ui/_semantic.html' import icon_label, icon_button %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'cost' %}
 {% block title %}Kalkulation · Menüplanung{% endblock %}
 {% block page_styles %}
@@ -66,7 +66,7 @@
       <tbody>
       {% for line in projection.lines %}
         <tr>
-          <td data-label="Zutat">{{ t('recipe.ingredient.label') }} {{ loop.index }}{% if not line.food_public_id %} · ohne Zutat{% endif %}</td>
+          <td data-label="Zutat"><strong class="admin-list-primary">{{ t('recipe.ingredient.label') }} {{ loop.index }}</strong>{% if not line.food_public_id %} <span class="admin-list-secondary">ohne Zutat</span>{% endif %}</td>
           <td data-label="Menge">{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% else %}{{ empty_value() }}{% endif %}</td>
           <td class="admin-table-status" data-label="Status">{% if line.status == 'complete' %}{{ label('vollständig', 'success', icon='circle-check') }}{% else %}{{ label('unvollständig', 'warning', icon='alert-triangle') }}{% endif %}</td>
           <td data-label="Betrag">{% if line.amount is not none %}{{ line.amount }} CHF{% else %}{{ empty_value() }}{% endif %}</td>
@@ -96,8 +96,8 @@
 </section>
 {% else %}
 <div class="cost-empty d-flex align-items-center flex-wrap gap-2">
-  {{ icon_label('actions.preview') }} · {{ t('status.pending.label') }}
-  <a class="btn" href="#kind">{{ icon_label('actions.edit') }}</a>
+  <p class="mb-0">{{ t('status.pending.label') }}</p>
+  {{ icon_button('actions.edit', href='#kind') }}
 </div>
 {% endif %}
 {% if not projection %}<p class="text-secondary mt-3 mb-0">Fehlender Preis bleibt unvollständig, nie 0.</p>{% endif %}

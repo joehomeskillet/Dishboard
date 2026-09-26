@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, hint, icon, label %}
-{% from 'ui/_semantic.html' import icon_label, icon_button %}
+{% from 'ui/_semantic.html' import icon_button, row_actions %}
 {% set workflow_nav = 'inventory' %}
 {% set lager_status = [] %}
 {% set uncaptured_count = slots|rejectattr('captured')|list|length %}
@@ -17,9 +17,6 @@
 {% else %}
 {% set _ = lager_status.append({'label': t('stock.stock.label'), 'value': 'Kein Bestand erfasst', 'variant': 'warning'}) %}
 {% endif %}
-{% if uncaptured_count %}
-{% set _ = lager_status.append({'label': 'Ohne Bestand', 'value': uncaptured_count, 'variant': 'warning'}) %}
-{% endif %}
 {% block title %}{{ t('navigation.stock.label') }} · Menüplanung{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-lager.css') }}">{% endblock %}
 {% block page_header %}
@@ -28,6 +25,9 @@
 {% block content %}
 {{ hint('Zuordnungen kommen aus Zutaten. Umbuchung und Zählung stehen unter Weitere Optionen.', 'lager-hint') }}
 {% if slots %}
+{% if uncaptured_count %}
+<p role="status">{{ label('Für ' ~ uncaptured_count ~ ' ' ~ ('Zuordnung' if uncaptured_count == 1 else 'Zuordnungen') ~ ' ist noch kein Bestand erfasst.', 'warning', icon='alert-triangle') }}</p>
+{% endif %}
 <section class="lager-slots" aria-labelledby="lager-slots-heading">
   <h2 class="lager-section-title" id="lager-slots-heading">Zuordnungen</h2>
   <table class="table lager-table admin-table admin-table--stack">
@@ -36,11 +36,11 @@
     {% for slot in slots %}
       {% set current = selected and slot.food_public_id == selected.food_public_id and slot.storage_public_id == selected.storage_public_id %}
       <tr class="lager-row{% if current %} table-active{% endif %}">
-        <td data-label="Zutat"><a href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=slot.food_public_id) }}">{{ slot.food_name }}</a></td>
-        <td data-label="Lagerort">{{ slot.storage_name }}</td>
-        <td class="admin-table-status" data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}{{ label('Kein Bestand erfasst', 'warning', icon='alert-triangle') }}{% endif %}</td>
+        <td data-label="Zutat"><a class="admin-list-primary" href="{{ url_for('admin.master_data_detail', kind='zutaten', public_id=slot.food_public_id) }}">{{ slot.food_name }}</a></td>
+        <td data-label="Lagerort"><span class="admin-list-secondary">{{ slot.storage_name }}</span></td>
+        <td data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}Nicht erfasst{% endif %}</td>
         <td class="lager-row-action admin-table-actions" data-label="Aktion">
-          {{ icon_button('actions.open', href=url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id), class=('active' if current else ''), aria_label=t(sem('actions.open').label_key) ~ ': ' ~ slot.food_name, attrs={'aria-current': true} if current else none) }}
+          {{ row_actions([{'key': 'actions.open', 'href': url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id), 'class': 'active' if current else '', 'object': slot.food_name ~ ', ' ~ slot.storage_name, 'attrs': {'aria-current': true} if current else none}]) }}
         </td>
       </tr>
     {% endfor %}
@@ -104,7 +104,7 @@
         <input class="form-control" id="transfer_unit" name="unit_code" value="{{ unit_code }}" required>
       </div>
     </div>
-    <div class="lager-form-actions"><button class="btn" type="submit">{{ icon_label('actions.move') }}</button></div>
+    <div class="lager-form-actions">{{ icon_button('actions.move', emphasis='secondary') }}</div>
   </form>
 </section>
 
@@ -124,14 +124,14 @@
         <input class="form-control" id="count_unit" name="unit_code" value="{{ unit_code }}" required>
       </div>
     </div>
-    <div class="lager-form-actions"><button class="btn" type="submit">{{ icon_label('actions.confirm') }}</button></div>
+    <div class="lager-form-actions">{{ icon_button('actions.confirm', emphasis='secondary') }}</div>
   </form>
 </section>
 {% endcall %}
 {% endif %}
 {% else %}
 {% call empty_state('none', 'Keine Zuordnung vorhanden', 'Zuerst in Zutaten eine aktive Zutat einem Lagerort zuordnen.') %}
-<a class="btn btn-primary" href="{{ url_for('admin.master_data_list', kind='zutaten') }}">{{ icon_label('navigation.ingredients') }}</a>
+{{ icon_button('navigation.ingredients', href=url_for('admin.master_data_list', kind='zutaten'), emphasis='primary', show_text=true) }}
 {% endcall %}
 {% endif %}
 {% endblock %}
