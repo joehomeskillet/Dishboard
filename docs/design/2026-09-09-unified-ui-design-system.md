@@ -167,7 +167,7 @@ In operativen Planungs- und Listenansichten nur **kleine Thumbnails** mit festem
 6. grosse leere Karten;
 7. Fullscreen-Food-Fotos in operativen Planungslisten;
 8. unterschiedliche Filter-/Speicherlogik pro Modul;
-9. Icons ohne Text, wenn Bedeutung nicht offensichtlich;
+9. seltene oder ungewohnte Aktionen ohne Kurztext im geöffneten Überlaufmenü (R44);
 10. Hilfetexte, die dieselbe Information ständig wiederholen.
 
 ### Definition of Done (Manifest v2 §15)
@@ -536,7 +536,8 @@ Navigation, Formularlabels, Status und notwendige Warntexte bleiben sichtbar.
 > `text` > Registry-Name. `object='Broccoli'` ergibt «Broccoli bearbeiten» bzw.
 «Edit Broccoli»; Objektwerte werden als Text escaped, auch bei Markup-Eingaben.
 Vorhandene `text`-Argumente liefern Namen statt sichtbaren Text. Bei einer Textausnahme
-muss ein expliziter Name den sichtbaren Text enthalten. SVGs bleiben dekorativ.
+ergänzt der Renderer fehlenden sichtbaren Text zu «{Text}: {aria_label}»;
+auch gemischtsprachige Bestandsaufrufe rendern ohne Abbruch. SVGs bleiben dekorativ.
 
 Tooltip-Markup verwendet `data-ui-tooltip`, niemals natives `title` am Button.
 `title=` bleibt als optionaler Tooltiptext kompatibel. Gemeinsames Tabler-JS öffnet
@@ -551,10 +552,12 @@ gemeinsamer Control-Radius. Auch ein laufender Symbolbutton behält seine Breite
 
 ### R45 — Eine Direktaktion pro Zeile
 
-`row_actions(items)` zeigt höchstens das erste Element direkt. Alle weiteren
-liegen in `action_menu`, geschlossenem nativem `details` mit einem Drei-Punkte-Symbol
-und zugänglichem Namen «Weitere Aktionen». Leere Menüs werden nicht gerendert.
-Tastaturbedienung über Tab, Enter und Space funktioniert ohne JavaScript.
+`row_actions(items, object=none)` zeigt höchstens das erste Element direkt. Alle weiteren
+liegen in `more_actions(items, object=none)` (`action_menu` bleibt kompatibler Adapter),
+nativem `details` mit dots-Symbol und lokalisiertem Namen «Weitere Aktionen für {object}».
+Leere Gruppen und Menüs entfallen. Öffnen fokussiert mit JS den ersten Eintrag,
+Escape schliesst mit Fokusrückgabe; Öffnen löst keine Fachaktion aus.
+Tab, Enter und Space funktionieren auch ohne JavaScript.
 Reihenfolge, Berechtigungen, URLs, CSRF und native Formularzuordnung gehören
 weiterhin dem Aufrufer. Keine automatische Änderung von Submit-Verträgen.
 
@@ -572,13 +575,17 @@ Metriken: Höhe, Padding, Radius, Schrift, Icon und Abstand aus Label-Tokens.
 Textkontrast mindestens 4.5:1. Details werden als `title` und visuell verborgener
 Text ausgegeben, niemals unescaped HTML. Lange Sicherheitsinformationen bleiben
 erreichbar; keine Abschneidung. Legacy-`.badge.bg-*-lt` erhält dieselben Metriken.
+Statusnamen und notwendige Warnungen bleiben sichtbar; keine neue Fachbedeutung
+durch Farbe oder Weglassen erfinden. Redundantes «Aktiv» nur bei eindeutigem Listenfilter weglassen.
 
 ### R47 — Eine Listensprache
 
 Primärinhalt → optionale Sekundärinfo/Metadaten → Status → Aktionen rechts.
-`list_row` und `.admin-table` teilen 56 px Mindesthöhe, 12 px horizontales und
-8 px vertikales Padding, Typografie, Trennlinie und Hover. Inhalt darf wachsen:
-48-px-Button plus Padding und Trennlinie ergibt rund 65 px, keine feste 56-px-Klemme.
+`list_row`, `.admin-table` und `.admin-table--stack` teilen 48 px einzeilige bzw.
+64 px zweizeilige Mindesthöhe, 12/8 px Padding und dezente 1-px-Trenner ohne
+Zeilenschatten. Inhalte und Zoom dürfen wachsen. Gemeinsame Hülle: Control-Radius,
+neutraler Rahmen, kein Schatten. Tabellenkopf: 12 px, Gewicht 500, uppercase,
+33 px Mindesthöhe und `--app-surface-soft` (häufigste vorhandene Tabellenkopf-Ausprägung).
 `empty_value()` liefert einheitlich «—»; numerische Null bleibt Null.
 `.admin-table--stack` ist mobile Ausprägung derselben Komponente mit `data-label`
 an Zellen. Sortierung liegt als Link in einem `th[scope=col][aria-sort]`.
@@ -611,11 +618,12 @@ nutzt die Registry-Rolle; `primary`, `secondary`, `danger` wählen die Variante.
 Zusatzklassen ergänzen Basisklassen; `dropdown-item` bleibt über volle Menübreite
 links ausgerichtet. Klassen `.ui-sem-control`,
 `.ui-sem-control--icon-only`, `.ui-sem-control--large`, `.admin-row-actions`.
-`row_actions(items)` erwartet geordnete Mappings mit `key`, optional `href`,
+`row_actions(items, object=none)` erwartet geordnete Mappings mit `key`, optional `href`,
 `name`, `value`, `type`, `form`, `id`, `icon_only`, `consequence_key` sowie sämtliche
-neuen Kontextparameter für Direkt- und Menüaktionen in `action_menu(items)`.
+neuen Kontextparameter für Direkt- und Menüaktionen in `more_actions(items, object=none)`.
+Ein Item kann den gemeinsamen Objektbezug überschreiben.
 `attrs` erlaubt ausschliesslich
-`^(data-[a-z0-9-]+|aria-(describedby|controls|expanded|current)|formaction|formmethod|formnovalidate|disabled|target|rel|tabindex|hidden)$`.
+`^(data-[a-z0-9-]+|aria-(describedby|controls|expanded|current|disabled|busy)|formaction|formmethod|formnovalidate|disabled|target|rel|tabindex|hidden)$`.
 Andere Schlüssel verursachen `SemanticError` beim Rendern. Werte werden escaped;
 `disabled`, `hidden`, `formnovalidate` verlangen boolesche Werte, true gibt das
 Attribut ohne Wert aus, false lässt es weg. ARIA-/Data-Booleans bleiben Texte.
@@ -623,6 +631,10 @@ Attribut ohne Wert aus, false lässt es weg. ARIA-/Data-Booleans bleiben Texte.
 Semantische Controls nutzen `--app-sem-control-size` 36 px,
 `--app-sem-control-touch-size` 44 px und `--app-sem-control-icon-size` 20 px.
 Andere Controls behalten ihre bestehenden Tokens. DE/EN-Namen bleiben übersetzt.
+`aria-disabled=true` unterbindet Maus, Enter/Space und Submitter-Ausführung;
+der Aufrufer verknüpft den ohne Hover erreichbaren Grund über `aria-describedby`.
+Laufende native Übermittlungen mit `data-loading` sperren Doppelabsendung, erhalten Submitterdaten,
+Namen und Breite; `pageshow` stellt den vorherigen Zustand wieder her.
 
 ### M65 — Label-Vertrag
 
@@ -659,13 +671,17 @@ Bestehende `filter_bar` und `pagination` bleiben gemeinsame Varianten.
 `semantic_key` und `icon_name`; `empty_state_sem` delegiert auf diese Darstellung.
 Keine parallelen Strukturen für dieselbe Semantik.
 
-P2c ergänzt `maxlength=none`, `describedby=none`, `loading=none`, `open=false`
-an beiden Filtermakros. Die ersten beiden gehen an das Suchfeld (`field` unterstützt
-sie ebenfalls), `loading` setzt `data-loading` am Formular. `describedby` ergänzt
-vorhandene Hint-/Fehler-IDs. Der Aufrufer übergibt `open=has_active_extra_filters`,
-damit aktive Zusatzfilter sichtbar bleiben. `active` steuert weiterhin allein
-den Reset-Link; ohne `open` bleibt altes Markup bytegleich. Feldnamen/-werte und
-GET-Ziele ändern sich nicht. Für eine sekundäre Leerzustandsaktion kann der
+Beide Filtermakros behalten `maxlength`, `describedby`, `loading`, `open` und alle
+Positionsparameter. WP2c ergänzt `profile=none`, `active_filters=none` (Liste aus
+`label`/`href`, Ziel-URLs vom Aufrufer per Router erzeugt) und `active_count=none`. Suche per Enter oder Lupensymbol in derselben
+Gruppe; Profilauswahl sichtbar; genau ein filter-Symbol für vorhandene Zusatzfilter.
+`filters` und `more_filters` teilen dessen Bereich; Anwenden nutzt `actions.apply`.
+Zähler und entfernbare Chips zeigen aktive Zusatzfilter, filter-off nur bei aktiver
+Suche/Filtern und Reset-URL. Kein leerer Filterbereich. Explizite Chips funktionieren
+ohne JS; alte HTML-Slots erhalten Zähler/Chips aus gerenderten Controls per JS.
+Bestehende `profile-tabs` im alten Slot bleiben als Übergangsadapter sichtbar;
+neue Aufrufer verwenden `profile`. Namen, Werte, versteckte Felder und GET-Ziele bleiben.
+Für eine sekundäre Leerzustandsaktion kann der
 bestehende `empty_state(action=icon_button(..., emphasis='secondary'))`-Slot dienen.
 
 ### M68 — Nachweise und P4-Arbeitsliste
@@ -677,13 +693,17 @@ Escaping, Nullwerte, Sortierzustände, Kurzlabels und native Formulardaten.
 Statische Arbeitsliste: `docs/ui-consistency-inventory.md`; pro Modul migrieren,
 danach Ratsche senken und gerenderte Zustände prüfen.
 
-P2c: `test_p2c_legacy_bytes` prüft sechs unveränderte UTF-8-Snapshots aus Release 11
-`d2e66fe` für `icon_button`, `row_actions`, `action_menu`, beide Filtermakros und
-`field`. Weitere Unit-Tests prüfen neue Parameter, Renderfehler, Escaping,
+WP2c: `test_p2c_legacy_bytes` erhält die UTF-8-Snapshots für `icon_button` und
+`field`; geänderte Kompositionen erhalten DOM-Verträge für einen Filtereinstieg,
+Chips, leere Menüs, Zeilenbudget und Objektnamen. Weitere Unit-Tests prüfen neue Parameter, Renderfehler, Escaping,
 Native-Attribute, Varianten und drei neue DE-/EN-Aktionen (Runtime 205→208,
 Designquelle 184→187). `test_p2c_context_actions_dropdown_and_active_filters`
 prüft Kontextnamen, Tooltip, Tab/Enter, Dropdown-Masse und offene Zusatzfilter
 ohne JavaScript in DE/EN/xx bei 360/390/768/1024/1440/1920 px.
+Zusätzliche JS-Tests prüfen Fokus/Escape, gesperrte Aktionen, Chip-Entfernung mit
+unveränderten übrigen GET-Werten und einmalige native POST-Übermittlung samt
+Submitter während des breitenstabilen Ladezustands. Listenmessung: 390/1440 px,
+48/64-px-Mindesthöhen, wachsender Inhalt und gemeinsamer Tabellenkopf.
 
 ### A51 — Lokale Alternativsymbole für kanonische Aktionen
 Verboten; Registry und `icon_button`/`icon_label` verwenden.
@@ -837,7 +857,7 @@ Versteckte Warnungen, verlorene Werte und eine breite Hülle mit weiterhin riesi
 | R02 | Inhalt statt Verwaltungswand | Nach kompaktem Kopf und notwendiger Orientierung kommt die eigentliche Arbeit. Keine lange Strecke aus Hinweisen, Einrichtung und doppelten Aktionen davor. Verschärft durch Polish-Lauf: R11. |
 | R03 | Kompakte wiederholte Objekte | Eine Arbeitszeile pro Zutat, Schritt, Baustein oder Zuordnung. Zusatzfelder nur bei Bedarf; nicht eine hohe offene Card je Objekt. *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M21, M23)* Verschärft durch Polish-Lauf: R25, R27. |
 | R04 | Häufige Änderungen unmittelbar | Menge und Einheit direkt in der Zutatenübersicht ändern. Eine einfache Änderung darf keine zusätzliche Klickstrecke benötigen. |
-| R05 | Verständliche Symbole | Tabler-Icon plus kurzer sichtbarer Text für Navigation und Hauptaktionen. Gleiche Bedeutung überall gleich darstellen. Verschärft durch Polish-Lauf: R28, R29. |
+| R05 | Verständliche Symbole | Symbolbuttons nach R44; Navigation und Textausnahmen nach Icon-first §5.4 bleiben lesbar. Gleiche Bedeutung überall gleich darstellen. |
 | R06 | Sichere Detailbereiche | Auf-/Zuklappen speichert und verwirft nichts. Neue oder fehlerhafte Einträge passend öffnen. Gefüllte Zusatzangaben im Kurztext erkennbar lassen. *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M21, M25)* Verschärft durch Polish-Lauf: R13, R21. |
 | R07 | Wahrheitsgetreue Zustände | Gespeichert, geprüft und veröffentlicht unterscheiden. Fehlende Angaben nicht durch einen allgemeinen grünen Haken verdecken. *(Ersetzt am 2026-09-20 durch: Statusbar als globales Designsystem mit 1–5 echten Slots zentral unter dem Titel; die frühere Angabe 3–5 ist damit abgelöst. Warnungen immer mit Text, Farbe nie alleiniger Träger. Keine erfundenen Daten.)* Verschärft durch Polish-Lauf: R22, R23, R24. |
 | R08 | Erreichbare Aktionen | Eine hervorgehobene Speicherhandlung je Formular, erreichbar ohne Scrollreise. Seltene Aktionen in einem beschrifteten Menü. *(Ersetzt am 2026-09-20 durch: Primäraktion standardmässig oben rechts im Seitenkopf. Bei langen Editoren ist eine kompakte sticky Aktionsleiste das zulässige Mittel.)* *(präzisiert am 2026-09-20: siehe Auftraggeber-Ergänzung / Muster M24)* Verschärft durch Polish-Lauf: R14, R15, R16. |
@@ -2207,11 +2227,11 @@ Gemeinsame Filterleiste für alle Listenmodule; dieselbe Reihenfolge überall.
 +----------------------------------------------------------------------------------------------------------+
 ```
 
-**Pflicht:** Suche zuerst. Höchstens 2–3 häufige Filter sichtbar; weitere unter «Weitere Filter». «Filter zurücksetzen» nur bei aktivem Filter. Gleiche Reihenfolge in Menüs, Bausteinen, Zutaten, Rezepten und allen übrigen Modulen.
+**Pflicht:** Suche zuerst, optionale Profilauswahl, ein Filter-Symbol nach M67. Keine parallelen «Filtern»-/«Weitere Filter»-Buttons. Filter-off nur bei aktiven Filtern; keine leere Chipzeile.
 
 **Responsive:** Filterzeile umbrechen; Suche bleibt erkennbar an erster Position. Keine zweite parallele Filterleiste.
 
-**Technischer Vertrag (2026-09-20):** `filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters')` rendert `form.admin-filter-bar[method=get][role=search][data-dirty-tracking=off]`. Das beschriftete Suchfeld steht zuerst; `filters` und `more_filters` sind in Jinja erfasste Markup-Slots mit unveränderten Parameternamen. Aufrufer übergeben höchstens drei häufige Filter in `.admin-filter-slots`; zusätzliche stehen in `details.admin-filter-more` mit Summary «Weitere Filter». Der Reset-Link erscheint nur bei `active` und übergebener URL. Native GET-Übermittlung und Details funktionieren ohne JS; keine neuen JS-Hooks. Nachweis: `test_admin_shared_patterns_browser.py` prüft GET-Parameter, bedingten Reset, Semantik, Fokus, 48-px-Ziele und Reflow bei 360/768/1024/1440 px.
+**Technischer Vertrag:** M67 beschreibt beide gemeinsamen Filtermakros vollständig. Native GET-Übermittlung und Details bleiben ohne JS bedienbar. `test_admin_shared_patterns_browser.py` prüft Parameter, Reset, Fokus und Reflow; `test_ui_list_family_browser.py` misst zusätzlich Filtereinstiege mit sichtbarem Text und leere Überlaufmenüs.
 
 #### M23 — Eine Zeile pro Datensatz
 
@@ -2226,11 +2246,11 @@ Kompakte Listenzeile mit klarer Hierarchie und einer sichtbaren Zeilenaktion.
 +----------------------------------------------------------------------------------------------------------+
 ```
 
-**Pflicht:** Name plus einzeilige Unterzeile. Status als Badge. Kennzeichnungs-Icons mit Text oder `aria-label`. Genau eine sichtbare Zeilenaktion («Bearbeiten» oder «Ansehen») plus beschriftetes «Weitere Aktionen»-Menü für seltene Aktionen. Überlauf bei Kennzeichnungen als «+n», nicht als Badge-Wolke.
+**Pflicht:** Hauptinhalt plus höchstens eine sekundäre Informationszeile, bei Bedarf wachsend. Status nach R46. Rechts höchstens Haupt-Symbolaktion plus dots nach R45; Menütext erst geöffnet. Kennzeichnungen behalten Fachtext; Überlauf als «+n».
 
 **Responsive:** Zeile darf bei Bedarf wachsen; Aktionen bleiben erreichbar. Keine drei gleichwertigen Icon-Buttons ohne Beschriftung.
 
-**Technischer Vertrag (2026-09-20):** `list_row(name, subtitle, state, action, markings=none, overflow=0, more_actions=none)` rendert `.admin-list-row` mit `.admin-list-name`, einzeiliger `.admin-list-subtitle` (vollständiger Text im DOM und `title`), bestehendem `status_badge(state)` und `.admin-list-markings`. Der Aufrufer begrenzt den Kennzeichnungs-Slot; `overflow` ergänzt ein beschriftetes «+n». `action` verwendet das bestehende `actions`-Mapping (Link oder Button samt Formularattributen); genau diese Aktion steht offen in `.admin-list-actions`. Ein übergebener `more_actions`-Slot erscheint in `details.admin-compact-actions` mit «Weitere Aktionen». Keine neuen `data-`-Hooks, native Links/Buttons/Details bleiben ohne JS bedienbar. Nachweis: `test_admin_shared_patterns_browser.py` für eine sichtbare Aktion, Status, Überlauf, Tastatur, 48-px-Ziele und vier Breiten.
+**Technischer Vertrag:** M66 definiert `list_row` und seine kompatiblen Slots. Neue Aktionen nutzen `actions=row_actions(items, object=...)` nach R45. Der alte HTML-Slot `more_actions` bleibt bis zur Modulmigration kompatibel; reine Zusatzinformationen gehören in eine Informationsaufklappung statt in ein Aktionsmenü. Native Links, Buttons und Details bleiben ohne JS bedienbar. Nachweis: `test_admin_shared_patterns_browser.py` für Aktionen, Status, Überlauf, Tastatur und vier Breiten.
 
 ##### Modul Bestellung (2026-09-20)
 

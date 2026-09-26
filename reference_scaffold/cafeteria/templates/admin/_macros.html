@@ -440,13 +440,23 @@
 </fieldset>
 {%- endmacro %}
 
-{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false) -%}
-<form class="admin-filter-bar" method="get" action="{{ action }}" data-dirty-tracking="off" role="search"{% if loading is not none %} data-loading="{{ 'true' if loading is sameas true else 'false' if loading is sameas false else loading }}"{% endif %}>
-  <div class="admin-filter-search">{{ field(search_name, 'Suche', search_value, type='search', id=id ~ '-search', maxlength=maxlength, describedby=describedby) }}</div>
-  {% if filters %}<div class="admin-filter-slots">{{ filters }}</div>{% endif %}
-  {% if more_filters %}<details class="admin-compact-details admin-filter-more"{% if open %} open{% endif %}><summary>{{ icon('search') }}Weitere Filter</summary><div class="admin-filter-slots">{{ more_filters }}</div></details>{% endif %}
-  <button class="btn" type="submit" title="{{ t(sem('view.filter').tooltip_key) }}">{{ icon(sem('view.filter').resolved_icon) }}{{ t(sem('view.filter').label_key) }}</button>
-  {% if active and reset_url %}<a class="btn" href="{{ reset_url }}" title="{{ t(sem('view.reset').tooltip_key) }}">{{ icon(sem('view.reset').resolved_icon) }}{{ t(sem('view.reset').label_key) }}</a>{% endif %}
+{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none) -%}
+{% from 'ui/_semantic.html' import icon_button, sem_icon %}
+{# Compatibility for the existing profile-only slot; new callers use profile=. #}
+{% if profile is none and filters and 'profile-tabs' in filters %}{% set profile = filters %}{% set filters = none %}{% endif %}
+{% set count = active_count if active_count is not none else active_filters|length if active_filters else 0 %}
+<form class="admin-filter-bar" method="get" action="{{ action }}" data-dirty-tracking="off" role="search" data-filter-remove-label="{{ t(sem('view.reset').aria_key) }}"{% if loading is not none %} data-loading="{{ 'true' if loading is sameas true else 'false' if loading is sameas false else loading }}"{% endif %}>
+  <div class="admin-filter-search"><div class="admin-filter-query">{{ field(search_name, t(sem('view.search').label_key), search_value, type='search', id=id ~ '-search', maxlength=maxlength, describedby=describedby) }}</div>{{ icon_button('view.search') }}</div>
+  {% if profile %}<div class="admin-filter-profile">{{ profile }}</div>{% endif %}
+  {% if filters or more_filters %}
+  <details class="admin-filter-more"{% if open %} open{% endif %}>
+    <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="view.filter" data-ui-tooltip="{{ t(sem('view.filter').aria_key) }}" aria-label="{{ t(sem('view.filter').aria_key) }}"{% if count %} aria-describedby="{{ id }}-count"{% endif %}>{{ sem_icon('view.filter') }}<span id="{{ id }}-count" class="admin-filter-count"{% if active_count is not none %} data-filter-count-explicit{% endif %}{% if not count %} hidden{% endif %}>{{ count }}</span></summary>
+    <div class="admin-filter-slots">{{ filters or '' }}{{ more_filters or '' }}{{ icon_button('actions.apply') }}</div>
+  </details>
+  {% endif %}
+  <template data-filter-chip-icon>{{ icon('x') }}</template>
+  {% if (active or search_value or count) and reset_url %}{{ icon_button('view.reset', href=reset_url) }}{% endif %}
+  {% if active_filters %}<div class="admin-filter-chips" data-filter-chips="explicit">{% for chip in active_filters %}<a class="btn admin-filter-chip" href="{{ chip.href|forceescape }}" aria-label="{{ chip.label|forceescape }}: {{ t(sem('view.reset').aria_key) }}">{{ chip.label|forceescape }}{{ icon('x') }}</a>{% endfor %}</div>{% endif %}
 </form>
 {%- endmacro %}
 

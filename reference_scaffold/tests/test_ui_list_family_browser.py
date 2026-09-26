@@ -59,7 +59,7 @@ MEASURE_JS = r"""() => {
     let text = '';
     while (walker.nextNode()) {
       const parent = walker.currentNode.parentElement;
-      if (!parent || clipped(parent) || !visible(parent)) continue;
+      if (!parent || parent.closest('.admin-filter-count') || clipped(parent) || !visible(parent)) continue;
       text += walker.currentNode.nodeValue;
     }
     return text.replace(/\s+/g, ' ').trim();
@@ -186,6 +186,16 @@ MEASURE_JS = r"""() => {
       if (visible(el) && !el.closest(chrome)) filterSet.add(el);
     }
   }
+  const filterEntries = [...filterSet].filter(el =>
+    el.dataset.semantic === 'view.filter' || iconNames(el).includes('tabler-filter') ||
+    /^(Filtern|Weitere Filter|Filter|More filters)$/i.test(visibleText(el)));
+  const filtersWithText = filterEntries.filter(el => visibleText(el)).length;
+  const emptyOverflow = [...main.querySelectorAll('details, .dropdown')].filter(menu => {
+    const trigger = menu.querySelector(':scope > summary, :scope > [data-bs-toggle="dropdown"]');
+    if (!trigger || !visible(trigger) || !iconNames(trigger).includes('tabler-dots')) return false;
+    return ![...menu.querySelectorAll('a[href], button, input[type=submit]')].some(el =>
+      !trigger.contains(el) && !el.hidden && !el.closest('[hidden], [inert]'));
+  }).length;
   const kindCount = {};
   const lists = groups.map((group) => {
     kindCount[group.kind] = (kindCount[group.kind] || 0) + 1;
@@ -220,8 +230,29 @@ MEASURE_JS = r"""() => {
       rowActions: {count: worst.count, withText: Math.max(0, ...rowPacks.map((pack) => pack.withText), 0), texts, icons, family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins', hits: worst.hits},
     };
   });
-  return {header, filters: filterSet.size, lists};
+  return {header, filters: filterEntries.length, filtersWithText, emptyOverflow, lists};
 }"""
+
+
+def test_filter_and_empty_overflow_measurement():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox'])
+        try:
+            page = browser.new_page()
+            page.set_content('''<main>
+                <form role="search"><details><summary data-semantic="view.filter">
+                <svg><use href="#tabler-filter"></use></svg><span class="admin-filter-count">2</span>
+                </summary><input name="status"></details></form>
+                <form role="search"><button data-semantic="view.filter">Filtern</button></form>
+                <details><summary><svg><use href="#tabler-dots"></use></svg></summary></details>
+                <details><summary><svg><use href="#tabler-dots"></use></svg></summary><a href="/edit">Bearbeiten</a></details>
+                </main>''')
+            measured = page.evaluate(MEASURE_JS)
+            assert measured['filters'] == 2
+            assert measured['filtersWithText'] == 1
+            assert measured['emptyOverflow'] == 1
+        finally:
+            browser.close()
 
 
 def _catalog(paths: dict) -> list[tuple[str, str, str, str | None]]:
@@ -344,6 +375,8 @@ def _flatten(slug: str, title: str, path: str, width: int, height: int, data: di
         if index == 0:
             metrics.append(('Kopfaktionen', _fmt_actions(header_pack) + f"; gefüllte Primärflächen {header_pack['filled']}"))
             metrics.append(('Filtereinstiege', str(data['filters'])))
+            metrics.append(('Filtereinstiege mit sichtbarem Text', str(data['filtersWithText'])))
+            metrics.append(('Überlaufmenü ohne Einträge', str(data['emptyOverflow'])))
         container = item['container']
         if container:
             metrics.append(('Listencontainer', f"{container['tag']} · Rahmen {container['border']} · Radius {container['radius']} · Schatten {container['shadow']}"))
@@ -367,6 +400,7 @@ def _flatten(slug: str, title: str, path: str, width: int, height: int, data: di
             'card': bool(row and row['card']),
             'row_count': item['rowActions']['count'], 'row_text': bool(item['rowActions']['withText']),
             'header_text': bool(header_pack['withText']), 'header_filled': header_pack['filled'],
+            'filter_text': data['filtersWithText'], 'empty_overflow': data['emptyOverflow'],
         })
     return rows
 
@@ -383,6 +417,12 @@ def _modes(rows: list[dict]) -> dict[str, str | None]:
 
 def _deviations(desktop: list[dict], mobile: list[dict], modes: dict[str, str | None]) -> list[str]:
     codes: set[str] = set()
+    for width, rows in ((1440, desktop), (390, mobile)):
+        for row in rows:
+            if row['filter_text']:
+                codes.add(f'{width}:filtereinstieg_text')
+            if row['empty_overflow']:
+                codes.add(f'{width}:ueberlauf_leer')
     for row in desktop:
         key = row['list_key']
         if row['row_text']:

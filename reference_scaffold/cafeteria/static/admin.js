@@ -5,20 +5,38 @@
     // Opt-in native submissions: defer disabling until successful controls have
     // been serialized, including the clicked submitter's name/value and overrides.
     const loadingForms = new Map();
+    // ARIA keeps unavailable actions focusable so their description is reachable.
+    ['click', 'auxclick', 'keydown'].forEach(type => document.addEventListener(type, event => {
+        if (type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+        if (!event.target.closest('[aria-disabled="true"]')) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }, true));
+    document.addEventListener('submit', event => {
+        if (!event.submitter?.matches('[aria-disabled="true"]')) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }, true);
     document.addEventListener('submit', event => {
         const form = event.target;
-        if (!form.matches('form[data-loading]')) return;
+        if (!form.matches('form[data-loading]') || event.defaultPrevented || form.dataset.loading === 'false') return;
+        if (form.method === 'dialog') return;
         if (loadingForms.has(form)) {
             event.preventDefault();
             return;
         }
+        const button = event.submitter || Array.from(form.elements).find(control =>
+            control.matches('button[type="submit"], button:not([type])') && !control.disabled);
+        if (!button) return;
+        const state = {button, busy: button.getAttribute('aria-busy'),
+            spinner: button.classList.contains('admin-btn-loading')};
+        loadingForms.set(form, state);
         window.setTimeout(() => {
-            if (event.defaultPrevented || !form.isConnected) return;
-            const button = Array.from(form.elements).find(control =>
-                control.matches('button.btn-primary') && control.type === 'submit' && !control.disabled);
-            if (!button) return;
-            loadingForms.set(form, {button, busy: button.getAttribute('aria-busy'),
-                spinner: button.classList.contains('admin-btn-loading')});
+            if (loadingForms.get(form) !== state) return;
+            if (event.defaultPrevented || !form.isConnected) {
+                loadingForms.delete(form);
+                return;
+            }
             button.disabled = true;
             button.setAttribute('aria-busy', 'true');
             button.classList.add('admin-btn-loading');
@@ -33,8 +51,65 @@
         });
         loadingForms.clear();
     });
-    document.addEventListener('click', event => {
-        if (event.target.closest('a[aria-disabled="true"]')) event.preventDefault();
+    // Native details remain usable without JS; enhancement never executes items.
+    document.addEventListener('toggle', event => {
+        const menu = event.target;
+        if (!menu.matches('.ui-sem-actions') || !menu.open) return;
+        // toggle is queued: do not steal focus after the user has already moved on.
+        if (document.activeElement !== menu.querySelector(':scope > summary')) return;
+        Array.from(menu.querySelectorAll('.ui-sem-action-items :is(a[href], button):not(:disabled)'))
+            .find(control => control.getClientRects().length && !control.closest('[hidden], [inert]'))?.focus();
+    }, true);
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const menu = event.target.closest('.ui-sem-actions[open], .admin-filter-more[open]');
+        if (!menu) return;
+        menu.open = false;
+        menu.querySelector(':scope > summary')?.focus();
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }, true);
+
+    // Legacy HTML filter slots gain chips from their rendered successful controls.
+    // Explicit chips remain server-owned and work without JavaScript.
+    document.querySelectorAll('.admin-filter-bar[data-filter-remove-label]').forEach(form => {
+        if (form.querySelector('[data-filter-chips="explicit"]')) return;
+        const panel = form.querySelector('.admin-filter-slots');
+        if (!panel) return;
+        const selected = Array.from(panel.querySelectorAll('input[name], select[name]')).filter(control => {
+            if (control.disabled || ['hidden', 'submit', 'button'].includes(control.type)) return false;
+            if (['checkbox', 'radio'].includes(control.type)) return control.checked;
+            if (control.tagName === 'SELECT') return control.selectedIndex > 0;
+            return control.value.trim() !== '';
+        });
+        const count = form.querySelector('.admin-filter-count');
+        if (count && !count.hasAttribute('data-filter-count-explicit')) {
+            count.textContent = selected.length;
+            count.hidden = !selected.length;
+            if (selected.length) count.parentElement.setAttribute('aria-describedby', count.id);
+        }
+        if (!selected.length) return;
+        const chips = document.createElement('div');
+        chips.className = 'admin-filter-chips';
+        selected.forEach(control => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'btn admin-filter-chip';
+            const label = control.tagName === 'SELECT' ? control.selectedOptions[0].textContent
+                : ['checkbox', 'radio'].includes(control.type) ? control.labels?.[0]?.textContent : control.value;
+            chip.textContent = (label || control.name).trim();
+            chip.setAttribute('aria-label', chip.textContent + ': ' + form.dataset.filterRemoveLabel);
+            const removeIcon = form.querySelector('[data-filter-chip-icon]');
+            if (removeIcon) chip.append(removeIcon.content.cloneNode(true));
+            chip.addEventListener('click', () => {
+                if (['checkbox', 'radio'].includes(control.type)) control.checked = false;
+                else if (control.tagName === 'SELECT') control.selectedIndex = 0;
+                else control.value = '';
+                form.requestSubmit();
+            });
+            chips.append(chip);
+        });
+        form.append(chips);
     });
 
     // Optional modal enhancement; without JS the open dialog lives in details.
@@ -64,7 +139,10 @@
             .map(id => document.getElementById(id)).find(node => node?.getAttribute('role') === 'tooltip');
     }
     function bindActionTooltip(link) {
-        const description = link.getAttribute('aria-describedby');
+        let description = link.getAttribute('aria-describedby');
+        link.addEventListener('show.bs.tooltip', () => {
+            description = link.getAttribute('aria-describedby');
+        });
         link.addEventListener('inserted.bs.tooltip', () => {
             const tip = actionTooltip(link);
             if (!tip) return;
@@ -79,6 +157,8 @@
         });
         link.addEventListener('hide.bs.tooltip', event => {
             const tip = actionTooltip(link);
+            description = (link.getAttribute('aria-describedby') || '').split(/\s+/)
+                .filter(id => id && id !== tip?.id).join(' ');
             if (tip?.matches(':hover') && !tip.dataset.dismissed) event.preventDefault();
         });
     }
@@ -159,9 +239,25 @@
     function updateDirtyState() {
         const previewLinks = document.querySelectorAll('a[href*="/preview"]');
         const publishForms = document.querySelectorAll('form[action*="/publish"]');
+        let flashRegion = document.querySelector('.flash-region');
+        if (!flashRegion && (previewLinks.length || publishForms.length)) {
+            flashRegion = document.createElement('p');
+            flashRegion.className = 'flash-region';
+            (document.querySelector('main') || document.body).prepend(flashRegion);
+        }
+        if (flashRegion) {
+            if (!flashRegion.id) flashRegion.id = 'admin-dirty-action-reason';
+            flashRegion.textContent = 'Zuerst speichern';
+        }
+        const describe = control => {
+            const ids = new Set((control.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+            ids.add(flashRegion.id);
+            control.setAttribute('aria-describedby', Array.from(ids).join(' '));
+        };
 
         previewLinks.forEach(link => {
             link.setAttribute('aria-disabled', 'true');
+            describe(link);
             link.classList.add('disabled');
             link.addEventListener('click', preventDefaultClick);
             if (!link.classList.contains('ui-sem-control--icon-only')) link.textContent = 'Zuerst speichern';
@@ -171,14 +267,11 @@
             const btn = form.querySelector('button[type="submit"]');
             if (btn) {
                 btn.setAttribute('disabled', 'true');
+                describe(btn);
                 if (!btn.classList.contains('ui-sem-control--icon-only')) btn.textContent = 'Zuerst speichern';
             }
         });
 
-        let flashRegion = document.querySelector('.flash-region');
-        if (flashRegion) {
-            flashRegion.textContent = 'Zuerst speichern';
-        }
         keepWeekFieldVisible();
     }
 

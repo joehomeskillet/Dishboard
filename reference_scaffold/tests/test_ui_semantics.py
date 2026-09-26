@@ -441,24 +441,12 @@ def test_p2b_legacy_icon_link_and_status_mapping_contract(semantic_app):
     assert document.select_one('.admin-status--danger').get_text(strip=True) == 'Konflikt'
 
 
-# Action snapshots follow the reviewed WP2a icon-only contract; other macros retain R11 bytes.
+# Unchanged renderers retain byte snapshots; WP2c composites use DOM contracts below.
 # Hash raw UTF-8 HTML, including whitespace; no normalized DOM comparison.
 @pytest.mark.parametrize('template,macro,call,digest', [
     ('ui/_semantic.html', 'icon_button',
      "icon_button('actions.edit', href='/edit', icon_only=true, id='edit')",
      '4684e5173caa81cddea3c7c9f7eef8e3e9969166ae336768e872a86ee8396170'),
-    ('ui/_semantic.html', 'action_menu',
-     "action_menu([{'key':'actions.copy','name':'intent','value':'copy','form':'editor'}])",
-     'd5fab12f4033d94c43aafad81c8125f53eb91da8664e35d3aa9a59e88803130f'),
-    ('ui/_semantic.html', 'row_actions',
-     "row_actions([{'key':'actions.edit','href':'/edit'}, {'key':'actions.copy','name':'intent','value':'copy'}])",
-     'ac854c222d50642fac22c326373dfb51d99f818415116b66d16d8e89799e3eda'),
-    ('ui/_semantic.html', 'filter_bar_sem',
-     "filter_bar_sem('/search', search_name='text', search_value='Soup', more_filters='Extra', active=true, reset_url='/reset')",
-     'd7862c1e706c16184dc9edd010aed7602a72225eb852a7ba0daf6e098da6bd18'),
-    ('admin/_macros.html', 'filter_bar',
-     "filter_bar('/search', search_name='text', search_value='Soup', more_filters='Extra', active=true, reset_url='/reset')",
-     'ebfead26ebeecd53a7849d2a8a645651f37adc61bff381502ad9b146cec762e3'),
     ('admin/_macros.html', 'field',
      "field('q', 'Suche', 'Soup', type='search', hint='Help', error='Error')",
      '9bbf6ded90cc791728d0add549697446ca1ac979266596a6ba2d0afa30d4d84f'),
@@ -719,6 +707,74 @@ def test_p2c_filter_contract(semantic_app, macro, template, opened):
     assert doc.details.has_attr('open') == opened
 
 
+@pytest.mark.parametrize('locale', ['de', 'en'])
+def test_wp2c_single_filter_entry_chips_and_context(semantic_app, locale):
+    from bs4 import BeautifulSoup
+
+    semantic_app.config['UI_LOCALE'] = locale
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'ui/_semantic.html' import filter_bar_sem %}
+            {{ filter_bar_sem('/search', search_name='text', search_value='Soup',
+                filters='<input name="archived" value="1">'|safe,
+                more_filters='<input name="category" value="soup">'|safe,
+                profile='<nav>Patienten</nav>'|safe, reset_url='/reset',
+                active_filters=[{'label': 'Archiv', 'href': '/search?text=Soup&category=soup'},
+                                {'label': 'Suppe', 'href': '/search?text=Soup&archived=1'}]) }}''')
+        empty = render_template_string("{% from 'ui/_semantic.html' import filter_bar_sem %}{{ filter_bar_sem('/search', reset_url='/reset') }}")
+    doc = BeautifulSoup(html, 'html.parser')
+    trigger = doc.select_one('[data-semantic="view.filter"]')
+    assert len(doc.select('[data-semantic="view.filter"]')) == 1
+    assert trigger.get_text(strip=True) == '2'
+    assert trigger.select_one('use')['href'].endswith('#tabler-filter')
+    assert len(doc.select('.admin-filter-chips a')) == 2
+    assert doc.select_one('[data-semantic="view.reset"]')['href'] == '/reset'
+    assert doc.select_one('.admin-filter-profile').get_text(strip=True) == 'Patienten'
+    assert doc.select_one('.admin-filter-profile').find_parent('details') is None
+    assert doc.select_one('input[name="text"]')['value'] == 'Soup'
+    assert doc.select_one('.admin-filter-slots input[name="archived"]')['value'] == '1'
+    for control in doc.select('[data-semantic="view.search"], [data-semantic="view.reset"], [data-semantic="actions.apply"]'):
+        assert not control.get_text(strip=True)
+    clean = BeautifulSoup(empty, 'html.parser')
+    assert not clean.select('.admin-filter-more, .admin-filter-chips, [data-semantic="view.reset"]')
+
+
+@pytest.mark.parametrize('locale,more_name', [('de', 'Weitere Aktionen für Broccoli'), ('en', 'More actions for Broccoli')])
+def test_wp2c_row_budget_and_object_forwarding(semantic_app, locale, more_name):
+    from bs4 import BeautifulSoup
+
+    semantic_app.config['UI_LOCALE'] = locale
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'ui/_semantic.html' import row_actions %}
+            {{ row_actions([{'key':'actions.edit','href':'/edit'},
+                            {'key':'actions.copy','name':'intent','value':'copy','form':'editor'},
+                            {'key':'actions.history','href':'/history'}], object='Broccoli') }}''')
+        empty = render_template_string('''{% from 'ui/_semantic.html' import row_actions, more_actions %}
+            {{ row_actions([]) }}{{ more_actions([]) }}''')
+    doc = BeautifulSoup(html, 'html.parser')
+    assert len(doc.select('.admin-row-actions > a')) == 1
+    assert len(doc.select('.ui-sem-action-items > :is(a, button)')) == 2
+    assert doc.summary['aria-label'] == more_name
+    assert doc.summary.get_text(strip=True) == ''
+    assert doc.summary.select_one('use')['href'].endswith('#tabler-dots')
+    assert all('Broccoli' in node['aria-label'] for node in doc.select('a, button'))
+    assert all(node.get_text(strip=True) for node in doc.select('.ui-sem-action-items > :is(a, button)'))
+    assert (doc.button['name'], doc.button['value'], doc.button['form']) == ('intent', 'copy', 'editor')
+    assert not empty.strip()
+
+
+def test_wp2c_chip_names_are_text_even_for_markup(semantic_app):
+    from bs4 import BeautifulSoup
+
+    name = Markup('<img src=x onerror=alert(1)>"Archiv')
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'ui/_semantic.html' import filter_bar_sem %}
+            {{ filter_bar_sem('/search', active_filters=[{'label': name, 'href': '/search?q=keep'}]) }}''', name=name)
+    doc = BeautifulSoup(html, 'html.parser')
+    assert not doc.select('img, script')
+    assert doc.select_one('.admin-filter-chip').get_text(strip=True) == str(name)
+    assert doc.select_one('.admin-filter-chip')['aria-label'].startswith(str(name))
+
+
 @pytest.mark.parametrize('locale,labels', [('de', ['Aktivieren', 'Übernehmen', 'Verlauf']), ('en', ['Activate', 'Apply', 'History'])])
 def test_p2c_canonical_actions(semantic_app, locale, labels):
     semantic_app.config['UI_LOCALE'] = locale
@@ -800,14 +856,14 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
         assert (control['type'], control['form']) == ('submit', 'recipe-freeze-form')
 
 
-def test_p4_german_aria_without_text_fails_in_en(semantic_app):
+def test_p4_german_aria_without_text_is_composed_in_en(semantic_app):
     semantic_app.config['UI_LOCALE'] = 'en'
-    with pytest.raises(SemanticError, match='contain visible text'):
-        _p2c_action(semantic_app, 'recipe.quantity', href='/scale', aria_label='Mengen berechnen', show_text=True)
-    with pytest.raises(SemanticError, match='contain visible text'):
-        _p2c_action(semantic_app, 'actions.print', href='/pdf', aria_label='Drucken · PDF öffnen', show_text=True)
-    with pytest.raises(SemanticError, match='contain visible text'):
-        _p2c_action(semantic_app, 'actions.back', href='/', aria_label='Zurück zur Rezeptliste', show_text=True)
+    for key, aria in [('recipe.quantity', 'Mengen berechnen'),
+                      ('actions.print', 'Drucken · PDF öffnen'),
+                      ('actions.back', 'Zurück zur Rezeptliste')]:
+        control = _p2c_action(semantic_app, key, href='/target', aria_label=aria, show_text=True).a
+        assert control['aria-label'] == f'{control.span.text}: {aria}'
+        assert control['data-ui-tooltip'] == control['aria-label']
 
 
 def test_p4_owned_templates_pair_german_aria_with_text():
