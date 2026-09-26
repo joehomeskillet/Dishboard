@@ -427,8 +427,8 @@ def test_admin_shell_locale_and_single_semantic_stylesheet(semantic_app, locale)
 
 
 @pytest.mark.parametrize('locale,options,more', [
-    ('de', 'Weitere Optionen', 'Mehr'),
-    ('en', 'More options', 'More'),
+    ('de', 'Weitere Optionen', 'Weitere Aktionen'),
+    ('en', 'More options', 'More actions'),
 ])
 def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options, more):
     from bs4 import BeautifulSoup
@@ -455,7 +455,11 @@ def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options
     assert document.select_one('#details').has_attr('open')
     assert document.select_one('#custom summary').get_text(strip=True).startswith('Custom')
     assert document.select_one('#custom').has_attr('open')
-    assert document.select_one('.admin-compact-actions summary').get_text(strip=True) == more
+    overflow = document.select_one('.admin-compact-actions summary')
+    assert overflow['aria-label'] == more
+    assert overflow['data-ui-tooltip'] == more
+    assert overflow.get_text(strip=True) == ''
+    assert overflow.select_one('svg use') is not None
 
 
 @pytest.mark.parametrize('mode', ['tooltip', 'inline', 'dialog'])
