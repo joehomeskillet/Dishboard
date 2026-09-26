@@ -7,6 +7,7 @@
 {% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
 {% set open_checks = cells|selectattr('row_version', 'gt', 0)|selectattr('review_open')|list|length %}
 {% set filled_slots = cells|selectattr('row_version', 'gt', 0)|list|length %}
+{% set review_badges = open_checks > 0 and open_checks < filled_slots %}
 {% set week_value = week.isoformat() if week is not none and week.isoformat is defined else week %}
 {% set week_csrf = csrf %}
 {% set first_cell = cells[0] %}
@@ -34,6 +35,7 @@
 {% endblock %}
 {% block page_header %}
 {% from 'admin/_week_controls.html' import overview_header with context %}
+{% include 'admin/_week_check_summary.html' %}
 {{ overview_header('Patienten', week_header_description) }}
 {% endblock %}
 {% block content %}

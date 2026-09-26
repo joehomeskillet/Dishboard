@@ -35,9 +35,18 @@
 }
 
 /* Note details toggle */
-.dishboard-admin .menu-note-details summary {
+.dishboard-admin .dishboard-menu-table :is(.admin-list-primary, .admin-list-secondary, .menu-description, .shared-note),
+.dishboard-admin .menu-grid .card-body {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.dishboard-admin .menu-note-details > summary {
   cursor: pointer;
   list-style: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  min-width: 48px;
 }
 .dishboard-admin .menu-note-details summary::-webkit-details-marker {
   display: none;

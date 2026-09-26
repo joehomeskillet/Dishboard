@@ -23,13 +23,13 @@
 {% set service_values = week_form_values if service_error else {} %}
 {% set service_errors = week_form_errors if service_error else {} %}
 {% set service_open = service_error or status == 'error' %}
-<div class="admin-week-meal-head">
+<div class="admin-week-meal-head" id="service-{{ day_iso }}-{{ meal_code }}">
   <strong>{{ meal_label }}</strong>
   <span class="admin-week-service-summary">
     {{ state_labels.get(state, state) }}{% if start and end %} · {{ start }}–{{ end }}{% endif %}
   </span>
   {% if not start and not end %}
-  <span>Zeiten nicht eingetragen</span>
+  {{ label('Zeiten nicht eingetragen', 'warning') }}
   {% endif %}
   {% if notice %}
   <span>Hinweis: {{ notice }}</span>

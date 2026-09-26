@@ -91,7 +91,7 @@ def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tm
                         page.screenshot(path=str(tmp_path / f'{family}-{width}-{javascript}.png'), full_page=True)
                         page.screenshot(path=str(tmp_path / f'{family}-{width}-{javascript}-viewport.png'))
                         assert metrics['documentWidth'] <= width + 1, metrics
-                        expect(page.locator('.admin-statusbar')).to_be_visible()
+                        expect(page.locator('.page-header-subtitle')).to_be_visible()
                         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
                         if family == 'cafeteria':
                             expect(page.locator('.admin-day-card').first).to_contain_text('Suppe: Gemüsesuppe')

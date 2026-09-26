@@ -12,6 +12,7 @@
 {% set publish_blocked = status in ('review_open', 'incomplete', 'empty') %}
 {% set open_checks = cells|selectattr('row_version', 'gt', 0)|selectattr('review_open')|list|length %}
 {% set filled_slots = cells|selectattr('row_version', 'gt', 0)|list|length %}
+{% set review_badges = open_checks > 0 and open_checks < filled_slots %}
 {% set first_cell = cells[0] %}
 {% set last_cell = cells[-1] %}
 {% set first_parts = first_cell.day.split('-') %}
@@ -37,6 +38,7 @@
 {% endblock %}
 {% block page_header %}
 {% from 'admin/_week_controls.html' import overview_header with context %}
+{% include 'admin/_week_check_summary.html' %}
 {{ overview_header('Cafeteria', week_header_description) }}
 {% if last_cell.day_label == 'Sonntag' %}
 <div class="container-xl"><details class="admin-compact-details" id="weekend-hint"><summary>Wochenendbetrieb</summary><p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p></details></div>

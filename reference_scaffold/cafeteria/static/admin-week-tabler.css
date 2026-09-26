@@ -178,6 +178,18 @@
   color: var(--app-text-muted);
   font-size: var(--app-font-size-label);
 }
+.dishboard-admin .admin-week-checkline { margin: 0 0 var(--app-space-2); }
+.dishboard-admin .admin-week-check-entries > summary {
+  cursor: pointer; list-style: none; display: inline-flex; align-items: center;
+  min-height: var(--app-control-min-height);
+}
+.dishboard-admin .admin-week-check-entries > summary::-webkit-details-marker { display: none; }
+.dishboard-admin .admin-week-check-entries:not([open]) > :not(summary) { display: none; }
+.dishboard-admin .admin-week-check-list { margin: var(--app-space-2) 0 0; padding: 0; list-style: none; }
+.dishboard-admin .admin-week-check-list a {
+  display: flex; align-items: center; min-height: var(--app-control-min-height);
+}
+.dishboard-admin .admin-week-check-list a + a { border-top: 1px solid var(--app-border); }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-head {
   display: flex;
   flex-wrap: wrap;
@@ -272,6 +284,22 @@
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot p {
   margin: 0;
 }
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-label {
+  padding-block: 0;
+  line-height: inherit;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot [data-menu-metadata] > p,
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-week-image-missing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-week-image-missing .admin-label {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+}
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-components {
   display: block;
   margin: 0;
@@ -284,6 +312,9 @@
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-components span:not(:last-child)::after {
   content: " · ";
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-review-line:not(:has(.slot-badge)) {
+  display: none;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-review-line {
   display: flex;

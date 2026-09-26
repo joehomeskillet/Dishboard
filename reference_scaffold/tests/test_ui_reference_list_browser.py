@@ -170,11 +170,11 @@ def _keyboard(page: Page, javascript: bool) -> None:
     expect(page.locator('details.admin-hint')).to_have_count(0)
     expect(page.locator('#menu-query-search')).to_be_focused()
     page.keyboard.press('Tab')
+    expect(page.get_by_role('button', name='Suchen', exact=True)).to_be_focused()
+    page.keyboard.press('Tab')
     expect(page.get_by_role('navigation', name='Profil').get_by_role('link').first).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.get_by_role('navigation', name='Profil').get_by_role('link').last).to_be_focused()
-    page.keyboard.press('Tab')
-    expect(page.get_by_role('button', name='Filtern', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
     if javascript:
         cards = page.get_by_role('tab', name='Karten', exact=True)
@@ -205,13 +205,6 @@ def _keyboard(page: Page, javascript: bool) -> None:
     expect(page.get_by_role('region', name='Menüliste', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.locator('#menu-list a.admin-list-primary').first).to_be_focused()
-    page.keyboard.press('Tab')
-    disclosure = page.locator('#menu-list .admin-disclosure').first
-    expect(disclosure.locator('summary')).to_be_focused()
-    page.keyboard.press('Enter')
-    expect(disclosure).to_have_attribute('open', '')
-    page.keyboard.press('Enter')
-    expect(disclosure).not_to_have_attribute('open', '')
     page.keyboard.press('Tab')
     action = page.locator('#menu-list [data-semantic="actions.edit"]').first
     expect(action).to_be_focused()
@@ -267,8 +260,8 @@ def test_reference_states_and_viewports(
         expect(page.locator('#menu-cards [data-review="open"]')).to_contain_text('Allergenangaben nicht erfasst')
         _views(page, javascript, tmp_path, 'normal', 2, contrast_failures)
         assert _versions(database_engine) == before
-        page.get_by_label('Suche').fill('KeinTreffer')
-        page.get_by_role('button', name='Filtern', exact=True).click()
+        page.locator('#menu-query-search').fill('KeinTreffer')
+        page.get_by_role('button', name='Suchen', exact=True).click()
         expect(page.locator('#menu-query-search')).to_have_value('KeinTreffer')
         expect(page.locator('[data-empty-kind="no_match"]')).to_have_count(2)
         _views(page, javascript, tmp_path, 'no-match', 0, contrast_failures)
@@ -283,6 +276,20 @@ def test_reference_states_and_viewports(
         expect(long_card.locator('.menu-note-details .shared-note')).to_contain_text(
             LONG_NOTE.strip()
         )
+        if javascript:
+            page.get_by_role('tab', name='Liste', exact=True).click()
+        else:
+            page.get_by_role('navigation', name='Menüansicht ohne JavaScript').get_by_role(
+                'link', name='Liste', exact=True,
+            ).click()
+        note = page.locator('#menu-list details.menu-note-details').filter(has_text='Wichtiger Zubereitungshinweis')
+        expect(note).to_have_count(1)
+        note.locator('summary').focus()
+        expect(note.locator('summary')).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(note).to_have_attribute('open', '')
+        page.keyboard.press('Enter')
+        expect(note).not_to_have_attribute('open', '')
         _views(page, javascript, tmp_path, 'long-text', 3, contrast_failures)
         for offset in range(3, 26):
             _save(database_engine, scope, week=WEEK + timedelta(weeks=offset), title=f'Gemüsemenü {offset}')
@@ -296,10 +303,8 @@ def test_reference_states_and_viewports(
             expect(page.locator('#menu-list').get_by_role(
                 'columnheader', name='Gespeicherter Prüfstand', exact=True,
             )).to_be_visible()
-            status_details = page.locator('#menu-list .admin-disclosure').first
-            status_details.locator('summary').click()
-            expect(status_details.get_by_text('Allergenangaben nicht erfasst')).to_be_visible()
-            status_details.locator('summary').click()
+            expect(page.locator('#menu-list .admin-table-status').get_by_text(
+                'Allergenangaben nicht erfasst').first).to_be_visible()
             region = page.get_by_role('region', name='Menüliste', exact=True)
             region.focus()
             page.keyboard.press('Shift+Tab')

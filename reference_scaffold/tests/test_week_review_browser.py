@@ -99,7 +99,10 @@ def test_real_week_review_saved_content_and_explicit_confirmation(
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
     expect(page.locator('.admin-list-row')).to_have_count(len(services))
     expect(page.get_by_role('list', name='Ausgabeangaben').get_by_role('listitem')).to_have_count(len(services))
-    expect(page.locator('.admin-list-status .admin-label')).to_have_count(len(services))
+    closed = sum(1 for index, _service in enumerate(services) if index % 3 == 0)
+    expect(page.locator('.admin-list-status .admin-label')).to_have_count(closed)
+    expect(page.locator('.admin-list-row').filter(has_text='Geöffnet')).to_have_count(0)
+    expect(page.locator('#week-service-normal')).to_contain_text('geöffnet, kein Ausgabehinweis')
     box = confirm.bounding_box()
     minimum = page.evaluate("matchMedia('(pointer: coarse)').matches ? 44 : 36")
     assert box is not None and box['width'] >= minimum and box['height'] >= minimum

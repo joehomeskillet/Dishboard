@@ -246,11 +246,7 @@
   .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meal .admin-menu-options {
     grid-row: 3;
   }
-  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-option > :is([data-menu-metadata], .admin-week-review-line) {
+  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-option > .admin-week-review-line {
     grid-column: 1 / -1;
-  }
-  .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-option .admin-week-card-action {
-    grid-row: 1 / span 2;
-    align-self: center;
   }
 }

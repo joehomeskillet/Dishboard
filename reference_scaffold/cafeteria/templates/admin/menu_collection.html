@@ -1,18 +1,13 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, page_header, pagination, empty_state, hint, label, disclosure_section %}
+{% from 'admin/_macros.html' import icon, page_header, pagination, empty_state, hint, label %}
 {% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem %}
 {% block title %}Menüs {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-collection.css') }}">{% endblock %}
 {% set workflow_nav = 'menus' %}
 {% set layout_variant = 'standard' %}
 {% block page_header %}
-{% set pending = namespace(count=0) %}
-{% for row in rows %}{% if row.review_open|default(true) or row.stale_components or not row.allergens or row.allergen_review_status|default('not_checked') != 'checked' %}{% set pending.count = pending.count + 1 %}{% endif %}{% endfor %}
-{% call page_header('Menüs', description='Gespeicherte Menüs aus allen Wochen.', status_items=[
-  {'label': 'Profil', 'value': 'Cafeteria' if profile == 'staff_guest' else 'Patienten'},
-  {'label': 'Prüfung offen', 'value': pending.count if pending.count else none, 'detail': 'Auf dieser Ergebnisseite', 'variant': 'warning'}
-]) %}
+{% call page_header('Menüs', description='Gespeicherte Menüs aus allen Wochen.') %}
 {{ icon_button('navigation.weekplan', href=url_for('admin.' ~ family), emphasis='primary') }}
 {% endcall %}
 {% endblock %}
@@ -27,18 +22,28 @@
           {% if review_text %}<span class="d-block small">{{ review_text }}</span>{% endif %}
         </span>
         {% endmacro %}
+        {% macro allergen_hint(row) %}
+        {% if not row.allergens %}{{ label('Allergenangaben nicht erfasst', 'warning', detail='Nicht erfasst bedeutet nicht allergenfrei') }}
+        {% elif row.allergen_review_status|default('not_checked') != 'checked' %}{{ label('Allergenprüfung offen', 'warning') }}{% endif %}
+        {% endmacro %}
         {% set declarations = namespace(options=[]) %}
         {% set empty_title = 'Keine Menüs für diese Suche gefunden.' if query else 'Noch keine Menüs auf dieser Seite.' %}
         {% set empty_text = 'Passen Sie den Suchbegriff an oder setzen Sie die Suche zurück.' if query else 'Gespeicherte Menüs aus dem Wochenplan erscheinen hier.' %}
-        {% set warnings = namespace(allergens=0, stale=0) %}
+        {% set warnings = namespace(missing=0, review=0, stale=0, open=0, checked=0) %}
         {% for row in rows %}
-          {% if not row.allergens or row.allergen_review_status|default('not_checked') != 'checked' %}{% set warnings.allergens = warnings.allergens + 1 %}{% endif %}
+          {% set row_open = row.stale_components or row.review_open|default(true) or not row.allergens or row.allergen_review_status|default('not_checked') != 'checked' %}
+          {% if row_open %}{% set warnings.open = warnings.open + 1 %}{% else %}{% set warnings.checked = warnings.checked + 1 %}{% endif %}
+          {% if not row.allergens %}{% set warnings.missing = warnings.missing + 1 %}
+          {% elif row.allergen_review_status|default('not_checked') != 'checked' %}{% set warnings.review = warnings.review + 1 %}{% endif %}
           {% if row.stale_components %}{% set warnings.stale = warnings.stale + 1 %}{% endif %}
         {% endfor %}
-        {% if warnings.allergens or warnings.stale %}
-        <p class="admin-list-secondary" role="status">
-          {% if warnings.allergens %}{{ warnings.allergens }} Menüs mit offener Allergenprüfung auf dieser Ergebnisseite. Nicht erfasste Allergene bedeuten nicht allergenfrei.{% endif %}
-          {% if warnings.stale %}{{ warnings.stale }} Menüs mit geändertem Bausteinstand benötigen erneute Prüfung.{% endif %}
+        {% set review_mixed = warnings.open > 0 and warnings.checked > 0 %}
+        {% if warnings.open or warnings.missing or warnings.review or warnings.stale %}
+        <p class="admin-list-secondary" id="menu-review-summary" role="status">
+          {% if warnings.open and not review_mixed %}{{ warnings.open }} {{ 'Menü' if warnings.open == 1 else 'Menüs' }}: Prüfung offen.{% elif review_mixed %}{{ warnings.open }} von {{ rows|length }} Menüs: Prüfung offen.{% endif %}
+          {% if warnings.missing %} {{ warnings.missing }} {{ 'Menü' if warnings.missing == 1 else 'Menüs' }}: Allergenangaben nicht erfasst. Nicht erfasste Allergene bedeuten nicht allergenfrei.{% endif %}
+          {% if warnings.review %} {{ warnings.review }} {{ 'Menü' if warnings.review == 1 else 'Menüs' }}: Allergenprüfung offen.{% endif %}
+          {% if warnings.stale %} {{ warnings.stale }} Menüs mit geändertem Bausteinstand benötigen erneute Prüfung. Erneute Prüfung erforderlich.{% endif %}
         </p>
         {% endif %}
         <div class="menu-toolbar mb-3">
@@ -81,12 +86,14 @@
                   <td data-label="Tag"><time datetime="{{ row.service_date.isoformat() }}">{{ row.service_date.strftime('%d.%m.%Y') }}</time>{% if row.workflow_state == 'archived' %}<span class="d-block text-secondary">Archivierte Woche</span>{% endif %}</td>
                   <td data-label="Mahlzeit / Zuweisung">{{ meal_labels[row.meal_code] }}<span class="d-block text-secondary">{{ option_labels[row.type_code] }}</span></td>
                   <td class="admin-table-status" data-label="Gespeicherter Prüfstand">
-                    {% set warning = row.stale_components or row.review_open|default(true) or not row.allergens or row.allergen_review_status|default('not_checked') != 'checked' %}
-                    {% call disclosure_section(title=label('Prüfung offen' if warning else 'Geprüft', 'warning' if warning else 'success', icon=sem('review.pending' if warning else 'review.approved').resolved_icon, status='warning' if warning else 'success'), id='menu-details-' ~ row.id) %}
-                      {{ review_status(row) }}
+                    {% if review_mixed %}{{ review_status(row) }}{% else %}{{ allergen_hint(row) }}{% endif %}
+                    {% if row.description or row.note %}
+                    <details class="menu-note-details" id="menu-details-{{ row.id }}">
+                      <summary>Hinweis</summary>
                       {% if row.description %}<div class="menu-description"><strong>Beschreibung:</strong> {{ row.description }}</div>{% endif %}
                       {% if row.note %}<div class="shared-note"><strong>Hinweis:</strong> {{ row.note }}</div>{% endif %}
-                    {% endcall %}
+                    </details>
+                    {% endif %}
                   </td>
                   <td class="admin-table-actions" data-label="Bearbeiten">{{ icon_button('actions.edit', object=row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y'), href=url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code)) }}</td>
                 </tr>
@@ -111,7 +118,7 @@
                 {% endif %}
                 {% with option=row %}{% include '_menu_image.html' %}{% endwith %}
                 {% with option=row %}{% include '_menu_metadata.html' %}{% endwith %}
-                {{ review_status(row) }}
+                {% if review_mixed %}{{ review_status(row) }}{% else %}{{ allergen_hint(row) }}{% endif %}
                 {% if row.description or row.note %}
                 <details class="menu-note-details mt-2">
                   <summary class="btn btn-ghost-secondary border-0 btn-sm text-start p-0 d-inline-flex align-items-center gap-1">{{ icon_label('ui.disclosure.details') }}</summary>
