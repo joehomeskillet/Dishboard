@@ -211,12 +211,12 @@ def test_week_card_renders_long_archived_template_without_primary_course_links(
     card = html.split('admin-week-template', 1)[1].split('</details>', 1)[0]
     assert marker in card
     assert 'data-semantic="actions.copy"' not in card
-    assert 'class="btn text-wrap text-start"' in card
+    assert 'class="btn text-wrap text-start"' not in card
     assert '#tabler-template' in card
     for label in ('Suppe planen', 'Dessert planen'):
         matched = [
-            attrs for attrs, inner in re.findall(r'<a\b([^>]*)>(.*?)</a>', html, flags=re.S)
-            if label in inner
+            attrs for attrs, _inner in re.findall(r'<a\b([^>]*)>(.*?)</a>', html, flags=re.S)
+            if f'aria-label="{label}' in attrs
         ]
         assert matched, label
         assert all('btn-primary' not in attrs and 'data-error-link' in attrs for attrs in matched)

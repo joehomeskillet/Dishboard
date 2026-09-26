@@ -14,20 +14,8 @@
       "390:zeilenaktion_text:tabelle-1",
       "kopf_typografie:tabelle-1"
     ],
-    "wochenplan-cafeteria": [
-      "1440:zeilenaktion_text:karten-1",
-      "390:zeilenaktion_text:karten-1",
-      "haupt_typografie:karten-1",
-      "karte_je_zeile:karten-1",
-      "sekundaer_typografie:karten-1"
-    ],
-    "wochenplan-patienten": [
-      "1440:zeilenaktion_text:karten-1",
-      "390:zeilenaktion_text:karten-1",
-      "haupt_typografie:karten-1",
-      "karte_je_zeile:karten-1",
-      "sekundaer_typografie:karten-1"
-    ],
+    "wochenplan-cafeteria": [],
+    "wochenplan-patienten": [],
     "wochenpruefung-cafeteria": [],
     "wochenpruefung-patienten": [],
     "menues-cafeteria": [

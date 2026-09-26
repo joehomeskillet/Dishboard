@@ -95,10 +95,17 @@
   grid-column: 1;
   min-width: 0;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot h3 {
-  font-family: inherit;
-  font-size: var(--app-font-size-label);
-  line-height: inherit;
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] .btn.ui-sem-control,
+.dishboard-admin .page-header .btn.ui-sem-control {
+  --ui-control-size: var(--app-space-12);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot [data-menu-metadata] .labels {
   margin-bottom: 0;
