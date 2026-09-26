@@ -147,11 +147,16 @@ def test_c3_disclosure_has_one_marker_and_native_keyboard_state(width, javascrip
 
 
 @pytest.mark.parametrize('width', [390, 1440])
-def test_c3_labels_have_no_one_sided_border_or_clipped_content(width):
-    markup = '''{% from 'admin/_macros.html' import label, page_header %}
+def test_c3_labels_have_no_one_sided_border_or_clipped_content(width, tmp_path):
+    markup = '''{% from 'admin/_macros.html' import label, page_header, form_footer, hint, disclosure_section %}
+        {% from 'ui/_semantic.html' import filter_trigger %}
         {{ label('Beilage', 'category') }}{{ label('Prüfung offen', 'warning') }}
         {{ label('Aktiv', 'active', icon='circle-check') }}
-        {{ page_header('Status', status_items=[{'label':'Prüfung', 'value':1, 'variant':'warning'}]) }}'''
+        {{ page_header('Status', status_items=[{'label':'Prüfung', 'value':1, 'variant':'warning'}]) }}
+        <details class="admin-filter-more">{{ filter_trigger(count=2) }}Filterinhalt</details>
+        {% call disclosure_section('Weitere Optionen') %}Zusatzangaben{% endcall %}
+        {{ hint('Diese Hilfe hat Inhalt.', 'help') }}{{ hint('', 'empty-help') }}
+        {{ form_footer({'label':'Speichern', 'name':'intent', 'value':'save'}, '#cancel') }}'''
 
     def verify(page):
         for badge in page.locator('.admin-label').all():
@@ -167,6 +172,11 @@ def test_c3_labels_have_no_one_sided_border_or_clipped_content(width):
             assert styles['left'] == styles['right']
             assert styles['inside']
         expect(page.locator('.admin-statusbar-item')).to_have_css('border-left-width', '4px')
+        expect(page.locator('#empty-help')).to_have_count(0)
+        for action in page.locator('.admin-form-main .btn').all():
+            expect(action).to_have_text('')
+            assert action.get_attribute('aria-label')
+        page.screenshot(path=str(tmp_path / f'c3-shared-{width}.png'), full_page=True)
 
     _run_polish_check(markup, verify, width, javascript=False)
 

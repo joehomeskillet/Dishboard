@@ -630,7 +630,7 @@ def _mount_public_targets(application) -> None:
     application.add_url_rule('/signage/patienten/tag', endpoint='signage.patient_day', view_func=lambda: '')
 
 
-def test_list_family_across_admin_pages(admin_app, admin_engine, live_server):  # noqa: F811
+def test_list_family_across_admin_pages(admin_app, admin_engine, live_server, tmp_path):  # noqa: F811
     _mount_public_targets(admin_app)
     client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     entities = _prepare_inventory_entities(admin_app, admin_engine, actor)
@@ -680,6 +680,9 @@ def test_list_family_across_admin_pages(admin_app, admin_engine, live_server):  
     for slug, title, path, _hook_name in pages:
         rows = [row for row in desktop if row['slug'] == slug]
         current[slug] = _deviations(rows, mobile.get(slug, []), modes)
+    (tmp_path / 'list-family-measurements.json').write_text(
+        json.dumps({'desktop': desktop, 'mobile': mobile, 'deviations': current}, ensure_ascii=False, indent=2),
+        encoding='utf-8')
     if report:
         REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
         REPORT_PATH.write_text(_markdown(desktop, mobile), encoding='utf-8')
