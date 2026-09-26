@@ -358,7 +358,7 @@
 {%- endfor -%}
 {%- set attrs = {} -%}
 {%- for attr in ['formaction', 'formmethod', 'formenctype', 'formtarget', 'formnovalidate'] if item.get(attr) -%}
-  {%- set _ = attrs.update({attr: item[attr]}) -%}
+  {%- set _ = attrs.update({attr: true if attr == 'formnovalidate' else item[attr]}) -%}
 {%- endfor -%}
 {%- if item.disabled -%}
   {%- set _ = attrs.update({'aria-disabled': true, 'tabindex': '-1'} if href else {'disabled': true}) -%}

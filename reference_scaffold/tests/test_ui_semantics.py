@@ -315,12 +315,13 @@ def test_c3_legacy_actions_use_canonical_icons_and_keep_secondary_weight(semanti
     with semantic_app.test_request_context():
         html = render_template_string('''{% from 'admin/_macros.html' import actions %}
             {{ actions(primary='Anlegen', secondary=[
-                {'label':'Entwurf sichern', 'icon':'device-floppy', 'type':'submit', 'name':'intent', 'value':'draft'},
+                {'label':'Entwurf sichern', 'icon':'device-floppy', 'type':'submit', 'name':'intent', 'value':'draft', 'formnovalidate':1},
                 {'label':'Record bearbeiten', 'icon':'pencil', 'href':'/edit', 'disabled':true}]) }}''')
     document = BeautifulSoup(html, 'html.parser')
     assert document.select_one('.btn-primary')['data-semantic'] == 'actions.add'
     save = document.select_one('[name="intent"]')
     assert save['data-semantic'] == 'actions.save' and save['value'] == 'draft'
+    assert save.has_attr('formnovalidate')
     assert 'btn-primary' not in save['class']
     edit = document.select_one('a[href="/edit"]')
     assert edit['data-semantic'] == 'actions.edit'
