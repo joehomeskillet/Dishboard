@@ -16,7 +16,9 @@ from test_ui_route_inventory import _prepare_inventory_entities
 
 # Selektoren benennen vorhandene Inhalte; kein DOM-Umbau im Messtest.
 PAGES = (
-    ('Wochen', '/admin/cafeteria/wochen', 'tbody tr', 'td:first-child strong', '.text-secondary', 'td:nth-child(2)'),
+    # Locator-Nachzug Wochen: td:first-child strong → td:first-child .admin-list-primary;
+    # .text-secondary → .admin-list-secondary. Grund: Zeitraum und KW-Zusatz tragen die Rollen.
+    ('Wochen', '/admin/cafeteria/wochen', 'tbody tr', 'td:first-child .admin-list-primary', '.admin-list-secondary', 'td:nth-child(2)'),
     ('Bausteine', '/admin/cafeteria/komponenten', '.component-row', 'th[scope=row]', '.text-secondary', 'td.category'),
     ('Gerichtvorlagen', '/admin/gerichtvorlagen', 'tbody tr', 'td:first-child a', '.text-secondary', 'td:nth-child(2)'),
     ('Rezepte', '/admin/rezepte', '.recipe-list-row', 'h2', '.text-secondary', None),

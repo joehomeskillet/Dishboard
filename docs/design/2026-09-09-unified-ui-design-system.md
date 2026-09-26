@@ -2568,6 +2568,8 @@ Playwright-Start, 360/768/1024/1440 px, Tastatur und No-JS), management-Fälle i
 mit Icon und Text, lange Beschreibung im `title`. Kopierfolge bleibt im
 Aufklappbereich. Anlageformular opt-in `data-loading`; Listenhinweis in `hint()`.
 
+**Polish P5b:** Zeitraum, KW-Zusatz und die inline bleibenden Status- und Kopierhinweise der Wochentabelle nutzen die Rollen Primär, Sekundär und Meta; das Modul setzt dafür keine eigene Schriftgrösse, kein Gewicht und keine Farbe.
+
 #### M29 — Küchenkalender — Monat
 
 Monatskalender zur Orientierung; Zielmodell SDD v2 §5.4.
@@ -2608,6 +2610,8 @@ Monatskalender zur Orientierung; Zielmodell SDD v2 §5.4.
 die vorhandene `kitchen-cal-list` statt `admin-table--stack`. «Heute» nutzt
 `admin-status--info`. Sprungformular opt-in `data-loading`; Raster-/Listenumschaltung
 in `hint()`.
+
+**Polish P5b:** Die mobile Tagesliste setzt den Tagesnamen als Überschrift auf Primär, die Mahlzeitzeile auf Sekundär und die übrigen Einträge auf Meta; die Listenüberschrift verliert ihre eigene Schriftgrösse.
 
 #### M30 — Tagesansicht
 
@@ -2679,6 +2683,8 @@ Gangprobleme behalten das Ziel `#course-issues`; das derzeitige gemeinsame Makro
 unterstützt keine Linkwerte, daher steht die native Warnaktion in der Werkzeugleiste.
 Die wichtigste Wochenaktion steht im Kopf; Vorschau und Wochenprüfung bleiben
 sekundär, seltene Aktionen im nativen «Weitere Aktionen»-Bereich.
+
+**Polish P5b:** Die Veröffentlichungsliste nennt Bezeichnung und Wert in den Rollen Primär und Meta statt fetter Inline-Auszeichnung.
 
 Alle Formularnamen, Werte, CSRF-/CAS-Felder und Gang-Partials bleiben unverändert.
 Die gesperrten Gang-Partials liefern eigene Primärbuttons innerhalb eingeklappter

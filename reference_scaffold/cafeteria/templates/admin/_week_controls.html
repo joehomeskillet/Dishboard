@@ -135,10 +135,10 @@
         {% if status in ('live', 'changed') %}
         <p>Erzeugt eine neue Publikationsversion; die bisherige wird ersetzt.</p>
         {% endif %}
-        <ul class="list-unstyled mb-0">
-          <li><strong>Gespeicherte Woche:</strong> KW {{ iso_week }}{% if title %} · {{ title }}{% endif %}</li>
-          <li><strong>Erfasste Menükarten:</strong> {{ filled_slots }} von {{ cells|length }}</li>
-          <li><strong>Prüfstatus:</strong> {% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif filled_slots > 0 %}Alle {{ filled_slots }} erfassten Menükarten geprüft{% else %}{{ status_plain }}{% endif %}</li>
+        <ul class="list-unstyled mb-0 admin-table">
+          <li><span class="admin-list-primary">Gespeicherte Woche:</span> <span class="admin-list-meta">KW {{ iso_week }}{% if title %} · {{ title }}{% endif %}</span></li>
+          <li><span class="admin-list-primary">Erfasste Menükarten:</span> <span class="admin-list-meta">{{ filled_slots }} von {{ cells|length }}</span></li>
+          <li><span class="admin-list-primary">Prüfstatus:</span> <span class="admin-list-meta">{% if open_checks %}{{ open_checks }} {{ 'Menükarte' if open_checks == 1 else 'Menükarten' }} mit offener Prüfung{% elif filled_slots > 0 %}Alle {{ filled_slots }} erfassten Menükarten geprüft{% else %}{{ status_plain }}{% endif %}</span></li>
         </ul>
       </div>
       <div class="modal-footer">

@@ -97,7 +97,9 @@ def _views(page: Page, tmp_path: Path, state: str, viewports=VIEWPORTS) -> None:
                   scroll: e.scrollWidth, whiteSpace: s.whiteSpace, viewport: innerWidth}];
         })''')
         assert not clipped, clipped
-        pairs = page.locator('main :is(.badge, .btn, .text-secondary, dd, dt, th, .form-label):visible').evaluate_all('''es => es.map(e => {
+        # Locator-Nachzug: .text-secondary bleibt; .admin-list-primary/.admin-list-secondary/
+        # .admin-list-meta ergänzt. Grund: Wochenzeilen nutzen die drei Rollenklassen.
+        pairs = page.locator('main :is(.badge, .btn, .text-secondary, .admin-list-primary, .admin-list-secondary, .admin-list-meta, dd, dt, th, .form-label):visible').evaluate_all('''es => es.map(e => {
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = 1;
             const ctx = canvas.getContext('2d', {willReadFrequently: true});
