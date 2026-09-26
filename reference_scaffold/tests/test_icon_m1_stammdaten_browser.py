@@ -43,7 +43,7 @@ def test_stammdaten_icon_actions_names_and_list_states(admin_app, admin_engine, 
                         controls = page.locator('main .ui-sem-control').all()
                         for control in controls:
                             if control.is_visible():
-                                expect(control).to_have_text('')
+                                assert control.inner_text().strip() == ''
                                 assert control.get_attribute('aria-label')
                                 assert control.get_attribute('data-ui-tooltip')
                                 box = control.bounding_box()
@@ -62,7 +62,7 @@ def test_stammdaten_icon_actions_names_and_list_states(admin_app, admin_engine, 
                                 assert listing['total'] == 0
                                 continue
                             assert not listing['row']['card']
-                            assert listing['rowActions']['count'] == 0
+                            assert 1 <= listing['rowActions']['count'] <= 2
                             assert listing['rowActions']['withText'] == 0
                             if listing['primary']:
                                 assert listing['primary']['fontSize'] == '14px'

@@ -8,17 +8,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-kalkulation.css') }}">
 {% endblock %}
 {% block page_header %}
-{% set status_items = [{'label': t('data.calculation.label'), 'value': t('status.pending.label'), 'variant': 'neutral'}] %}
-{% if projection %}
-  {% set incomplete = projection.lines|rejectattr('status', 'equalto', 'complete')|list|length %}
-  {% set status_items = [
-    {'label': 'Status', 'value': 'vollständig' if projection.complete else 'unvollständig', 'variant': 'success' if projection.complete else 'warning'},
-    {'label': 'Stichtag', 'value': as_of, 'variant': 'neutral'}
-  ] %}
-  {% if incomplete %}{% set _ = status_items.append({'label': t('recipe.ingredient.label'), 'value': incomplete ~ ' · ' ~ t('status.pending.label'), 'variant': 'warning'}) %}{% endif %}
-  {% if projection.complete and projection.total is not none %}{% set _ = status_items.append({'label': t('data.total.label'), 'value': projection.total ~ ' CHF', 'variant': 'neutral'}) %}{% endif %}
-{% endif %}
-{% call page_header(t('navigation.costing.label'), description='Bestätigen speichert einen unveränderlichen Beleg.' if projection else none, status_items=status_items) %}
+{% call page_header(t('navigation.costing.label'), description='Bestätigen speichert einen unveränderlichen Beleg.' if projection else none) %}
   {% if projection %}
     {{ icon_button('actions.confirm', form='cost-confirm') }}
   {% else %}
@@ -27,7 +17,6 @@
 {% endcall %}
 {% endblock %}
 {% block content %}
-{{ hint('Vorschau schreibt nichts.', 'cost-preview-hint') }}
 <section class="card mb-3 cost-calculation">
   <form id="cost-preview" method="post" action="{{ url_for('admin.cost_preview') }}" class="card-body row g-2" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
@@ -60,6 +49,8 @@
   <div class="card-body">
     {% if not projection.complete %}
       <p>Unvollständig — fehlender Preis oder fehlende Umrechnung, nicht als 0.</p>
+    {% elif projection.total is not none %}
+      <p>{{ label('vollständig', 'success', icon='circle-check') }} Gesamt: {{ projection.total }} CHF</p>
     {% endif %}
     <table class="table cost-lines admin-table admin-table--stack">
       <thead><tr><th scope="col">Zutat</th><th scope="col">Menge</th><th scope="col">Status</th><th scope="col">Betrag</th></tr></thead>
@@ -94,11 +85,6 @@
     </form>
   </div>
 </section>
-{% else %}
-<div class="cost-empty d-flex align-items-center flex-wrap gap-2">
-  <p class="mb-0">{{ t('status.pending.label') }}</p>
-  {{ icon_button('actions.edit', href='#kind') }}
-</div>
 {% endif %}
 {% if not projection %}<p class="text-secondary mt-3 mb-0">Fehlender Preis bleibt unvollständig, nie 0.</p>{% endif %}
 {% endblock %}

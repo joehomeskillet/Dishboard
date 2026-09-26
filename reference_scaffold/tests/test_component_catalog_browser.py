@@ -35,7 +35,7 @@ def test_keyed_presence_swap_and_error_roundtrip(catalog_page, family, javascrip
         page = context.new_page()
         path = f'/admin/{family}/komponenten'
         page.goto(path)
-        page.locator('#create-component summary').click()
+        page.locator('.page-header [data-semantic="actions.add"]').click()
         form = page.locator(f'form[action="{path}"][method="post"]')
         form.locator('[name="name"]').fill('Identitätstest')
         form.locator('[name="category"]').select_option('side')
@@ -124,7 +124,7 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
     page.set_viewport_size({'width': viewport[0], 'height': viewport[1]})
     list_path = f'/admin/{family}/komponenten'
     page.goto(list_path)
-    page.locator('#create-component summary').click()
+    page.locator('.page-header [data-semantic="actions.add"]').click()
     form = page.locator(f'form[action="{list_path}"][method="post"]')
     form.locator('[name="name"]').fill('Katalog-Browsertest')
     form.locator('[name="category"]').select_option('side')
@@ -204,7 +204,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     list_path = f'/admin/{family}/komponenten'
     long_name = 'Saisonales Ofengemüse mit Karotten, Zucchetti und einer langen Komponentenbezeichnung'
     page.goto(list_path)
-    page.locator('#create-component summary').click()
+    page.locator('.page-header [data-semantic="actions.add"]').click()
     form = page.locator(f'form[action="{list_path}"][method="post"]')
     form.locator('[name="name"]').fill(long_name)
     form.locator('[name="category"]').select_option('side')
@@ -268,6 +268,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     expect(page.locator('main')).to_have_attribute('data-active', '0')
     page.goto(list_path)
     assert page.locator(f'.component-row[data-public-id="{public_id}"]').count() == 0
+    page.locator('.admin-filter-more summary').click()
     page.locator('#f-status').select_option('all')
     page.get_by_role('button', name='Suchen', exact=True).click()
     expect(page.locator(f'.component-row[data-public-id="{public_id}"]')).to_contain_text('archiviert')

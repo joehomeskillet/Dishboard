@@ -282,7 +282,7 @@ def test_component_food_selection_browser_roundtrip(
     list_path = f'/admin/{family}/komponenten'
     page.set_viewport_size({'width': 1440, 'height': 900})
     page.goto(list_path)
-    page.locator('#create-component summary').click()
+    page.locator('.page-header [data-semantic="actions.add"]').click()
     form = page.locator(f'form[action="{list_path}"][method="post"]')
     form.locator('[name="name"]').fill(f'Komponenten-Karotte-{uuid4().hex[:8]}')
     form.locator('[name="category"]').select_option('side')

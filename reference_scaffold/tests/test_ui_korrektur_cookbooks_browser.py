@@ -201,7 +201,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         cards = page.locator('section[aria-label="Kochbücher"]')
         expect(cards).to_be_visible()
         expect(page.locator('details#cookbook-create')).to_have_count(0)
-        expect(page.locator('dl.admin-statusbar')).to_contain_text('Aktiv')
+        expect(page.locator('dl.admin-statusbar')).to_have_count(0)
         assert page.locator('main .btn-primary').count() == 1
         rows = cards.locator('.admin-list-row')
         assert rows.count() == 2
@@ -222,7 +222,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         no_match = page.locator('.empty[data-empty-kind="no_match"]')
         expect(no_match.get_by_text('Keine passenden Kochbücher', exact=True)).to_be_visible()
         expect(no_match.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
-        expect(page.locator('dl.admin-statusbar')).to_contain_text('Nichts')
+        expect(page.get_by_role('searchbox', name='Suchen')).to_have_value('Nichts')
         expect(page.locator('details#cookbook-create')).to_have_count(0)
 
         page.set_content(_list_html([]))
@@ -403,7 +403,7 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
             cards = page.locator('section[aria-label="Kochbücher"]')
             expect(cards).to_be_visible()
             expect(page.locator('details#cookbook-create')).to_have_count(0)
-            expect(page.locator('dl.admin-statusbar')).to_be_visible()
+            expect(page.locator('dl.admin-statusbar')).to_have_count(0)
             assert page.locator('main .btn-primary:visible').count() == 1
             expect(cards.get_by_role('link', name='Browserbuch bearbeiten', exact=True)).to_be_visible()
             expect(cards.get_by_role('link', name=f'{LONG_NAME} bearbeiten', exact=True)).to_be_visible()
@@ -570,10 +570,12 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
         edit = page.get_by_role('link', name=f'{name} bearbeiten', exact=True)
         expect(edit).to_have_accessible_name(f'{name} bearbeiten')
         assert not edit.inner_text().strip()
-        expect(page.locator('dl.admin-statusbar')).to_be_visible()
-        page.get_by_label('Suche', exact=True).focus()
+        expect(page.locator('dl.admin-statusbar')).to_have_count(0)
+        page.get_by_role('searchbox', name='Suchen', exact=True).focus()
+        _tab_to(page, page.locator('.admin-filter-more > summary'))
+        page.keyboard.press('Enter')
         _tab_to(page, page.get_by_label('Archivierte einschliessen', exact=True))
-        _tab_to(page, page.get_by_role('button', name='Filtern', exact=True))
+        _tab_to(page, page.get_by_role('button', name='Anwenden', exact=True))
         _tab_to(page, edit)
         expect(edit).to_be_focused()
         rings = {'row-action': _focus_ring(edit)}
@@ -717,7 +719,7 @@ def test_cookbook_frame_viewports_statusbar_and_no_overflow(cookbook_server):  #
                             listed = page.evaluate(DENSITY_METRICS)
                             assert not listed['overflow'], listed
                             expect(page.locator('main .btn-primary')).to_have_count(1)
-                            expect(page.locator('dl.admin-statusbar')).to_contain_text('Aktiv')
+                            expect(page.locator('dl.admin-statusbar')).to_have_count(0)
                             if width == 1440:
                                 assert listed['firstCardTop'] is not None
                                 assert listed['firstCardTop'] <= FIRST_CONTENT_LIMIT, listed
@@ -732,7 +734,9 @@ def test_cookbook_frame_viewports_statusbar_and_no_overflow(cookbook_server):  #
                             expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
                         page.set_viewport_size({'width': 360, 'height': 800})
                         page.goto(base + '/admin/kochbuecher')
-                        page.get_by_label('Suche', exact=True).focus()
+                        page.get_by_role('searchbox', name='Suchen', exact=True).focus()
+                        _tab_to(page, page.locator('.admin-filter-more > summary'))
+                        page.keyboard.press('Enter')
                         page.keyboard.press('Tab')
                         expect(page.get_by_label('Archivierte einschliessen', exact=True)).to_be_focused()
                         _focus_ring(page.get_by_label('Archivierte einschliessen', exact=True))
@@ -760,7 +764,7 @@ def test_p3_polish_cookbook_editor_primary_stack_hint(cookbook_server, browser):
         expect(page.locator('[data-semantic="actions.save"]').first).to_be_visible()
         page.goto(cookbook_server['base'] + '/admin/kochbuecher')
         expect(page.locator('.admin-filter-bar').first).to_be_visible()
-        expect(page.get_by_label('Suche', exact=True)).to_have_attribute('maxlength', '200')
+        expect(page.get_by_role('searchbox', name='Suchen', exact=True)).to_have_attribute('maxlength', '200')
         expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_be_visible()
         page.goto(cookbook_server['base'] + path + '/status')
         page.get_by_role('button', name='Archivieren', exact=True).click()

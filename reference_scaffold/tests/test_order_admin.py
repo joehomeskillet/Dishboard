@@ -93,8 +93,8 @@ def test_order_home_is_registered() -> None:
 def test_templates_use_statusbar_and_one_primary() -> None:
     home = (ROOT / 'bestellung.html').read_text(encoding='utf-8')
     basket = (ROOT / 'bestellung_korb.html').read_text(encoding='utf-8')
-    assert 'status_items=' in home
-    assert 'status_items=' in basket
+    assert 'status_items=' not in home
+    assert 'status_items=' not in basket
     assert "t('navigation.orders.label')" in home
     assert "t('navigation.orders.label')" in basket
     assert 'class="btn btn-primary"' not in home
@@ -183,7 +183,7 @@ def test_rendered_forms_keep_posted_names(b3) -> None:  # noqa: F811
         (second.public_id, Decimal('8.25'), Decimal('3.75')),
     ]
     html = client.get('/admin/bestellung').get_data(as_text=True)
-    assert 'admin-statusbar' in html
+    assert '<dl class="admin-statusbar' not in html
     assert html.count('btn-primary') == 1
 
 
@@ -258,9 +258,9 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                         print('WP11_TARGETS ' + json.dumps({'page': 'home', 'width': width, 'javascript': javascript, 'sizes': sizes}))
                         expect(page.get_by_role('heading', level=1)).to_contain_text('Bestellung')
                         bar = page.locator('dl.admin-statusbar')
-                        expect(bar).to_be_visible()
-                        expect(bar).to_contain_text('Warenkorb')
-                        expect(bar).to_contain_text('Lieferant')
+                        expect(bar).to_have_count(0)
+                        expect(page.locator('#koerbe-title')).to_contain_text('Warenkorb')
+                        expect(page.locator('#lieferanten-title')).to_contain_text('Lieferant')
                         primary = page.locator('main .btn-primary')
                         primary.focus()
                         expect(primary).to_be_focused()
@@ -293,15 +293,8 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                             }''')
                             assert stacked, (javascript, width)
                         expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
-                        hint = page.locator('details.admin-hint').first
-                        summary = hint.locator('summary')
-                        expect(summary).to_be_visible()
-                        summary.focus()
-                        expect(summary).to_be_focused()
-                        if hint.get_attribute('open') is None:
-                            page.keyboard.press('Enter')
-                        expect(hint).to_have_attribute('open', '')
-                        page.keyboard.press('Enter')
+                        expect(page.locator('details.admin-hint')).to_have_count(0)
+                        expect(page.locator('.order-workspace > p')).to_contain_text('CSV ändert keinen Status.')
                         if width == 1440:
                             heights = page.locator('.order-lines tbody tr').evaluate_all('els => els.map(el => el.getBoundingClientRect().height)')
                             assert all(h <= 96 for h in heights), heights
@@ -316,8 +309,8 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                                              **basket_metrics, 'targets': sizes})
                         print('WP11_TARGETS ' + json.dumps({'page': 'basket', 'width': width, 'javascript': javascript, 'sizes': sizes}))
                         assert basket_metrics['rowVersion'] and basket_metrics['csrf']
-                        expect(page.locator('dl.admin-statusbar')).to_contain_text('Entwurf')
-                        expect(page.locator('dl.admin-statusbar')).to_contain_text('Südhang Hof')
+                        expect(page.locator('[data-semantic="publish.draft"]')).to_have_text('Entwurf')
+                        expect(page.locator('.page-header')).to_contain_text('Südhang Hof')
                         more = page.locator('#korb-weitere')
                         expect(more).not_to_have_attribute('open', '')
                         more.locator('summary').focus()
@@ -410,5 +403,5 @@ def test_order_statuses_and_empty_texts_in_both_locales(b3, monkeypatch):  # noq
                 assert f'>{state}<' not in html
                 # Shared label system (P2b): badge + admin-label + status variant.
                 assert f'badge admin-label admin-status--{variant} ui-sem-label' in html
-            assert f'admin-statusbar-item--{variant}' in detail
-            assert ('Zeilen' if locale == 'de' else 'Lines') in detail
+            assert '<dl class="admin-statusbar' not in detail
+            assert 'order-lines admin-table' in detail

@@ -139,7 +139,7 @@ def _open_editor(page: Page, family: str) -> None:
     list_path = f'/admin/{family}/komponenten'
     page.goto(list_path)
     if page.locator('.component-row').count() == 0:
-        page.locator('#create-component summary').click()
+        page.locator('.page-header [data-semantic="actions.add"]').click()
         form = page.locator(f'form[action="{list_path}"][method="post"]')
         form.locator('[name="name"]').fill('Editor-Screenshot-Baustein')
         form.locator('[name="category"]').select_option('side')
@@ -157,7 +157,7 @@ def test_list_first_row_visible_without_scroll(catalog_page: Page, family: str) 
     list_path = f'/admin/{family}/komponenten'
     page.goto(list_path)
     if page.locator('.component-row').count() == 0:
-        page.locator('#create-component summary').click()
+        page.locator('.page-header [data-semantic="actions.add"]').click()
         form = page.locator(f'form[action="{list_path}"][method="post"]')
         form.locator('[name="name"]').fill('Sichtbarkeits-Baustein')
         form.locator('[name="category"]').select_option('side')
@@ -171,7 +171,9 @@ def test_list_first_row_visible_without_scroll(catalog_page: Page, family: str) 
     expect(first_row.locator('.admin-table-status .admin-label.admin-status--active')).to_have_count(0)
     expect(first_row.locator('.category .admin-label.admin-status--category')).to_be_visible()
     expect(first_row.locator('.component-row-name a')).to_have_attribute('href', re.compile(r'/komponenten/[^/]+$'))
-    expect(first_row.locator('.admin-row-actions')).to_have_count(0)
+    expect(first_row.locator('.admin-row-actions')).to_have_count(1)
+    expect(first_row.locator('[data-semantic="actions.edit"]')).to_be_visible()
+    expect(first_row.locator('[data-semantic="actions.more"]')).to_be_visible()
     box = first_row.bounding_box()
     assert box is not None
     assert box['y'] + box['height'] <= 768
@@ -187,7 +189,7 @@ def test_components_list_layout_and_overflow(catalog_page: Page, family: str, wi
     page.goto(list_path)
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     expect(page.get_by_role('heading', level=1, name='Bausteine')).to_be_visible()
-    expect(page.get_by_role('form', name='Bausteine filtern')).to_be_visible()
+    expect(page.get_by_role('search')).to_be_visible()
     expect(page.locator('.component-row').first).to_be_visible()
     _assert_component_controls_fit(page)
     _shot(page, 'komponenten', 'normal', width, height)
@@ -262,7 +264,7 @@ def test_create_edit_archive_payloads_unchanged(
         page = context.new_page()
     try:
         page.goto(list_path)
-        page.locator('#create-component summary').click()
+        page.locator('.page-header [data-semantic="actions.add"]').click()
         create = page.locator(f'form[action="{list_path}"][method="post"]')
         create.locator('[name="name"]').fill('Korrektur-Payload-Test')
         create.locator('[name="category"]').select_option('side')
@@ -294,7 +296,7 @@ def test_create_edit_archive_payloads_unchanged(
         assert saved_payload['row_version']
 
         page.goto(list_path)
-        page.locator('.component-filter-advanced summary').click()
+        page.locator('.admin-filter-more summary').click()
         page.locator('#f-status').select_option('all')
         with page.expect_request(lambda request: request.method == 'GET' and 'status=all' in request.url) as filtered:
             page.get_by_role('button', name='Suchen', exact=True).click()
@@ -361,7 +363,7 @@ def test_allergen_display_preserves_native_values_and_single_save(
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(path)
     expect(page.get_by_text('Noch keine aktiven Bausteine.', exact=True)).to_be_visible()
-    page.locator('#create-component summary').press('Enter')
+    page.locator('.page-header [data-semantic="actions.add"]').press('Enter')
     form = page.locator('#component-form')
     form.locator('#c-name').fill('Allergen-Roundtrip')
     form.locator('#c-cat').select_option('side')

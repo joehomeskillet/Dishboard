@@ -29,14 +29,14 @@ COUNT_FIELDS = ('_csrf', 'food_public_id', 'storage_public_id', 'counted_quantit
 
 def test_lager_template_unknown_label() -> None:
     text = (Path(__file__).resolve().parents[1] / 'cafeteria' / 'templates' / 'admin' / 'lager.html').read_text(encoding='utf-8')
-    assert 'Kein Bestand erfasst' in text
+    assert 'Nicht erfasst bedeutet nicht 0.' in text
     assert 'BESTELLEN' not in text
     assert 'admin.inventory_transfer' in text
     assert 'admin.inventory_count' in text
     assert 'Umbuchung' in text
     assert 'Zählung' in text
     assert 'Zuordnungen' in text
-    assert 'status_items=lager_status' in text
+    assert 'status_items=' not in text
     assert 'admin-lager.css' in text
     assert 'admin.master_data_detail' in text
     assert 'admin.inventory_home' in text
@@ -111,21 +111,14 @@ def test_lager_statusbar_viewports_nojs_and_keyboard(b3, master_server, tmp_path
                             }''')
                             assert stacked, (javascript, width)
                         expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
-                        expect(page.locator('.admin-label.admin-status--warning').first).to_be_visible()
-                        hint = page.locator('details.admin-hint').first
-                        summary = hint.locator('summary')
-                        expect(summary).to_be_visible()
-                        summary.focus()
-                        expect(summary).to_be_focused()
-                        if hint.get_attribute('open') is None:
-                            page.keyboard.press('Enter')
-                        expect(hint).to_have_attribute('open', '')
-                        page.keyboard.press('Enter')
+                        expect(page.locator('p[role="status"]')).to_contain_text('2 Zuordnungen')
+                        expect(page.locator('details.admin-hint')).to_have_count(0)
+                        expect(page.locator('p[role="status"]')).to_contain_text('Nicht erfasst bedeutet nicht 0.')
                         if width == 1440:
                             assert metric['row'] <= 96
-                        expect(page.locator('.admin-statusbar')).to_be_visible()
-                        expect(page.locator('.admin-statusbar')).to_contain_text('Kein Bestand erfasst')
-                        expect(page.locator('.admin-statusbar')).to_contain_text('Lagermehl')
+                        expect(page.locator('.admin-statusbar')).to_have_count(0)
+                        expect(page.locator('.lager-row [data-label="Bestand"]').first).to_have_text('Nicht erfasst')
+                        expect(page.locator('#lager-move-heading')).to_contain_text('Lagermehl')
                         expect(page.locator('.lager-row a.active')).to_have_attribute('aria-current', 'true')
                         move = _form_fields(page, '#lager-move-form')
                         transfer = _form_fields(page, '#lager-transfer-form')
@@ -182,8 +175,8 @@ def _open_lager(instance, base: str, cookie, path: str, width: int, javascript: 
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         page.goto(base + path, wait_until='networkidle')
-        expect(page.locator('.admin-statusbar')).to_be_visible()
-        expect(page.locator('.admin-statusbar')).to_contain_text('Kein Bestand erfasst')
+        expect(page.locator('.admin-statusbar')).to_have_count(0)
+        expect(page.locator('main')).to_contain_text('Keine Zuordnung vorhanden')
         expect(page.get_by_role('link', name='Zutaten').first).to_be_visible()
         metric = page.evaluate('''() => ({
             height: document.documentElement.scrollHeight,

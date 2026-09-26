@@ -228,7 +228,7 @@ if os.environ.get('TEST_DATABASE_URL'):
         before = snapshot(owner)
         listed = client.get('/admin/kochbuecher')
         assert listed.status_code == 200 and listed.headers['Cache-Control'] == 'no-store'
-        assert 'admin-statusbar' in listed.text and 'Anlegen' in listed.text
+        assert '<dl class="admin-statusbar' not in listed.text and 'Anlegen' in listed.text
         assert snapshot(owner) == before
         created = fields(client, '/admin/kochbuecher/neu')[1]
         created['name'] = 'Sammlung'
