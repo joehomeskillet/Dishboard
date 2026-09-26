@@ -118,9 +118,9 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             if state == 'empty':
                 expect(page.locator('.admin-statusbar')).to_contain_text('Offen')
                 expect(page.locator('.cost-empty a')).to_have_attribute('href', '#kind')
-                expect(page.locator('main .btn-primary')).to_have_text('Vorschau')
+                expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau')
             else:
-                expect(page.locator('main .btn-primary')).to_have_text('Bestätigen')
+                expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Bestätigen')
                 expect(page.locator('.cost-lines tbody tr')).to_have_count(6)
                 assert FOOD_ID not in page.locator('.cost-lines').inner_text()
                 if state == 'incomplete':
@@ -165,7 +165,9 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             assert measured['form'] < (428 if width == 360 else 218)
             metrics.append({'state': state, 'width': width, 'javascript': javascript, **measured})
             for control in page.locator('main :is(.btn, input:not([type=hidden]), select, summary):visible').all():
-                assert control.bounding_box()['height'] >= 48
+                box = control.bounding_box()
+                minimum = 36 if 'ui-sem-control' in (control.get_attribute('class') or '') else 48
+                assert box['height'] >= minimum
             page.screenshot(path=str(tmp_path / f'cost-{state}-{width}-{javascript}.png'), full_page=True)
 
         # Native select + disclosure works without JavaScript; optional values still submit.

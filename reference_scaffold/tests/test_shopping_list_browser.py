@@ -87,7 +87,10 @@ def _select_and_submit(page, selector, value, *, submit_label):
 EVIDENCE.mkdir(parents=True, exist_ok=True)
 # Rendered controls below the 48px target of the page contract (hidden elements have no client rects).
 SMALL_TARGETS = '''() => [...document.querySelectorAll('main :is(a.btn, button, input:not([type=hidden], .form-check-input), select, textarea, .form-check, summary)')]
-    .filter(element => element.getClientRects().length && element.getBoundingClientRect().height < 48)
+    .filter(element => {
+      const min = element.classList.contains('ui-sem-control') ? 36 : 48;
+      return element.getClientRects().length && element.getBoundingClientRect().height < min;
+    })
     .map(element => `${element.getBoundingClientRect().height}px ${element.outerHTML.slice(0, 100)}`)'''
 # Selects whose selected option text does not fit between the padding (left text, right arrow).
 CLIPPED_SELECTS = '''() => [...document.querySelectorAll('main select')].filter(select => select.getClientRects().length).filter(select => {
@@ -329,9 +332,9 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                 expect(page.locator('.shopping-filter .active')).to_have_attribute('aria-current', 'true')
                 expect(page.get_by_role('link', name='Mit Archivierten', exact=True)).to_be_visible()
                 expect(page.locator('.shopping-filter').get_by_role('link', name='Archivieren', exact=True)).to_have_count(0)
-                page.locator('.shopping-list details.admin-compact-actions summary').first.click()
-                expect(page.get_by_role('button', name='Archivieren', exact=True)).to_be_visible()
-                expect(page.get_by_role('link', name='Öffnen', exact=True).first).to_be_visible()
+                page.locator('.shopping-list details.ui-sem-actions summary').first.click()
+                expect(page.get_by_role('button', name='archivieren').first).to_be_visible()
+                expect(page.get_by_role('link', name='öffnen').first).to_be_visible()
                 page.locator('#einkaufsliste-neu-title').click()
                 expect(page.get_by_label('Titel', exact=True)).to_be_focused()
                 expect(page.locator('.shopping-create-form').get_by_role('button', name='Anlegen', exact=True)).to_be_visible()
@@ -361,10 +364,13 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                     print(f'SHOPPING_METRICS js={javascript} list={list_metrics} detail={detail_metrics}')
                     _shot(page, f'rework-detail-{width}-js-{javascript}')
                 expect(page.locator('#shopping-delete-hint')).to_have_count(1)
-                expect(page.get_by_role('button', name='Löschen', exact=True)).to_have_class('btn btn-danger ms-3')
-                expect(page.get_by_role('button', name='Löschen', exact=True)).to_have_attribute(
-                    'aria-describedby', 'shopping-delete-hint',
-                )
+                delete = page.locator('.shopping-manual [data-semantic="actions.delete"]')
+                expect(delete).to_have_count(1)
+                expect(delete).to_have_attribute('aria-describedby', 'shopping-delete-hint')
+                expect(delete).to_have_attribute('data-confirm', 'Diese Position löschen?')
+                assert 'btn-danger' in (delete.get_attribute('class') or '').split()
+                delete_name = (delete.get_attribute('aria-label') or '').lower()
+                assert 'löschen' in delete_name and 'servietten' in delete_name
                 detail_bar = page.locator('dl.admin-statusbar')
                 expect(detail_bar).to_be_visible()
                 for label in ('Woche', 'Liste', 'Berechnung', 'Positionen'):

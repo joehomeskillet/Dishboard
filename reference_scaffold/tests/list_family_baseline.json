@@ -41,16 +41,8 @@
       "haupt_typografie:tabelle-1"
     ],
     "kochbuecher": [],
-    "einkaufslisten": [
-      "1440:kopfaktion_text",
-      "1440:zeilenaktion_text:zeilen-1",
-      "390:kopfaktion_text",
-      "390:zeilenaktion_text:zeilen-1"
-    ],
-    "bestellungen": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text"
-    ],
+    "einkaufslisten": [],
+    "bestellungen": [],
     "kalkulation": [],
     "vorlagen": [
       "1440:kopfaktion_text",
@@ -98,10 +90,7 @@
     "rezept-bilder": [],
     "kochbuch": [],
     "einkaufsliste": [],
-    "bestellkorb": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text"
-    ],
+    "bestellkorb": [],
     "import-detail": [
       "haupt_typografie:tabelle-1"
     ]

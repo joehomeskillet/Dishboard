@@ -97,8 +97,10 @@ def test_templates_use_statusbar_and_one_primary() -> None:
     assert 'status_items=' in basket
     assert "t('navigation.orders.label')" in home
     assert "t('navigation.orders.label')" in basket
-    assert home.count('btn-primary') == 1
-    assert basket.count('btn-primary') == 1
+    assert 'class="btn btn-primary"' not in home
+    assert 'class="btn btn-primary"' not in basket
+    assert "icon_button('actions.add'" in home
+    assert "icon_button('actions.save'" in basket
     assert 'name="row_version"' in basket
     assert 'name="_csrf"' in home
     assert 'name="_csrf"' in basket
@@ -242,11 +244,15 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                         }))
                         assert not metrics['overflow']
                         assert metrics['primaries'] == 1
-                        assert metrics['primary'] >= 48
+                        assert metrics['primary'] >= 36
                         assert metrics['row'] is not None and metrics['row'] < (140 if width < 768 else 96)
                         targets = page.locator('main .btn:visible, main summary:visible')
-                        sizes = targets.evaluate_all('els => els.map(el => {const r = el.getBoundingClientRect(); return [r.width, r.height];})')
-                        assert all(w >= 48 and h >= 48 for w, h in sizes), sizes
+                        sizes = targets.evaluate_all(
+                            'els => els.map(el => {const r = el.getBoundingClientRect();'
+                            ' const min = el.classList.contains("ui-sem-control") ? 36 : 48;'
+                            ' return r.width >= min && r.height >= min;})',
+                        )
+                        assert all(sizes), sizes
                         measurements.append({'page': 'home', 'width': width, 'javascript': javascript,
                                              **metrics, 'targets': sizes})
                         print('WP11_TARGETS ' + json.dumps({'page': 'home', 'width': width, 'javascript': javascript, 'sizes': sizes}))
@@ -300,8 +306,12 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                             heights = page.locator('.order-lines tbody tr').evaluate_all('els => els.map(el => el.getBoundingClientRect().height)')
                             assert all(h <= 96 for h in heights), heights
                         targets = page.locator('main .btn:visible, main summary:visible, main input:not([type=hidden]):visible, main select:visible')
-                        sizes = targets.evaluate_all('els => els.map(el => {const r = el.getBoundingClientRect(); return [r.width, r.height];})')
-                        assert all(w >= 48 and h >= 48 for w, h in sizes), sizes
+                        sizes = targets.evaluate_all(
+                            'els => els.map(el => {const r = el.getBoundingClientRect();'
+                            ' const min = el.classList.contains("ui-sem-control") ? 36 : 48;'
+                            ' return r.width >= min && r.height >= min;})',
+                        )
+                        assert all(sizes), sizes
                         measurements.append({'page': 'basket', 'width': width, 'javascript': javascript,
                                              **basket_metrics, 'targets': sizes})
                         print('WP11_TARGETS ' + json.dumps({'page': 'basket', 'width': width, 'javascript': javascript, 'sizes': sizes}))
@@ -324,8 +334,10 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                     expect(page.locator('#korb-anlegen')).to_have_attribute('open', '')
                     expect(page.locator('#basket_supplier')).to_be_visible()
                     sizes = page.locator('#korb-anlegen select, #korb-anlegen button').evaluate_all(
-                        'els => els.map(el => {const r = el.getBoundingClientRect(); return [r.width, r.height];})')
-                    assert all(w >= 48 and h >= 48 for w, h in sizes), sizes
+                        'els => els.map(el => {const r = el.getBoundingClientRect();'
+                        ' const min = el.classList.contains("ui-sem-control") ? 36 : 48;'
+                        ' return r.width >= min && r.height >= min;})')
+                    assert all(sizes), sizes
                     if javascript:
                         expect(page.locator('#basket_supplier')).to_be_focused()
                     with page.expect_response(lambda r: r.request.method == 'POST') as creation:

@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, disclosure_section, list_row %}
-{% from 'ui/_semantic.html' import icon_label, empty_state_sem, status_badge_sem, icon_button %}
+{% from 'ui/_semantic.html' import icon_label, empty_state_sem, status_badge_sem, icon_button, row_actions %}
 {% set workflow_nav = 'orders' %}
 {# Status labels only; no send action or state transition. #}
 {% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
@@ -18,7 +18,7 @@
 {% endblock %}
 {% block page_header %}
 {% call page_header(t('navigation.orders.label'), description=t('ui.order_description.label'), status_items=order_status) %}
-<a class="btn btn-primary" href="{{ create_url }}">{{ icon_label('actions.add') }}</a>
+{{ icon_button('actions.add', href=create_url) }}
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -29,13 +29,13 @@
 <div class="order-list" role="list">
 {% for row in baskets %}
 {% set status %}{{ status_badge_sem(order_states.get(row.status, 'status.unknown')) }}{% endset %}
-{% set actions %}{{ icon_button('actions.open', href=url_for('admin.order_basket', public_id=row.public_id), aria_label=t(sem('actions.open').label_key) ~ ': ' ~ row.supplier_name) }}{% endset %}
+{% set actions %}{{ row_actions([{'key': 'actions.open', 'href': url_for('admin.order_basket', public_id=row.public_id), 'object': row.supplier_name}]) }}{% endset %}
 <div role="listitem">{{ list_row(primary=row.supplier_name, status=status, actions=actions) }}</div>
 {% endfor %}
 </div>
 {% else %}
 {{ empty_state_sem('ui.order_empty_baskets') }}
-<a class="btn" href="{{ create_url }}">{{ icon_label('actions.add') }}</a>
+{{ icon_button('actions.add', href=create_url, emphasis='secondary') }}
 {% endif %}
 {% call disclosure_section(title=t('actions.add.label'), id='korb-anlegen', open=(suppliers and not baskets) or request.args.get('open') == 'korb') %}
 <form method="post" action="{{ url_for('admin.order_basket_create') }}" class="row g-2">
@@ -44,7 +44,7 @@
 <select class="form-select" id="basket_supplier" name="supplier_public_id" required{% if request.args.get('open') == 'korb' %} autofocus{% endif %}>
 {% for row in suppliers %}<option value="{{ row.public_id }}">{{ row.name }}</option>{% endfor %}
 </select></div>
-<div class="col-12 col-md-auto d-flex align-items-end"><button class="btn" type="submit">{{ icon_label('actions.add') }}</button></div>
+<div class="col-12 col-md-auto d-flex align-items-end">{{ icon_button('actions.add', emphasis='secondary') }}</div>
 </form>
 {% endcall %}
 </section>
@@ -59,14 +59,14 @@
 </div>
 {% else %}
 {{ empty_state_sem('ui.order_empty_suppliers') }}
-<a class="btn" href="{{ url_for('admin.order_home', open='lieferant', _anchor='code') }}">{{ icon_label('actions.add') }}</a>
+{{ icon_button('actions.add', href=url_for('admin.order_home', open='lieferant', _anchor='code'), emphasis='secondary') }}
 {% endif %}
 {% call disclosure_section(title=t('actions.add.label'), id='lieferant-anlegen', open=not suppliers or request.args.get('open') == 'lieferant') %}
 <form method="post" action="{{ url_for('admin.order_supplier_create') }}" class="row g-2">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="code">Code</label><input class="form-control" id="code" name="code" required{% if request.args.get('open') == 'lieferant' %} autofocus{% endif %}></div>
 <div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="name">Name</label><input class="form-control" id="name" name="name" required></div>
-<div class="col-12 col-md-auto d-flex align-items-end"><button class="btn" type="submit">{{ icon_label('actions.add') }}</button></div>
+<div class="col-12 col-md-auto d-flex align-items-end">{{ icon_button('actions.add', emphasis='secondary') }}</div>
 </form>
 {% endcall %}
 </section>
@@ -75,12 +75,12 @@
 {% if articles %}
 <div class="order-list" role="list">
 {% for row in articles %}
-<div role="listitem">{{ list_row(primary=row.name, secondary=row.article_code ~ ' · Gebinde ' ~ row.pack_size ~ ' ' ~ row.order_unit_code ~ (' · ohne Zutat' if row.without_food else '')) }}</div>
+<div role="listitem">{{ list_row(primary=row.name, secondary=row.article_code ~ ' · Gebinde ' ~ row.pack_size ~ ' ' ~ row.order_unit_code ~ (' · ohne Zutat' if row.without_food else ''), status=' ') }}</div>
 {% endfor %}
 </div>
 {% else %}
 {{ empty_state_sem('ui.order_empty_articles') }}
-<a class="btn" href="{{ url_for('admin.order_home', open='artikel', _anchor='supplier_public_id') }}">{{ icon_label('actions.add') }}</a>
+{{ icon_button('actions.add', href=url_for('admin.order_home', open='artikel', _anchor='supplier_public_id'), emphasis='secondary') }}
 {% endif %}
 {% call disclosure_section(title=t('actions.add.label'), id='artikel-anlegen', open=request.args.get('open') == 'artikel') %}
 <form method="post" action="{{ url_for('admin.order_article_create') }}" class="row g-2">
@@ -93,7 +93,7 @@
 <div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="article_name">Name</label><input class="form-control" id="article_name" name="name" required></div>
 <div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="order_unit_code">Einheit</label><input class="form-control" id="order_unit_code" name="order_unit_code" value="KG" required></div>
 <div class="col-12 col-md-6 col-xl-4"><label class="form-label" for="pack_size">Gebinde</label><input class="form-control" id="pack_size" name="pack_size" value="1" required></div>
-<div class="col-12 col-md-auto d-flex align-items-end"><button class="btn" type="submit">{{ icon_label('actions.add') }}</button></div>
+<div class="col-12 col-md-auto d-flex align-items-end">{{ icon_button('actions.add', emphasis='secondary') }}</div>
 </form>
 {% endcall %}
 </section>
