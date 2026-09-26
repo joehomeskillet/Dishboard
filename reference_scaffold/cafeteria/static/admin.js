@@ -103,6 +103,22 @@
         initSemanticTooltip(link);
         window.tabler?.Tooltip.getInstance(link)?.show();
     }));
+    // Dismiss the explanation before a modal or dropdown handles the same Escape.
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        let dismissed = false;
+        iconActions.forEach(link => {
+            const tip = actionTooltip(link);
+            if (!tip?.classList.contains('show') || !tip.getClientRects().length) return;
+            tip.dataset.dismissed = 'true';
+            window.tabler.Tooltip.getInstance(link).hide();
+            dismissed = true;
+        });
+        if (dismissed) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }
+    }, true);
 
     // 1. Dirty-Tracking
     const forms = document.querySelectorAll('form:not([data-dirty-tracking="off"])');
@@ -653,16 +669,6 @@
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            let dismissedTooltip = false;
-            iconActions.forEach(link => {
-                const tip = actionTooltip(link);
-                if (tip?.classList.contains('show')) {
-                    tip.dataset.dismissed = 'true';
-                    window.tabler.Tooltip.getInstance(link).hide();
-                    dismissedTooltip = true;
-                }
-            });
-            if (dismissedTooltip) return;
             const openDropdown = document.querySelector('.dropdown-menu.show');
             if (openDropdown) {
                 const toggle = openDropdown.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
