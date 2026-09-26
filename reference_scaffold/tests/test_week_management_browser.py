@@ -56,9 +56,14 @@ def test_week_creation_and_tablet_layout(page_context):
             expect(page.get_by_role('navigation', name='Backend')).to_be_hidden()
         assert not page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
         expect(page.locator('#new-week-date')).to_be_hidden()
-        page.locator('#new-week-title').focus()
+        create = page.get_by_role('link', name='Neue Woche anlegen', exact=True)
+        expect(create).to_have_text('')
+        # Before enhancement this is also a valid no-JS link to the visible form.
+        assert create.get_attribute('aria-expanded') is None
+        create.focus()
         page.keyboard.press('Enter')
         expect(page.locator('#new-week-date')).to_be_visible()
+        expect(create).to_have_attribute('aria-expanded', 'true')
         for selector in ['input[type="date"]', 'input[name="title"]', 'textarea', 'button[type="submit"]']:
             for control in page.locator(selector).all():
                 if control.is_visible():
@@ -67,7 +72,7 @@ def test_week_creation_and_tablet_layout(page_context):
     expect(page.locator('#new-week-date')).to_be_visible()
     page.get_by_label('Wochenbeginn (Montag)').fill('2027-01-04')
     page.get_by_label('Wochentitel', exact=True).fill('Tabletwoche')
-    page.get_by_role('button', name='Anlegen').click()
+    page.get_by_role('button', name='Anlegen', exact=True).click()
     assert '/admin/patienten?week=2027-01-04' in page.url
     page.goto('/admin/patienten/wochen')
     expect(page.get_by_text('Tabletwoche', exact=True)).to_be_visible()
@@ -147,7 +152,9 @@ def test_management_density_keyboard_and_native_actions(
                 expect(copy).to_be_visible()
                 preview = first.locator('a[href*="/preview?"]')
                 expect(preview).to_be_visible()
-                page.keyboard.press('Tab')
+                # The shared menu focuses its first action with JS; native details need Tab.
+                if not javascript:
+                    page.keyboard.press('Tab')
                 expect(copy).to_be_focused()
                 bad_targets = page.locator('main :is(.btn, summary):visible').evaluate_all('''es => es.flatMap(e => {
                     const r = e.getBoundingClientRect();
@@ -159,6 +166,10 @@ def test_management_density_keyboard_and_native_actions(
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 expect(page.locator('main .btn-primary')).to_have_count(1)
                 expect(page.locator('main .btn-primary')).to_be_visible()
+                if not javascript:
+                    expect(page.locator('#new-week-date')).to_be_visible()
+                    expect(page.locator('#new-week-title')).to_have_attribute('href', '#new-week-date')
+                    assert page.locator('#new-week-title').get_attribute('aria-expanded') is None
                 if width < 768:
                     stacked = page.evaluate('''() => {
                         const table = document.querySelector('.week-table.admin-table--stack');

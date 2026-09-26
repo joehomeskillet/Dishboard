@@ -24,7 +24,7 @@
         {% elif row.allergen_review_status|default('not_checked') != 'checked' %}{% set review_text = (review_text ~ ' · ' if review_text else '') ~ 'Allergenprüfung offen' %}{% endif %}
         <span data-review="{{ 'open' if row.review_open|default(true) else 'checked' }}">
           {{ label('Prüfung offen' if warning else 'Geprüft', 'warning' if warning else 'success', icon=sem('review.pending' if warning else 'review.approved').resolved_icon, status='warning' if warning else 'success') }}
-          {% if review_text %}<span class="d-block small">{{ review_text }}</span>{% endif %}
+          {% if review_text %}<span class="d-block admin-list-secondary">{{ review_text }}</span>{% endif %}
         </span>
         {% endmacro %}
         {% set declarations = namespace(options=[]) %}
@@ -104,10 +104,10 @@
           <div class="col-12 col-md-6 col-xl-4">
             <article class="card h-100" data-menu-id="{{ row.id }}">
               <div class="card-body">
-                <p class="text-secondary small mb-1">{{ row.service_date.strftime('%d.%m.%Y') }} · {{ meal_labels[row.meal_code] }} · {{ option_labels[row.type_code] }}{% if row.workflow_state == 'archived' %} · Archivierte Woche{% endif %}</p>
-                <h2 class="card-title mb-2">{{ row.title }}</h2>
+                <p class="admin-list-meta mb-1">{{ row.service_date.strftime('%d.%m.%Y') }} · {{ meal_labels[row.meal_code] }} · {{ option_labels[row.type_code] }}{% if row.workflow_state == 'archived' %} · Archivierte Woche{% endif %}</p>
+                <h2 class="admin-list-primary mb-2">{{ row.title }}</h2>
                 {% if row.components %}
-                <div class="text-secondary small mb-2 fw-normal">{{ row.components|join(' · ') }}</div>
+                <div class="admin-list-secondary mb-2">{{ row.components|join(' · ') }}</div>
                 {% endif %}
                 {% with option=row %}{% include '_menu_image.html' %}{% endwith %}
                 {% with option=row %}{% include '_menu_metadata.html' %}{% endwith %}

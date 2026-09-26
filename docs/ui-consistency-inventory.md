@@ -143,7 +143,7 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | static/admin-settings-darstellung.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-settings-import.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-settings-schnittstellen.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| static/admin-tabler.css | 0 | 0 | 0 | 0 | 0 | 0 | 21 |
+| static/admin-tabler.css | 0 | 0 | 0 | 0 | 0 | 0 | 17 |
 | static/admin-vorlagen-druck.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-vorschau-bildschirme.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-week-tabler.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -152,4 +152,4 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | static/cookbook-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-document.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **TOTAL** | 167 | 74 | 11 | 5 | 52 | 17 | 28 |
+| **TOTAL** | 167 | 74 | 11 | 5 | 52 | 17 | 24 |

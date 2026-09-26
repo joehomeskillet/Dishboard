@@ -92,7 +92,7 @@
     <article class="admin-compact-row" data-import-row="{{ candidate.row_number }}">
       <div class="admin-compact-line">
         <div class="admin-compact-name">
-          <h3 class="h4 mb-1">Zeile {{ candidate.row_number }} · {{ payload.title or 'Ohne Titel' }}</h3>
+          <h3 class="admin-list-primary mb-1">Zeile {{ candidate.row_number }} · {{ payload.title or 'Ohne Titel' }}</h3>
           <label class="form-label" for="row-{{ candidate.row_number }}-title">Titel</label>
           <input class="form-control" id="row-{{ candidate.row_number }}-title" name="row.{{ candidate.row_number }}.title" maxlength="120" value="{{ values.get('row.' ~ candidate.row_number ~ '.title', payload.title or '') }}">
         </div>
@@ -105,7 +105,7 @@
           </select>
         </div>
       </div>
-      <p class="admin-compact-summary text-secondary">Quellennotiz: {{ payload.source.note if payload.source else '—' }}{% if payload.ingredients %} · {{ payload.ingredients|map(attribute='ingredient_text')|join(', ') }}{% endif %}</p>
+      <p class="admin-compact-summary admin-list-secondary">Quellennotiz: {{ payload.source.note if payload.source else '—' }}{% if payload.ingredients %} · {{ payload.ingredients|map(attribute='ingredient_text')|join(', ') }}{% endif %}</p>
       <details class="admin-compact-details" id="row-{{ candidate.row_number }}-details"{% if error or candidate.target_recipe_public_id or candidate.target_row_version %} open{% endif %}>
         <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="ui.disclosure.details" aria-label="Details für Zeile {{ candidate.row_number }}">{{ sem_icon('ui.disclosure.details') }}</summary>
         <div class="admin-compact-detail-body">

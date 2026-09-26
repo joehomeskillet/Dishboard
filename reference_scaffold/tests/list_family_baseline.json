@@ -1,13 +1,9 @@
 {
   "pages": {
     "wochenuebersicht-cafeteria": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:tabelle-1"
     ],
     "wochenuebersicht-patienten": [
-      "1440:kopfaktion_text",
-      "390:kopfaktion_text",
       "haupt_typografie:tabelle-1"
     ],
     "wochenplan-cafeteria": [],

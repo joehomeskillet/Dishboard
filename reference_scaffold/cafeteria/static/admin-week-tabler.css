@@ -266,8 +266,6 @@
 }
 .kitchen-cal-course {
   margin: var(--app-space-1) 0 0;
-  font-size: var(--app-font-size-small);
-  color: var(--app-text-muted);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot p {
   margin: 0;
