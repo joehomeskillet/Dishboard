@@ -1,6 +1,6 @@
 {% extends 'admin/grundlagen.html' %}
 {% from 'admin/_macros.html' import page_header, pagination, icon, disclosure_section, option_detail_group, hint, empty_value %}
-{% from 'ui/_semantic.html' import icon_label, icon_button %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}Zutat · Grundlagen{% endblock %}
 {% block page_header %}
@@ -24,7 +24,7 @@
 <details class="card mb-4"{% if recipe_query or recipe_page > 1 %} open{% endif %}>{{ section_summary('Rezeptauswahl', 'search') }}
 <div class="card-body"><form method="get" action="{{ recipe_search_url }}">
 <div class="row g-3 align-items-end"><div class="col-12 col-lg-8"><label class="form-label" for="recipe_q">Festgeschriebenes Rezept suchen</label><div class="input-group"><span class="input-group-text">{{ icon('search') }}</span><input class="form-control" type="search" id="recipe_q" name="recipe_q" maxlength="200" value="{{ recipe_query }}"></div></div>
-<div class="col-12 col-lg-4"><button class="btn" type="submit">{{ icon_label('view.search') }}</button></div></div>
+<div class="col-12 col-lg-4">{{ icon_button('view.search') }}</div></div>
 {{ hint('Die Suche lädt den gespeicherten Stand. Ungespeicherte Änderungen vorher sichern.', 'recipe-search-save-hint', mode='inline') }}</form>
 {{ pagination(recipe_page, recipe_has_next, recipe_prev_url, recipe_next_url, 'Rezeptauswahlseiten') }}</div></details>
 {% endif %}

@@ -34,7 +34,8 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     form = page.get_by_role('form', name='Bausteine filtern')
     expect(form).to_be_visible()
     expect(page.locator('main .btn-primary')).to_have_count(1)
-    expect(page.locator('.admin-statusbar')).to_contain_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
+    expect(page.locator('main')).to_have_attribute('data-family', family)
+    expect(page.locator('.admin-statusbar')).to_have_count(0)
     expect(form.get_by_role('link', name='Zurücksetzen', exact=True)).to_have_count(0)
     assert page.evaluate('document.documentElement.scrollWidth') <= width
     expect(page.locator('#component-result-count')).to_have_text('2 Treffer')
@@ -51,7 +52,7 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     expect(page.locator('.component-row')).to_have_count(1)
     expect(page.locator('.component-row')).to_have_attribute('data-public-id', str(match['public_id']))
     expect(page.locator('.component-row')).to_contain_text(title)
-    expect(page.locator('.component-row .usage')).to_contain_text('verwendet in 1 Gerichten')
+    expect(page.locator('.component-row .usage')).to_contain_text('1 Gericht')
     assert parse_qs(urlsplit(page.url).query) == {key: [value] for key, value in params.items()}
     for key, value in params.items():
         expect(form.locator(f'[name="{key}"]')).to_have_value(value)

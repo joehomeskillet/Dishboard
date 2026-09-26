@@ -1,6 +1,6 @@
 {% extends 'admin/grundlagen.html' %}
 {% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_label, icon_button %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}Einheit · Grundlagen{% endblock %}
 {% block page_header %}{{ page_header(t('navigation.ingredients.label'), description='Einheit bearbeiten' if row else 'Einheit anlegen', status_items=[{'label': 'Status', 'value': 'Aktiv' if row.active else 'Archiviert', 'variant': 'neutral'}] if row else []) }}{% endblock %}
@@ -15,7 +15,7 @@
 <div class="col-12 col-lg-6"><label class="form-label" for="dimension">Dimension</label><select class="form-select mb-3" id="dimension" name="dimension">{% for key, label in [('mass', 'Masse'), ('volume', 'Volumen'), ('count', 'Anzahl'), ('contextual', 'Kontextabhängig')] %}<option value="{{ key }}"{% if values.get('dimension') == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
 </div>
 <div class="row g-3"><div class="col-12 col-lg-6">{{ input('base_factor', 'Basisfaktor (bei kontextabhängiger Einheit leer lassen)') }}</div></div>{% endif %}
-<button class="btn btn-primary" type="submit">{{ icon_label('actions.save') }}</button></form>{% else %}<p>{{ row.display_name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}
+{{ icon_button('actions.save', object=row.display_name if row else none) }}</form>{% else %}<p>{{ row.display_name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}
 </div>{% if not row %}</details>{% else %}</div>{% endif %}
 {% if row %}{% call disclosure_section() %}{{ status_summary() }}{{ status_actions() }}{% endcall %}{% endif %}
 {% endblock %}

@@ -1,6 +1,8 @@
 """Korrekturwelle Bausteine: Layout, Verträge und Screenshotnachweise."""
 from __future__ import annotations
 
+import re
+
 from pathlib import Path
 import json
 from tempfile import TemporaryDirectory
@@ -81,8 +83,11 @@ def test_wp05_density_and_form_contract(catalog_page, request, tmp_path):  # noq
                     evidence.append(metrics)
                     assert metrics['width'] <= width + 1
                     assert metrics['primary'] == 1
-                    expect(probe.locator('.admin-statusbar')).to_contain_text('Cafeteria')
-                    assert probe.locator('.admin-statusbar-item').count() == (1 if state == 'list' else 4)
+                    if state == 'editor':
+                        expect(probe.locator('.admin-statusbar')).to_contain_text('Cafeteria')
+                    else:
+                        expect(probe.locator('main')).to_have_attribute('data-family', 'cafeteria')
+                    assert probe.locator('.admin-statusbar-item').count() == (0 if state == 'list' else 4)
                     if state == 'list':
                         assert metrics['row'] <= (260 if width < 768 else 100)
                     if width == 1440 and javascript and state == 'editor':
@@ -141,7 +146,7 @@ def _open_editor(page: Page, family: str) -> None:
         form.get_by_role('button', name='Anlegen', exact=True).click()
         page.wait_for_url(f'**{list_path}/*')
     else:
-        page.locator('.component-action .ui-sem-control').first.click()
+        page.locator('.component-row-name a').first.click()
         page.wait_for_load_state()
 
 
@@ -162,9 +167,11 @@ def test_list_first_row_visible_without_scroll(catalog_page: Page, family: str) 
     expect(page.locator('#create-component')).not_to_have_attribute('open', '')
     first_row = page.locator('.component-list-container .component-row').first
     expect(first_row).to_be_visible()
-    expect(first_row.locator('.admin-table-status .admin-label.admin-status--active')).to_be_visible()
+    expect(page.locator('#f-status')).to_have_value('active')
+    expect(first_row.locator('.admin-table-status .admin-label.admin-status--active')).to_have_count(0)
     expect(first_row.locator('.category .admin-label.admin-status--category')).to_be_visible()
-    expect(first_row.locator('.admin-row-actions [data-semantic="actions.edit"]')).to_have_text('Bearbeiten')
+    expect(first_row.locator('.component-row-name a')).to_have_attribute('href', re.compile(r'/komponenten/[^/]+$'))
+    expect(first_row.locator('.admin-row-actions')).to_have_count(0)
     box = first_row.bounding_box()
     assert box is not None
     assert box['y'] + box['height'] <= 768
@@ -199,7 +206,7 @@ def test_component_editor_layout_and_overflow(catalog_page: Page, family: str, w
     page.set_viewport_size({'width': width, 'height': height})
     _open_editor(page, family)
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-    expect(page.get_by_role('button', name='Speichern', exact=True)).to_be_visible()
+    expect(page.get_by_role('button', name=re.compile(r'.+ speichern$'))).to_be_visible()
     expect(page.get_by_role('link', name='Abbrechen', exact=True)).to_be_visible()
     _assert_component_controls_fit(page)
     _shot(page, 'komponente', 'normal', width, height)
@@ -279,7 +286,7 @@ def test_create_edit_archive_payloads_unchanged(
         detail = page.locator(f'form[action="{detail_path}"]')
         detail.locator('[name="name"]').fill('Korrektur-Payload-Test bearbeitet')
         with page.expect_request(lambda request: request.method == 'POST' and detail_path in request.url) as saved:
-            detail.get_by_role('button', name='Speichern', exact=True).click()
+            detail.get_by_role('button', name=re.compile(r'.+ speichern$')).click()
         saved_payload = _form_payload(saved.value)
         assert set(saved_payload) == {'_csrf', 'row_version', 'name', 'category', 'origin_country_code'} | presence_names
         assert all(saved_payload[name] == 'contains' for name in presence_names)
@@ -297,7 +304,7 @@ def test_create_edit_archive_payloads_unchanged(
 
         page.goto(detail_path)
         page.locator('.component-secondary-actions summary').click()
-        archive = page.get_by_role('button', name='Archivieren', exact=True)
+        archive = page.get_by_role('button', name=re.compile(r'.+ archivieren$'))
         if javascript:
             page.once('dialog', lambda dialog: dialog.accept())
         with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/archive')) as archived:
@@ -376,7 +383,7 @@ def test_allergen_display_preserves_native_values_and_single_save(
         page = context.new_page()
         page.goto(editor_url)
         form = page.locator('#component-form')
-        save = form.get_by_role('button', name='Speichern', exact=True)
+        save = form.get_by_role('button', name=re.compile(r'.+ speichern$'))
         expect(save).to_have_count(1)
         assert save.bounding_box()['y'] + save.bounding_box()['height'] <= height
         gluten = form.locator('.allergen-row').filter(has=page.locator('[value="GLUTEN"]'))
@@ -443,7 +450,7 @@ def test_p3_polish_components_primary_stack_hint(catalog_page: Page) -> None:  #
     assert row.evaluate("e => getComputedStyle(e).display") == 'grid'
     expect(row.locator('[data-label="Kategorie"]')).to_be_visible()
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-    page.locator('.component-action .ui-sem-control').first.click()
+    page.locator('.component-row-name a').first.click()
     page.wait_for_load_state()
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
     food_hint = page.locator('summary[aria-describedby="c-food-extra-hint"]')
