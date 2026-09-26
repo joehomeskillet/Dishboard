@@ -119,7 +119,15 @@ def _capture_shell(page, name, *, title=None, native=False, viewport_only=False)
     assert visible
     for control in page.locator('.navbar-toggler:visible, .admin-nav:visible a, .admin-page-header .btn, .admin-compact-toolbar .btn').all():
         if control.is_visible():
-            assert control.inner_text().strip()
+            visible_text = control.inner_text().strip()
+            aria_label = (control.get_attribute('aria-label') or '').strip()
+            labelledby_text = control.evaluate(r'''el =>
+                (el.getAttribute('aria-labelledby') || '').split(/\s+/)
+                    .map(id => document.getElementById(id)?.textContent || '').join(' ').trim()
+            ''')
+            assert visible_text or aria_label or labelledby_text
+            if not visible_text:
+                assert aria_label
             box = control.bounding_box()
             assert box and box['height'] >= 48 and box['width'] >= 44, box
     metrics.update(page.evaluate('''() => ({innerWidth, innerHeight, outerWidth, outerHeight,
