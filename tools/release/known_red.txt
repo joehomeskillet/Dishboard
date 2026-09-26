@@ -62,28 +62,6 @@ tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[1440-True]
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[390-False]
 # 2026-09-26 rot auf Produktion R11 d2e66fe (Baseline-Lauf gegen R14-Gate); Rezept-/Vorlagenseiten erwarten Texte vor dem Semantic Pack («Ansehen», Langtexte) - Nachzug in den P4-Paketen rezepte/vorlagen.
-tests/test_recipe_view_print_browser.py::test_history_opens_each_of_three_archived_stands[1440-900-True]
-tests/test_recipe_view_print_browser.py::test_history_opens_each_of_three_archived_stands[390-844-False]
-tests/test_recipe_view_print_browser.py::test_readable_recipe_content_and_explicit_mode[False-1440-900]
-tests/test_recipe_view_print_browser.py::test_readable_recipe_content_and_explicit_mode[False-2560-1440]
-tests/test_recipe_view_print_browser.py::test_readable_recipe_content_and_explicit_mode[False-320-844]
-tests/test_recipe_view_print_browser.py::test_readable_recipe_content_and_explicit_mode[False-390-844]
-tests/test_recipe_view_print_browser.py::test_readable_recipe_content_and_explicit_mode[True-1440-900]
-tests/test_recipe_view_print_browser.py::test_readable_recipe_content_and_explicit_mode[True-2560-1440]
-tests/test_recipe_view_print_browser.py::test_readable_recipe_content_and_explicit_mode[True-320-844]
-tests/test_recipe_view_print_browser.py::test_readable_recipe_content_and_explicit_mode[True-390-844]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[1024-768-True]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[1440-900-False]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[1440-900-True]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[1920-1080-True]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[2560-1440-True]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[320-844-False]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[320-844-True]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[390-844-False]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[390-844-True]
-tests/test_recipe_view_print_browser.py::test_view_print_route_matrix_and_native_links[768-1024-True]
-tests/test_ui_korrektur_recipes_browser.py::test_recipe_pages_follow_correction_contract[False]
-tests/test_ui_korrektur_recipes_browser.py::test_recipe_pages_follow_correction_contract[True]
 tests/test_ui_korrektur_vorlagen_browser.py::test_recipe_editor_density_matrix
 tests/test_ui_korrektur_vorlagen_browser.py::test_save_activate_and_load_version_keep_native_requests[js]
 tests/test_ui_korrektur_vorlagen_browser.py::test_save_activate_and_load_version_keep_native_requests[nojs]
@@ -91,13 +69,13 @@ tests/test_ui_korrektur_vorlagen_browser.py::test_save_activate_and_load_version
 tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[1440-True]
 tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[390-False]
 # 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 Browsertests - Ursache noch nicht klassifiziert.
-tests/test_recipe_freeze_v2_browser.py::test_preview_and_list_are_native_readonly_with_exact_prepared_selection[1440-900-True]
-tests/test_recipe_freeze_v2_browser.py::test_preview_and_list_are_native_readonly_with_exact_prepared_selection[390-844-False]
-tests/test_recipe_freeze_v2_browser.py::test_native_freeze_conflict_keeps_original_until_explicit_reload[1440-True]
-tests/test_recipe_freeze_v2_browser.py::test_native_freeze_conflict_keeps_original_until_explicit_reload[390-False]
 tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromium_200_percent_zoom
 # 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Tab nach «Zum Wochenplan» landet nicht auf #menu-query-search - Ursache noch nicht klassifiziert.
 tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[True-cafeteria-staff_guest]
 tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[True-patienten-patient]
 tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[False-cafeteria-staff_guest]
 tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[False-patienten-patient]
+# 2026-09-26 R16: Tests verlangen sichtbaren Buttontext bzw. alten Rezeptlisten-Selektor; Nutzer-Spezifikation Icon-first (docs/design/2026-09-26-icon-first-simplification-spec.md) — Testmigration läuft
+tests/test_recipe_search_browser.py::test_editor_disclosures_preserve_complete_native_post[False]
+tests/test_recipe_search_browser.py::test_editor_disclosures_preserve_complete_native_post[True]
+tests/test_ui_list_typography_browser.py::test_list_typography_across_modules
