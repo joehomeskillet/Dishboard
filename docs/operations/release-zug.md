@@ -6,7 +6,7 @@ Deploy, obwohl laufend Arbeit fertig wurde. Die Ursachen stehen am Ende dieses D
 
 ## 1. Grundregel: Der Zug fährt nach Fahrplan
 
-- Solange Arbeit läuft, fährt **spätestens alle 2 Stunden** ein Zug (Deploy). Ohne neue angenommene Arbeit fährt keiner.
+- Solange Arbeit läuft, startet **jede Stunde zur Minute 07** ein Zug. Ohne neue angenommene Arbeit fährt keiner.
 - Mit fährt, was angenommen (Judge ACCEPT) und gegatet ist. Was nicht fertig ist, wartet auf den nächsten Zug.
 - Der Zug wird **nie für ein Paket angehalten**, weder für ein fast fertiges noch für ein rotes.
 - Jeder Status (Chat, Ledger, Übergabe) nennt Zeit und Alter des letzten Deploys:
@@ -40,14 +40,94 @@ geteilten Haupt-Tree. Neue Dateien vorher mit `git add` erfassen.
 | 5 | Commit | `rtk git -C <int-wt> commit -am "chore: release <n> manifest and template hashes"` | nur Matrix und Manifeste im Commit |
 | 6 | Release-Gate + bekannte Rote | `rtk bash tools/release/release_gate.sh <int-wt> main [paket-tests …]` | `NEW_FAILURES=0`, verdict=0 |
 | 7 | PII-Blob-Beweis | `rtk git -C <int-wt> rev-list --count HEAD -- docs/design/uiux-handoff-2026-09-20/03_REFERENCES/accepted-settings/a02b14e0-da12-4edd-b57e-8b3ce2d3082d.png` | `0` |
-| 8 | Merge | `rtk git -C /nvmetank1/projects/menuplan merge --ff-only integrate/<welle>` | fast-forward |
-| 9 | Push | `rtk git -C /nvmetank1/projects/menuplan push github main` | angenommen |
+| 8 | Kandidat festhalten | `rtk git -C <int-wt> rev-parse HEAD` | geprüfter vollständiger SHA gespeichert; lokale main bleibt unberührt |
+| 9 | Push | `rtk git -C <int-wt> push github <sha>:refs/heads/main` | Fast-Forward angenommen, niemals `--force` |
 | 10 | Deploy | `rtk systemctl start dishboard-deploy-main.service` | Exit 0 |
 | 11 | Verify | `rtk bash tools/release/deploy_status.sh` | Live = main, healthy, Login 200, Alter ≈ 0 min |
 
 Das Gate (Schritt 6) läuft in vier Teilen parallel auf eigenen Pools (A Signage/Public, B Shell/Woche,
 C Routen/Stores/Semantik, D Paket- und Label-Treffer) und wertet die JUnit-Dateien gegen
 `tools/release/known_red.txt` aus. Danach Ledger-Eintrag: Revision, Deploy-Zeit, Inhalt, Gate-Zahlen.
+In Teil D läuft **jede Browserdatei in einem eigenen pytest-Prozess**, weil Playwright-Sync-API
+und Session-Fixtures sich nicht in einem Prozess vertragen. Dateien mit `playwright`, `_browser`
+oder `test_rendered_ui` im Inhalt laufen vorsorglich einzeln; im Zweifel ebenfalls einzeln.
+Nicht-Browser-Dateien laufen gemeinsam (`d0.xml`) auf `POOL_D`. Browserdateien werden reihum
+auf `POOL_D` sowie optional `POOL_D2` und `POOL_D3` verteilt (`d-<n>.xml`, ab 1;
+Logs gleichnamig mit `.log`). Bei vorhandenem d0 beginnt die Browser-Verteilung auf dem nächsten
+Pool. Ein Scheduler begrenzt sämtliche Teile zusammen auf vier Prozesse und jeden Pool auf einen
+Prozess. Zusätzliche D-Pools kommen damit zum Einsatz, sobald A–C Plätze freigeben.
+Alle konfigurierten Pools müssen verschieden sein. Leere Gruppen starten keinen Prozess.
+`new_failures.py` wertet weiterhin alle XML-Dateien aus; Infrastrukturfehler blockieren weiterhin.
+`RELEASE_GATE_DRY_RUN=1` zeigt «gemeinsam» und «einzeln» samt Pool und JUnit-Datei,
+ohne Pools oder Tests zu starten. Bash ab 5.1 ist wegen `wait -n -p` erforderlich.
+
+## Stündlicher Zug (Host-Timer)
+
+`tools/release/hourly_train.sh` läuft unabhängig von Claude oder einer anderen Agentensitzung.
+Der Host benötigt `/var/lib/dishboard-release-train/line` mit genau einem lokalen Branch-Namen,
+anfangs `integrate/icon-first-0926`. Linie umstellen: diese Datei atomar durch eine Datei mit dem
+neuen Namen und abschliessendem Zeilenumbruch ersetzen. Ein laufender Zug behält seinen SHA;
+die Umstellung gilt ab dem nächsten Start. Nur bereits angenommene Pakete auf diese Linie nehmen.
+
+`/var/lib/dishboard-release-train/pools` enthält ausschliesslich folgende Zuweisungen
+(durch tatsächlich exklusiv reservierte Pool-Namen ersetzen):
+
+```text
+POOL_A=<pool-a>
+POOL_B=<pool-b>
+POOL_C=<pool-c>
+POOL_D=<pool-d>
+POOL_D2=<pool-d2>
+POOL_D3=<pool-d3>
+```
+
+A–D sind Pflicht, D2/D3 optional. Erlaubt sind Buchstaben, Ziffern, Unterstriche und Bindestriche;
+keine Quotes, Shell-Befehle oder Zugangsdaten. Die eigentlichen Pool-Env-Dateien lädt nur `gate.sh`.
+Host-Verzeichnis und Konfiguration gehören root. Keine anderen Worker auf diese Pools setzen.
+
+Start nach Integration der Skripte in `<repo>` (= `/nvmetank1/projects/menuplan`):
+
+```bash
+rtk systemd-run --unit=dishboard-release-train --on-calendar='*:07' --timer-property=Persistent=true /usr/bin/bash <repo>/tools/release/hourly_train.sh
+```
+
+Dies ist eine **transiente Unit**: nach Reboot denselben Start erneut ausführen. `Persistent=true`
+ersetzt keine dauerhafte Unit-Datei. `flock` verhindert überlappende manuelle und Timer-Aufrufe.
+Logs liegen je Lauf unter `/var/tmp/dishboard-release-train/<ts>/` (inklusive Gate-JUnit und Logs).
+Der Gate-Aufruf hat ein 39-Minuten-Limit; nach weiteren 30 Sekunden werden verbleibende Prozesse
+beendet. Überschreitung alarmiert und pusht nichts. Tatsächliche Laufzeit unter 40 Minuten muss
+mit den reservierten Pools gemessen werden; Parallelisierung allein ist kein Laufzeitnachweis.
+
+Der Zug holt `github/main`, hält Linien-SHA und Vergleichsbasis fest und nutzt ausschliesslich den
+eigenen detached Worktree `.claude/worktrees/release-train`. Ein unsauberer Prüf-Worktree blockiert;
+es gibt kein `stash`, `reset` oder erzwungenes Checkout. Vor jedem Gate: Vorfahrenprüfung,
+`build_manifest.py --verify`, PII-Historie = 0. Alle vorhandenen geänderten
+`reference_scaffold/tests/test_*.py` gehen zusätzlich ins Gate; gelöschte Dateien sind nicht ausführbar.
+Nur Gate-Exit 0 **und** `NEW_FAILURES=0` erlauben den normalen Fast-Forward-Push des gespeicherten SHA.
+Danach startet `dishboard-deploy-main.service`; Status muss gesund sein und exakt diesen SHA live zeigen.
+Erst dann wird `last_success` (SHA und UTC-Zeit) geschrieben und `ALERT` gelöscht.
+Lokale `main` und fremde Änderungen im Haupt-Checkout bleiben unberührt.
+
+Trockenlauf mit Host-Konfiguration:
+
+```bash
+rtk env TRAIN_DRY_RUN=1 bash tools/release/hourly_train.sh
+```
+
+Vor erstmaliger Konfiguration darf zusätzlich `TRAIN_LINE=integrate/icon-first-0926` gesetzt werden
+(nur im Trockenlauf). Fehlende Pools werden dann als Gate-Defaults angezeigt. Der Trockenlauf führt
+Fetch, Worktree-Vorbereitung und Vorprüfungen echt aus, listet Gate-Aufruf und Pools, startet aber
+kein Gate, Push oder Deploy. Auch fehlgeschlagene Vorprüfungen schreiben einen Alarm.
+
+**Alarm ist die erste Aufgabe des Orchestrators.** `deploy_status.sh` zeigt konfigurierte Linie,
+`last_success` und `ALERT` auch dann, wenn der Produktionscontainer nicht lesbar ist. Alarm enthält
+Zeit, SHA, fehlgeschlagenen Schritt, NEU-Fehler (sofern vorhanden) und Log-Pfad; zusätzlich eine Zeile
+im Journal mit Tag `dishboard-release-train`. Veraltete Tests nur mit belegter Begründung in
+`known_red.txt` aufnehmen. Produktfehler beheben oder betroffenes Paket aus der Linie zurücknehmen.
+Vorprüfungen niemals umgehen; Manifeste durch den Orchestrator aktualisieren und committen.
+Bei fehlgeschlagenem Push/Deploy zuerst Remote- und Live-SHA prüfen. Ist der Push bereits erfolgt,
+aber Deploy fehlgeschlagen, muss der Orchestrator den Deploy reparieren und erneut prüfen:
+ohne neue Commits beendet der nächste Zug mit «nichts zu tun» und erhält den Alarm.
 
 ## 4. Entscheidungsregeln
 
