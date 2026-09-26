@@ -332,7 +332,7 @@ def test_browser_add_remove_reorder_keeps_three_arrays(
     assert payload['recipe_revision_public_id'] == [second['public_id'], first['public_id']]
     assert payload['component_public_id'] == ['', '']
     page.locator('#components-list [data-row]').last.locator('summary').click()
-    page.locator('#components-list').get_by_role('button', name='Löschen', exact=True).last.click()
+    page.locator('#components-list').get_by_role('button', name='Baustein löschen', exact=True).last.click()
     leftover = _submit_menu(page)
     assert leftover['component_text'] == ['Unten']
     assert leftover['recipe_revision_public_id'] == [second['public_id']]

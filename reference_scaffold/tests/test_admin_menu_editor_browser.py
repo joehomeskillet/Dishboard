@@ -84,8 +84,7 @@ def test_visible_editor_labels_with_populated_and_error_states(
     page.wait_for_load_state()
     expect(page.get_by_label('Abstände', exact=True)).to_have_value(density)
     page.goto(_editor('patienten'))
-    # The editor's established compact layout overrides either saved shell density.
-    expect(page.locator('main')).to_have_attribute('data-density', 'compact')
+    expect(page.locator('main')).to_have_attribute('data-density', density)
     _open_sections(page)
     page.get_by_label('Menüname', exact=True).fill('Gemüsegeschnetzeltes mit Kräutern, Reis und Zucchetti')
     page.get_by_label('Beschreibung (auf dem Speiseplan sichtbar)', exact=True).fill('Saisonales Gemüse und Reis, frisch zubereitet für Mittag und Abend.')

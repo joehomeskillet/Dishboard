@@ -17,6 +17,10 @@ from test_rendered_ui import browser  # noqa: F401
 
 @pytest.fixture
 def image_server(app: Flask) -> Iterator[str]:  # noqa: F811
+    from cafeteria.ui import register_ui
+
+    register_ui(app)
+
     def saved_view(profile: str, view: str) -> str:
         snapshot = deepcopy(app.config['TEST_SNAPSHOTS'][profile])
         snapshot['days'] = [day for day in snapshot['days'] if day['services']]

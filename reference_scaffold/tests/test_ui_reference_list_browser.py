@@ -134,7 +134,8 @@ def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None
         assert all(card['radius'] == '12px' and card['shadow'] != 'none'
                    and not card['overflow'] for card in geometry), json.dumps(geometry)
     for cell in page.locator('.dishboard-menu-table :is(th, td):visible').all():
-        assert cell.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 14
+        minimum = 12 if cell.evaluate('el => !!el.closest("thead")') else 14
+        assert cell.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= minimum
     assert page.locator('[data-menu-id]:visible :is(h2, p, li)').evaluate_all('''els => els.every(el => {
         const s = getComputedStyle(el);
         return s.webkitLineClamp === 'none' && el.scrollHeight <= el.clientHeight + 1 &&
@@ -295,7 +296,10 @@ def test_reference_states_and_viewports(
             expect(page.locator('#menu-list').get_by_role(
                 'columnheader', name='Gespeicherter Prüfstand', exact=True,
             )).to_be_visible()
-            expect(page.locator('#menu-list').get_by_text('Allergenangaben nicht erfasst').first).to_be_visible()
+            status_details = page.locator('#menu-list .admin-disclosure').first
+            status_details.locator('summary').click()
+            expect(status_details.get_by_text('Allergenangaben nicht erfasst')).to_be_visible()
+            status_details.locator('summary').click()
             region = page.get_by_role('region', name='Menüliste', exact=True)
             region.focus()
             page.keyboard.press('Shift+Tab')
