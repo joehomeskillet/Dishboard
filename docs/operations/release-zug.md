@@ -11,6 +11,7 @@ Deploy, obwohl laufend Arbeit fertig wurde. Die Ursachen stehen am Ende dieses D
 - Der Zug wird **nie für ein Paket angehalten**, weder für ein fast fertiges noch für ein rotes.
 - Jeder Status (Chat, Ledger, Übergabe) nennt Zeit und Alter des letzten Deploys:
   `rtk bash tools/release/deploy_status.sh`. Exit 1 heisst: Zug überfällig oder Produktion nicht gesund.
+  Das Skript wertet jede lokale Linie `integrate/*` aus und gilt als überfällig, wenn das Deploy-Alter 120 Minuten übersteigt und mindestens eine Linie Commits vor main hat, deren letzter Commit jünger als 7 Tage ist; ältere verwaiste Linien werden nur aufgelistet.
 
 ## 2. Pakete
 
