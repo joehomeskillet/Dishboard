@@ -309,6 +309,25 @@ def test_c3_nonempty_hint_keeps_help_and_relationship(semantic_app):
     assert document.select_one('summary')['aria-describedby'] == 'help'
     assert document.select_one('#help').get_text() == 'CSV ändert keinen Status.'
 
+def test_c3_legacy_actions_use_canonical_icons_and_keep_secondary_weight(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'admin/_macros.html' import actions %}
+            {{ actions(primary='Anlegen', secondary=[
+                {'label':'Entwurf sichern', 'icon':'device-floppy', 'type':'submit', 'name':'intent', 'value':'draft'},
+                {'label':'Record bearbeiten', 'icon':'pencil', 'href':'/edit', 'disabled':true}]) }}''')
+    document = BeautifulSoup(html, 'html.parser')
+    assert document.select_one('.btn-primary')['data-semantic'] == 'actions.add'
+    save = document.select_one('[name="intent"]')
+    assert save['data-semantic'] == 'actions.save' and save['value'] == 'draft'
+    assert 'btn-primary' not in save['class']
+    edit = document.select_one('a[href="/edit"]')
+    assert edit['data-semantic'] == 'actions.edit'
+    assert edit['aria-disabled'] == 'true' and edit['tabindex'] == '-1'
+    assert not document.get_text(strip=True)
+
+
 @pytest.mark.parametrize('count', [0, 2])
 def test_c3_shared_filter_trigger_is_named_icon_with_optional_count(semantic_app, count):
     from bs4 import BeautifulSoup

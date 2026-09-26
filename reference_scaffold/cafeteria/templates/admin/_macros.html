@@ -351,7 +351,7 @@
 {%- from 'ui/_semantic.html' import icon_button -%}
 {%- set href = item.url or item.href or none -%}
 {%- set text = item.label or item.text -%}
-{%- set key = namespace(value=item.key|default(none)) -%}
+{%- set key = namespace(value=item.key|default('actions.edit' if item.icon|default(none) == 'pencil' else none)) -%}
 {%- for candidate in ['save', 'edit', 'preview', 'add', 'upload', 'download', 'cancel', 'open', 'history', 'archive', 'activate', 'delete'] -%}
   {%- set entry = sem('actions.' ~ candidate) -%}
   {%- if key.value is none and (item.icon|default(none) == entry.resolved_icon or text == t(entry.label_key)) -%}{%- set key.value = entry.key -%}{%- endif -%}
@@ -363,22 +363,23 @@
 {%- if item.disabled -%}
   {%- set _ = attrs.update({'aria-disabled': true, 'tabindex': '-1'} if href else {'disabled': true}) -%}
 {%- endif -%}
-{{- icon_button(key.value or ('actions.open' if href else 'actions.save'), href=href,
+{%- set resolved_key = key.value or ('actions.open' if href else 'actions.save') -%}
+{{- icon_button(resolved_key, href=href,
     text=text, type=item.type|default('submit' if primary else 'button'),
     id=item.id|default(none), name=item.name|default(none), value=item.value|default(none),
     form=item.form|default(none), class=item.class|default(''), attrs=attrs,
-    consequence_key=item.consequence_key|default(none), emphasis='primary' if primary else none) -}}
+    consequence_key=item.consequence_key|default(none),
+    emphasis='danger' if sem(resolved_key).role == 'danger' else 'primary' if primary else 'secondary') -}}
 {%- endmacro %}
 
 {%- macro actions(primary=none, secondary=none, class='') -%}
-{%- from 'ui/_semantic.html' import icon_button -%}
 {%- set primary_content = caller() if caller else primary -%}
 <div class="btn-list flex-wrap align-items-center{% if class %} {{ class }}{% endif %}">
   {%- if primary_content -%}
     {%- if primary_content is mapping -%}
       {{- legacy_action(primary_content, primary=true) -}}
     {%- elif primary_content is string and not ('<' in primary_content) -%}
-      {{- icon_button('actions.save', text=primary_content) -}}
+      {{- legacy_action({'label': primary_content}, primary=true) -}}
     {%- else -%}
       {{ primary_content }}
     {%- endif -%}
