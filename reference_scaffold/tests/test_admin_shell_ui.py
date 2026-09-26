@@ -140,7 +140,9 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         const target = check ? element.closest('label') || element.labels[0] : element;
         if (!target) return [{name: element.name, reason: 'missing label target'}];
         const box = target.getBoundingClientRect();
-        return box.width >= 44 && box.height >= 44 ? [] : [{
+        const minimum = target.matches('.ui-sem-control')
+            ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 44;
+        return box.width >= minimum && box.height >= minimum ? [] : [{
             name: element.name || element.textContent.trim(),
             width: box.width, height: box.height,
         }];
@@ -186,7 +188,8 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         assert create_box['y'] >= list_box['y'] + list_box['height'] - 1
         row = main.locator('.component-list-container .component-row').first
         name = row.locator('.component-row-name')
-        edit_link = row.locator('.component-action').get_by_role('link', name='bearbeiten')  # contextual name «Baustein X bearbeiten» (P4)
+        edit_link = name.get_by_role('link', name=component['name'], exact=True)
+        expect(edit_link).to_have_attribute('href', f"/admin/{family}/komponenten/{component['public_id']}")
         expect(name).to_have_attribute('scope', 'row')
         expect(row.get_by_role('link')).to_have_count(1)
         name_box = name.bounding_box()
@@ -195,14 +198,16 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         assert name_box is not None and category_box is not None and link_box is not None
         if width >= 1000:
             assert category_box['x'] >= name_box['x'] + name_box['width']
-            assert link_box['x'] >= category_box['x'] + category_box['width']
         else:
             assert category_box['y'] >= name_box['y'] + name_box['height']
-            assert link_box['y'] >= category_box['y'] + category_box['height']
+        assert link_box['x'] >= name_box['x'] - 1
+        assert link_box['x'] + link_box['width'] <= name_box['x'] + name_box['width'] + 1
+        assert link_box['y'] >= name_box['y'] - 1
+        assert link_box['y'] + link_box['height'] <= name_box['y'] + name_box['height'] + 1
     elif page_kind == 'detail':
         expect(main).to_have_attribute('data-public-id', str(component['public_id']))
         expect(main.locator('[name="name"]')).to_have_value(component['name'])
-        primary = main.get_by_role('button', name='Speichern', exact=True)
+        primary = main.get_by_role('button', name=f"{component['name']} speichern", exact=True)
         for control_id in ('c-name', 'c-cat', 'c-origin'):
             label_box = main.locator(f'label[for="{control_id}"]').bounding_box()
             control_box = main.locator(f'#{control_id}').bounding_box()
@@ -239,7 +244,9 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(primary).to_have_class(re.compile(r'\bprimary\b'))
     primary_box = primary.bounding_box()
     assert primary_box is not None
-    assert primary_box['height'] >= 48
+    semantic = primary.evaluate("el => el.classList.contains('ui-sem-control')")
+    minimum = (44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36) if semantic else 48
+    assert primary_box['height'] >= minimum
     if page_kind == 'catalog':
         primary.scroll_into_view_if_needed()
         expect(primary).to_be_visible()

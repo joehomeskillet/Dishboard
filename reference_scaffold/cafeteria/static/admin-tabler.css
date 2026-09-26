@@ -576,7 +576,10 @@
 .dishboard-admin :is(table.admin-table, table.admin-table--stack) {
   width: 100%; border-collapse: collapse; font-size: var(--app-list-font-size);
 }
-.dishboard-admin :is(.admin-table, .admin-table--stack) tbody tr { height: var(--app-list-row-min-height); }
+.dishboard-admin :is(.admin-table, .admin-table--stack) tbody tr {
+  height: var(--app-list-row-min-height);
+  border-bottom: var(--app-list-line-width) solid var(--app-border);
+}
 .dishboard-admin :is(.admin-table, .admin-table--stack) tbody tr:has(.admin-list-secondary, .admin-list-subtitle) { height: var(--app-list-row-two-line-height); }
 .dishboard-admin :is(.admin-table, .admin-table--stack) :is(th, td) {
   padding: var(--app-list-pad-y) var(--app-list-pad-x); vertical-align: middle; overflow-wrap: anywhere;
@@ -584,16 +587,18 @@
 }
 .dishboard-admin :is(.admin-table, .admin-table--stack) thead th {
   height: var(--app-list-header-height); font-size: var(--app-list-header-size);
-  font-weight: var(--app-list-header-weight); text-transform: uppercase;
+  font-family: var(--app-list-font-family);
+  font-weight: var(--app-list-header-weight); text-transform: var(--app-list-header-transform);
   line-height: var(--app-list-line-height); padding-block: var(--app-space-1);
-  color: var(--app-text-muted); background: var(--app-surface-soft);
+  color: var(--app-list-header-color); background: var(--app-list-header-background);
 }
 .dishboard-admin .admin-table :is(.admin-table-status, .admin-table-actions) { width: 1%; white-space: nowrap; }
 .dishboard-admin .admin-table-actions { text-align: end; }
 .dishboard-admin .admin-table-status .badge { white-space: nowrap; }
 .dishboard-admin .admin-table-actions .admin-row-actions { min-width: max-content; flex-wrap: nowrap; }
 
-/* P5a: drei Textrollen. Legacy-Zeilen nutzen denselben Vertrag bis zur
+/* Eine Listentypografie: Haupttext sowie identische Sekundär-/Metarollen.
+   Legacy-Zeilen nutzen denselben Vertrag bis zur
    Makromigration. !important schützt ihn auch vor Tabler-Utilities und später
    geladenem Modul-CSS; Tabellenköpfe, Labels, Icons und Bedienelemente behalten
    ihren Vertrag. */
@@ -602,9 +607,10 @@
 .dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
   :where(a, span, div, p, small, strong, b, em, i, time, code, h2, h3, h4, h5, h6):not(:where(thead *, .badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *, button, button *, summary, summary *, .form-control, .form-select)) {
   font-size: var(--app-list-meta-size) !important;
+  font-family: var(--app-list-font-family) !important;
   line-height: var(--app-list-line-height) !important;
   font-weight: var(--app-list-meta-weight) !important;
-  color: var(--app-text) !important;
+  color: var(--app-text-muted) !important;
   font-style: normal !important;
 }
 .dishboard-admin :is(.admin-table, .admin-table--stack) tbody :is(th[scope="row"], td:first-child),
@@ -613,19 +619,24 @@
 .dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row)
   :is(.admin-list-primary, .admin-list-name > strong, .recipe-list-name > h2, h3, h5, .card-title),
 .dishboard-admin .admin-users-row > div:first-child > strong,
+.dishboard-admin .admin-list-primary,
 .dishboard-admin .admin-list-primary :where(a, span, strong, b, em, i, time, code),
 .dishboard-admin .admin-list-name > strong :where(a, span, strong, b, em, i, time, code) {
   font-size: var(--app-list-primary-size) !important;
+  font-family: var(--app-list-font-family) !important;
   line-height: var(--app-list-line-height) !important;
   font-weight: var(--app-list-primary-weight) !important;
   color: var(--app-text) !important;
   font-style: normal !important;
 }
 .dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
-  :is(.admin-list-secondary, .admin-list-subtitle, .text-secondary, .print-tpl-meta),
+  :is(.admin-list-secondary, .admin-list-subtitle, .admin-list-meta, .text-secondary, .print-tpl-meta),
 .dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
-  :is(.admin-list-secondary, .admin-list-subtitle, .text-secondary, .print-tpl-meta) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)) {
+  :is(.admin-list-secondary, .admin-list-subtitle, .admin-list-meta, .text-secondary, .print-tpl-meta) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)),
+.dishboard-admin :is(.admin-list-secondary, .admin-list-meta),
+.dishboard-admin :is(.admin-list-secondary, .admin-list-meta) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)) {
   font-size: var(--app-list-secondary-size) !important;
+  font-family: var(--app-list-font-family) !important;
   line-height: var(--app-list-line-height) !important;
   font-weight: var(--app-list-secondary-weight) !important;
   color: var(--app-text-muted) !important;
@@ -782,10 +793,6 @@
 .kitchen-cal-toolbar .btn { min-height: 44px; min-width: 44px; }
 .kitchen-cal-table { table-layout: fixed; width: 100%; }
 .kitchen-cal-table col { width: 14.2857%; }
-.kitchen-cal-table th {
-  text-align: left; font-weight: 600; padding: var(--app-space-2) var(--app-space-3);
-  background: var(--app-surface-soft);
-}
 .kitchen-cal-day {
   vertical-align: top; height: 10rem; padding: var(--app-space-2);
 }
@@ -793,22 +800,18 @@
 .kitchen-cal-day-today { background: var(--app-primary-soft); }
 .kitchen-cal-day-head {
   display: flex; align-items: baseline; gap: var(--app-space-2);
-  min-height: 44px; font-weight: 700; color: inherit; text-decoration: none;
+  min-height: 44px; text-decoration: none;
 }
-.kitchen-cal-day-head:is(:hover, :focus-visible) { color: var(--app-primary); }
-.kitchen-cal-today-mark { font-weight: 600; font-size: var(--app-font-size-small); color: var(--app-primary); }
 .kitchen-cal-area { margin-top: var(--app-space-2); }
 .kitchen-cal-area-title {
   display: flex; align-items: center; gap: var(--app-space-1);
   margin: 0; font-size: var(--app-font-size-small); font-weight: 700;
 }
 .kitchen-cal-meal { margin-top: var(--app-space-1); }
-.kitchen-cal-meal-label { font-size: var(--app-font-size-small); color: var(--app-text-muted); }
 .kitchen-cal-dish {
-  display: block; color: var(--app-text); overflow-wrap: anywhere;
+  display: block; overflow-wrap: anywhere;
   min-height: 44px; padding-block: var(--app-space-1);
 }
-.kitchen-cal-dish:is(:hover, :focus-visible) { color: var(--app-primary); }
 .kitchen-cal-more { margin-top: var(--app-space-1); }
 .kitchen-cal-more summary {
   cursor: pointer; min-height: 44px; display: flex; align-items: center;
@@ -817,17 +820,16 @@
 .kitchen-cal-empty { margin: var(--app-space-2) 0; color: var(--app-text-muted); }
 .kitchen-cal-event {
   display: block; min-height: 44px; padding-block: var(--app-space-1);
-  font-weight: 600; color: var(--app-primary);
 }
 .kitchen-cal-event:is(:hover, :focus-visible) { text-decoration: underline; }
-.kitchen-cal-notice { margin: 0; font-size: var(--app-font-size-small); }
+.kitchen-cal-notice { margin: 0; }
 .kitchen-cal-list { display: none; list-style: none; padding: 0; margin: 0; }
 .kitchen-cal-list-day {
-  padding: var(--app-space-4) 0; border-bottom: 1px solid var(--app-border);
+  padding: var(--app-list-pad-y) var(--app-list-pad-x);
+  border-bottom: var(--app-list-line-width) solid var(--app-border);
 }
-.kitchen-cal-list-head { margin: 0 0 var(--app-space-2); font-size: 1.25rem; }
-.kitchen-cal-list-head a { color: inherit; text-decoration: none; }
-.kitchen-cal-list-head a:is(:hover, :focus-visible) { color: var(--app-primary); }
+.kitchen-cal-list-head { margin: 0 0 var(--app-space-2); }
+.kitchen-cal-list-head a { text-decoration: none; }
 .dishboard-admin .admin-main[data-layout="calendar"] :is(a, button, summary, input):focus-visible {
   outline: 2px solid var(--app-focus); outline-offset: 2px;
 }

@@ -56,9 +56,14 @@ def test_week_creation_and_tablet_layout(page_context):
             expect(page.get_by_role('navigation', name='Backend')).to_be_hidden()
         assert not page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
         expect(page.locator('#new-week-date')).to_be_hidden()
-        page.locator('#new-week-title').focus()
+        create = page.get_by_role('link', name='Neue Woche anlegen', exact=True)
+        expect(create).to_have_text('')
+        # Before enhancement this is also a valid no-JS link to the visible form.
+        assert create.get_attribute('aria-expanded') is None
+        create.focus()
         page.keyboard.press('Enter')
         expect(page.locator('#new-week-date')).to_be_visible()
+        expect(create).to_have_attribute('aria-expanded', 'true')
         for selector in ['input[type="date"]', 'input[name="title"]', 'textarea', 'button[type="submit"]']:
             for control in page.locator(selector).all():
                 if control.is_visible():
@@ -67,10 +72,41 @@ def test_week_creation_and_tablet_layout(page_context):
     expect(page.locator('#new-week-date')).to_be_visible()
     page.get_by_label('Wochenbeginn (Montag)').fill('2027-01-04')
     page.get_by_label('Wochentitel', exact=True).fill('Tabletwoche')
-    page.get_by_role('button', name='Anlegen').click()
+    page.get_by_role('button', name='Anlegen', exact=True).click()
     assert '/admin/patienten?week=2027-01-04' in page.url
     page.goto('/admin/patienten/wochen')
     expect(page.get_by_text('Tabletwoche', exact=True)).to_be_visible()
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+@pytest.mark.parametrize('javascript', [True, False])
+def test_empty_week_creation_and_error_retention(admin_app, admin_engine, live_server, browser, family, profile, javascript):
+    client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    _scope(admin_engine, actor, profile)
+    cookie = client.get_cookie('session')
+    assert cookie is not None
+    context = browser.new_context(base_url=live_server, java_script_enabled=javascript)
+    try:
+        context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        page.goto(f'/admin/{family}/wochen')
+        empty_create = page.locator('[data-empty-kind="none"]').get_by_role('link', name='Anlegen', exact=True)
+        expect(empty_create).to_have_text('')
+        empty_create.click()
+        expect(page.locator('#new-week-date')).to_be_visible()
+        if javascript:
+            expect(empty_create).to_have_attribute('aria-expanded', 'true')
+        page.get_by_label('Wochenbeginn (Montag)').fill('2026-09-01')
+        page.get_by_label('Wochentitel', exact=True).fill('Eingabe behalten')
+        with page.expect_response(lambda r: r.request.method == 'POST') as posted:
+            page.get_by_role('button', name='Anlegen', exact=True).click()
+        assert posted.value.status == 400
+        expect(page.locator('#new-week-error')).to_be_visible()
+        expect(page.locator('#new-week-date')).to_be_visible()
+        expect(page.locator('#new-week-date')).to_have_value('2026-09-01')
+        expect(page.locator('#new-week-name')).to_have_value('Eingabe behalten')
+    finally:
+        context.close()
 
 
 @pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
@@ -147,7 +183,9 @@ def test_management_density_keyboard_and_native_actions(
                 expect(copy).to_be_visible()
                 preview = first.locator('a[href*="/preview?"]')
                 expect(preview).to_be_visible()
-                page.keyboard.press('Tab')
+                # The shared menu focuses its first action with JS; native details need Tab.
+                if not javascript:
+                    page.keyboard.press('Tab')
                 expect(copy).to_be_focused()
                 bad_targets = page.locator('main :is(.btn, summary):visible').evaluate_all('''es => es.flatMap(e => {
                     const r = e.getBoundingClientRect();
@@ -159,6 +197,10 @@ def test_management_density_keyboard_and_native_actions(
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 expect(page.locator('main .btn-primary')).to_have_count(1)
                 expect(page.locator('main .btn-primary')).to_be_visible()
+                if not javascript:
+                    expect(page.locator('#new-week-date')).to_be_visible()
+                    expect(page.locator('#new-week-title')).to_have_attribute('href', '#new-week-date')
+                    assert page.locator('#new-week-title').get_attribute('aria-expanded') is None
                 if width < 768:
                     stacked = page.evaluate('''() => {
                         const table = document.querySelector('.week-table.admin-table--stack');

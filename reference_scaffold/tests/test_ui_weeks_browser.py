@@ -188,14 +188,19 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
     expect(page.locator('main .btn-primary')).to_have_count(1)
     page.locator('[data-empty-kind="none"]').get_by_role('link', name='Anlegen', exact=True).click()
     expect(page.locator('#new-week-date')).to_be_visible()
-    page.locator('#new-week-title').click()
-    summary = page.locator('#new-week-title')
-    _focus(page, summary)
-    expect(page.locator('#new-week-date')).to_be_hidden()
-    page.keyboard.press('Enter')
-    expect(page.locator('#new-week-date')).to_be_visible()
-    page.keyboard.press('Tab')
-    expect(page.locator('#new-week-date')).to_be_focused()
+    create = page.get_by_role('link', name='Neue Woche anlegen', exact=True)
+    expect(create).to_have_text('')
+    if javascript:
+        create.click()
+        _focus(page, create)
+        expect(page.locator('#new-week-date')).to_be_hidden()
+        page.keyboard.press('Enter')
+        expect(page.locator('#new-week-date')).to_be_visible()
+        page.keyboard.press('Tab')
+        expect(page.locator('#new-week-date')).to_be_focused()
+    else:
+        expect(create).to_have_attribute('href', '#new-week-date')
+        expect(page.locator('#new-week-date')).to_be_visible()
     form = 'form.admin-form'
     token = _fields(page, form)['_csrf']
     page.locator('#new-week-date').fill('2026-09-01')
@@ -238,7 +243,7 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
             page.locator('#new-week-note').fill('Hinweis behalten')
             before = _snapshot(engine)
         else:
-            expect(page.locator('details[open] #new-week-date')).to_be_visible()
+            expect(page.locator('#new-week-form.show #new-week-date')).to_be_visible()
             expect(page.locator('#new-week-error')).to_be_visible()
             expect(page.locator('#new-week-name')).to_have_value('Eigene Woche <script>')
             expect(page.locator('#new-week-note')).to_have_value('Hinweis behalten')

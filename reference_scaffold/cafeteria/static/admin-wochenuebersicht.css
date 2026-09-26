@@ -15,15 +15,17 @@
 .dishboard-admin .week-table .admin-table-status .badge { white-space: normal; }
 .dishboard-admin .week-table .badge { white-space: normal; text-align: left; }
 .dishboard-admin .week-list .pagination { flex-wrap: wrap; gap: var(--app-space-2); }
-.dishboard-admin .week-create > summary { cursor: pointer; list-style: none; }
-.dishboard-admin .week-create > summary::-webkit-details-marker { display: none; }
 .dishboard-admin .week-create { min-width: 0; width: 100%; }
-.dishboard-admin .week-create > summary { width: fit-content; max-width: 100%; white-space: normal; margin-left: auto; min-height: var(--app-space-12); }
+.dishboard-admin .week-create > .ui-sem-control { margin-left: auto; display: flex; }
 .dishboard-admin .week-filter { max-width: 100%; flex-wrap: wrap; }
-.dishboard-admin .week-create[open] form { margin-top: var(--app-space-3); }
-.dishboard-admin .page-header-row:has(.week-create[open]) > .col-md-auto { width: 100%; }
+.dishboard-admin .week-create form { margin-top: var(--app-space-3); }
+.dishboard-admin .page-header-row:has(.week-create .show, .week-create .collapsing) > .col-md-auto { width: 100%; }
 .dishboard-admin .week-create .card-body { padding-inline: 0; }
 .dishboard-admin .week-create .card-footer { padding: var(--app-space-2) 0; }
+@media (scripting: none) {
+  .dishboard-admin .week-create .collapse { display: block; }
+  .dishboard-admin .page-header-row:has(.week-create) > .col-md-auto { width: 100%; }
+}
 
 @container (max-width: 1000px) {
   .dishboard-admin .week-table thead {

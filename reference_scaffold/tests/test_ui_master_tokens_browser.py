@@ -373,7 +373,11 @@ def test_viewports_and_real_routes(site, width, height, padding, tmp_path):
         assert page.locator('.page-body > .container-xl').evaluate('el => getComputedStyle(el).maxWidth') == 'none'
         assert _styles(page.locator('h1'))['font-size'] == ('34px' if width >= 992 else '28px')
         for control in page.locator('.btn:visible, .form-control:visible, .form-select:visible').all():
-            assert control.evaluate('el => el.getBoundingClientRect().height >= 48'), path
+            assert control.evaluate('''el => {
+                const minimum = el.matches('.ui-sem-control')
+                    ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48;
+                return el.getBoundingClientRect().height >= minimum;
+            }'''), path
         page.screenshot(path=str(tmp_path / f'{path.rsplit("/", 1)[-1]}-{width}.png'), full_page=True)
 
 
@@ -561,7 +565,7 @@ def test_polish_heading_scale_flat_cards_and_header_budget(site, tmp_path):
         ['--app-font-size-h1', '--app-font-size-h2', '--app-font-size-h3', '--app-table-row-height']
         .map(k => [k, getComputedStyle(el).getPropertyValue(k).trim()]))''')
     assert values == {'--app-font-size-h1': '2.125rem', '--app-font-size-h2': '1.25rem',
-                      '--app-font-size-h3': '1.125rem', '--app-table-row-height': '56px'}
+                      '--app-font-size-h3': '1.125rem', '--app-table-row-height': '48px'}
     assert [float(_styles(page.locator(tag))['font-size'][:-2]) for tag in ['h1', 'h2', 'h3']] == [34, 20, 18]
     nested = page.locator('.card .card')
     assert nested.evaluate('el => ["Top", "Right", "Bottom", "Left"].every(s => getComputedStyle(el)["border" + s + "Width"] === "0px")')
