@@ -21,7 +21,9 @@ PAGES = (
     ('Wochen', '/admin/cafeteria/wochen', 'tbody tr', 'td:first-child .admin-list-primary', '.admin-list-secondary', 'td:nth-child(2)'),
     ('Bausteine', '/admin/cafeteria/komponenten', '.component-row', 'th[scope=row]', '.text-secondary', 'td.category'),
     ('Gerichtvorlagen', '/admin/gerichtvorlagen', 'tbody tr', 'td:first-child a', '.text-secondary', 'td:nth-child(2)'),
-    ('Rezepte', '/admin/rezepte', '.recipe-list-row', 'h2', '.text-secondary', None),
+    # Locator-Nachzug Rezepte: Kartenliste → Tabelle. Name trägt admin-list-primary,
+    # Ausbeute admin-list-meta. Entwurf steht nicht mehr als Sekundärzeile in jeder Zeile.
+    ('Rezepte', '/admin/rezepte', 'table.recipe-list tbody tr', '.admin-list-primary', None, 'td.admin-list-meta'),
     ('Kochbücher', '/admin/kochbuecher', '.admin-list-row', '.admin-list-name strong', '.admin-list-subtitle', '.admin-list-meta'),
     ('Zutaten', '/admin/grundlagen', '.admin-list-row', '.admin-list-name strong', '.admin-list-subtitle', None),
     ('Einkaufslisten', '/admin/einkaufslisten', '.admin-list-row', '.admin-list-name strong', '.admin-list-subtitle', None),

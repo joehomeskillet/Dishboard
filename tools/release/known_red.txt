@@ -75,9 +75,5 @@ tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[Tru
 tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[True-patienten-patient]
 tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[False-cafeteria-staff_guest]
 tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[False-patienten-patient]
-# 2026-09-26 R16: Tests verlangen sichtbaren Buttontext bzw. alten Rezeptlisten-Selektor; Nutzer-Spezifikation Icon-first (docs/design/2026-09-26-icon-first-simplification-spec.md) — Testmigration läuft
-tests/test_recipe_search_browser.py::test_editor_disclosures_preserve_complete_native_post[False]
-tests/test_recipe_search_browser.py::test_editor_disclosures_preserve_complete_native_post[True]
+# 2026-09-26 R16: test_list_typography_across_modules bleibt rot, weil fremde Modul-Selektoren (Benutzer, API-Schlüssel) nicht mehr treffen. Rezepte und Kochbücher in diesem Test sind angepasst.
 tests/test_ui_list_typography_browser.py::test_list_typography_across_modules
-# 2026-09-26 R16: Rezepte P4 benennt den Listen-Druckknopf «PDF öffnen · Stand n · Titel»; Test erwartet alten Namen mit «Nur im Entwurf» — Icon-first-Welle (WP2a) richtet Name und Test aus
-tests/test_recipe_revision_routes.py::test_view_print_latest_revision_is_distinct_from_current_draft

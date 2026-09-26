@@ -51,7 +51,7 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         page.get_by_role('button', name='Filtern', exact=True).focus()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
-        expect(page.locator('.recipe-card')).to_have_count(50)
+        expect(page.locator('.recipe-row')).to_have_count(50)
         expect(page.locator('form[role="search"] .admin-filter-more')).to_have_attribute('open', '')
         expect(page.get_by_label('Suche', exact=True)).to_have_attribute('maxlength', '200')
         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_attribute('maxlength', '200')
@@ -61,10 +61,10 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         next_link.focus()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
-        expect(page.locator('.recipe-card')).to_have_count(3)
+        expect(page.locator('.recipe-row')).to_have_count(3)
         assert parse_qs(urlsplit(page.url).query) == filters | {'page': ['2']}
         # Cards carry "… ansehen" (/ansicht) and "… bearbeiten" (/<id>) links since the read-only view split.
-        ids = page.locator('.recipe-card a[aria-label$=" bearbeiten"]').evaluate_all(
+        ids = page.locator('.recipe-row a[aria-label$=" bearbeiten"]').evaluate_all(
             'els => els.map(el => el.pathname.split("/").pop())')
         assert ids == expected[50:]
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -72,9 +72,9 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         page.get_by_role('heading', level=1).scroll_into_view_if_needed()
         page.screenshot(path=str(evidence / f'recipes-{width}-js-{javascript}.png'), caret='initial')
         page.locator('nav[aria-label="Rezeptseiten"] a[href*="page=1"]').click()
-        expect(page.locator('.recipe-card')).to_have_count(50)
-        expect(page.locator('.admin-list-row')).to_have_count(50)
-        expect(page.locator('.admin-list-row .admin-status--info')).to_have_count(50)
+        expect(page.locator('.recipe-row')).to_have_count(50)
+        expect(page.locator('.recipe-row')).to_have_count(50)
+        expect(page.locator('.recipe-row .admin-status--info')).to_have_count(50)
         page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         assert urlsplit(page.url).query == ''
         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_value('')
@@ -163,8 +163,8 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                 assert not metrics['overflow']
                 assert page.locator('main .btn-primary:visible').bounding_box()['y'] < 900
                 if name == 'rezepte':
-                    expect(page.locator('.admin-list-row')).to_be_visible()
-                    expect(page.locator('.admin-list-row .admin-label').first).to_be_visible()
+                    expect(page.locator('.recipe-row')).to_be_visible()
+                    expect(page.locator('table.recipe-list tbody tr').first).to_be_visible()
                 elif name in ('images', 'scale', 'revisionen'):
                     expect(page.locator('table.admin-table.admin-table--stack').first).to_be_visible()
                 for table in page.locator('main table').all():
@@ -186,7 +186,7 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                 if name == 'revisionen':
                     expected = page.locator('#recipe-freeze-form').evaluate('f => [...new FormData(f)]')
                     freeze = page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)
-                    expect(freeze).to_contain_text('Festhalten')
+                    expect(freeze).to_have_accessible_name('Gespeicherten Stand festhalten')
                     assert 'festhalten' in (freeze.get_attribute('aria-label') or '').lower()
                     assert 'btn-primary' in (freeze.get_attribute('class') or '').split()
                     with page.expect_request(lambda request: request.method == 'POST') as request:

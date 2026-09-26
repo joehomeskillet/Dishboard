@@ -95,10 +95,10 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
         create(client, long_title)
         page.get_by_role('link', name='Zur Liste der Rezepte', exact=True).click()
         expect(page.get_by_role('link', name='Browser Suppe bearbeiten')).to_be_visible()
-        title = page.locator('.recipe-card .admin-list-name strong', has_text=long_title)
+        title = page.locator('.recipe-row .admin-list-primary', has_text=long_title)
         expect(title).to_be_visible()
         expect(title).to_have_text(long_title)
-        assert page.locator('.recipe-card h2').count() == 0
+        assert page.locator('.recipe-row h2').count() == 0
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         targets(page)
         page.get_by_role('heading', level=1).click()

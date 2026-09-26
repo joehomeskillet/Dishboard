@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, pagination, empty_state, hint, label, list_row, field, icon %}
-{% from 'ui/_semantic.html' import icon_button %}
+{% from 'admin/_macros.html' import page_header, pagination, empty_state, hint, label, field, icon %}
+{% from 'ui/_semantic.html' import icon_button, sem_icon %}
 {% from 'admin/rezepte_ansicht.html' import template_links %}
 {% set workflow_nav = 'recipes' %}
 {% set extra_open = query or ingredient or archived %}
@@ -22,16 +22,25 @@
 <div><label class="form-check"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label></div>
 {{ hint('Durchsucht Titel, Zutaten und Zubereitung. Alle Wörter müssen vorkommen; "Anführungszeichen" suchen eine Wortfolge. Titel und Zutat enthalten den eingegebenen Text. Alle Filter gelten gemeinsam.', 'text-hint') }}
 </div></details>
-{{ icon_button('view.filter', emphasis='primary' if not can_write else none) }}
+{{ icon_button('view.filter', aria_label='Filtern', icon_only=true, emphasis='primary' if not can_write else none) }}
 {% if has_filters %}{{ icon_button('view.reset', href=url_for('admin.recipes_list')) }}{% endif %}
 </form>
 {% if text %}<p class="text-secondary">Sortiert nach Relevanz.</p>{% endif %}
-<div class="recipe-card-grid">
+{% if rows %}
+<div class="card">
+<table class="table table-vcenter card-table admin-table admin-table--stack recipe-list">
+<caption class="visually-hidden">Rezepte</caption>
+<thead><tr><th scope="col">Name</th><th scope="col">Ausbeute</th><th scope="col">Zustand</th><th scope="col">Aktionen</th></tr></thead>
+<tbody>
 {% for item in rows %}{% set links = recipe_links[item.public_id] %}
 {% set draft = namespace(incomplete=not item.payload.ingredients) %}{% for ingredient in item.payload.ingredients %}{% if not ingredient.food_public_id or ingredient.quantity is none or not ingredient.unit_code %}{% set draft.incomplete = true %}{% endif %}{% endfor %}
-{% set status %}{% if item.active and draft.incomplete %}{{ label('Entwurf', 'info') }}{{ label('Angaben fehlen', 'warning', icon='alert-triangle', detail='Zutaten, Mengen oder Einheiten fehlen') }}{% elif item.active %}{{ label('Entwurf', 'info') }}{% else %}{{ label('Archiviert', 'neutral') }}{% endif %}{% endset %}
-{% set direct %}{% if can_write and item.active %}{{ icon_button('actions.edit', href=url_for('admin.recipe_edit', recipe_id=item.public_id), icon_only=true, aria_label=item.payload.title ~ ' bearbeiten') }}{% else %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, aria_label=item.payload.title ~ ' ansehen') }}{% endif %}{% endset %}
-{% set more %}
+<tr class="recipe-row">
+<th scope="row" data-label="Name"><span class="admin-list-primary">{{ item.payload.title }}</span></th>
+<td class="admin-list-meta" data-label="Ausbeute">{{ item.payload.servings }} {{ item.payload.servings_unit_code }}</td>
+<td class="admin-table-status" data-label="Zustand">{% if not item.active %}{{ label('Archiviert', 'neutral') }}{% elif archived %}{{ label('Entwurf', 'info') }}{% endif %}{% if item.active and draft.incomplete %}{{ label('Angaben fehlen', 'warning', icon='alert-triangle', detail='Zutaten, Mengen oder Einheiten fehlen') }}{% endif %}</td>
+<td class="admin-table-actions" data-label="Aktionen"><div class="admin-row-actions">
+{% if can_write and item.active %}{{ icon_button('actions.edit', href=url_for('admin.recipe_edit', recipe_id=item.public_id), icon_only=true, aria_label=item.payload.title ~ ' bearbeiten') }}{% else %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, aria_label=item.payload.title ~ ' ansehen') }}{% endif %}
+<details class="ui-sem-actions"><summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" aria-label="{{ t('actions.more.object', object=item.payload.title) }}">{{ sem_icon('actions.more') }}</summary><div class="ui-sem-action-items">
 {% if can_write and item.active %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, aria_label=item.payload.title ~ ' ansehen') }}{% endif %}
 {% if links.latest_revision %}
 {{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=item.public_id, revision_id=links.latest_revision.public_id), text='PDF öffnen', aria_label='PDF öffnen · Stand ' ~ links.latest_revision.revision_number ~ ' · ' ~ item.payload.title, title='PDF öffnen · Stand ' ~ links.latest_revision.revision_number ~ ' · ' ~ item.payload.title) }}
@@ -39,12 +48,16 @@
 {{ icon_button('actions.history', href=url_for('admin.recipe_revisions', recipe_id=item.public_id), icon_only=true, aria_label='Rezept-History · ' ~ item.payload.title, title='Rezeptverlauf öffnen') }}
 {% if not links.latest_revision %}<p class="text-secondary mt-2 mb-0" id="print-hint-{{ item.public_id }}">Zum Drucken zuerst einen Stand festhalten.</p>{% endif %}
 {{ template_links(links, item.public_id, can_create_template) }}
-{% endset %}
-<article class="recipe-card">{{ list_row(primary=item.payload.title, secondary='Ausbeute ' ~ item.payload.servings ~ ' ' ~ item.payload.servings_unit_code, status=status, actions=direct, more_actions=more) }}</article>
+</div></details>
+</div></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
 {% else %}{% set filtered = has_filters %}
 {% call empty_state('no_match' if filtered else 'none', 'Keine passenden Rezepte' if filtered else 'Noch keine Rezepte', 'Filter anpassen oder zurücksetzen.' if filtered else 'Beginnen Sie mit einem neuen Rezeptentwurf.') %}
 {% if filtered %}{{ icon_button('view.reset', href=url_for('admin.recipes_list')) }}{% elif can_write %}{{ icon_button('actions.add', href=url_for('admin.recipe_new'), emphasis='secondary') }}{% endif %}
-{% endcall %}{% endfor %}
-</div>
+{% endcall %}{% endif %}
 {{ pagination(page, has_next, prev_url, next_url, 'Rezeptseiten') }}
 {% endblock %}

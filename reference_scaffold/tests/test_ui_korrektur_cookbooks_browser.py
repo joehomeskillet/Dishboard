@@ -159,12 +159,11 @@ def _editor_html(book, **overrides) -> str:
 
 
 def _icon_control(control) -> tuple[str, str]:
-    """Icon-only controls carry an accessible name, a native title and the same tooltip title."""
+    """Icon-only controls carry an accessible name and the shared tooltip."""
     assert not control.inner_text().strip()
     name = control.get_attribute('aria-label') or ''
-    # Without JavaScript the native title stays; Tabler's tooltip moves it to data-bs-original-title.
-    title = control.get_attribute('title') or control.get_attribute('data-bs-original-title') or ''
-    assert name and title and control.get_attribute('data-bs-title') == title, (name, title)
+    title = control.get_attribute('data-ui-tooltip') or ''
+    assert name and title, (name, title)
     assert control.locator('svg[aria-hidden="true"] use').count() == 1
     return name, title
 
@@ -208,10 +207,11 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         assert rows.count() == 2
         edit = rows.nth(0).get_by_role('link', name='Testkochbuch bearbeiten', exact=True)
         view = rows.nth(1).get_by_role('link', name='Altes Buch öffnen', exact=True)
-        expect(edit).to_contain_text('Bearbeiten')
-        expect(view).to_contain_text('Öffnen')
+        expect(edit).to_have_accessible_name('Testkochbuch bearbeiten')
+        expect(view).to_have_accessible_name('Altes Buch öffnen')
+        assert not edit.inner_text().strip() and not view.inner_text().strip()
         # actions.edit resolves to the vendored Tabler 'edit' symbol since the sprite package.
-        assert (_symbol(edit), _symbol(view)) == ('edit', 'chevron-right')
+        assert (_symbol(edit), _symbol(view)) == ('edit', 'arrow-right')
         # Active is the default; only archived rows carry a status badge, so "Aktiv" is not repeated per row.
         expect(rows.nth(0).locator('.badge')).to_have_count(0)
         expect(rows.nth(1).locator('.badge')).to_have_text('Archiviert')
@@ -232,7 +232,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         assert 'btn-primary' not in (none.locator('a').get_attribute('class') or '').split()
         expect(page.locator('details#cookbook-create')).to_have_count(0)
         assert page.locator('main .btn-primary').count() == 1
-        expect(page.locator('main .btn-primary')).to_contain_text('Anlegen')
+        expect(page.locator('main .btn-primary')).to_have_accessible_name('Anlegen')
 
         page.set_content(_editor_html(_book()))
         expect(page.get_by_role('heading', level=2, name='Rezept-Zuordnung')).to_be_visible()
@@ -257,7 +257,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.locator('form[action$="/rezepte"] thead')).to_contain_text('Rezept')
         open_recipe = page.get_by_role('link', name='Testrezept öffnen', exact=True)
         assert _icon_control(open_recipe) == ('Testrezept öffnen', 'Öffnen')
-        assert _symbol(open_recipe) == 'chevron-right'
+        assert _symbol(open_recipe) == 'arrow-right'
         archive = _open_archive_action(page)
         assert archive.get_attribute('href') == '/admin/kochbuecher/book-1/status'
         assert _symbol(archive) == 'archive'
@@ -568,7 +568,8 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
     try:
         page.goto(cookbook_server['base'] + '/admin/kochbuecher')
         edit = page.get_by_role('link', name=f'{name} bearbeiten', exact=True)
-        expect(edit).to_contain_text('Bearbeiten')
+        expect(edit).to_have_accessible_name(f'{name} bearbeiten')
+        assert not edit.inner_text().strip()
         expect(page.locator('dl.admin-statusbar')).to_be_visible()
         page.get_by_label('Suche', exact=True).focus()
         _tab_to(page, page.get_by_label('Archivierte einschliessen', exact=True))
@@ -576,7 +577,7 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
         _tab_to(page, edit)
         expect(edit).to_be_focused()
         rings = {'row-action': _focus_ring(edit)}
-        expect(page.locator('main .btn-primary')).to_contain_text('Anlegen')
+        expect(page.locator('main .btn-primary')).to_have_accessible_name('Anlegen')
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
         page.screenshot(path=str(EVIDENCE / f'kochbuecher-nojs-{label}.png'), full_page=True)
 

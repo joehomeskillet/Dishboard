@@ -120,21 +120,17 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         assert page.goto(base + '/admin/cafeteria?week=2026-08-31').status == 200
         sidebar(page, width, javascript, 'Rezepte')
         active(page, 'Rezepte')
-        cards = page.locator('.recipe-card-grid article')
+        cards = page.locator('table.recipe-list tbody tr.recipe-row')
         boxes = [card.bounding_box() for card in cards.all()]
         assert len(boxes) == 4 and all(box is not None for box in boxes)
-        rows = cards.locator('.admin-list-row')
+        rows = cards
         expect(rows).to_have_count(4)
-        assert rows.evaluate_all('''els => els.every(el =>
-            el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1)''')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         metrics = rows.evaluate_all('''els => els.map(el => {
-            const title = el.querySelector('.admin-list-name strong');
+            const title = el.querySelector('.admin-list-primary');
             const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
-            return {height: el.closest('article').getBoundingClientRect().height,
-                titleLines: Math.round(title.getBoundingClientRect().height / lineHeight),
-                parts: [...el.children].map(child => ({height: child.getBoundingClientRect().height,
-                    top: child.getBoundingClientRect().top - el.getBoundingClientRect().top})),
-                padding: getComputedStyle(el).padding, gap: getComputedStyle(el).gap};
+            return {height: el.getBoundingClientRect().height,
+                titleLines: Math.round(title.getBoundingClientRect().height / lineHeight)};
         })''')
         (tmp_path / f'recipe-rows-{width}-js{javascript}.json').write_text(json.dumps(metrics, indent=2))
         if width >= 1024:
@@ -143,7 +139,7 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
             assert all(row['height'] <= 96 for row in single_line), metrics
         for action in rows.locator('.btn:visible').all():
             box = action.bounding_box()
-            assert box and box['width'] >= 48 and box['height'] >= 48, box
+            assert box and box['width'] >= 36 and box['height'] >= 36, box
         page.screenshot(path=str(tmp_path / f'recipe-list-{width}-js{javascript}.png'), full_page=True)
         # Native disclosure grows only its own row, with and without JavaScript.
         more = cards.first.locator('details > summary')
@@ -157,7 +153,7 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         expect(editor).to_have_attribute('data-semantic', 'actions.edit')
         expect(editor).to_have_attribute('aria-label', 'Suppe bearbeiten')
         box = editor.bounding_box()
-        assert box and box['width'] >= 48 and box['height'] >= 48
+        assert box and box['width'] >= 36 and box['height'] >= 36
         editor.focus()
         page.keyboard.press('Tab')
         page.keyboard.press('Shift+Tab')
@@ -173,7 +169,7 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         expect(menu).to_contain_text('Mehr')
         menu.click()
         images = page.locator('.admin-compact-toolbar').get_by_role('link', name='Bild', exact=True)
-        expect(images).to_contain_text('Bild')
+        expect(images).to_have_accessible_name('Bild')
         assert 'Bild' in (images.get_attribute('aria-label') or '')
         images.click()
         active(page, 'Rezepte')

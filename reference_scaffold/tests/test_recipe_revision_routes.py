@@ -252,7 +252,7 @@ def test_view_print_latest_revision_is_distinct_from_current_draft(a3, monkeypat
             assert 'aria-label="PDF öffnen"' in result.text
             assert 'Neuester gespeicherter Stand 2' in result.text
         else:
-            assert 'aria-label="Drucken · Stand 2 · Nur im Entwurf"' in result.text
+            assert 'aria-label="PDF öffnen · Stand 2 · Nur im Entwurf"' in result.text
         assert f'href="{first.location}/druck.pdf"' not in result.text
     assert 'Nur im Entwurf' in client.get(path + '/ansicht').text
     historical = client.get(second.location)
