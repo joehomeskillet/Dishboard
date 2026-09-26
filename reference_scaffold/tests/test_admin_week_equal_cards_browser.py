@@ -87,7 +87,7 @@ def _assert_edit_link_context(page: Page, family: str, titles: list[str]) -> Non
         name = f'Bearbeiten: {day_labels[day_index]}, {meal_label}, {option_label} – {title}'
         link = page.get_by_role('link', name=name, exact=True)
         expect(link).to_have_count(1)
-        expect(link).to_have_text('Anlegen' if title == 'Noch kein Gericht' else 'Bearbeiten')
+        expect(link).to_have_attribute('data-semantic', 'actions.add' if title == 'Noch kein Gericht' else 'actions.edit')
         target = urlsplit(link.get_attribute('href') or '')
         assert target.path == f'/admin/{family}/menu'
         assert parse_qs(target.query) == {

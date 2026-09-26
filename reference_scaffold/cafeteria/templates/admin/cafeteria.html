@@ -37,7 +37,7 @@
 {% endblock %}
 {% block page_header %}
 {% from 'admin/_week_controls.html' import overview_header with context %}
-{{ overview_header('Cafeteria', 'Menüs und gemeinsame Gänge für die Mittagsausgabe planen.') }}
+{{ overview_header('Cafeteria', week_header_description) }}
 {% if last_cell.day_label == 'Sonntag' %}
 <div class="container-xl"><details class="admin-compact-details" id="weekend-hint"><summary>Wochenendbetrieb</summary><p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p></details></div>
 {% endif %}

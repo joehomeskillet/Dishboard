@@ -208,13 +208,8 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .dish-type {
-  color: var(--app-text-muted);
-  font-size: var(--app-font-size-label);
-}
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot h3 {
   margin: 0;
-  font-size: var(--app-font-size-title);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack {
   display: flex;
@@ -284,10 +279,10 @@
   list-style: none;
   overflow-wrap: anywhere;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-components li {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-components span {
   display: inline;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-components li:not(:last-child)::after {
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-components span:not(:last-child)::after {
   content: " · ";
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-review-line {

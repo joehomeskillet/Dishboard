@@ -34,7 +34,7 @@
 {% endblock %}
 {% block page_header %}
 {% from 'admin/_week_controls.html' import overview_header with context %}
-{{ overview_header('Patienten', 'Mittag und Abend für alle sieben Tage planen.') }}
+{{ overview_header('Patienten', week_header_description) }}
 {% endblock %}
 {% block content %}
 {% set declarations = namespace(options=[]) %}

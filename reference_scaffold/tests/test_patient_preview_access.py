@@ -34,12 +34,13 @@ def test_patient_preview_link_remains_available_when_publication_is_blocked(
     assert f'data-status="{state}"' in body
     links = [
         link for link in re.finditer(r'<a\b([^>]*)>(.*?)</a>', body, re.S)
-        if re.sub(r'<[^>]*>', '', link.group(2)).strip() == 'Vorschau'
+        if 'data-semantic="actions.preview"' in link.group(1)
     ]
     assert len(links) == 1
     link = links[0]
     attributes = dict(re.findall(r'([a-z-]+)="([^"]*)"', link.group(1)))
     assert attributes['href'] == f'/admin/patienten/preview?week={DAY}'
+    assert attributes['aria-label'] == 'Vorschau'
     assert 'disabled' not in attributes['class'].split()
     assert 'aria-disabled' not in attributes
     assert re.search(r'\sdisabled(?:\s|=|$)', link.group(1)) is None

@@ -149,10 +149,10 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     publish = form.locator('button[type="submit"]')
     publish_trigger = page.locator('[data-bs-target="#week-publish-modal"]')
     expect(publish).to_have_text('Veröffentlichen')
-    expect(publish_trigger).to_have_text('Veröffentlichen')
+    expect(publish_trigger).to_have_accessible_name('Veröffentlichen')
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
     if state == 'review_open':
-        expect(page.locator('main .btn-primary')).to_have_text('Offene Punkte prüfen')
+        expect(page.locator('main .btn-primary')).to_have_accessible_name('Offene Punkte prüfen')
     if state == 'ready':
         expect(publish).to_be_enabled()
         expect(publish_trigger).to_be_enabled()
