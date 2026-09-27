@@ -1,6 +1,7 @@
 """Recipe density evidence and native form interaction on synthetic PostgreSQL data."""
 import json
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -100,13 +101,19 @@ def test_readonly_preparation_reopens_after_escape(
         detail = page.locator('#step-details-0')
         summary = detail.locator(':scope > summary')
         field = page.locator('[name="steps.0.instruction"]')
-        expect(summary).to_have_text('Details für Schritt 1')
+        expect(summary).to_have_accessible_name('Details für Schritt 1')
         expect(page.locator('[data-recipe-toggle="step-details-0"]')).to_be_hidden()
-        expect(page.get_by_role('button', name='Rezept speichern', exact=True)).to_have_count(0)
+        expect(page.get_by_role('button', name='Speichern', exact=True)).to_have_count(0)
         for focus in (page.locator('a[href="#ingredients-heading"]'), summary):
             expect(detail).to_have_attribute('open', '')
             focus.focus()
             expect(focus).to_be_focused()
+            if javascript and focus.get_attribute('data-ui-tooltip'):
+                tooltip = page.get_by_role('tooltip', name=focus.get_attribute('data-ui-tooltip'), exact=True)
+                expect(tooltip).to_be_visible()
+                page.keyboard.press('Escape')
+                expect(tooltip).to_be_hidden()
+                expect(detail).to_have_attribute('open', '')
             page.keyboard.press('Escape')
             if javascript:
                 expect(detail).not_to_have_attribute('open', '')
@@ -167,7 +174,7 @@ def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, brows
         assert not posts and snapshot(owner) == before
         if javascript:
             expect(page.locator('[data-recipe-ingredient-summary]').first).to_have_text('Gruppe: Suppe · Notiz: Fein würfeln')
-        page.get_by_label('Aktionen für Zutat 1', exact=True).click()
+        page.get_by_label('Mehr: Weitere Aktionen Zutat 1', exact=True).click()
         for operation, label in [('up', 'Nach oben'), ('down', 'Nach unten')]:
             control = page.locator(f'button[formaction*="row_action={operation}"]').first
             expect(control.locator('use')).to_have_attribute('href', f'/static/vendor/tabler-icons/tabler-icons.svg#tabler-arrow-{operation}')
@@ -182,22 +189,23 @@ def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, brows
         assert page.locator('[name="_form_context"]').input_value() == browser_context
         assert page.locator('[name="row_version"]').input_value() == original['row_version']
         assert snapshot(owner) == before
-        page.get_by_label('Aktionen für Zutat 2', exact=True).click()
+        page.get_by_label('Mehr: Weitere Aktionen Zutat 2', exact=True).click()
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Zutat 2 davor einfügen', exact=True).click()
         expect(page.locator('[name="ingredients.1.ingredient_text"]')).to_be_focused()
         expect(page.locator('#ingredient-details-1')).to_have_attribute('open', '')
         page.locator('[name="ingredients.1.ingredient_text"]').fill('Neue Zutat')
-        page.get_by_label('Aktionen für Zutat 2', exact=True).click()
+        page.get_by_label('Mehr: Weitere Aktionen Zutat 2', exact=True).click()
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Zutat 2 entfernen', exact=True).click()
         expect(page.locator('[name="ingredients.1.ingredient_text"]')).to_be_focused()
         assert snapshot(owner) == before
         # A required, unchanged step may be collapsed; its exact text is still submitted.
-        page.get_by_role('button', name='Rezept speichern', exact=True).focus()
+        page.get_by_role('button', name='Speichern', exact=True).focus()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
-        expect(page.get_by_role('heading', name='Rezept bearbeiten', exact=True)).to_be_visible()
+        expect(page.get_by_role('heading', name='Rezepte', exact=True)).to_be_visible()
+        expect(page.locator('.page-header-subtitle')).to_have_text('Gemüsesuppe')
         saved = fields(client, path)
         assert saved['ingredients.1.quantity'] == '2.5' and saved['ingredients.1.unit_code'] == 'KG'
         assert saved['ingredients.1.group_label'] == 'Suppe' and saved['ingredients.1.note'] == 'Fein würfeln'
@@ -235,7 +243,7 @@ def test_required_step_in_closed_details_opens_and_focuses(b3, master_server, br
             expect(detail).not_to_have_attribute('open', '')
         else:
             expect(toggle).to_be_hidden()
-        page.get_by_role('button', name='Rezept speichern', exact=True).focus()
+        page.get_by_role('button', name='Speichern', exact=True).focus()
         page.keyboard.press('Enter')
         expect(detail).to_have_attribute('open', '')
         expect(field).to_be_focused()
@@ -255,7 +263,7 @@ def test_required_step_in_closed_details_opens_and_focuses(b3, master_server, br
             expect(toggle).to_be_focused()
             expect(detail).not_to_have_attribute('open', '')
             expect(page.locator('[data-recipe-step-summary]').first).to_contain_text('…')
-            page.get_by_role('button', name='Rezept speichern', exact=True).click()
+            page.get_by_role('button', name='Speichern', exact=True).click()
             assert fields(client, path)['steps.0.instruction'] == long_instruction
 
 
@@ -290,13 +298,16 @@ def test_sticky_toolbar_clears_focus_and_virtual_keyboard(b3, master_server, bro
         expect(toolbar).to_have_css('position', 'static')
 
 
-def test_reference_density_and_mobile_targets(b3, master_server, browser):  # noqa: F811
+@pytest.mark.parametrize('touch', [False, True])
+def test_reference_density_and_mobile_targets(b3, master_server, browser, touch):  # noqa: F811
     path = reference(b3[2])
     base, cookie = master_server
-    with browser.new_context(viewport={'width': 1440, 'height': 900}, reduced_motion='reduce', service_workers='block') as context:
+    with browser.new_context(viewport={'width': 1440, 'height': 900}, has_touch=touch,
+                             reduced_motion='reduce', service_workers='block') as context:
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         page.goto(base + path)
+        assert page.evaluate('matchMedia("(pointer: coarse)").matches') == touch
         rows = page.locator('[data-recipe-ingredient]')
         expect(page.locator('.admin-compact-column-labels')).to_be_visible()
         expect(page.locator('.admin-compact-column-labels')).to_contain_text('Menge')
@@ -311,7 +322,12 @@ def test_reference_density_and_mobile_targets(b3, master_server, browser):  # no
             for element in page.locator('main :is(.btn, .form-control, .form-select, summary)').all():
                 if element.is_visible():
                     box = element.bounding_box()
-                    assert box and box['height'] >= 44
+                    if 'ui-sem-control--icon-only' in (element.get_attribute('class') or '').split():
+                        size = 44 if touch else 36
+                        assert box and box['height'] == size and box['width'] == size
+                        expect(element).to_have_accessible_name(re.compile(r'\S'))
+                    else:
+                        assert box and box['height'] >= 44
             if width < 992:
                 for label in rows.first.locator('.admin-compact-line label').all():
                     box = label.bounding_box()
@@ -323,7 +339,7 @@ def test_reference_density_and_mobile_targets(b3, master_server, browser):  # no
             actual200Percent: innerWidth === 720 && devicePixelRatio === 2})''')
         destination = EVIDENCE / 'after'
         destination.mkdir(parents=True, exist_ok=True)
-        (destination / 'browser-zoom-probe.json').write_text(json.dumps(zoom, indent=2))
+        (destination / f'browser-zoom-probe-touch{touch}.json').write_text(json.dumps(zoom, indent=2))
 
 
 @pytest.mark.parametrize('javascript', [False, True])
@@ -362,6 +378,6 @@ def test_warning_unavailable_selection_and_readonly_remain_accessible(
         expect(page.locator('[name="steps.0.instruction"]')).to_be_disabled()
         page.locator('#ingredient-details-0 > summary').click()
         expect(page.locator('[name="ingredients.0.food_public_id"]')).to_be_visible()
-        expect(page.get_by_role('button', name='Rezept speichern', exact=True)).to_have_count(0)
+        expect(page.get_by_role('button', name='Speichern', exact=True)).to_have_count(0)
         expect(page.locator('.alert-warning')).to_be_visible()
     assert snapshot(owner) == before
