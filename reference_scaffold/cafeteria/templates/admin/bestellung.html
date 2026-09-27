@@ -21,7 +21,7 @@
 <section class="order-section" id="koerbe" aria-labelledby="koerbe-title">
 <h2 id="koerbe-title">{{ icon_label('order.cart') }}</h2>
 {% if baskets %}
-<div class="order-list" role="list">
+<div class="order-list admin-list" role="list">
 {% for row in baskets %}
 {% set status %}{{ status_badge_sem(order_states.get(row.status, 'status.unknown')) }}{% endset %}
 {% set actions %}{{ row_actions([{'key': 'actions.open', 'href': url_for('admin.order_basket', public_id=row.public_id), 'object': row.supplier_name}]) }}{% endset %}
@@ -46,7 +46,7 @@
 <section class="order-section" id="lieferanten" aria-labelledby="lieferanten-title">
 <h2 id="lieferanten-title">{{ icon_label('order.supplier') }}</h2>
 {% if suppliers %}
-<div class="order-list" role="list">
+<div class="order-list admin-list" role="list">
 {% for row in suppliers %}
 {% set status %}{{ status_badge_sem('status.active' if row.active else 'status.inactive') }}{% endset %}
 <div role="listitem">{{ list_row(primary=row.name, secondary=row.code, status=status) }}</div>
@@ -68,7 +68,7 @@
 <section class="order-section" id="artikel" aria-labelledby="artikel-title">
 <h2 id="artikel-title">{{ t('ui.order_articles.label') }}</h2>
 {% if articles %}
-<div class="order-list" role="list">
+<div class="order-list admin-list" role="list">
 {% for row in articles %}
 <div role="listitem">{{ list_row(primary=row.name, secondary=row.article_code ~ ' · Gebinde ' ~ row.pack_size ~ ' ' ~ row.order_unit_code ~ (' · ohne Zutat' if row.without_food else ''), status=' ') }}</div>
 {% endfor %}
