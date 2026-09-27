@@ -39,7 +39,11 @@ def geometry(page):
     for element in page.locator('main :is(.btn, .form-control)').all():
         if element.is_visible():
             box = element.bounding_box()
-            assert box is not None and box['height'] >= 48 and box['width'] >= 48
+            # Icon actions are 36 px (fine pointer) or 44 px (coarse). Other controls stay 48.
+            minimum = element.evaluate(
+                "e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48"
+            )
+            assert box is not None and box['height'] >= minimum and box['width'] >= minimum, box
             element.focus()
             expect(element).to_be_focused()
     for svg in page.locator('main svg use').all():
@@ -102,6 +106,8 @@ def test_native_upload_freeze_history_scaling_and_assets(a3, recipe_server, brow
         expect(page.get_by_role('heading', name='Gespeicherter Stand 1', exact=True)).to_be_visible()
         revision_path = urlsplit(page.url).path
         before = snapshot(owner)
+        page.mouse.move(0, 0)
+        expect(page.get_by_role('tooltip')).to_be_hidden()
         page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         page.get_by_label('Zielmenge · PORTION', exact=True).fill('6')
         page.get_by_role('button', name='Mengen berechnen', exact=True).click()

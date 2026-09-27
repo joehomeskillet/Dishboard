@@ -126,7 +126,7 @@ def test_preview_and_list_are_native_readonly_with_exact_prepared_selection(prep
         assert '/revisionen/' in child.get_attribute('href')
         freeze = page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)
         expect(freeze).to_be_visible()
-        expect(freeze).to_have_text('Festhalten')
+        assert 'ui-sem-control--icon-only' in (freeze.get_attribute('class') or '')
         expect(freeze).to_have_accessible_name('Gespeicherten Stand festhalten')
         expect(freeze).to_have_attribute('data-semantic', 'data.revision')
         proof(page, tmp_path / f'freeze-preview-{width}.png', expected_status=200, requests=methods.copy())

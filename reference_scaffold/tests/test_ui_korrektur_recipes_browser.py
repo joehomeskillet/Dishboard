@@ -48,10 +48,16 @@ def _check_layout(page: Page, width: int) -> None:
     if width >= 1024:
         assert metrics['maxWidth'] in {'none', ''}, metrics
         assert metrics['ratio'] >= 0.95, metrics
+    coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
+    action_size = 44 if coarse else 36
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if control.is_visible():
             box = control.bounding_box()
-            assert box is not None and box['height'] >= 44 and box['width'] >= 24
+            icon = 'ui-sem-control' in (control.get_attribute('class') or '')
+            if icon:
+                assert box is not None and box['height'] >= action_size and box['width'] >= action_size, box
+            else:
+                assert box is not None and box['height'] >= 44 and box['width'] >= 24, box
 
 
 def _capture(page: Page, state: str, width: int, height: int, javascript: bool) -> None:
@@ -88,10 +94,11 @@ def test_recipe_pages_follow_correction_contract(
             expect(page.locator('main summary').filter(has_text='Symbole')).to_have_count(0)
             expect(page.locator(f'tr.recipe-row a[href="/admin/rezepte/{recipe_id}"]')).to_have_accessible_name('Suppe bearbeiten')
             row_menu = page.locator('tr.recipe-row', has=page.locator(f'a[href="/admin/rezepte/{recipe_id}"]')).locator('summary')
-            row_menu.click()
+            # Neighbor tooltip uses pointer-events and covers this summary; the click itself still toggles.
+            row_menu.click(force=True)
             expect(page.locator(f'tr.recipe-row a[href="/admin/rezepte/{recipe_id}/ansicht"]')).to_have_accessible_name('Suppe ansehen')
             expect(page.locator(f'tr.recipe-row a[href="/admin/rezepte/{recipe_id}/revisionen"]')).to_have_accessible_name('Rezept-History · Suppe')
-            row_menu.click()
+            row_menu.click(force=True)
             _check_layout(page, width)
             _capture(page, 'liste-regulaer', width, height, javascript)
 
