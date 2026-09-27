@@ -4,6 +4,91 @@ Vollständiges Ansichteninventar gemäss Spezifikation §12.1 und Abnahme UI-01.
 
 Stand der Zählung: 2026-09-26, Worktree `docs/icon-first-inventory-0926`. Kein Produktcode geändert. Keine Live-Abnahme, kein Browserlauf.
 
+## Fortsetzung 2026-09-28: Abnahme noch offen
+
+Die folgenden Abschnitte bleiben das historische Quelleninventar. Ihre offenen
+Zeilen werden nicht allein durch Release 18 oder einen bestandenen Listenvergleich
+zu einer appweiten Abnahme. Aktuelle Ausgangsbasis ist
+`0b6c40f07ba38e95e91b36c602db2e19e68d35b7`, Produktion seit 01:19 CEST gesund.
+Der Timer ist aktiv, nächste reguläre Fahrt bei Übernahme: 02:07 CEST.
+
+Aktuelle Pakete: API-Symbolaktionen (`wp-cb8f25515d05`) und Listenhülle
+(`wp-edf89d346095`). Faire Listenmessung (`wp-ae3225c63108`, `75453eee`) ist nach
+eigener Diffprüfung und erneutem Browsergate integriert. Je ein isolierter
+Worktree, Testpool und Dateibesitzer; Prüfung und Manifestpflege vor Aufnahme in
+`integrate/icon-first-r18`. Paketvertrag: lokal
+`/var/tmp/dishboard-icon-0928-wps.json`. Noch kein neuer Deploy behauptet.
+
+Eigene neue Prüfungen auf R18, Pool `worker-test-api-int2`, über
+`rtk bash tools/release/gate.sh <pool> <worktree> -q <datei>`:
+
+- `tests/test_ui_semantic_macros_browser.py`: `42 passed in 52.56s`, `GATE_EXIT=0`.
+  Gemeinsame Makros, drei Sprachen, Tastatur und No-JS-Reflow; keine vollständige
+  Prüfung ihrer Verwendungen auf Produktseiten.
+- `tests/test_ui_fullwidth_shell_browser.py`: `7 passed in 130.86s (0:02:10)`,
+  `GATE_EXIT=0`. Arbeitsbreite für sechs Routen, JS/No-JS, Desktop und schmal,
+  echter Browserzoom 2 mit CSS-Zoom 1; Fokus und Speichern bei geringer Höhe.
+  JUnit: `/var/tmp/dishboard-wp6-shell-0928.xml`.
+- `tools/build_manifest.py --verify`: `Paketliste und SHA-256-Manifest: OK`.
+- `tests/test_menu_collection_browser.py`: `18 passed in 73.95s (0:01:13)`,
+  `GATE_EXIT=0`; JUnit `/var/tmp/dishboard-wp6-menu-0928.xml`.
+- Audit-Commit `75453eee`, eigener zweiter Testlauf auf demselben Pool:
+  `tests/test_ui_list_family_browser.py`: `4 passed in 18.46s`, `GATE_EXIT=0`.
+  JUnit `/var/tmp/dishboard-list-audit-root-0928.xml`; `test_delta` meldet
+  Tests 3→4, Assertions 15→25, Skips 0→0, `flagged=0`.
+
+Der Browser-MCP startete zweimal mit `Chromium sandboxing failed!` nicht.
+Die vorgenannten Projektbrowserläufe funktionieren unabhängig davon. Eine
+authentifizierte Produktions-Sichtprüfung ist damit nicht nachgewiesen.
+OCR scheiterte aktuell mit HTTP 402 bei SambaNova; kein erfolgreiches OCR-Review
+und kein automatischer Anbieterwechsel.
+
+| Kriterium | Aktueller Beleg und verbleibende Prüfung |
+|---|---|
+| UI-01 | Historisches Routen-/Templateinventar vorhanden. 41 Listen decken Editor-, Fehler- und dynamische Zustände nicht vollständig ab. Abgleich offen. |
+| UI-02 | Neuer Listenvergleich integriert: 41 Seiten, 82 Blöcke inklusive Bildschirmvorlagen. Abschliessender Vergleich nach Produktkorrekturen offen. |
+| UI-03 | Gemeinsame Makros geprüft. Native Summary- und dynamische Editoraktionen noch migrieren und auf Seiten prüfen. |
+| UI-04 | API-Schlüssel, Rezepteditor, Druckvorlagen-Auswahl und Bildschirm-Fehlerseite haben konkrete Restkandidaten. Keine appweite Freigabe. |
+| UI-05 | Normale Listen bisher ohne gemeldete Überschreitung. Editor-Unterlisten und Dialogzustände separat prüfen. |
+| UI-06 | Makronamen in DE/EN/Pseudo geprüft; Kontextnamen auf allen Produktseiten und reduzierten Rollen offen. |
+| UI-07 | Makrotastatur und Shell-Fokus bestanden; Dialogrückkehr und Produktaktionen appweit offen. |
+| UI-08 | Menü-Sammlung mit Tooltip-/Tastaturtests bestanden. Weitere Produktseiten und neue Summary-Verwendungen bleiben zu prüfen. |
+| UI-09 | Touch-Tests vorhanden; neue aktuelle Nachweise für alle gemeinsamen Aktionsvarianten und Seiten fehlen noch. |
+| UI-10 | Makrofilter/Formattribute geprüft; Suche per Enter, Reset und erhaltene Filter auf Produktseiten offen. |
+| UI-11 | Gemischte/aktive/archivierte Filter und Normalzustände appweit offen. |
+| UI-12 | Makroprüfung unterscheidet fehlend/ungeprüft. Allergen-, Herkunfts- und Lagerzustände im Produkt separat nachweisen. |
+| UI-13 | Freigabesperren unverändert als harter Vertrag. Aktuelles negatives Veröffentlichungsgate offen. |
+| UI-14 | Registry-Vertrag vorhanden; konkrete Speichern-/Prüfen-/Veröffentlichen-Abläufe weiter prüfen. |
+| UI-15 | API-POST und Bestätigung im Paket; übrige destruktive/duplizierende Aktionen samt Abbruch und Rollen offen. |
+| UI-16 | Bestehende Rollen-Gates weiterverwenden. Ein Admin-Screenshot beweist keine Nur-Lesen-Abnahme. |
+| UI-17 | Beide Profile/Mahlzeiten/Gänge und bestehende Zuordnungen aktuell funktional prüfen. |
+| UI-18 | Shelltest belegt erreichbares Speichern/Feldfokus; Detailrückkehr und ungespeicherte Änderungen appweit offen. |
+| UI-19 | Kalender-Überlauf inklusive exakter verborgener Anzahl und Randtage aktuell prüfen. |
+| UI-20 | Lange Texte und Shell-Reflow geprüft; Leer-/Lade-/Fehlerzustände über alle Module offen. |
+| UI-21 | Shellmatrix 1440/1024/768/390 und weitere Breiten bestanden; Seitenmatrix samt geöffneten Zuständen noch offen. |
+| UI-22 | Echter 200-%-Zoom für Woche, Rezeptansicht und Editor bestanden; restliche Referenztypen offen. |
+| UI-23 | Vorlagen beginnen im neuen Sichtbeleg erst unterhalb 500 px. Statuskarten und Doppelanzeigen reduzieren, neu messen. |
+| UI-24 | Mindestens zehn kurze zweizeilige Fixtures und acht voll sichtbare Zeilen für Referenzlisten noch messen. |
+| UI-25 | Sichtbelege zeigen redundante Vorlagenstatus, wiederholte Wochenwarnungen und Bereichs-/Zeitmeldungen. Produktkorrekturen offen. |
+| UI-26 | Erst nach Migration belegbar tote Overrides entfernen; keine vorsorgliche globale Stilbereinigung. |
+| UI-27 | Shellnavigation im Zoom geprüft; aktive Parent-/Child-Zustände, Touch und reduzierte Rollen weiter prüfen. |
+| UI-28 | Neue lokale Screenshots vorhanden. Vergleichbare Vorher/Nachher-Belege für beide Piloten, Woche und schmale Ansicht noch zusammenführen. |
+
+Zusätzliche konkrete Quellbefunde, vor Änderung im Browser bestätigen:
+`rezepte_editor.html` und `_rezepte_fields.html` enthalten beschriftete
+Überlauf-/Detailaktionen; `_recipe_template_selection.html` eigene Such- und
+Revisions-Summary-Buttons; `screen_template_unavailable.html` einen beschrifteten
+Wiederholen-Link. Im echten Zoom-Screenshot des Rezepteditors ist «Mehr» sichtbar.
+Diese Ansichten fehlen teilweise im 41-Seiten-Listenvergleich.
+
+Neue lokale Sichtbelege aus dem Audit-Worktree bestätigen ausserdem: Patienten-
+Wochenplan wiederholt die Allergen-/Zeitwarnungen trotz Kopfsumme; Vorlagen zeigen
+vier Statuskarten sowie mehrfach «Standard/Aktiv» und dieselbe Druckerklärung.
+Die Kalender-Markierung für heute ist ein semantischer Inset-Rahmen, kein
+dekorativer Schatten pro Datensatz. Bei Trennlinien müssen innere Zeilen und
+beide Seiten einer benachbarten Kante gemessen werden; ein einzelner letzter
+Datensatz benötigt keinen künstlichen Trenner darunter.
+
 ## 0. Zählmethode
 
 Wegwerfskript, nicht im Repo: `/tmp/claude-0/-nvmetank1-projects-menuplan/2f4bbcec-0188-43ba-9334-2cbe2fa40c97/scratchpad/wp1a/count_admin_views.py`. Es liest die Routenmatrix und den Quelltext der Admin-Templates. Jinja- und HTML-Kommentare werden vor dem Zählen entfernt. Gezählt wird der Quelltext, nicht das gerenderte DOM.
