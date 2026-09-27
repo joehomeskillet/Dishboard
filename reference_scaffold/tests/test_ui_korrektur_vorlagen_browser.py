@@ -95,14 +95,19 @@ def _capture(page: Page, name: str, *, native=False) -> dict:
 
 def _assert_controls(page):
     _assert_no_horizontal_scroll(page)
+    icon_min = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
     for control in page.locator('main :is(.btn, .form-control, .form-select, summary)').all():
         if not control.is_visible():
             continue
         box = control.bounding_box()
-        assert box is not None and box['height'] >= 48
-        if 'btn-icon' in (control.get_attribute('class') or '').split():
-            assert box['width'] >= 48 and control.get_attribute('aria-label')
-            assert any(control.get_attribute(name) for name in ('title', 'data-bs-original-title', 'data-bs-title'))
+        classes = (control.get_attribute('class') or '').split()
+        icon = 'ui-sem-control' in classes or 'btn-icon' in classes
+        assert box is not None and box['height'] >= (icon_min if icon else 44)
+        if 'btn-icon' in classes or 'ui-sem-control--icon-only' in classes:
+            assert box['width'] >= icon_min and control.get_attribute('aria-label')
+            assert any(control.get_attribute(name) for name in (
+                'title', 'data-bs-original-title', 'data-bs-title', 'data-ui-tooltip',
+            ))
             control.focus()
             expect(control).to_be_focused()
     assert page.locator('main svg use').evaluate_all('''nodes => nodes.every(node =>
@@ -309,10 +314,12 @@ def test_save_activate_and_load_version_keep_native_requests(
         assert activate["revision"] == ["2"]
 
         page.locator("details[data-template-versions] > summary").click()
+        restore_button = page.locator(
+            'details[data-template-versions] button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]'
+        )
+        restore_button.locator("xpath=ancestor::details[1]").locator("summary").click()
         with page.expect_request(lambda request: request.method == "POST") as sent:
-            page.get_by_role(
-                "button", name="Version 1 als neuen Entwurf laden", exact=True
-            ).click()
+            restore_button.click()
         restore = _assert_editor_target(sent.value, "patienten")
         assert set(restore) == {"_csrf", "action", "version", "revision"}
         assert restore["action"] == ["restore"]

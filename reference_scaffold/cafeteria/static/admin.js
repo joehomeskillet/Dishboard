@@ -171,6 +171,9 @@
             title: () => link.getAttribute('data-ui-tooltip'),
             html: false, trigger: 'hover focus', animation: false,
             delay: {show: 0, hide: 150}, offset: [0, 0],
+            // A lateral fallback covers neighbouring toolbar actions, including
+            // after history restores focus. Keep the hoverable tip above/below.
+            placement: 'top', fallbackPlacements: ['bottom'],
             container: link.closest('dialog') || document.body,
             customClass: 'ui-sem-tooltip',
         });

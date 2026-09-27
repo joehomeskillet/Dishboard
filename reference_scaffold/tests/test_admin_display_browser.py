@@ -197,7 +197,8 @@ def _assert_controls(page):
         if locator.is_visible():
             box = locator.bounding_box()
             semantic = locator.evaluate("el => el.matches('.ui-sem-control')")
-            assert box is not None and box['height'] >= (action_size if semantic else 48)
+            # Icon-first: 36 fine / 44 coarse. Other controls use the 44px token; 48px is retired.
+            assert box is not None and box['height'] >= (action_size if semantic else 44)
             if semantic:
                 assert box['width'] >= action_size
                 assert locator.get_attribute('aria-label')
@@ -242,10 +243,11 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
                 expect(text).to_have_attribute('aria-describedby', 'components-hint')
                 if javascript:
                     expect(component).to_be_hidden()
-                    row.get_by_role('button', name='Bearbeiten', exact=True).click()
+                    row.get_by_role('button', name='Baustein bearbeiten', exact=True).click()
                     expect(component).to_be_visible()
                     finish = row.get_by_role('button', name='Bestätigen', exact=True)
-                    expect(finish.locator('[data-semantic="actions.confirm"]')).to_have_text('Bestätigen')
+                    expect(finish).to_have_attribute('data-semantic', 'actions.confirm')
+                    expect(finish).to_have_attribute('aria-label', 'Bestätigen')
                     finish.click()
                     expect(component).to_be_hidden()
                 else:

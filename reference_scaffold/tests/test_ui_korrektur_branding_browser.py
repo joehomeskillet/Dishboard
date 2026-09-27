@@ -83,9 +83,14 @@ def _assert_viewport(page: Page, state: str) -> None:
     _assert_hex_values_fit(page)
     expect(page.locator("main.admin-main")).to_have_attribute("data-layout", "standard")
     expect(page.locator("main .btn-primary:visible")).to_have_count(1)
+    icon_min = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
     for locator in page.locator("main :is(.btn, .form-select, .form-control):visible").all():
         box = locator.bounding_box()
-        assert box is not None and box["height"] >= 44, (state, locator.get_attribute("id"), box)
+        classes = locator.get_attribute("class") or ""
+        minimum = icon_min if "ui-sem-control" in classes else 44
+        assert box is not None and box["height"] >= minimum, (state, locator.get_attribute("id"), box)
+        if "ui-sem-control--icon-only" in classes:
+            assert box["width"] >= minimum, (state, box)
 
 
 def _screenshot_matrix(page: Page, state: str) -> None:
@@ -139,8 +144,9 @@ def test_branding_editor_separates_saved_draft_from_publication(
         expect(activate).not_to_have_class(re.compile(r"\bbtn-primary\b"))
         expect(activate).to_be_disabled()
         expect(activate).to_have_attribute("data-semantic", "actions.activate")
-        expect(activate).to_have_attribute("title", "Öffentliche Marke aktivieren")
-        expect(activate.locator("span")).to_have_text("Aktivieren")
+        expect(activate).to_have_attribute("data-ui-tooltip", "Öffentliche Marke aktivieren")
+        expect(activate).to_have_attribute("aria-label", "Version 1 aktivieren")
+        expect(activate.locator("span")).to_have_count(0)
         expect(activate).not_to_contain_text("Bereit")
         expect(page.locator('form[data-brand-action="activate"]')).to_have_attribute(
             "data-confirm", re.compile(r"Version 1")
@@ -205,8 +211,8 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         page.locator("#brand-more summary").click()
         restore = page.get_by_role("button", name="Version 2 als neuen Entwurf übernehmen", exact=True)
         expect(restore).to_have_attribute("data-semantic", "actions.apply")
-        expect(restore.locator("span")).to_have_text("Übernehmen")
-        expect(restore).to_have_attribute("title", "Erstellt einen neuen Entwurf")
+        expect(restore.locator("span")).to_have_count(0)
+        expect(restore).to_have_attribute("data-ui-tooltip", "Erstellt einen neuen Entwurf")
         expect(page.locator('form[data-brand-action="restore"]').get_by_text(
             "Erstellt einen neuen Entwurf", exact=True,
         )).to_be_visible()
@@ -216,8 +222,9 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         page.locator("#brand-more summary").click()
         reset = page.get_by_role("button", name="Südhang Standard als Entwurf anlegen", exact=True)
         expect(reset).to_have_attribute("data-semantic", "actions.add")
-        expect(reset).to_have_attribute("title", "Südhang Standard als neuen Entwurf anlegen")
-        expect(reset.locator("span")).to_have_text("Entwurf anlegen")
+        expect(reset).to_have_attribute("data-ui-tooltip", "Südhang Standard als neuen Entwurf anlegen")
+        expect(reset).to_have_attribute("aria-label", "Südhang Standard als Entwurf anlegen")
+        expect(reset.locator("span")).to_have_count(0)
         expect(reset).not_to_have_class(re.compile(r"\bbtn-primary\b"))
         expect(page.locator('form[data-brand-action="reset"] [data-semantic="view.reset"]')).to_have_count(0)
         reset.click()
@@ -422,12 +429,14 @@ def test_branding_locale_names_contain_visible_action_text(admin_app, admin_engi
                 )
                 assert match, (locale, key)
                 aria = unescape(re.search(r'aria-label="([^"]*)"', match.group("attrs")).group(1))
-                visible = unescape(re.search(r"<span>([^<]*)</span>", match.group("body")).group(1))
+                label_key = key + ".label"
+                visible = unescape(translator.locales[locale][label_key])
                 assert visible.lower() in aria.lower(), (locale, key, visible, aria)
+                assert "<span>" not in match.group("body")
                 if locale == "de":
                     assert aria == german_name, (key, aria)
             assert "Erstellt einen neuen Entwurf" in html
-            assert 'title="Erstellt einen neuen Entwurf"' in html
+            assert 'data-ui-tooltip="Erstellt einen neuen Entwurf"' in html
             assert 'visually-hidden">Erstellt einen neuen Entwurf' not in html
     finally:
         admin_app.config["UI_LOCALE"] = original
@@ -447,7 +456,8 @@ def test_branding_rendered_icons_reject_missing_symbols(
         expect(page.locator("#brand-more")).to_have_attribute("open", "")
         reset = page.get_by_role("button", name="Südhang Standard als Entwurf anlegen", exact=True)
         expect(reset).to_be_visible()
-        expect(reset.locator("span")).to_have_text("Entwurf anlegen")
+        expect(reset.locator("span")).to_have_count(0)
+        expect(reset).to_have_attribute("aria-label", "Südhang Standard als Entwurf anlegen")
         expect(reset).to_have_attribute("data-semantic", "actions.add")
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         page.screenshot(path=str(EVIDENCE / "branding-editor-open-actions-1440x900.png"), full_page=True)
@@ -551,7 +561,8 @@ def test_branding_frame_viewports_statusbar_and_no_overflow(
                             save = page.get_by_role("button", name="Speichern", exact=True)
                             expect(save).to_have_count(1)
                             box = save.bounding_box()
-                            assert box is not None and box["height"] >= 48, box
+                            icon_min = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
+                            assert box is not None and box["height"] >= icon_min and box["width"] >= icon_min, box
                         page.set_viewport_size({"width": 360, "height": 800})
                         page.goto(live_server + BRAND_PATH, wait_until="load")
                         name = page.locator("#brand-name")

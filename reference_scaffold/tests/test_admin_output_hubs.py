@@ -121,7 +121,7 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
             assert len(template_links) == (5 if role == 'Cafeteria.Admin' else 0)
             assert '/admin/gerichtvorlagen' in links
             assert '/admin/rezepte' in links
-            assert html.count('>Rezept drucken</a>') == 1
+            assert html.count('aria-label="Rezept drucken"') == 1
             assert {'/admin/grundlagen?kind=foods', '/admin/rezepte', '/admin/kochbuecher'} <= set(links)
         else:
             # Ten public destinations; module tabs and two area anchors are gone.
@@ -187,7 +187,7 @@ def test_draft_read_only_role_gets_working_recipe_print_entry(
     links = MainLinks(response.get_data(as_text=True)).links
 
     assert response.status_code == 200
-    assert response.get_data(as_text=True).count('>Rezept drucken</a>') == 1
+    assert response.get_data(as_text=True).count('aria-label="Rezept drucken"') == 1
     # One recipe-print entry, with no duplicate in the optional content links.
     assert links.count('/admin/rezepte') == 1
     assert client.get('/admin/rezepte').status_code == 200
@@ -249,9 +249,17 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
         # Native :focus-visible requires keyboard modality after opening details by click.
         page.keyboard.press('Tab')
         for control in controls:
+            # Closed overflow items stay out of the tab order until the menu is opened.
+            if not control.is_visible():
+                continue
             control.scroll_into_view_if_needed()
             box = control.bounding_box()
-            minimum = 36 if 'ui-sem-control--icon-only' in (control.get_attribute('class') or '') else 48
+            classes = control.get_attribute('class') or ''
+            # Symbol buttons: 36 fine / 44 coarse. Text controls keep the 44px token (48px retired).
+            if 'ui-sem-control' in classes:
+                minimum = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
+            else:
+                minimum = 44
             assert box is not None and box['height'] >= minimum
             control.focus()
             expect(control).to_be_focused()

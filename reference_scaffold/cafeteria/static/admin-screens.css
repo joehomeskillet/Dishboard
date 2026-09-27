@@ -12,6 +12,17 @@
 }
 
 .screen-card { min-width: 0; }
+/* The shared two-line row height clips the in-row preview summary (scrollHeight
+   and an unclickable disclosure below 768px). These rows grow with that content. */
+.dishboard-admin .screens-overview table.admin-table--stack tbody tr.screen-card {
+  height: auto;
+  min-height: var(--app-list-row-min-height);
+}
+.dishboard-admin .screens-overview table.admin-table--stack tbody tr.screen-card > :is(th, td) {
+  height: auto;
+  min-width: 0;
+  overflow: visible;
+}
 .screen-choice-card { min-width: 0; }
 .screen-choice-control { min-height: 3rem; }
 .screen-card .nav-link { min-height: 3rem; }
