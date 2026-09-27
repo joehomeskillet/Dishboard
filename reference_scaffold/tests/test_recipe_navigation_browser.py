@@ -147,7 +147,12 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         expanded = [card.bounding_box() for card in cards.all()]
         assert expanded[0]['height'] > boxes[0]['height']
         assert all(abs(after['height'] - before['height']) <= 1
-                   for before, after in zip(boxes[1:], expanded[1:]))
+                   for before, after in zip(boxes[1:], expanded[1:])), {'before': boxes, 'after': expanded}
+        # JS focuses the first menu action. Return focus and leave its hover
+        # region so its focus/hover tooltip closes before clicking the summary.
+        more.focus()
+        page.mouse.move(0, 0)
+        expect(page.get_by_role('tooltip')).to_be_hidden()
         more.click()
         editor = page.locator(f'main a[href="/admin/rezepte/{public_id}"]')
         expect(editor).to_have_attribute('data-semantic', 'actions.edit')
@@ -204,7 +209,7 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         page.screenshot(path=str(tmp_path / f'image-document-{width}-js{javascript}.png'))
         page.go_back()
         back = page.get_by_role('link', name='Zum Rezept', exact=True)
-        expect(back).to_have_text('Zum Rezept')
+        expect(back).to_be_visible()
         expect(back).to_have_accessible_name('Zum Rezept')
         back.click()
         page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()

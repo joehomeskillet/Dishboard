@@ -195,11 +195,9 @@ def test_collection_requires_capability_and_fails_closed_for_bad_location(app, c
 def test_empty_collection_has_navigation_and_empty_state(client):
     body = client.get('/admin/patienten/menues').get_data(as_text=True)
     assert 'Noch keine Menüs auf dieser Seite.' in body
-    current_link = re.search(
-        r'<a\b[^>]*href="/admin/patienten/menues"[^>]*class="nav-link active"[^>]*aria-current="page"[^>]*>',
-        body,
-    )
-    assert current_link
+    current_link = re.search(r'<a\b[^>]*href="/admin/patienten/menues"[^>]*aria-current="page"[^>]*>', body)
+    assert current_link and 'class="nav-link active"' in current_link.group()
+    assert 'aria-current="page"' in current_link.group()
     assert '/admin/patienten/komponenten' in body
     assert 'aria-label="Wochenplan"' in body
     for family in ('cafeteria', 'patienten'):

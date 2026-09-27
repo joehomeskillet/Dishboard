@@ -516,6 +516,7 @@
 .dishboard-admin .admin-option-label .form-check-label { overflow-wrap: anywhere; }
 .dishboard-admin .admin-option-row .form-select { flex: 1 1 55%; min-width: 0; width: 55%; }
 .dishboard-admin .admin-option-row .form-select:disabled { display: none; }
+.dishboard-admin .admin-option-row:has([data-option-presence]:disabled, [data-option-presence][hidden]) .admin-option-presence-label { display: none; }
 .dishboard-admin .admin-filter-bar,
 .dishboard-admin .admin-filter-slots,
 .dishboard-admin .admin-list-row,

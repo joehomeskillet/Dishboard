@@ -446,7 +446,7 @@
         <span class="form-check-label">{% if mode == 'allergen' and code|food_symbol('allergens') %}{{ symbol('allergens', code, true) }}{% else %}{{ icon(option.icon|default('check')) }}{% endif %}{{ title }}</span>
       </label>
       {% if field_prefix %}<input type="hidden" data-option-absent name="{{ field_prefix }}{{ code }}" value="absent" disabled>{% endif %}
-      <label class="visually-hidden" for="{{ field_id }}-presence">Präsenz für {{ title }}</label>
+      <label class="form-label admin-option-presence-label" for="{{ field_id }}-presence">Präsenz für {{ title }}</label>
       <select class="form-select{{ ' is-invalid' if presence_invalid else '' }}" id="{{ field_id }}-presence" name="{{ presence_name }}" data-option-presence aria-label="Präsenz für {{ title }}"{% if presence_invalid %} aria-invalid="true" aria-describedby="{{ field_id }}-error"{% endif %}{% if not manual %} disabled{% endif %}>
         {% if not field_prefix and presence not in choices|map(attribute=0)|list %}<option value="{{ presence }}" selected>{{ presence }}</option>{% endif %}
         {% if field_prefix %}<option value="absent"{% if presence == 'absent' %} selected{% endif %}>Keine Angabe</option>{% endif %}

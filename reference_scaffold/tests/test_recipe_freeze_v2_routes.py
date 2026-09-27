@@ -152,7 +152,9 @@ def test_incomplete_preview_returns_400_without_token_but_draft_and_history_rema
     assert 'name="_form_context"' not in response.text and frozen.location in response.text
     assert client.get(frozen.location).status_code == 200
     listing = client.get('/admin/rezepte')
-    assert 'Entwurf · Angaben fehlen' in listing.text
+    assert 'Rezeptentwürfe finden und bearbeiten.' in listing.text
+    assert 'Angaben fehlen' in listing.text
+    assert 'Zutaten, Mengen oder Einheiten fehlen' in listing.text
     assert client.get(f'/admin/rezepte/{public_id}').status_code == 200
     assert full_state(owner) == before
 

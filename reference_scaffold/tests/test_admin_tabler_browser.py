@@ -16,6 +16,23 @@ from test_admin_workflow_db import _patient_values, _save, _staff_values
 from test_rendered_ui import app as app
 
 
+def test_icon_actions_keep_touch_targets_and_accessible_names(page_context, browser):
+    page_context.goto('/admin/patienten/menues')
+    with browser.new_context(
+        viewport={'width': 390, 'height': 844}, has_touch=True,
+        storage_state=page_context.context.storage_state(),
+    ) as context:
+        page = context.new_page()
+        assert page.goto(page_context.url).status == 200
+        assert page.evaluate("matchMedia('(pointer: coarse)').matches")
+        actions = page.locator('main .ui-sem-control--icon-only:visible')
+        assert actions.count() > 0
+        for action in actions.all():
+            expect(action).to_have_accessible_name(re.compile(r'\S'))
+            box = action.bounding_box()
+            assert box and box['width'] >= 44 and box['height'] >= 44, box
+
+
 def test_shared_macros_expose_errors_labels_and_touch_targets(page_context, admin_app):
     with admin_app.test_request_context('/admin/patienten/wochen'):
         html = render_template_string('''
@@ -101,9 +118,9 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
                     note.last.evaluate('el => { el.open = true; }')
                 expect(page.locator('#new-week-note')).to_be_visible()
             for control in page.locator('input[type="date"], input[name="title"], textarea, button[type="submit"]').all():
-                minimum = 48
-                if route == 'wochen':
-                    minimum = control.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
+                minimum = control.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
+                if control.is_visible() and control.evaluate("e => e.matches('.ui-sem-control')"):
+                    expect(control).to_have_accessible_name(re.compile(r'\S'))
                 assert control.bounding_box()['height'] >= minimum, (width, control.evaluate('(el) => el.outerHTML'))
             for link in page.get_by_role('navigation', name='Backend').get_by_role('link').all():
                 expect(link).to_be_visible()

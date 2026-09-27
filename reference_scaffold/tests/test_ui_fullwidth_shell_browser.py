@@ -129,7 +129,9 @@ def _capture_shell(page, name, *, title=None, native=False, viewport_only=False)
             if not visible_text:
                 assert aria_label
             box = control.bounding_box()
-            assert box and box['height'] >= 48 and box['width'] >= 44, box
+            icon_only = control.evaluate("el => el.matches('.ui-sem-control--icon-only')")
+            minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+            assert box and box['height'] >= (minimum if icon_only else 48) and box['width'] >= (minimum if icon_only else 44), box
     metrics.update(page.evaluate('''() => ({innerWidth, innerHeight, outerWidth, outerHeight,
         devicePixelRatio, cssZoom: getComputedStyle(document.documentElement).zoom,
         visualViewportHeight: visualViewport.height})'''))

@@ -23,7 +23,7 @@ def _editor(family: str) -> str:
 
 
 def _open_sections(page: Page) -> None:
-    for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
+    for summary in page.locator('details.admin-accordion:not([open]) > summary, #sec-output-texts:not([open]) > summary').all():
         summary.click()
 
 
@@ -39,7 +39,7 @@ def _settle(page: Page) -> None:
 
 def _assert_visible_editor_labels(page: Page) -> None:
     fields = page.locator('[name="component_public_id"], [name="component_text"], [name="origin_ingredient"], '
-                          '[name="origin_country_code"], [name="allergen_presence"]')
+                          '[name="origin_country_code"], [name^="allergen_presence__"]')
     for field in fields.all():
         if not field.is_visible():
             continue
@@ -140,8 +140,14 @@ def test_error_descriptions_follow_surviving_rows_and_are_not_cloned(page_contex
         'aria-describedby', 'origin-0-country-error',
     )
     expect(rows.first.locator('#origin-0-country-error')).to_be_visible()
+    remove = rows.first.get_by_role('button', name='Herkunft löschen')
+    remove.hover()
+    tooltip = page.get_by_role('tooltip', name='Herkunft löschen', exact=True)
+    expect(tooltip).to_be_visible()
+    tooltip_id = tooltip.get_attribute('id')
     page.get_by_role('button', name='Herkunft hinzufügen').click()
     expect(rows).to_have_count(2)
+    assert tooltip_id not in (rows.last.get_by_role('button', name='Herkunft löschen').get_attribute('aria-describedby') or '').split()
     expect(rows.last.locator('.field-error')).to_have_count(0)
     assert rows.last.locator('[name="origin_country_code"]').get_attribute('aria-describedby') is None
     _open_sections(page)
