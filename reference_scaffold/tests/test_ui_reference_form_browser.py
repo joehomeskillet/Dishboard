@@ -121,17 +121,37 @@ def _capture(page: Page, tmp_path: Path, name: str) -> None:
 def _controls(page: Page) -> None:
     expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
     expect(page.locator('h1')).to_have_count(1)
-    expect(page.get_by_role('navigation', name='Breadcrumb')).to_contain_text('Bausteine')
+    expect(page.locator('h1')).to_have_text('Bausteine')
+    expect(page.locator('nav[aria-label="Backend"] a[aria-current="page"]').first).to_have_text('Bausteine')
     expect(page.locator('main .btn-primary')).to_have_count(1)
     expect(page.locator('#component-form [readonly]')).to_have_count(0)
     sizes = page.locator('main .btn, main .form-control, main .form-select, main .form-check').evaluate_all(
-        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height, e.classList.contains("ui-sem-control") ? 36 : 48])'
+        '''es => es.filter(e => e.getClientRects().length).map(e => [e.id,
+            e.getBoundingClientRect().height, e.classList.contains('ui-sem-control')
+                ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48])'''
     )
     assert sizes and all(height >= minimum for _, height, minimum in sizes), sizes
     labels = page.locator('#component-form input:not([type="hidden"]), #component-form select').evaluate_all(
         'es => es.map(e => [e.id, [...e.labels].some(l => l.textContent.trim())])'
     )
     assert all(labelled for _, labelled in labels), labels
+    visible_labels = page.locator('#component-form select:visible').evaluate_all('''es => es.map(e => [e.id,
+        [...e.labels].some(label => {
+            const box = label.getBoundingClientRect();
+            const style = getComputedStyle(label);
+            return box.width > 1 && box.height > 1 && style.clipPath === 'none'
+                && style.visibility === 'visible';
+        })])''')
+    assert all(visible for _, visible in visible_labels), visible_labels
+    presence_text = page.locator('.component-allergen-presence select:visible').evaluate_all('''es => es.map(e => {
+        const style = getComputedStyle(e);
+        const canvas = document.createElement('canvas').getContext('2d');
+        canvas.font = style.font;
+        const text = e.selectedOptions[0].textContent;
+        const available = e.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        return [e.id, text, canvas.measureText(text).width, available];
+    })''')
+    assert all(width <= available for _, _, width, available in presence_text), (page.viewport_size, presence_text)
     assert page.evaluate('''() => {
       const main = document.querySelector('main.admin-main');
       const box = document.querySelector('.page-body > .container-xl');
@@ -163,6 +183,11 @@ def _keyboard(page: Page) -> None:
     page.keyboard.press('Tab')
     expect(page.locator('#c-origin')).to_be_focused()
     page.keyboard.press('Tab')
+    summary = page.locator('#component-options > summary')
+    expect(summary).to_be_focused()
+    if page.locator('#component-options').get_attribute('open') is None:
+        page.keyboard.press('Enter')
+    page.keyboard.press('Tab')
     expect(page.locator('#c-food')).to_be_focused()
 
 
@@ -173,7 +198,8 @@ def test_reference_states_and_viewports(reference, family: str, tmp_path: Path) 
         _controls(page)
         _keyboard(page)
         expect(page.locator('#edit-presence-MILK')).to_have_value('may_contain')
-        expect(page.locator('#edit-presence-GLUTEN')).to_be_disabled()
+        expect(page.locator('#edit-allergen-GLUTEN')).not_to_be_checked()
+        expect(page.locator('#edit-presence-GLUTEN')).to_be_hidden()
         _capture(page, tmp_path, f'normal-{width}')
 
     # Empty means optional metadata is empty; a component name is always required.
@@ -194,7 +220,7 @@ def test_reference_states_and_viewports(reference, family: str, tmp_path: Path) 
             _controls(page)
             _keyboard(page)
             if state == 'dense-long':
-                expect(page.locator('h1')).to_have_text(LONG_NAME.strip())
+                expect(page.locator('.page-header-subtitle')).to_have_text(LONG_NAME.strip())
                 assert page.locator('#component-form .form-check-label').evaluate_all(
                     'es => es.every(e => e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1)'
                 )
@@ -252,11 +278,12 @@ def test_validation_preserves_inputs_tokens_and_native_submit(
         payload = parse_qs(saved.value.request.post_data)
         assert all(payload[key] == [value] for key, value in tokens.items())
         assert payload['allergen_code'] == ['MILK']
-        assert payload['allergen_presence'] == ['may_contain']
-        expect(page.locator('h1')).to_have_text(f'Gespeichert {width}')
+        assert payload['allergen_presence__MILK'] == ['may_contain']
+        expect(page.locator('.page-header-subtitle')).to_have_text(f'Gespeichert {width}')
         result = get_component(engine, scope, public_id, include_archived=True)
         assert result['row_version'] == before['row_version'] + 1
         assert result['origin_country_code'] == 'AT'
+        assert [(row['code'], row['presence']) for row in result['allergens']] == [('MILK', 'may_contain')]
 
 
 @pytest.mark.parametrize('status', [409, 503])

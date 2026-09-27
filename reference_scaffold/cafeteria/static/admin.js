@@ -170,6 +170,8 @@
         new window.tabler.Tooltip(link, {
             title: () => link.getAttribute('data-ui-tooltip'),
             html: false, trigger: 'hover focus', animation: false,
+            // A lateral fallback covers adjacent actions in compact toolbars.
+            placement: 'top', fallbackPlacements: ['bottom'],
             delay: {show: 0, hide: 150}, offset: [0, 0],
             container: link.closest('dialog') || document.body,
             customClass: 'ui-sem-tooltip',
@@ -183,18 +185,18 @@
         initSemanticTooltip(link);
         window.tabler?.Tooltip.getInstance(link)?.show();
     }));
-    // Dismiss the explanation before a modal or dropdown handles the same Escape.
+    // Only the focused tooltip owns Escape; a stale hover tip must not trap a modal.
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
-        let dismissed = false;
+        let dismissedFocused = false;
         iconActions.forEach(link => {
             const tip = actionTooltip(link);
             if (!tip?.classList.contains('show') || !tip.getClientRects().length) return;
             tip.dataset.dismissed = 'true';
             window.tabler.Tooltip.getInstance(link).hide();
-            dismissed = true;
+            if (link.contains(event.target) || tip.contains(event.target)) dismissedFocused = true;
         });
-        if (dismissed) {
+        if (dismissedFocused) {
             event.preventDefault();
             event.stopImmediatePropagation();
         }
@@ -297,6 +299,10 @@
         e.preventDefault();
     }
 
+    const detailTriggers = new WeakMap();
+    document.addEventListener('toggle', event => {
+        if (!event.target.open) detailTriggers.delete(event.target);
+    }, true);
     // Native accordions: reveal every closed ancestor before a field is focused.
     function revealAncestors(element) {
         for (let details = element && element.closest('details'); details; details = details.parentElement.closest('details')) {
@@ -363,6 +369,8 @@
             const target = document.getElementById(link.getAttribute('href').slice(1));
             if (!target) return;
             e.preventDefault();
+            const details = target.closest('details');
+            if (details && !details.contains(link)) detailTriggers.set(details, link);
             revealAncestors(target);
             target.focus();
         });
@@ -772,6 +780,7 @@
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+            if (e.defaultPrevented || e.target.closest('.modal, dialog')) return;
             const openDropdown = document.querySelector('.dropdown-menu.show');
             if (openDropdown) {
                 const toggle = openDropdown.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
@@ -790,9 +799,10 @@
             const active = document.activeElement && document.activeElement.closest('details[open]');
             const openDetails = active ? [active] : document.querySelectorAll('details[open]');
             openDetails.forEach(details => {
+                const trigger = detailTriggers.get(details) || details.querySelector(':scope > summary');
+                detailTriggers.delete(details);
                 details.removeAttribute('open');
-                const summary = details.querySelector('summary');
-                if (summary) summary.focus();
+                trigger?.focus();
             });
         }
     });

@@ -61,7 +61,7 @@ _NEEDS_DB = pytest.mark.skipif(
     reason='TEST_DATABASE_URL für eine isolierte PostgreSQL-Testdatenbank fehlt.',
 )
 _SLOT = re.compile(
-    r'<(?:article|div) class="[^\"]*\bmenu-slot\b[^\"]*" data-day="([^"]+)" data-meal="([^"]+)" '
+    r'<(?:article|div) class="[^\"]*\bmenu-slot\b[^\"]*"[^>]* data-day="([^"]+)" data-meal="([^"]+)" '
     r'data-option="([^"]+)" data-row-version="([^"]+)">',
 )
 
@@ -441,6 +441,14 @@ def test_admin_review_checkboxes_rehydrate_canonical_checked_status(
         _scope(admin_engine, user_id, profile),
         WEEK, DAY, 'LUNCH', 'MENU_1', _payload(staff=profile == 'staff_guest'), 0,
     )
+    persist_menu_item(
+        admin_app.extensions['cafeteria_db'],
+        _scope(admin_engine, user_id, profile),
+        WEEK, DAY, 'LUNCH', 'VEGGIE', _payload(staff=profile == 'staff_guest'), 0,
+    )
+    before = client.get(f'{path}?week={DAY}').get_data(as_text=True)
+    pending_link = r'<a href="#week-slot-([^\"]+)">[^<]*: Kartenprüfung offen</a>'
+    assert re.findall(pending_link, before) == [f'{DAY}-LUNCH-MENU_1', f'{DAY}-LUNCH-VEGGIE']
     menu = client.get(
         f'{path}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1',
     )
@@ -456,10 +464,10 @@ def test_admin_review_checkboxes_rehydrate_canonical_checked_status(
     })
     assert review.status_code == 303
     html = client.get(f'{path}?week={DAY}').get_data(as_text=True)
-    assert 'data-review="checked"' in html
-    assert 'Geprüft' in html
-    assert 'data-review="open"' in html
-    assert 'Prüfung offen' in html
+    # Normal checked badges are intentionally omitted; only outstanding checks
+    # belong in the shared summary. Reviewing one card must not clear the other.
+    assert re.findall(pending_link, html) == [f'{DAY}-LUNCH-VEGGIE']
+    assert '1 Menü mit offener Kartenprüfung.' in html
 
 
 @pytest.mark.parametrize(

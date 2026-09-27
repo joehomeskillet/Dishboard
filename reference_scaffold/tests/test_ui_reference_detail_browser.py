@@ -136,7 +136,12 @@ def assert_geometry(page):
     for element in page.locator('main :is(.btn, .form-control)').all():
         if element.is_visible():
             box = element.bounding_box()
-            assert box is not None and box['height'] >= 48 and box['width'] >= 48
+            minimum = element.evaluate('''el => el.classList.contains('ui-sem-control')
+                ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48''')
+            assert box is not None and box['height'] >= minimum and box['width'] >= minimum
+            if element.get_attribute('data-semantic'):
+                assert element.get_attribute('aria-label')
+                assert element.get_attribute('data-ui-tooltip')
     for svg in page.locator('main svg use').all():
         assert 'tabler-' in svg.get_attribute('href')
     tables = page.locator('main table')

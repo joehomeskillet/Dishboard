@@ -123,9 +123,8 @@ def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask)
 
     publish_btn = page.locator('[data-bs-target="#week-publish-modal"]')
     assert publish_btn.is_enabled()
-    # The week status lives in the shared status bar since the week plan core package.
-    week_status = page.locator('dl.admin-statusbar .admin-statusbar-item').filter(
-        has=page.locator('dt', has_text='Wochenstatus')).locator('dd')
+    # Icon-first keeps the publication state in the compact header context.
+    week_status = page.locator('.page-header-subtitle')
     expect(week_status).to_contain_text('Noch nicht veröffentlicht · bereit')
 
     publish_btn.click()
@@ -156,7 +155,7 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
     expect(alert).to_be_visible()
     expect(alert).to_be_focused()
     expect(page.locator('[aria-invalid="true"]').first).to_be_visible()
-    assert page.locator('.error-region button:has-text("Erneut versuchen")').is_visible()
+    expect(alert.get_by_role('button', name='Erneut versuchen', exact=True)).to_be_visible()
 
 def test_admin_escape_closes_details_and_restores_focus(page_context: Page):
     page = page_context
