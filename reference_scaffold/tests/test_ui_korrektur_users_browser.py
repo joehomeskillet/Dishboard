@@ -122,7 +122,8 @@ def test_wp19_measured_page_frame(live_accounts, browser, javascript):
                     for selector, size, weight in (
                         ('.admin-list-primary', '14px', '600'),
                         ('.admin-list-subtitle', '13px', '400'),
-                        ('.admin-list-meta > .admin-list-meta', '14px', '400'),
+                        # R18: metadata shares the secondary typography (§7).
+                        ('.admin-list-meta > .admin-list-meta', '13px', '400'),
                     ):
                         text_role = row.locator(selector).first
                         expect(text_role).to_have_css('font-size', size)
@@ -221,10 +222,12 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         expect(edit).to_have_accessible_name('Lokales Testkonto')
         expect(edit).to_have_attribute('href', re.compile(r'/admin/benutzer/[^?]+\?page=1&status=all'))
         expect(first_row.locator('a[data-semantic="actions.edit"], a[data-semantic="actions.open"]')).to_have_count(0)
+        expect(first_row.locator('.admin-list-secondary')).to_be_visible()
         metrics = first_row.locator('.admin-list-row').evaluate('''el => {
             const host = document.querySelector('.dishboard-admin');
             const probe = document.createElement('div');
-            probe.style.minHeight = 'var(--app-list-row-min-height)';
+            // Display name plus username form a two-line row (R18 specification §7).
+            probe.style.minHeight = 'var(--app-list-row-two-line-height)';
             probe.style.paddingTop = 'var(--app-list-pad-y)';
             host.appendChild(probe);
             const token = getComputedStyle(probe);
@@ -235,6 +238,7 @@ def test_list_first_and_native_create_form_preserves_request_contract(
             return result;
         }''')
         assert metrics['minHeight'] == metrics['tokenMin'], metrics
+        assert metrics['tokenMin'] == '64px', metrics
         assert metrics['paddingTop'] == metrics['tokenPad'], metrics
         page.locator('details.admin-compact-details > summary').filter(
             has_text='Weitere Optionen'

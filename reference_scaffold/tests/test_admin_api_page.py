@@ -250,7 +250,8 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                         for selector, size, weight in (
                             ('.admin-list-primary', '14px', '600'),
                             ('.admin-list-secondary', '13px', '400'),
-                            ('td[data-label="Läuft ab"]', '14px', '400'),
+                            # R18: metadata shares the secondary typography (§7).
+                            ('td[data-label="Läuft ab"]', '13px', '400'),
                         ):
                             cell = row.locator(selector)
                             expect(cell).to_have_css('font-size', size)

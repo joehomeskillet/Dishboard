@@ -54,7 +54,8 @@ def test_native_history_filters_pagination_keyboard_and_outage(
         for selector, size, weight in (
             ('tbody td[data-label="Zeitpunkt"]', '14px', '600'),
             ('tbody .admin-list-secondary', '13px', '400'),
-            ('tbody td[data-label="Zugang"]', '14px', '400'),
+            # R18: metadata shares the secondary typography (specification §7).
+            ('tbody td[data-label="Zugang"]', '13px', '400'),
         ):
             text_role = page.locator(selector).first
             expect(text_role).to_have_css('font-size', size)
