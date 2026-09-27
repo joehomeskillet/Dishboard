@@ -1,54 +1,27 @@
 {
   "pages": {
-    "wochenuebersicht-cafeteria": [
-      "haupt_typografie:tabelle-1"
-    ],
-    "wochenuebersicht-patienten": [
-      "haupt_typografie:tabelle-1"
-    ],
+    "wochenuebersicht-cafeteria": [],
+    "wochenuebersicht-patienten": [],
     "wochenplan-cafeteria": [],
     "wochenplan-patienten": [],
     "wochenpruefung-cafeteria": [],
     "wochenpruefung-patienten": [],
-    "menues-cafeteria": [
-      "haupt_typografie:tabelle-1"
-    ],
-    "menues-patienten": [
-      "haupt_typografie:tabelle-1"
-    ],
-    "bausteine-cafeteria": [
-      "haupt_typografie:tabelle-1"
-    ],
-    "bausteine-patienten": [
-      "haupt_typografie:tabelle-1"
-    ],
-    "kuechenkalender": [
-      "haupt_typografie:tabelle-1"
-    ],
-    "zutaten": [
-      "haupt_typografie:zeilen-1",
-      "sekundaer_typografie:zeilen-1"
-    ],
-    "einheiten": [
-      "haupt_typografie:zeilen-1"
-    ],
+    "menues-cafeteria": [],
+    "menues-patienten": [],
+    "bausteine-cafeteria": [],
+    "bausteine-patienten": [],
+    "kuechenkalender": [],
+    "zutaten": [],
+    "einheiten": [],
     "kategorien": [],
-    "kennzeichnungen": [
-      "haupt_typografie:zeilen-1"
-    ],
-    "lagerorte": [
-      "haupt_typografie:zeilen-1"
-    ],
+    "kennzeichnungen": [],
+    "lagerorte": [],
     "rezepte": [
       "1440:filtereinstieg_text",
       "390:filtereinstieg_text"
     ],
-    "gerichtvorlagen": [
-      "haupt_typografie:tabelle-1"
-    ],
-    "lager": [
-      "haupt_typografie:tabelle-1"
-    ],
+    "gerichtvorlagen": [],
+    "lager": [],
     "kochbuecher": [],
     "einkaufslisten": [],
     "bestellungen": [],
@@ -57,9 +30,7 @@
     "bildschirme": [],
     "bildschirmvorlagen-cafeteria": [],
     "bildschirmvorlagen-patienten": [],
-    "benutzer": [
-      "haupt_typografie:zeilen-1"
-    ],
+    "benutzer": [],
     "benutzerprotokoll": [],
     "api-schluessel": [
       "1440:ueberlauf_leer",
@@ -68,21 +39,15 @@
       "390:zeilenaktion_text:tabelle-1"
     ],
     "zugriffsverlauf": [],
-    "importe": [
-      "haupt_typografie:tabelle-1"
-    ],
+    "importe": [],
     "datenimport": [],
-    "bereiche-zeiten": [
-      "haupt_typografie:tabelle-1"
-    ],
+    "bereiche-zeiten": [],
     "rezept-revisionen": [],
     "rezept-skalierung": [],
     "rezept-bilder": [],
     "kochbuch": [],
     "einkaufsliste": [],
     "bestellkorb": [],
-    "import-detail": [
-      "haupt_typografie:tabelle-1"
-    ]
+    "import-detail": []
   }
 }

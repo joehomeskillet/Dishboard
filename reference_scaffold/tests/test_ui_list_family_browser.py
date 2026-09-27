@@ -3,7 +3,8 @@
 Zielwerte aus docs/design/2026-09-26-icon-first-simplification-spec.md (§3.2, §4, §5):
 keine sichtbare Beschriftung an Zeilen- und Kopf-Aktionsbuttons, höchstens zwei
 Zeilenaktionen, keine Karte je Zeile, gleiche Kopf-/Haupt-/Sekundärtypografie.
-UI_LIST_FAMILY_REPORT=1 schreibt den Vergleich, die Screenshots und die Baseline.
+UI_LIST_FAMILY_REPORT=1 schreibt Vergleich und Screenshots; die Baseline darf
+dabei nur sinken. Neue Abweichungen werden auch im Berichtsmodus abgewiesen.
 Ohne diese Variable schlägt der Test nur bei einer neuen Seite oder einer neuen
 Abweichung fehl und nennt erfüllte Baseline-Einträge.
 """
@@ -157,6 +158,7 @@ MEASURE_JS = r"""() => {
   cluster('article.screen-card', 'karten', parentOf);
   cluster('article.screen-choice-card', 'karten', parentOf);
   cluster('li.print-tpl-row', 'zeilen', parentOf);
+  cluster('.print-screen-row', 'zeilen', parentOf);
   cluster('li.kitchen-cal-list-day:not(.kitchen-cal-list-day-empty)', 'zeilen', parentOf);
   for (const table of main.querySelectorAll('table')) {
     if (!visible(table) || table.closest('nav, .navbar, article.menu-slot, article.recipe-card, article.screen-card')) continue;
@@ -240,7 +242,8 @@ MEASURE_JS = r"""() => {
     const primary = textInfo(first.querySelector('.admin-list-primary, .admin-list-name strong, h2, h3, h4, h5, th[scope=row], td a, th a, a'));
     const secondary = textInfo(first.querySelector('.admin-list-secondary, .admin-list-subtitle, .print-tpl-meta, .text-secondary'));
     const statusEl = first.querySelector('.admin-label, .badge, [data-status]');
-    const rowStyle = getComputedStyle(first);
+    const rowBody = first.matches('.admin-list-row') ? first : (first.querySelector('.admin-list-row') || first);
+    const rowStyle = getComputedStyle(rowBody);
     return {
       key: group.kind + '-' + kindCount[group.kind],
       label: labelOf(group.root),
@@ -384,13 +387,53 @@ def _hook(page, hook: str | None, revision: str) -> None:
 def _sig_header(style: dict | None) -> str | None:
     if not style:
         return None
-    return '|'.join(str(style[key]) for key in ('fontSize', 'fontWeight', 'textTransform', 'color', 'background', 'height'))
+    return '|'.join(str(style[key]) for key in ('fontSize', 'fontWeight', 'textTransform', 'color'))
 
 
 def _sig_text(style: dict | None) -> str | None:
     if not style:
         return None
-    return '|'.join(str(style[key]) for key in ('fontSize', 'fontWeight', 'color', 'link', 'linkColor'))
+    values = [str(style[key]) for key in ('fontSize', 'fontWeight', 'color')]
+    if style['linkColor'] and style['linkColor'] != style['color']:
+        values.append(style['linkColor'])
+    return '|'.join(values)
+
+
+def test_typography_compares_present_roles_without_hiding_real_differences():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox'])
+        try:
+            page = browser.new_page()
+            page.set_content('''<style>
+                th, .admin-list-primary {font-size:14px;font-weight:500;color:rgb(30,30,30)}
+                a {color:inherit}.admin-list-secondary {font-size:12px;color:rgb(70,70,70)}
+                .tall th {padding:20px;background:rgb(230,230,230)}
+                .different th {font-size:16px}.different .admin-list-primary {font-weight:700}
+                .different .admin-list-secondary {color:rgb(100,100,100)}
+                </style><main>'''+ ''.join(
+                f'''<table class="{kind}">{'<thead><tr><th>Name</th></tr></thead>' if kind != 'headless' else ''}
+                <tbody><tr><td><span class="admin-list-primary">{primary}</span>
+                <span class="admin-list-secondary">Secondary</span></td></tr></tbody></table>'''
+                for kind, primary in [('plain', 'Plain'), ('linked', '<a href="/detail">Linked</a>'),
+                                      ('tall', 'Tall'), ('headless', 'Headless'), ('different', 'Different')]
+            ) + '</main>')
+            rows = _flatten('probe', 'Probe', '/', 1440, 900, _measure(page))
+            assert rows[0]['header_sig'] == rows[2]['header_sig']
+            assert dict(rows[0]['metrics'])['Kopfzeile'] != dict(rows[2]['metrics'])['Kopfzeile']
+            assert rows[0]['primary_sig'] == rows[1]['primary_sig']
+            assert rows[3]['header_sig'] is None
+            assert _deviations(rows, [], _modes(rows)) == [
+                'haupt_typografie:tabelle-5', 'kopf_typografie:tabelle-5', 'sekundaer_typografie:tabelle-5']
+            markdown = _markdown(rows, {})
+            assert '| Kopfzeile | keine Kopfzeile |' in markdown
+            assert '| Kopfzeile | **16px' in markdown
+            assert '| Haupttext | **14px / 700' in markdown
+            assert '| Sekundärtext | **12px / 400 / rgb(100, 100, 100)' in markdown
+            page.locator('a').evaluate("el => el.style.color = 'rgb(200, 0, 0)'")
+            changed = _flatten('probe', 'Probe', '/', 1440, 900, _measure(page))
+            assert 'haupt_typografie:tabelle-2' in _deviations(changed, [], _modes(changed))
+        finally:
+            browser.close()
 
 
 def _fmt_header(style: dict | None) -> str:
@@ -523,18 +566,21 @@ def _deviations(desktop: list[dict], mobile: list[dict], modes: dict[str, str | 
 
 def _markdown(desktop: list[dict], mobile_by_slug: dict[str, list[dict]]) -> str:
     metric_values: dict[str, list[str]] = {}
-    lines_raw: list[tuple[str, str, str, str]] = []
+    lines_raw: list[tuple[str, str, str, str, str | None]] = []
+    typography = {'Kopfzeile': 'header_sig', 'Haupttext': 'primary_sig', 'Sekundärtext': 'secondary_sig'}
 
-    def add(page: str, viewport: str, name: str, value: str) -> None:
-        metric_values.setdefault(name, []).append(value)
-        lines_raw.append((page, viewport, name, value))
+    def add(page: str, viewport: str, name: str, value: str, signature: str | None = None) -> None:
+        comparison = signature if name in typography else value
+        if comparison is not None:
+            metric_values.setdefault(name, []).append(comparison)
+        lines_raw.append((page, viewport, name, value, comparison))
 
     seen_mobile_header: set[str] = set()
     paired = {(row['slug'], row['list_key']) for row in desktop}
     for row in desktop:
         page = f"{row['title']} · {row['label']}"
         for name, value in row['metrics']:
-            add(page, '1440×900', name, value)
+            add(page, '1440×900', name, value, row.get(typography.get(name)))
         mobile_rows = mobile_by_slug.get(row['slug'], [])
         match = next((item for item in mobile_rows if item['list_key'] == row['list_key']), None)
         if match and dict(match['metrics']).get('Zeilenaktionen'):
@@ -555,12 +601,12 @@ def _markdown(desktop: list[dict], mobile_by_slug: dict[str, list[dict]]) -> str
                     add(page, '390×844', name + ' schmal', value)
     modes = {name: Counter(values).most_common(1)[0][0] for name, values in metric_values.items() if values}
 
-    def cell(name: str, value: str) -> str:
+    def cell(name: str, value: str, comparison: str | None) -> str:
         text = value.replace('|', '/').replace('\n', ' ')
-        return f'**{text}**' if modes.get(name) not in (None, value) else text
+        return f'**{text}**' if comparison is not None and modes.get(name) not in (None, comparison) else text
 
     body = ['| Seite | Viewport | Messgrösse | Wert |', '|---|---|---|---|']
-    body.extend(f'| {page} | {viewport} | {name} | {cell(name, value)} |' for page, viewport, name, value in lines_raw)
+    body.extend(f'| {page} | {viewport} | {name} | {cell(name, value, comparison)} |' for page, viewport, name, value, comparison in lines_raw)
     button_pages = sorted({row['title'] for row in desktop if row['row_text'] or row['header_text']})
     card_pages = sorted({row['title'] for row in desktop if row['card']})
     many = sorted({row['title'] for row in desktop if row['row_count'] > 2})
@@ -574,8 +620,9 @@ def _markdown(desktop: list[dict], mobile_by_slug: dict[str, list[dict]]) -> str
     summary = [
         '# Listenfamilie — Vergleich der administrativen Listen',
         '',
-        'Gemessen am 2026-09-26 gegen `docs/design/2026-09-26-icon-first-simplification-spec.md` (§3.2 Aktionsbudget, §4 gemeinsames Listenmuster, §5 Symbolbuttons; Abnahme UI-02, UI-03, UI-04, UI-05, UI-24).',
+        f'Gemessen {datetime.now(UTC).isoformat(timespec="seconds")} gegen `docs/design/2026-09-26-icon-first-simplification-spec.md` (§3.2 Aktionsbudget, §4 gemeinsames Listenmuster, §5 Symbolbuttons; Abnahme UI-02, UI-03, UI-04, UI-05, UI-24).',
         'Fett markiert ist jeder Wert, der von der häufigsten Ausprägung dieser Messgrösse abweicht.',
+        'Typografie wird nur zwischen vorhandenen Textrollen verglichen; fehlende Kopfzeilen zählen nicht als Abweichung. Kopf-Hintergrund, Kopf-Höhe und Linkstatus bleiben Messwerte, gehören aber nicht zur Schrift-Signatur. Abweichende Linkfarben zählen weiterhin.',
         'Geschlossene Überlaufmenüs und Bestätigungsdialoge (§5.4) sind nicht geöffnet und zählen nicht als sichtbarer Text.',
         '',
         f'Seiten: {len({row["slug"] for row in desktop})}. Listenblöcke bei 1440×900: {len(desktop)}.',
@@ -683,14 +730,7 @@ def test_list_family_across_admin_pages(admin_app, admin_engine, live_server, tm
     (tmp_path / 'list-family-measurements.json').write_text(
         json.dumps({'desktop': desktop, 'mobile': mobile, 'deviations': current}, ensure_ascii=False, indent=2),
         encoding='utf-8')
-    if report:
-        REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        REPORT_PATH.write_text(_markdown(desktop, mobile), encoding='utf-8')
-        BASELINE_PATH.write_text(json.dumps({'pages': current}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-        print(f'LIST_FAMILY_REPORT={REPORT_PATH}')
-        print(f'LIST_FAMILY_BASELINE={BASELINE_PATH}')
-        print(f'LIST_FAMILY_CONTACT={EVIDENCE / "contact-sheet.png"}')
-    assert BASELINE_PATH.is_file(), 'Baseline fehlt. Einmal mit UI_LIST_FAMILY_REPORT=1 erzeugen.'
+    assert BASELINE_PATH.is_file(), 'Geprüfte Listenfamilien-Baseline fehlt.'
     baseline = json.loads(BASELINE_PATH.read_text(encoding='utf-8'))['pages']
     new_pages = sorted(set(current) - set(baseline))
     new_codes = [f'{slug}: {code}' for slug, codes in current.items() for code in codes if code not in baseline.get(slug, [])]
@@ -699,3 +739,10 @@ def test_list_family_across_admin_pages(admin_app, admin_engine, live_server, tm
         print('LIST_FAMILY_SATISFIED=' + '; '.join(satisfied))
     assert not new_pages, 'Neue Listen ohne Baseline: ' + ', '.join(new_pages)
     assert not new_codes, 'Neue Abweichungen:\n' + '\n'.join(new_codes)
+    if report:
+        REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        REPORT_PATH.write_text(_markdown(desktop, mobile), encoding='utf-8')
+        BASELINE_PATH.write_text(json.dumps({'pages': current}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        print(f'LIST_FAMILY_REPORT={REPORT_PATH}')
+        print(f'LIST_FAMILY_BASELINE={BASELINE_PATH}')
+        print(f'LIST_FAMILY_CONTACT={EVIDENCE / "contact-sheet.png"}')
