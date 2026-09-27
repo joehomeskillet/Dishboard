@@ -145,7 +145,7 @@ def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, 
         page.screenshot(path=str(confirm_shot), full_page=True)
         commit = page.get_by_role('button', name='Importstapel übernehmen')
         expect(commit).to_have_accessible_name('Importstapel übernehmen')
-        assert 'Übernehmen' in (commit.get_attribute('aria-label') or '')
+        assert 'übernehmen' in (commit.get_attribute('aria-label') or '')
         expect(commit).to_have_attribute('data-semantic', 'actions.apply')
         commit.click()
         expect(page.get_by_role('heading', name='Übernommene Rezepte')).to_be_visible()
