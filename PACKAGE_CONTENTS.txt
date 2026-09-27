@@ -1458,6 +1458,7 @@ reference_scaffold/tests/test_inventory_store_db.py
 reference_scaffold/tests/test_inventory_transfer_db.py
 reference_scaffold/tests/test_inventory_ui.py
 reference_scaffold/tests/test_kitchen_calendar_browser.py
+reference_scaffold/tests/test_list_shell_browser.py
 reference_scaffold/tests/test_local_user_management_cli.py
 reference_scaffold/tests/test_local_user_management_db.py
 reference_scaffold/tests/test_local_user_management_migration_db.py

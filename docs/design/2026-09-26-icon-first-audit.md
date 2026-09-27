@@ -12,12 +12,13 @@ zu einer appweiten Abnahme. Aktuelle Ausgangsbasis ist
 `0b6c40f07ba38e95e91b36c602db2e19e68d35b7`, Produktion seit 01:19 CEST gesund.
 Der Timer ist aktiv, nächste reguläre Fahrt bei Übernahme: 02:07 CEST.
 
-Aktuelle Pakete: API-Symbolaktionen (`wp-cb8f25515d05`) und Listenhülle
-(`wp-edf89d346095`). Faire Listenmessung (`wp-ae3225c63108`, `75453eee`) ist nach
-eigener Diffprüfung und erneutem Browsergate integriert. Je ein isolierter
-Worktree, Testpool und Dateibesitzer; Prüfung und Manifestpflege vor Aufnahme in
-`integrate/icon-first-r18`. Paketvertrag: lokal
-`/var/tmp/dishboard-icon-0928-wps.json`. Noch kein neuer Deploy behauptet.
+Integriert nach eigener Diffprüfung und erneutem Gate: API-Symbolaktionen
+(`wp-cb8f25515d05`, `6a656cd7`/`45d12e76`), Listenhülle
+(`wp-edf89d346095`, `e169a69d`) und faire Listenmessung
+(`wp-ae3225c63108`, `75453eee`). Wochenwarnungen und Rezepteditor sind nächste
+isolierte Pakete. Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
+Manifestpflege vor Aufnahme in `integrate/icon-first-r18`. Paketverträge lokal
+unter `/var/tmp/dishboard-*-0928*.json`. Noch kein neuer Deploy behauptet.
 
 Eigene neue Prüfungen auf R18, Pool `worker-test-api-int2`, über
 `rtk bash tools/release/gate.sh <pool> <worktree> -q <datei>`:
@@ -36,6 +37,15 @@ Eigene neue Prüfungen auf R18, Pool `worker-test-api-int2`, über
   `tests/test_ui_list_family_browser.py`: `4 passed in 18.46s`, `GATE_EXIT=0`.
   JUnit `/var/tmp/dishboard-list-audit-root-0928.xml`; `test_delta` meldet
   Tests 3→4, Assertions 15→25, Skips 0→0, `flagged=0`.
+- API: `tests/test_ui_semantics.py` und `tests/test_admin_api_key_policy.py`:
+  `206 passed in 34.96s`; `tests/test_icon_api_browser.py`:
+  `4 passed in 16.04s`; beide `GATE_EXIT=0`.
+- Listenhülle: `tests/test_list_shell_browser.py`: `1 passed in 15.62s`;
+  `tests/test_admin_shared_patterns_browser.py`: `55 passed in 76.10s (0:01:16)`;
+  beide `GATE_EXIT=0`. Eigene Desktop-/Mobilscreenshots gesichtet.
+  JUnit `/var/tmp/dishboard-list-shell-root-0928.xml` und
+  `/var/tmp/dishboard-list-shell-shared-root-0928.xml`. Änderungen betreffen
+  gemeinsame Listenrahmen, Bestellung und Vorlagen, keine Formularverträge.
 
 Der Browser-MCP startete zweimal mit `Chromium sandboxing failed!` nicht.
 Die vorgenannten Projektbrowserläufe funktionieren unabhängig davon. Eine
@@ -48,7 +58,7 @@ und kein automatischer Anbieterwechsel.
 | UI-01 | Historisches Routen-/Templateinventar vorhanden. 41 Listen decken Editor-, Fehler- und dynamische Zustände nicht vollständig ab. Abgleich offen. |
 | UI-02 | Neuer Listenvergleich integriert: 41 Seiten, 82 Blöcke inklusive Bildschirmvorlagen. Abschliessender Vergleich nach Produktkorrekturen offen. |
 | UI-03 | Gemeinsame Makros geprüft. Native Summary- und dynamische Editoraktionen noch migrieren und auf Seiten prüfen. |
-| UI-04 | API-Schlüssel, Rezepteditor, Druckvorlagen-Auswahl und Bildschirm-Fehlerseite haben konkrete Restkandidaten. Keine appweite Freigabe. |
+| UI-04 | API-Schlüssel normalisiert und mit JS/No-JS geprüft. Rezepteditor, Druckvorlagen-Auswahl und Bildschirm-Fehlerseite haben konkrete Restkandidaten. Keine appweite Freigabe. |
 | UI-05 | Normale Listen bisher ohne gemeldete Überschreitung. Editor-Unterlisten und Dialogzustände separat prüfen. |
 | UI-06 | Makronamen in DE/EN/Pseudo geprüft; Kontextnamen auf allen Produktseiten und reduzierten Rollen offen. |
 | UI-07 | Makrotastatur und Shell-Fokus bestanden; Dialogrückkehr und Produktaktionen appweit offen. |

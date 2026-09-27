@@ -39,6 +39,17 @@ Natives Details-Summary im API-Überlauf wird vom alten Leer-Menü-Zähler noch
 fälschlich als leer bewertet; kein fehlender Produktzugang. Weitere konkrete
 Restpunkte und UI-01 bis UI-28: `docs/design/2026-09-26-icon-first-audit.md`.
 
+Listenhülle `e169a69d`: `/admin/bestellung` und `/admin/vorlagen`, Admin, 390/1440 px.
+Gemeinsame Außenkante und 1-px-Zwischentrenner; Bildschirmvorlagen richten Aktionen
+rechts aus. Der Bestell-Override hatte jede umschlossene Zeile als letzte Zeile
+behandelt. Verschachtelte Karten bleiben rahmenlos; der Kalender behält die
+Heute-Markierung. Native Formulare und Fachlogik sind unverändert.
+Unabhängig: `test_list_shell_browser.py`: `1 passed in 15.62s` und
+`test_admin_shared_patterns_browser.py`: `55 passed in 76.10s (0:01:16)`,
+jeweils `GATE_EXIT=0`. Eigene Screenshots:
+`/var/tmp/dishboard-list-shell-root-0928/`. Keine Behauptung appweiter
+Gestaltungsabnahme: Vorlagenstatus und Anlegen-Disclosures sind noch zu verdichten.
+
 `/admin/rezepte`, Editor, Ansicht, Revisionen und Rezeptdruckvorlagen: Admin,
 Nur-Lesen und archiviert, JS/No-JS, 320/390/768/1024/1440/1920/2560 px sowie
 echter 200-%-Browserzoom. R44/M64: Symbolaktionen mit zugänglichen Namen;
