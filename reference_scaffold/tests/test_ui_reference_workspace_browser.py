@@ -77,15 +77,16 @@ def test_workspace_page_header_and_layout_variant(page_context: Page, family: st
     page.set_viewport_size({'width': 1440, 'height': 900})
     _goto(page, family)
     expect(page.locator('main')).to_have_attribute('data-layout', 'workspace')
-    title = 'Cafeteria-Plan' if family == 'cafeteria' else 'Patientenplan'
+    title = 'Cafeteria' if family == 'cafeteria' else 'Patienten'
     expect(page.get_by_role('heading', level=1, name=title, exact=True)).to_be_visible()
-    expect(page.locator('.page-breadcrumb')).to_contain_text('Wochenpläne')
+    expect(page.locator('nav[aria-label="Backend"] a[aria-current="page"]').first).to_have_text(title)
     expect(page.locator('.page-header-subtitle')).to_contain_text('KW 36')
-    expect(page.locator('.page-header-subtitle')).to_contain_text('Mittag')
+    expect(page.locator('.page-header-subtitle')).to_contain_text('Noch keine Menüs')
+    expect(page.locator('.admin-week-meal-head').first).to_contain_text('Mittag')
     expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_have_count(1)
     expect(page.locator('.admin-week-review-link')).to_be_visible()
-    expect(page.locator('.status-pill')).to_have_attribute('data-status', 'empty')
-    expect(page.locator('.status-pill .badge[data-status]')).to_be_visible()
+    expect(page.locator('main')).to_have_attribute('data-status', 'empty')
+    expect(page.locator('#week-publish-guidance')).to_contain_text('Zuerst Gerichte erfassen')
 
 
 @pytest.mark.parametrize('family', FAMILIES)

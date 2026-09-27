@@ -27,7 +27,12 @@ VIEWPORTS = [
 
 
 @pytest.fixture
-def macro_site(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
+def touch_input(request):
+    return getattr(request, 'param', False)
+
+
+@pytest.fixture
+def macro_site(monkeypatch, tmp_path, database_engine, browser, touch_input):  # noqa: F811
     app = _factory(monkeypatch, tmp_path, database_engine)
     client, _ = _login(app, database_engine, ['Cafeteria.Admin'])
 
@@ -182,7 +187,7 @@ def macro_site(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
     try:
         with browser.new_context(base_url=origin, viewport={'width': 1440, 'height': 900},
                                  locale='de-CH', timezone_id='Europe/Zurich',
-                                 reduced_motion='reduce') as context:
+                                 reduced_motion='reduce', has_touch=touch_input) as context:
             cookie_name = app.config['SESSION_COOKIE_NAME']
             context.add_cookies([{'name': cookie_name, 'value': client.get_cookie(cookie_name).value,
                                  'url': origin}])
@@ -388,7 +393,8 @@ def test_master_pagination_behaviours(macro_site):
     assert page.locator('#pag-single .pagination').count() == 0
 
 
-def test_master_actions_and_focus_ring(macro_site):
+@pytest.mark.parametrize('touch_input', [False, True], indirect=True, ids=['fine', 'coarse'])
+def test_master_actions_and_focus_ring(macro_site, touch_input):
     page, _, _, _ = macro_site
     page.goto('/__macro_components__', wait_until='networkidle')
 
@@ -397,10 +403,14 @@ def test_master_actions_and_focus_ring(macro_site):
     sec_btn = page.locator('#sec-btn')
     sec_link = page.locator('#sec-link')
 
-    for btn in [pri_btn, sec_btn, sec_link]:
+    assert page.evaluate("matchMedia('(pointer: coarse)').matches") == touch_input
+    size = 44 if touch_input else 36
+    for btn, name in [(pri_btn, 'Hauptaktion ausführen'), (sec_btn, 'Zurücksetzen'), (sec_link, 'Zur Liste')]:
         box = btn.bounding_box()
         assert box is not None
-        assert box['height'] >= 44, f"Target height {box['height']} < 44px"
+        assert box['height'] == size and box['width'] == size, box
+        expect(btn).to_have_accessible_name(name)
+        expect(btn).to_have_attribute('data-ui-tooltip', name)
 
     # Focus ring matches --app-focus (rgb(163, 22, 77))
     pri_btn.focus()
@@ -444,12 +454,15 @@ def test_compact_details_keyboard_values_and_targets(macro_site, width, height, 
     expect(page.locator('#detail-name')).to_have_value('Unveränderter Entwurf')
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     targets = page.locator('main :is(.btn, .form-control, summary)').evaluate_all(
-        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height])'
+        '''es => es.filter(e => e.getClientRects().length).map(e => [e.id,
+            e.getBoundingClientRect().height, e.classList.contains('ui-sem-control')
+                ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48])'''
     )
-    assert targets and all(height >= 48 for _, height in targets), targets
-    for button in ('details-save', 'details-add'):
+    assert targets and all(height >= minimum for _, height, minimum in targets), targets
+    for button, name in (('details-save', 'Speichern'), ('details-add', 'Zeile hinzufügen')):
         expect(page.locator(f'#{button} svg')).to_have_attribute('aria-hidden', 'true')
-        assert page.locator(f'#{button}').inner_text().strip()
+        expect(page.locator(f'#{button}')).to_have_accessible_name(name)
+        expect(page.locator(f'#{button}')).to_have_attribute('data-ui-tooltip', name)
     page.screenshot(path=str(tmp_path / f'compact-details-{width}.png'), full_page=True)
     page.locator('#details-save').click()
     page.wait_for_load_state('networkidle')

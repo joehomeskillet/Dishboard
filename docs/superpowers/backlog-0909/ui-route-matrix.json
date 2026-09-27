@@ -18,7 +18,7 @@
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
     "route_count": 160,
-    "template_count": 98,
+    "template_count": 99,
     "html_route_count": 79,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
@@ -178,6 +178,16 @@
       "database/seed_demo.sql": "26dd58d4eb0505bb96205e987a608e6a6d18dd3eee59145683132f49670468f0",
       "demo/snapshots/cafeteria_kw36.json": "1083703586354d662f43de2f8a7c42b3afeb6ac9cd125c352efacebe46c0540e",
       "demo/snapshots/patienten_kw36.json": "7087d11069583805a73030f6d82836cf2c27450bab8f40b726b3af6aba63641a"
+    },
+    "r18_reds_x_verification": {
+      "date": "2026-09-27",
+      "report": ".claude/r18-reds-x-report.md",
+      "routes": ["/admin/cafeteria", "/admin/patienten", "/admin/<family>/komponenten", "/admin/<family>/komponenten/<id>", "/admin/rezepte/<id>/ansicht", "/admin/rezepte/<id>/revisionen/<revision>"],
+      "roles": ["Cafeteria.Admin", "Cafeteria.Editor"],
+      "states": ["empty", "checked_and_pending", "validation_error", "publish_dialog", "no_js", "long_text"],
+      "patterns": ["36/44 icon actions", "accessible names and shared tooltips", "Escape focus return", "visible form labels and presence text"],
+      "tests": ["test_admin_ux_browser.py", "test_rendered_ui.py", "test_ui_master_components_browser.py", "test_ui_reference_detail_browser.py", "test_ui_reference_form_browser.py", "test_ui_reference_workspace_browser.py", "test_ui_route_inventory.py"],
+      "scope": "Local worker runs; exact results and limits in report. No screenshot baseline promotion."
     },
     "density_verification": {
       "required_primary_viewports": [
@@ -10408,6 +10418,23 @@
       "current_visual_status": "not_run"
     },
     {
+      "path": "admin/_week_check_summary.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [],
+      "sha256": "9d71926d6becfe134f6d70890dd0a7e19b6c6c6f0f89b523182b68c5d3ab5050",
+      "used_by_endpoints": [
+        "admin.cafeteria",
+        "admin.patienten"
+      ],
+      "owning_mp": "MP-UI-REF-WORKSPACE",
+      "density_mockups": [
+        "M10",
+        "M11"
+      ],
+      "current_visual_status": "not_run"
+    },
+    {
       "path": "admin/_week_controls.html",
       "kind": "partial",
       "extends": [],
@@ -10760,6 +10787,7 @@
       "includes": [
         "_food_symbols.html",
         "admin/_macros.html",
+        "admin/_week_check_summary.html",
         "admin/_week_controls.html",
         "admin/_week_menu_card.html",
         "admin/_week_service.html",
@@ -11358,6 +11386,7 @@
       "includes": [
         "_food_symbols.html",
         "admin/_macros.html",
+        "admin/_week_check_summary.html",
         "admin/_week_controls.html",
         "admin/_week_menu_card.html",
         "admin/_week_service.html",
