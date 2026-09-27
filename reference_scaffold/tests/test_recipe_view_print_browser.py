@@ -24,7 +24,7 @@ VIEWPORTS = ((1440, 900, True), (390, 844, False), (390, 844, True),
 
 
 @pytest.fixture
-def view_print(recipe_editor, monkeypatch):
+def view_print(recipe_editor, monkeypatch):  # noqa: F811
     recipe, revision, _ = example(recipe_editor)
     template = create_template(recipe_editor[2], title='Gericht zur Suppe', recipe_public_id=recipe)
     monkeypatch.setattr(accessibility, 'EVIDENCE', EVIDENCE)
@@ -39,7 +39,7 @@ def routes(recipe, revision):
 
 
 @pytest.mark.parametrize('width,height,javascript', VIEWPORTS)
-def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, recipe_server, browser,
+def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, recipe_server, browser,  # noqa: F811
                                                 width, height, javascript):
     recipe, revision, template = view_print
     _, owner, client, _ = recipe_editor
@@ -78,9 +78,12 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         response = client.get(pdf.get_attribute('href'))
         assert response.status_code == 200 and response.data.startswith(b'%PDF-')
         assert response.headers['X-Recipe-Revision'] == revision.public_id
+        # The enhanced menu already focuses its first item after a mouse click.
+        # Establish an unfocused baseline, then enter through native keyboard focus.
+        card.locator('details.ui-sem-actions > summary').focus()
         idle = view.evaluate(
             "el => getComputedStyle(el).outlineStyle + '|' + getComputedStyle(el).outlineWidth + '|' + getComputedStyle(el).boxShadow")
-        view.evaluate('el => el.focus({focusVisible: true})')
+        page.keyboard.press('Tab')
         expect(view).to_be_focused()
         shown = view.evaluate(
             "el => getComputedStyle(el).outlineStyle + '|' + getComputedStyle(el).outlineWidth + '|' + getComputedStyle(el).boxShadow")
@@ -111,6 +114,8 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         page.get_by_role('link', name='Gericht zur Suppe', exact=True).click()
         assert page.url.endswith(template)
         page.goto('/admin/gerichtvorlagen')
+        page.get_by_role('link', name='Gericht zur Suppe', exact=True).click()
+        page.locator('#template-recipe-details > summary').click()
         page.get_by_role('link', name='Rezept: Suppe', exact=True).click()
         assert page.url.endswith(f'/admin/rezepte/{recipe}/ansicht')
         expect(page.get_by_role('link', name='Standard · Revision 1 (aktiv)', exact=True)).to_be_visible()
@@ -123,7 +128,7 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
 
 
 @pytest.mark.parametrize('width,javascript', [(390, False), (1440, True)])
-def test_reader_view_print_without_write_actions(view_print, recipe_editor, recipe_server, browser,
+def test_reader_view_print_without_write_actions(view_print, recipe_editor, recipe_server, browser,  # noqa: F811
                                                monkeypatch, width, javascript):
     recipe, revision, _ = view_print
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Admin', {'draft.read'})
@@ -150,7 +155,7 @@ def test_reader_view_print_without_write_actions(view_print, recipe_editor, reci
     assert state(recipe_editor[1]) == before
 
 
-def test_real_browser_zoom_and_320_reflow(view_print, recipe_editor, recipe_server, browser, tmp_path):
+def test_real_browser_zoom_and_320_reflow(view_print, recipe_editor, recipe_server, browser, tmp_path):  # noqa: F811
     recipe, revision, _ = view_print
     cookie = recipe_editor[2].get_cookie(recipe_editor[0].config['SESSION_COOKIE_NAME'])
     before = state(recipe_editor[1])
@@ -176,7 +181,7 @@ def test_real_browser_zoom_and_320_reflow(view_print, recipe_editor, recipe_serv
 
 
 @pytest.mark.parametrize('width,height,javascript', [(390, 844, False), (1440, 900, True)])
-def test_history_opens_each_of_three_archived_stands(view_print, recipe_editor, recipe_server, browser,
+def test_history_opens_each_of_three_archived_stands(view_print, recipe_editor, recipe_server, browser,  # noqa: F811
                                                  monkeypatch, width, height, javascript):
     recipe, first, _ = view_print
     app, owner, client, actor = recipe_editor
@@ -309,7 +314,28 @@ def test_readable_recipe_content_and_explicit_mode(readable_recipe, recipe_edito
             more = page.locator('.page-header details.ui-sem-actions > summary')
             if more.count():
                 more.click()
-            page.get_by_role('link', name='Mengen berechnen', exact=True).click()
+            quantity = page.get_by_role('link', name='Mengen berechnen', exact=True)
+            if javascript and label == 'saved':
+                print_action = page.get_by_role('link', name='Drucken · PDF öffnen', exact=True)
+                print_action.hover()
+                tooltip = page.get_by_role('tooltip', name='Drucken · PDF öffnen', exact=True)
+                expect(tooltip).to_be_visible()
+                assert quantity.evaluate('''el => {
+                    const box = el.getBoundingClientRect();
+                    return el.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+                }'''), 'Print tooltip must not intercept the neighbouring quantity action'
+                tooltip.hover()
+                expect(tooltip).to_be_visible()
+                page.keyboard.press('Escape')
+                expect(tooltip).to_be_hidden()
+                print_action.focus()
+                expect(tooltip).to_be_visible()
+                assert tooltip.evaluate('''el => {
+                    const box = el.getBoundingClientRect();
+                    return box.left >= 0 && box.right <= document.documentElement.clientWidth;
+                }'''), 'Print tooltip must fit the visible page width'
+                page.screenshot(path=str(EVIDENCE / f'print-tooltip-{width}.png'))
+            quantity.click()
             page.get_by_label('Zielmenge · PORTION', exact=True).fill('6')
             page.get_by_role('button', name='Mengen berechnen', exact=True).click()
             if label == 'saved':

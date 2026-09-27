@@ -13,6 +13,31 @@ Diese Quellenzählung unterscheidet bewusst nicht zwischen wirksamen und überst
 Aktualisieren: `rtk python3 tools/ui_consistency_inventory.py --update-baseline`.
 Bestehende Obergrenzen dürfen nur sinken; neue Dateien starten bei null.
 
+## Release 18 R1: Rezeptaktionen und Regressionen (2026-09-27)
+
+`/admin/rezepte`, Editor, Ansicht, Revisionen und Rezeptdruckvorlagen: Admin,
+Nur-Lesen und archiviert, JS/No-JS, 320/390/768/1024/1440/1920/2560 px sowie
+echter 200-%-Browserzoom. R44/M64: Symbolaktionen mit zugänglichen Namen;
+Dichteprüfung zusätzlich mit echtem grobem Zeiger (44 px) und feinem Zeiger
+(36 px). Formularwerte, Feldfokus, Warnungen und unveränderliche Stände bleiben
+geprüft. DB-freie Fehlerseiten registrieren in der Testfixture dieselben
+Template-Helfer wie die Anwendung; Context-Processor bleiben verboten.
+
+Gemeinsamer Tooltip-Controller: In horizontalen `.btn-list`-/`.admin-row-actions`-
+Gruppen nur oben/unten ausweichen, damit der Drucktooltip die benachbarte
+Mengenaktion nicht verdeckt. Menüeinträge behalten ihre bisherigen Platzierungen.
+Hover, Wechsel in den Tooltip, Escape, Fokus, freie Klickfläche und sichtbare
+Seitenbreite werden auf echten Rezeptrevisionen geprüft. Screenshots bei 390 und
+1440 px visuell geprüft; keine Formular-/Template- oder Baselineänderung.
+
+R1-Dateigates: Dichte `21 passed in 118.12s (0:01:58)`, Fehlerfokus
+`14 passed in 6.30s`, Ansicht/Druck `23 passed in 192.44s (0:03:12)`;
+zusätzliche Tooltip-Breitenmessung `2 passed in 14.77s`.
+Zusatzgate Tabler: `2 failed, 9 passed in 92.25s (0:01:32)`; zwei vorbestehende
+Wochen-Selektoren erwarten das in `62888f0c` entfernte `<details>` statt Collapse
+(Wrapper seit `a191cea9`). Als T mit Grund in `tools/release/known_red.txt`
+erfasst. Keine offenen Produktfehler aus R1; keine Deploy-/Releasefreigabe.
+
 ## Release 17: Formularlabels und Symbolaktionen (2026-09-27)
 
 `/admin/{cafeteria,patienten}/menu`, Admin, befüllt und Feldfehler:

@@ -11,6 +11,8 @@ from werkzeug.serving import make_server
 from cafeteria.admin.recipe_errors import render_form_error
 from cafeteria.admin.recipe_forms import FormError
 from cafeteria.recipe_types import RecipeConflictError, RecipeUnavailableError, RecipeValidationError
+from cafeteria.template_filters import register_template_filters
+from cafeteria.ui import register_ui
 
 ROOT = Path(__file__).resolve().parents[2]
 CSRF = 'csrf-token'
@@ -110,6 +112,9 @@ def app():
         template_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'templates'),
         static_folder=str(ROOT / 'reference_scaffold' / 'cafeteria' / 'static'),
     )
+    # Match production's DB-free template setup; context processors stay forbidden.
+    register_ui(application)
+    register_template_filters(application)
 
     @application.context_processor
     def forbidden_context():
