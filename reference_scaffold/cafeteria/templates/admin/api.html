@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state, empty_value %}
-{% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button, status_badge_sem %}
+{% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button, icon_summary, status_badge_sem %}
 {% block title %}Schnittstellen{% endblock %}
 {% set workflow_nav = 'api' %}
 {% block main_attributes %}data-page="api"{% endblock %}
@@ -56,17 +56,17 @@
                     <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="d-inline" data-confirm="Schlüssel wirklich widerrufen?">
                       <input type="hidden" name="_csrf" value="{{ csrf }}">
                       <details class="admin-compact-details">
-                        <summary class="btn btn-danger ui-sem-control" data-semantic="actions.delete" title="Schlüssel {{ key.label }} widerrufen" aria-label="Schlüssel {{ key.label }} widerrufen">{{ sem_icon('actions.delete') }}<span>{{ 'Widerrufen' }}</span></summary>
+                        {{ icon_summary('actions.delete', aria_label='Schlüssel ' ~ key.label ~ ' widerrufen') }}
                         <p class="my-2 ui-sem-consequence">Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.</p>
                         {{ icon_button('actions.confirm', text='Widerrufen', aria_label='Schlüssel ' ~ key.label ~ ' widerrufen', emphasis='secondary', class='btn-danger', show_text=true) }}
                       </details>
                     </form>
                     {% endif %}
                     <details class="ui-sem-actions">
-                      <summary class="btn btn-ghost ui-sem-control" title="{{ t(sem('actions.more').tooltip_key) }}">{{ icon_label('actions.more') }}</summary>
+                      {{ icon_summary('actions.more', object=key.label) }}
                       <div class="ui-sem-action-items">
                         <details class="admin-compact-details admin-api-key-details">
-                          <summary class="btn ui-sem-control" title="Details zu {{ key.label }}" aria-label="Details zu {{ key.label }}">{{ icon_label('ui.disclosure.details') }}</summary>
+                          {{ icon_summary('ui.disclosure.details', aria_label='Details zu ' ~ key.label, show_text=true) }}
                           <dl class="mb-0 mt-2">
                             <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
                             <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
@@ -89,7 +89,7 @@
         </section>
         <details class="card mb-3 admin-compact-details" data-api-create{% if error or values.label or values.scopes_preview or values.channel_cafeteria or values.channel_patienten %} open{% endif %}>
           <summary class="card-header gap-2" id="api-key-create-title">
-            {{ icon_label('actions.add') }}<span class="card-title mb-0">{{ t('admin.api_key.label') }}</span>{% if error %}<span class="text-danger">Fehler</span>{% endif %}
+            {{ sem_icon('actions.add') }}<span class="card-title mb-0">{{ t('admin.api_key.label') }}</span>{% if error %}<span class="text-danger">Fehler</span>{% endif %}
           </summary>
           <form method="post" action="{{ url_for('admin.api_key_create') }}" id="api-key-create" class="admin-form admin-compact-form" aria-labelledby="api-key-create-title">
             <div class="card-body">
