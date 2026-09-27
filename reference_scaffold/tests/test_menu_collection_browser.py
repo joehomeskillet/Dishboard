@@ -47,7 +47,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
             expect(page.locator('nav.profile-tabs a[aria-current="true"]')).to_have_text(
                 'Cafeteria' if family == 'cafeteria' else 'Patienten')
             expect(page.locator('#menu-review-summary')).to_contain_text('1 Menü: Prüfung offen')
-            expect(page.locator('#menu-list .admin-table-status .admin-label')).to_have_count(0)
+            expect(page.locator('#menu-list .admin-table-status')).to_contain_text('Allergenprüfung offen')
             expect(page.locator('#menu-list table.admin-table.admin-table--stack')).to_have_count(1)
             expect(page.locator('#menu-list [data-semantic="actions.edit"]')).to_have_accessible_name('Referenzmenü vom 31.08.2026 bearbeiten')
             expect(page.locator('#menu-list [data-semantic="actions.edit"]')).to_have_text('')
