@@ -1,5 +1,4 @@
 {# Compact soup/dessert row for one meal. Context: kind, shared, exceptions, meal_cell, week_value, family. #}
-{% from 'admin/_macros.html' import label %}
 {% from 'ui/_semantic.html' import icon_button, sem_icon %}
 {% set labels = {'soup': 'Suppe', 'dessert': 'Dessert'} %}
 {% set empty_labels = {'soup': 'Suppe noch nicht geplant', 'dessert': 'Dessert noch nicht geplant'} %}
@@ -11,7 +10,7 @@
     {% if course.state == 'planned' %}
     <span>{{ labels[kind] }}: {{ course.title }} · Für alle Menüs</span>
     {% if not course.allergens %}
-    {{ label('Allergenangaben fehlen', 'warning') }}
+    <span class="admin-list-secondary" data-allergen-state="missing">Allergenangaben fehlen</span>
     {% endif %}
     {% if course.labels %}
     <span class="text-secondary">{{ course.labels|join(', ') }}</span>
@@ -32,7 +31,7 @@
   {% if override %}
   <p class="admin-week-course-exception">
     {% if option_code == 'VEGGIE' %}Vegetarisch{% else %}Menü 1{% endif %}:
-    {% if override.state == 'not_offered' %}{{ none_labels[kind] }}{% else %}{{ labels[kind] }}: {{ override.title }}{% if not override.allergens %} {{ label('Allergenangaben fehlen', 'warning') }}{% endif %}{% if override.labels %} <span class="text-secondary">{{ override.labels|join(', ') }}</span>{% endif %}{% endif %}
+    {% if override.state == 'not_offered' %}{{ none_labels[kind] }}{% else %}{{ labels[kind] }}: {{ override.title }}{% if not override.allergens %} <span class="admin-list-secondary" data-allergen-state="missing">Allergenangaben fehlen</span>{% endif %}{% if override.labels %} <span class="text-secondary">{{ override.labels|join(', ') }}</span>{% endif %}{% endif %}
   </p>
   {% endif %}
 {% endfor %}
