@@ -94,13 +94,10 @@ rtk systemd-run --unit=dishboard-release-train --on-calendar='*:07' --timer-prop
 Dies ist eine **transiente Unit**: nach Reboot denselben Start erneut ausführen. `Persistent=true`
 ersetzt keine dauerhafte Unit-Datei. `flock` verhindert überlappende manuelle und Timer-Aufrufe.
 Logs liegen je Lauf unter `/var/tmp/dishboard-release-train/<ts>/` (inklusive Gate-JUnit und Logs).
-Der Gate-Aufruf hat ein 39-Minuten-Limit; nach weiteren 30 Sekunden werden verbleibende Prozesse
-beendet. Überschreitung alarmiert und pusht nichts. Tatsächliche Laufzeit unter 40 Minuten muss
-mit den reservierten Pools gemessen werden; Parallelisierung allein ist kein Laufzeitnachweis.
+Der Gate-Aufruf hat ein 52-Minuten-Limit mit weiteren 30 Sekunden bis zum erzwungenen Prozessende, Überschreitungen alarmieren ohne Push, und der exklusive Zug-Worktree wird vor jedem Prüflauf mit `git worktree remove --force` und `git worktree prune` entfernt, frisch detached am Kandidaten-SHA angelegt und beim Beenden auch nach Fehlern oder Trockenläufen wieder entfernt.
 
 Der Zug holt `github/main`, hält Linien-SHA und Vergleichsbasis fest und nutzt ausschliesslich den
-eigenen detached Worktree `.claude/worktrees/release-train`. Ein unsauberer Prüf-Worktree blockiert;
-es gibt kein `stash`, `reset` oder erzwungenes Checkout. Vor jedem Gate: Vorfahrenprüfung,
+eigenen detached Worktree `.claude/worktrees/release-train`. Vor jedem Gate: Vorfahrenprüfung,
 `build_manifest.py --verify`, PII-Historie = 0. Alle vorhandenen geänderten
 `reference_scaffold/tests/test_*.py` gehen zusätzlich ins Gate; gelöschte Dateien sind nicht ausführbar.
 Nur Gate-Exit 0 **und** `NEW_FAILURES=0` erlauben den normalen Fast-Forward-Push des gespeicherten SHA.
