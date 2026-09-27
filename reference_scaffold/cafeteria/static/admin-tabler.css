@@ -547,10 +547,13 @@
   box-shadow: none;
 }
 .dishboard-admin .admin-list-row:has(.admin-list-secondary, .admin-list-subtitle) { min-height: var(--app-list-row-two-line-height); }
-.dishboard-admin :is(.admin-list, .cookbook-list, .recipe-list, .card:has(.admin-table, .admin-table--stack, .admin-list-row)) {
+.dishboard-admin :is(.admin-list, .cookbook-list, .recipe-list, .card:has(.admin-table, .admin-table--stack, .admin-list-row):where(:not(.card .card))) {
   border: var(--app-list-line-width) solid var(--app-border);
   border-radius: var(--app-list-radius); box-shadow: none;
 }
+/* The shared shell supplies the final edge, including semantic list wrappers. */
+.dishboard-admin .admin-list > .admin-list-row:last-child,
+.dishboard-admin .admin-list > [role="listitem"]:last-child > .admin-list-row { border-bottom: 0; }
 .dishboard-admin :is(.admin-list-row, .admin-table tbody tr):hover { background: var(--app-list-hover); }
 .dishboard-admin .admin-empty-value { color: var(--app-text-muted); }
 .dishboard-admin .admin-list-status { margin-inline-start: auto; }

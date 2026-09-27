@@ -79,11 +79,11 @@
               {% set group = catalog.document.templates|selectattr('archived', 'equalto', archived)|list %}
               {% if group %}
               <h4 class="h5 text-muted mb-2">{{ group_label }}</h4>
-              <ul class="list-unstyled mb-3">
+              <ul class="admin-list list-unstyled mb-3">
                 {% for template in group %}
                 {% set latest = template.revisions[-1] %}
                 {% set active = template.id == catalog.document.active_template %}
-                <li class="print-tpl-row" data-template-id="{{ template.id }}">
+                <li class="print-tpl-row admin-list-row" data-template-id="{{ template.id }}">
                   <div class="print-tpl-name">
                     <h5 class="admin-list-primary text-break mb-0">{{ latest.name }}</h5>
                     <p class="admin-list-secondary print-tpl-meta mb-0">Neuester Stand: Version {{ latest.id }}{% if not active or latest.id != catalog.active.id %} · Entwurf{% endif %}</p>
@@ -106,7 +106,7 @@
                       {'key': 'actions.preview', 'href': url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=catalog.active.id), 'aria_label': 'Aktive Version als PDF prüfen', 'text': 'PDF'}
                     ] %}
                     {% endif %}
-                    {{ row_actions(row.items) }}
+                    <div class="admin-list-actions">{{ row_actions(row.items) }}</div>
                   {% endif %}
                 </li>
                 {% endfor %}
@@ -138,10 +138,10 @@
     <div class="card-body">
       {% set active_template = recipe_catalog.document.templates | selectattr('id', 'equalto', recipe_catalog.document.active_template) | first %}
       {% set active_revision = recipe_catalog.active %}
-      <ul class="list-unstyled">
+      <ul class="admin-list list-unstyled">
         {% for item in recipe_catalog.document.templates %}
         {% set latest = item.revisions[-1] %}
-        <li class="print-tpl-row" data-template-id="{{ item.id }}">
+        <li class="print-tpl-row admin-list-row" data-template-id="{{ item.id }}">
           <div class="print-tpl-name">
             <h3 class="admin-list-primary text-break mb-0">{{ latest.name }}</h3>
             <p class="admin-list-secondary print-tpl-meta mb-0">Neuester Stand: Revision {{ latest.id }}{% if item.id != recipe_catalog.document.active_template or latest.id != recipe_catalog.active.id %} · Entwurf{% endif %}</p>
@@ -158,7 +158,7 @@
             {% if item.id == recipe_catalog.document.active_template and active_template is not none and active_revision is not none and latest.id != active_revision.id %}
             {% set row.items = row.items + [{'key': 'actions.open', 'href': url_for('admin.recipe_print_template_editor', template=active_template.id, revision=active_revision.id), 'aria_label': 'Aktive Vorlage öffnen'}] %}
             {% endif %}
-            {{ row_actions(row.items) }}
+            <div class="admin-list-actions">{{ row_actions(row.items) }}</div>
           {% endif %}
         </li>
         {% endfor %}
@@ -185,17 +185,17 @@
   <h2 class="h4 mb-2">Screen-Vorlagen</h2>
   <p class="text-secondary small mb-2">Web-Wochenpläne zeigen die aktuelle Veröffentlichung.</p>
   <div class="screens-grid print-screens-grid">
-    <div>
+    <div class="admin-list" role="list">
       {% for screen_family, catalog in screen_catalogs.items() %}
       {% for choice in catalog.choices %}
       {% set row = namespace(items=[{'key': 'actions.preview', 'href': url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id), 'aria_label': area_names[choice.profile] ~ ' · ' ~ choice.name ~ ' prüfen'}]) %}
       {% if loop.first %}
       {% set row.items = row.items + [{'key': 'actions.edit', 'href': url_for('admin.screen_template_assignment', family=screen_family), 'aria_label': area_names[choice.profile] ~ ' · Wochenvorlage zuordnen', 'text': 'Zuordnen'}] %}
       {% endif %}
-      <div class="print-screen-row">
-        <span class="admin-list-primary">{{ area_names[choice.profile] }} · {{ choice.name }}</span>
+      <div class="print-screen-row admin-list-row" role="listitem">
+        <span class="admin-list-primary admin-list-name">{{ area_names[choice.profile] }} · {{ choice.name }}</span>
         <div>{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_label('Nicht aktiv', 'neutral') }}{% endif %}</div>
-        {{ row_actions(row.items) }}
+        <div class="admin-list-actions">{{ row_actions(row.items) }}</div>
       </div>
       {% endfor %}
       {% endfor %}

@@ -17,9 +17,6 @@
   gap: var(--app-space-2);
   margin: 0 0 var(--app-space-2);
 }
-.dishboard-admin .order-list .admin-list-row:last-child {
-  border-bottom: 0;
-}
 .dishboard-admin .order-lines input,
 .dishboard-admin .order-lines select {
   min-width: 0;
