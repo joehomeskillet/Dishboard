@@ -10636,7 +10636,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "bcebd23ce6f67a9fec66e12ac1ecfef72b1d0f1a437d2c45bb5dfa0018e6b5c3",
+      "sha256": "3cc57e2339d455c3829676271c3bfff2e8d6d40e747e834fceb6dcd9e8f3b953",
       "used_by_endpoints": [
         "admin.api_overview"
       ],
@@ -12473,7 +12473,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "3dda97abb73589e171f6ab53634f27df1deac9fa0b822146013df0a0fc56f1e7",
+      "sha256": "2feb333beaaccdc6801963f4dcfa2cd864b39a6a0f56cbfd9f7dad4555b5096f",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"

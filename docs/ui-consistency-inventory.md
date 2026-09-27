@@ -15,6 +15,30 @@ Bestehende Obergrenzen dürfen nur sinken; neue Dateien starten bei null.
 
 ## Release 18 R1: Rezeptaktionen und Regressionen (2026-09-27)
 
+### Fortsetzung 2026-09-28: API-Schlüssel und Listenmessung
+
+`/admin/api`, Admin, aktive/abgelaufene/widerrufene Schlüssel, 390 und 1440 px,
+JS/No-JS: Widerrufsauslöser und Überlauf nutzen `icon_summary` aus dem gemeinsamen
+Renderer. Das native `summary` enthält keinen verschachtelten Button. Der
+Bestätigungsschritt bleibt beschriftet; Details im geöffneten Überlauf sowie
+Formular-/Abschnittslabels bleiben lesbar. Formattribute, CSRF, Feldnamen und
+Rechte bleiben unverändert. Paket `6a656cd7`/`45d12e76`, unabhängiges Review ACCEPT.
+Eigener Zweitlauf: `206 passed in 34.96s` (Semantik und Schlüsselpolicy) sowie
+`4 passed in 16.04s` (reale API-Browserfälle); beide `GATE_EXIT=0`.
+JUnit: `/var/tmp/dishboard-icon-api-root-0928.xml` und
+`/var/tmp/dishboard-icon-api-root-browser-0928.xml`. Stabile Screenshotbelege unter
+`/var/tmp/icon-api-0928-browser-stable/`, Mobilbestätigung auch unabhängig gesichtet.
+OCR aktuell HTTP 402, kein OCR-PASS. Bestehende deutsche API-Spezialtexte sind
+weiter eine Lokalisierungslücke. Noch kein Deploy dieser Änderungen behauptet.
+
+Listenfamilienmessung `75453eee`: 41 Seiten/82 Blöcke, Kopfvergleich nur für
+vorhandene Köpfe; Links mit gleicher Typografie gelten nicht mehr als abweichend.
+Hintergrund/Höhe bleiben Messwerte. REPORT-Modus darf keine neue Abweichung in
+die Baseline übernehmen. Eigener Zweitlauf `4 passed in 18.46s`, `GATE_EXIT=0`.
+Natives Details-Summary im API-Überlauf wird vom alten Leer-Menü-Zähler noch
+fälschlich als leer bewertet; kein fehlender Produktzugang. Weitere konkrete
+Restpunkte und UI-01 bis UI-28: `docs/design/2026-09-26-icon-first-audit.md`.
+
 `/admin/rezepte`, Editor, Ansicht, Revisionen und Rezeptdruckvorlagen: Admin,
 Nur-Lesen und archiviert, JS/No-JS, 320/390/768/1024/1440/1920/2560 px sowie
 echter 200-%-Browserzoom. R44/M64: Symbolaktionen mit zugänglichen Namen;

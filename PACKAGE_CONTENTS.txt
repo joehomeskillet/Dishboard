@@ -1445,6 +1445,7 @@ reference_scaffold/tests/test_food_price_store_db.py
 reference_scaffold/tests/test_food_symbol_assets.py
 reference_scaffold/tests/test_food_symbols.py
 reference_scaffold/tests/test_github_pages.py
+reference_scaffold/tests/test_icon_api_browser.py
 reference_scaffold/tests/test_icon_m1_stammdaten_browser.py
 reference_scaffold/tests/test_icon_mb2_stammdaten_browser.py
 reference_scaffold/tests/test_inv_calc_3738_migration_db.py
