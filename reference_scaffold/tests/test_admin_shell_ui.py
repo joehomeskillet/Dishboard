@@ -234,12 +234,28 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(presence).to_be_visible()
         expect(presence).to_be_enabled()
         label_box = first_allergen.locator('label').first.bounding_box()
+        presence_label = first_allergen.locator(f'label[for="{presence.get_attribute("id")}"]')
+        expect(presence_label).to_be_visible()
+        presence_label_box = presence_label.bounding_box()
         select_box = presence.bounding_box()
-        assert label_box is not None and select_box is not None
+        row_box = first_allergen.bounding_box()
+        assert label_box is not None and presence_label_box is not None
+        assert select_box is not None and row_box is not None
+        # Responsive allergen tiles stack the presence field below the checkbox,
+        # including inside the three-column desktop grid (admin-components.css).
+        assert presence_label_box['y'] >= label_box['y'] + label_box['height'] - 1
+        assert select_box['y'] >= presence_label_box['y'] + presence_label_box['height'] - 1
+        assert abs(select_box['x'] - presence_label_box['x']) <= 1
+        assert select_box['width'] >= row_box['width'] * 0.9
+        for box in (label_box, presence_label_box, select_box):
+            assert box['x'] >= row_box['x'] - 1
+            assert box['x'] + box['width'] <= row_box['x'] + row_box['width'] + 1
+            assert box['y'] + box['height'] <= row_box['y'] + row_box['height'] + 1
         if width >= 1000:
-            assert select_box['x'] >= label_box['x'] + label_box['width']
-        else:
-            assert select_box['y'] >= label_box['y'] + label_box['height']
+            form_box = main.locator('#component-form').bounding_box()
+            assert form_box is not None
+            assert form_box['width'] >= main_box['width'] * 0.9
+        page.screenshot(path=str(tmp_path / f'{family}-detail-selected-{width}.png'), full_page=True)
         checkbox.uncheck()
         expect(presence).to_be_hidden()
         expect(presence).to_be_enabled()
