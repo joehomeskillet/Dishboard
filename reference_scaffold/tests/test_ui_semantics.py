@@ -853,6 +853,44 @@ def test_wp2c_chip_names_are_text_even_for_markup(semantic_app):
     assert doc.select_one('.admin-filter-chip')['aria-label'].startswith(str(name))
 
 
+@pytest.mark.parametrize('locale,more,details', [
+    ('de', 'Weitere Aktionen für', 'Details'), ('en', 'More actions for', 'Details'),
+])
+def test_icon_summary_keeps_native_disclosure_and_accessible_names(semantic_app, locale, more, details):
+    from bs4 import BeautifulSoup
+
+    semantic_app.config['UI_LOCALE'] = locale
+    name = Markup('<img src=x onerror=alert(1)>"Küche')
+    with semantic_app.test_request_context():
+        html = render_template_string('''{% from 'ui/_semantic.html' import icon_summary %}
+            <details>{{ icon_summary('actions.more', object=name, id='key-more') }}
+                <details>{{ icon_summary('ui.disclosure.details', aria_label=detail_name, show_text=true) }}</details>
+            </details>
+            <details>{{ icon_summary('actions.delete', aria_label='Schlüssel widerrufen') }}</details>''',
+            name=name, detail_name=f'{details}: {name}')
+    doc = BeautifulSoup(html, 'html.parser')
+    summary = doc.select_one('#key-more')
+    assert summary.name == 'summary' and summary.parent.name == 'details'
+    assert summary['aria-label'] == f'{more} {name}'
+    assert summary['data-ui-tooltip'] == summary['aria-label']
+    assert 'ui-sem-control--icon-only' in summary['class']
+    assert not summary.get_text(strip=True)
+    assert not doc.select('button, a, img, script, [title], [type], [name], [value], [form]')
+    assert all(svg['aria-hidden'] == 'true' for svg in doc.select('svg'))
+    menu_entry = doc.select_one('[data-semantic="ui.disclosure.details"]')
+    assert menu_entry.get_text(strip=True) == details
+    assert details in menu_entry['aria-label']
+    assert 'ui-sem-control--icon-only' not in menu_entry['class']
+    assert 'btn-danger' in doc.select_one('[data-semantic="actions.delete"]')['class']
+
+
+@pytest.mark.parametrize('args', ["aria_label=' '", "object=''", "show_text='yes'"])
+def test_icon_summary_rejects_invalid_name_contract(semantic_app, args):
+    with semantic_app.test_request_context(), pytest.raises(SemanticError):
+        render_template_string("{% from 'ui/_semantic.html' import icon_summary %}"
+                               "{{ icon_summary('actions.more', " + args + ') }}')
+
+
 @pytest.mark.parametrize('locale,labels', [('de', ['Aktivieren', 'Übernehmen', 'Verlauf']), ('en', ['Activate', 'Apply', 'History'])])
 def test_p2c_canonical_actions(semantic_app, locale, labels):
     semantic_app.config['UI_LOCALE'] = locale
