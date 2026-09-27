@@ -143,8 +143,8 @@
     {% endfor %}
     {% if batch.status == 'draft' %}
     <div class="admin-form-footer mt-3">
-      {{ icon_button('actions.save', name='action', value='save', emphasis='primary' if not (batch.confirmation_hash_sha256 and can_import) else none) }}
-      {{ icon_button('actions.confirm', name='action', value='acknowledge') }}
+      {{ icon_button('actions.save', name='action', value='save', emphasis='primary' if not (batch.confirmation_hash_sha256 and can_import) else 'secondary') }}
+      {{ icon_button('actions.confirm', name='action', value='acknowledge', emphasis='secondary' if (batch.confirmation_hash_sha256 and can_import) else none) }}
       <details class="admin-compact-actions"><summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" aria-label="{{ t(sem('actions.more').aria_key) }}">{{ sem_icon('actions.more') }}</summary>
         <details class="mt-2"><summary class="btn" aria-label="Stapel verwerfen">{{ icon('trash') }}<span>Verwerfen</span></summary>
           <p id="discard-consequence">Der Importstapel wird verworfen. Ungespeicherte Änderungen gehen verloren; vorhandene Rezepte bleiben unverändert.</p>
