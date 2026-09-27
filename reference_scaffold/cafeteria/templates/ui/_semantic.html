@@ -68,6 +68,19 @@
   {% if consequence_key %}<p class="ui-sem-consequence">{{ t(sem(consequence_key).label_key) }}</p>{% endif %}
 {%- endmacro %}
 
+{# Native disclosure only: the owning details supplies content and any safe form.
+   Menu entries may opt into text; ordinary triggers use the shared icon geometry. #}
+{% macro icon_summary(key, id=none, aria_label=none, object=none, class='', show_text=false) -%}
+  {%- set item = sem(key) -%}
+  {%- if show_text is not boolean -%}{{ action_contract_error('show_text must be boolean') }}{%- endif -%}
+  {%- if aria_label is not none and (aria_label is not string or not aria_label|trim) -%}{{ action_contract_error('aria_label must be nonempty text') }}{%- endif -%}
+  {%- if object is not none and (object is not string or not object|trim) -%}{{ action_contract_error('object must be nonempty text') }}{%- endif -%}
+  {%- set accessible_name = aria_label|forceescape if aria_label is not none else t(key ~ '.object', object=object) if object is not none and item.category == 'actions' else t('ui.action_object', object=object, action=t(item.aria_key)) if object is not none else t(item.aria_key) -%}
+  {%- set visible_text = t(item.label_key) -%}
+  {%- if show_text and visible_text|lower not in accessible_name|lower -%}{%- set accessible_name = visible_text ~ ': ' ~ accessible_name -%}{%- endif -%}
+  <summary class="btn ui-sem-control{% if item.role == 'danger' %} btn-danger{% endif %}{% if not show_text %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" data-ui-tooltip="{{ accessible_name }}" aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}>{{ sem_icon(key) }}{% if show_text %}<span>{{ visible_text }}</span>{% endif %}</summary>
+{%- endmacro %}
+
 {% macro status_badge_sem(key, detail=none) -%}
   {%- set item = sem(key) -%}
   {%- set variant = {'status.active': 'active', 'status.info': 'info'}.get(key, {'success':'success', 'warning':'warning', 'danger':'danger'}.get(item.role, 'neutral')) -%}
@@ -101,9 +114,8 @@
 
 {% macro more_actions(items, object=none) -%}
   {% if items %}
-  {% set accessible_name = t('actions.more.object', object=object) if object else t(sem('actions.more').aria_key) %}
   <details class="ui-sem-actions">
-    <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" data-ui-tooltip="{{ accessible_name }}" aria-label="{{ accessible_name }}">{{ sem_icon('actions.more') }}</summary>
+    {{ icon_summary('actions.more', object=object) }}
     <div class="ui-sem-action-items">
       {% for item in items %}{{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), form=item.form|default(none), consequence_key=item.consequence_key|default(none), id=item.id|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none), object=item.object|default(object), show_text=true) }}{% endfor %}
     </div>
