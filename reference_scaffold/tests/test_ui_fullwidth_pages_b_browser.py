@@ -30,10 +30,11 @@ METRICS = '''() => {
   const cs = getComputedStyle(box);
   const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
   const inner = box.getBoundingClientRect().width - pad;
+  const main = document.querySelector('main.admin-main') || box;
   const kids = [...box.children].filter(el => el.getBoundingClientRect().height > 8);
   const primary = Math.max(0, ...kids.map(el => el.getBoundingClientRect().width));
   return {
-    inner, primary, ratio: inner ? primary / inner : 0,
+    inner, available: main.clientWidth - pad, primary, ratio: inner ? primary / inner : 0,
     overflow: document.documentElement.scrollWidth > innerWidth + 1,
     maxWidth: cs.maxWidth,
   };
@@ -57,7 +58,9 @@ def _check(page: Page, endpoint: str, state: str, width: int) -> None:
     metrics = page.evaluate(METRICS)
     assert not metrics['overflow'], (endpoint, state, width, metrics)
     if width >= 1024:
-        assert metrics['maxWidth'] in {'none', ''}, (endpoint, state, width, metrics)
+        # A 100% cap prevents overflow without narrowing the working area.
+        assert metrics['maxWidth'] in {'none', '', '100%'}, (endpoint, state, width, metrics)
+        assert abs(metrics['inner'] - metrics['available']) <= 1, (endpoint, state, width, metrics)
         assert metrics['ratio'] >= 0.95, (endpoint, state, width, metrics)
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=str(EVIDENCE / f'{endpoint}-{state}-{width}.png'), full_page=True)
@@ -182,7 +185,9 @@ def test_group_b_pages_use_full_working_width(site):  # noqa: F811
             _check(page, 'admin.local_user_new', 'invalid', width)
         _open(page, '/admin/rezepte/neu')
         page.locator('#recipe-editor').evaluate('form => { form.noValidate = true; }')
-        page.get_by_role('button', name='Rezept anlegen').click()
+        create = page.get_by_role('button', name='Anlegen', exact=True)
+        assert create.get_attribute('form') == 'recipe-editor'
+        create.click()
         page.wait_for_load_state('networkidle')
         for width, height in VIEWPORTS:
             page.set_viewport_size({'width': width, 'height': height})

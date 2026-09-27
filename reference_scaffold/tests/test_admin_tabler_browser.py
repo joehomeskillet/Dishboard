@@ -104,30 +104,35 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), (route, width)
             expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)
             expect(page.locator('main')).to_have_attribute('data-density', 'compact')
-            if route == 'wochen' and page.locator('details:has(#new-week-date)').get_attribute('open') is None:
-                if width < 992:
-                    page.keyboard.press('Escape')
-                    expect(toggle).to_have_attribute('aria-expanded', 'false')
-                    page.locator('details:has(#new-week-date)').evaluate('el => { el.open = true; }')
-                else:
-                    page.locator('#new-week-title').click()
-                expect(page.locator('details[open] #new-week-date')).to_be_visible()
+            for link in nav.get_by_role('link').all():
+                expect(link).to_be_visible()
+                assert link.bounding_box()['height'] >= 48
+            if width < 992:
+                page.keyboard.press('Escape')
+                expect(toggle).to_have_attribute('aria-expanded', 'false')
+                expect(toggle).to_be_focused()
+            if route == 'wochen':
+                # R18 uses the shared icon trigger and Tabler collapse, not details.
+                trigger = page.get_by_role('link', name='Neue Woche anlegen', exact=True)
+                expect(trigger).to_have_attribute('aria-controls', 'new-week-form')
+                trigger.focus()
+                trigger.press('Enter')
+                expect(page.locator('#new-week-date')).to_be_visible()
+                expect(page.get_by_label('Wochentitel', exact=True)).to_be_visible()
                 # The optional week note sits in a closed «Weitere Optionen» disclosure; open it natively before measuring.
                 note = page.locator('details:has(#new-week-note):not([open])')
                 if note.count():
-                    note.last.evaluate('el => { el.open = true; }')
+                    note.last.locator('summary').click()
                 expect(page.locator('#new-week-note')).to_be_visible()
-            for control in page.locator('input[type="date"], input[name="title"], textarea, button[type="submit"]').all():
+            for control in page.locator('input[type="date"]:visible, input[name="title"]:visible, textarea:visible, button[type="submit"]:visible').all():
                 minimum = control.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
                 if control.is_visible() and control.evaluate("e => e.matches('.ui-sem-control')"):
                     expect(control).to_have_accessible_name(re.compile(r'\S'))
                 assert control.bounding_box()['height'] >= minimum, (width, control.evaluate('(el) => el.outerHTML'))
-            for link in page.get_by_role('navigation', name='Backend').get_by_role('link').all():
-                expect(link).to_be_visible()
-                assert link.bounding_box()['height'] >= 48
+            if route == 'wochen':
+                trigger.click()
+                expect(page.locator('#new-week-date')).to_be_hidden()
             if width < 992:
-                if route == 'wochen' and page.locator('details[open]').count():
-                    page.locator('details:has(#new-week-date)').evaluate('el => { el.open = false; }')
                 toggle.focus()
                 page.keyboard.press('Escape')
                 expect(toggle).to_have_attribute('aria-expanded', 'false')

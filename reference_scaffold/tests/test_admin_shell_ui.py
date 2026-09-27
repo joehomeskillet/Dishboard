@@ -180,20 +180,25 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         primary = form.get_by_role('button', name='Menü speichern', exact=True)
     elif page_kind == 'catalog':
         creation = main.locator('#create-component')
-        primary = creation.locator('summary')
+        primary = main.locator('.admin-page-header').get_by_role('link', name='Anlegen', exact=True)
+        expect(primary).to_have_attribute('href', '#c-name')
+        expect(primary).to_have_attribute('aria-controls', 'create-component')
         assert creation.get_attribute('open') is None
-        create_box = creation.bounding_box()
-        filter_box = main.locator('.search-form').bounding_box()
+        expect(creation.locator('[name="name"]')).to_be_hidden()
+        filter_box = main.locator('.admin-filter-bar').bounding_box()
         list_box = main.locator('.component-list-container').bounding_box()
-        assert create_box is not None and filter_box is not None and list_box is not None
+        assert filter_box is not None and list_box is not None
         assert list_box['y'] >= filter_box['y'] + filter_box['height'] - 1
-        assert create_box['y'] >= list_box['y'] + list_box['height'] - 1
         row = main.locator('.component-list-container .component-row').first
         name = row.locator('.component-row-name')
         edit_link = name.get_by_role('link', name=component['name'], exact=True)
         expect(edit_link).to_have_attribute('href', f"/admin/{family}/komponenten/{component['public_id']}")
         expect(name).to_have_attribute('scope', 'row')
-        expect(row.get_by_role('link')).to_have_count(1)
+        expect(name.get_by_role('link')).to_have_count(1)
+        expect(row.get_by_role('link')).to_have_count(2)
+        expect(row.get_by_role('link', name=f"{component['name']} bearbeiten", exact=True)).to_have_attribute(
+            'href', f"/admin/{family}/komponenten/{component['public_id']}",
+        )
         name_box = name.bounding_box()
         category_box = row.locator('.category').bounding_box()
         link_box = edit_link.bounding_box()
@@ -239,11 +244,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(presence).to_be_hidden()
         expect(presence).to_be_enabled()
 
-    if page_kind == 'catalog' and shell == '.page':
-        expect(primary).to_have_class(re.compile(r'\bcard-header\b'))
-        expect(primary).to_have_class(re.compile(r'\bdishboard-component-summary\b'))
-    else:
-        expect(primary).to_have_class(re.compile(r'\bprimary\b'))
+    expect(primary).to_have_class(re.compile(r'\bprimary\b'))
     primary_box = primary.bounding_box()
     assert primary_box is not None
     minimum = primary.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
@@ -265,13 +266,18 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         page.keyboard.press('Enter')
         expect(creation).to_have_attribute('open', '')
         expect(creation.locator('[name="name"]')).to_be_visible()
+        expect(creation.locator('[name="name"]')).to_be_focused()
+        create_box = creation.bounding_box()
+        list_box = main.locator('.component-list-container').bounding_box()
+        assert create_box is not None and list_box is not None
+        assert create_box['y'] >= list_box['y'] + list_box['height'] - 1
         create_form = creation.locator('form')
         expect(create_form).to_have_attribute('method', 'post')
         expect(create_form).to_have_attribute('action', f'/admin/{family}/komponenten')
         assert create_form.locator('[name="_csrf"]').input_value()
         expect(create_form.get_by_role('button', name='Anlegen', exact=True)).to_be_visible()
-        primary.focus()
-        page.keyboard.press('Enter')
+        # R18 opens the form from the header; reload restores the closed state.
+        page.goto(routes[page_kind])
         expect(creation).not_to_have_attribute('open', '')
 
     if family == 'patienten':
