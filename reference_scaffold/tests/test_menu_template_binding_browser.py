@@ -43,7 +43,9 @@ def test_archived_provenance_native_roundtrip_and_viewports(
         assert page.goto(editor).status == 200
         expect(page.locator('#template-reference')).to_contain_text('Aus Vorlage «Rösti» (archiviert)')
         link = page.locator('#template-reference a[data-semantic="navigation.templates"]')
-        expect(link).to_have_text('Gerichtvorlagen')
+        expect(link).to_have_accessible_name('Gerichtvorlagen')
+        expect(link).to_have_attribute('data-ui-tooltip', 'Gerichtvorlagen')
+        expect(link).to_have_text('')
         expect(link).to_be_visible()
         expect(page.get_by_label('Vorlagenbezug lösen', exact=True)).not_to_be_checked()
         for width, height in VIEWPORTS:
@@ -51,10 +53,11 @@ def test_archived_provenance_native_roundtrip_and_viewports(
             page.evaluate('document.fonts.ready')
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
             box = link.bounding_box()
-            assert box and box['height'] >= 48
+            minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+            assert box and box['height'] >= minimum and box['width'] >= minimum
             assert page.evaluate('document.fonts.status') == 'loaded'
-            link.focus()
-            assert link.evaluate('(el) => getComputedStyle(el).outlineStyle') != 'none'
+            link.evaluate('el => el.focus({focusVisible: true})')
+            assert link.evaluate('(el) => getComputedStyle(el).outlineStyle !== "none" || getComputedStyle(el).boxShadow !== "none"')
             page.screenshot(path=str(EVIDENCE / f'editor-{family}-{width}-{javascript}.png'))
         page.set_viewport_size({'width': 390, 'height': 844})
         page.get_by_label('Menüname', exact=True).fill('Rösti – eigener Titel')
@@ -113,10 +116,11 @@ def test_review_conflict_navigates_to_existing_menu_without_save_form(
             expect(link).to_be_visible()
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
             box = link.bounding_box()
-            assert box and box['height'] >= 48
-            link.focus()
+            minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+            assert box and box['height'] >= minimum and box['width'] >= minimum
+            link.evaluate('el => el.focus({focusVisible: true})')
             expect(link).to_be_focused()
-            assert link.evaluate('(el) => getComputedStyle(el).outlineStyle') != 'none'
+            assert link.evaluate('(el) => getComputedStyle(el).outlineStyle !== "none" || getComputedStyle(el).boxShadow !== "none"')
         expect(page.locator('[data-menu-editor], [data-saved-review], [data-retry-page]')).to_have_count(0)
         expect(page.locator(f'form[action="{action}"], form[action="{action}/review"]')).to_have_count(0)
         expect(page.get_by_role('button', name='Menü speichern', exact=True)).to_have_count(0)

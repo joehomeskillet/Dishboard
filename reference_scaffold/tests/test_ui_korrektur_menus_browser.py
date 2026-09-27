@@ -163,14 +163,14 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             # Tomatensuppe has verified review badge
             soup_card = page.locator('#menu-cards [data-menu-id]').filter(has_text='Tomatensuppe')
             expect(soup_card.locator('[data-review="checked"] .admin-label.admin-status--success')).to_have_text('Geprüft')
-            expect(soup_card.locator('[data-review="checked"] .small')).to_have_text('gespeicherter Stand bestätigt')
+            expect(soup_card.locator('[data-review="checked"] .admin-list-secondary')).to_have_text('gespeicherter Stand bestätigt')
 
             # Kartoffelgratin has open review badge AND missing allergens warning directly on card
             gratin_card = page.locator('#menu-cards [data-menu-id]').filter(has_text='Kartoffelgratin')
             expect(gratin_card.locator('[data-review="open"]')).to_contain_text('Prüfung offen')
             expect(gratin_card).to_contain_text('Allergenangaben nicht erfasst')
-            expect(gratin_card.locator('[data-review="open"] .small')).to_be_visible()
-            expect(gratin_card.locator('[data-review="open"] .small')).to_contain_text('Allergenangaben nicht erfasst')
+            expect(gratin_card.locator('[data-review="open"] .admin-list-secondary')).to_be_visible()
+            expect(gratin_card.locator('[data-review="open"] .admin-list-secondary')).to_contain_text('Allergenangaben nicht erfasst')
 
             # Long description/note stays available in a native disclosure.
             details = gratin_card.locator('details.menu-note-details')
@@ -315,19 +315,18 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         page = context.new_page()
         page.goto(f'{origin}/admin/{family}/wochen')
 
-        # Details is collapsed by default
-        details = page.locator('details.week-create')
-        expect(details).to_have_count(1)
+        # The create form stays closed until the icon action opens it.
+        form = page.locator('#new-week-form')
+        expect(form).to_have_count(1)
         expect(page.locator('#new-week-date')).to_be_hidden()
 
-        # Open details
         page.locator('#new-week-title').click()
         expect(page.locator('#new-week-date')).to_be_visible()
 
         # Submit invalid date to trigger error state
         page.locator('#new-week-date').fill('2026-09-02')  # Not a Monday
         page.locator('#new-week-name').fill('Ungültige Woche')
-        details.locator('form').get_by_role('button', name='Anlegen', exact=True).click()
+        form.get_by_role('button', name='Anlegen', exact=True).click()
 
         # Error state preserves input and leaves details open
         expect(page.locator('#new-week-error')).to_be_visible()

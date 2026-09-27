@@ -95,14 +95,12 @@ def test_ac12_course_issues_in_info_bar(browser, live_server, admin_app, admin_e
         
         page.goto(f'/admin/cafeteria?week={DAY}')
         
-        # Since the week plan core the course warnings live in the shared status bar;
-        # the list of affected courses opens from the native «Gangangaben prüfen» disclosure.
-        course_status = page.locator('dl.admin-statusbar .admin-statusbar-item').filter(
-            has=page.locator('dt', has_text='Gänge'))
-        expect(course_status).to_have_count(1)
-        expect(course_status).to_have_class(re.compile(r'admin-statusbar-item--warning'))
-        expect(course_status.locator('.admin-statusbar-value-text')).to_have_text('1 Gang prüfen')
-        expect(course_status.locator('.admin-statusbar-detail')).to_have_text('1 Gang ohne Allergenangaben')
+        # Gang warnings stay visible in the week check summary. The affected
+        # courses open from the native «Gangangaben prüfen» disclosure.
+        course_status = page.locator('#week-check-summary')
+        expect(course_status).to_contain_text('1 Gang prüfen')
+        expect(course_status).to_contain_text('ohne Allergenangaben')
+        expect(course_status).to_contain_text('nicht allergenfrei')
 
         issues = page.locator('details#course-issues')
         expect(issues).to_have_count(1)

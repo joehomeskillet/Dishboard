@@ -82,9 +82,11 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
         assert client.post(path, data=data).status_code == 303
         _open(page, base)
         expect(page.get_by_role('link', name='Messvorlage', exact=True)).to_have_count(0)
+        page.locator('details.admin-filter-more > summary').click()
+        measurements['expanded-filters'] = _rework_measure(page, 'expanded-filters', width)
         page.get_by_label('Archivierte einschliessen').check()
         expect(page.get_by_role('link', name='Messvorlage', exact=True)).to_have_count(0)
-        page.get_by_role('button', name='Filtern', exact=True).click()
+        page.get_by_role('button', name='Übernehmen', exact=True).click()
         expect(page.get_by_role('link', name='Messvorlage', exact=True)).to_be_visible()
         assert 'archived=1' in page.url
         _open(page, base, path)
@@ -110,7 +112,8 @@ def _rework_measure(page, state, width):
     expect(page.get_by_role('heading', level=1)).to_have_text('Gerichtvorlagen')
     expect(page).to_have_title('Gerichtvorlagen · Menüplanung')
     result = page.locator('main').evaluate('''main => {
-        const visible = e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden';
+        // Closed native details can retain child rectangles without painting them.
+        const visible = e => e.checkVisibility();
         const controls = [...main.querySelectorAll('a, button, input:not([type=hidden]), select, textarea')]
             .filter(visible).map(e => {
                 const target = ['checkbox', 'radio'].includes(e.type) ? e.closest('label') || e : e;
@@ -153,7 +156,11 @@ def _accessible_capture(page, name, *, methods, native=False):
     for pair in pairs:
         pair['contrast'] = contrast(pair['color'], pair['background'])
         assert pair['contrast'] >= 4.5, pair
+    page.mouse.move(0, 0)
+    page.keyboard.press('Escape')
     page.evaluate('document.activeElement.blur(); scrollTo({top: 0, left: 0, behavior: "instant"})')
+    # The shared tooltip hides after 150 ms; capture only after its removal.
+    expect(page.locator('.ui-sem-tooltip')).to_have_count(0)
     page.wait_for_function('scrollY === 0 && scrollX === 0')
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     (EVIDENCE / f'{name}.contrast.json').write_text(json.dumps(pairs, ensure_ascii=False, indent=2))
@@ -324,7 +331,7 @@ def test_recipe_link_search_and_retained_selection_without_data_loss(
         page.get_by_role('link', name='Verknüpfte Vorlage', exact=True).click()
         page.locator('#template-recipe-details > summary').click()
         link = page.get_by_role('link', name='Rezept: Rezept 205', exact=True)
-        link.focus()
+        link.evaluate('el => el.focus({focusVisible: true})')
         expect(link).to_be_focused()
         assert link.evaluate('el => getComputedStyle(el).outlineStyle !== "none" || getComputedStyle(el).boxShadow !== "none"')
         with page.expect_navigation(wait_until='load') as navigation:
