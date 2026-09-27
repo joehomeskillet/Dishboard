@@ -173,9 +173,6 @@
             // A lateral fallback covers adjacent actions in compact toolbars.
             placement: 'top', fallbackPlacements: ['bottom'],
             delay: {show: 0, hide: 150}, offset: [0, 0],
-            // Sideways fallback would cover the next button in an action row.
-            fallbackPlacements: link.closest('.btn-list, .admin-row-actions') && !link.closest('.ui-sem-action-items')
-                ? ['top', 'bottom'] : ['top', 'right', 'bottom', 'left'],
             container: link.closest('dialog') || document.body,
             customClass: 'ui-sem-tooltip',
         });

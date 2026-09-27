@@ -100,22 +100,23 @@ def test_preview_global_consumers_reset_and_fresh_login(
                 assert b.locator('main .btn').first.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') == 18
                 _assert_controls(b)
                 dimensions = b.locator(cards).evaluate_all('''els => els.map(el => {
-                    const r = el.getBoundingClientRect(); return {y: r.y, width: r.width, height: r.height,
+                    const grids = Array.from(document.querySelectorAll('.admin-menu-options, .menu-grid'));
+                    const group = grids.indexOf(el.closest('.admin-menu-options, .menu-grid'));
+                    const r = el.getBoundingClientRect(); return {group, y: r.y, width: r.width, height: r.height,
                         overflow: el.scrollHeight > el.clientHeight + 1};
                 })''')
                 assert dimensions
-                if cards == '.menu-slot':
-                    rows: dict[int, list] = {}
-                    for item in dimensions:
-                        rows.setdefault(round(item['y']), []).append(item)
-                    for row in rows.values():
-                        heights = [item['height'] for item in row]
-                        assert max(heights) - min(heights) <= 1
-                    widths = [item['width'] for item in dimensions]
-                    assert max(widths) - min(widths) <= 1
-                else:
-                    for axis in ('width', 'height'):
-                        assert max(d[axis] for d in dimensions) - min(d[axis] for d in dimensions) <= 1
+                # Both grids size each row to its content; a long warning must
+                # not inflate unrelated rows/meals. Cards in one grid row stay equal.
+                rows: dict[tuple[int, int], list] = {}
+                for item in dimensions:
+                    assert item['group'] >= 0, (family, cards, item)
+                    rows.setdefault((item['group'], round(item['y'])), []).append(item)
+                for row in rows.values():
+                    heights = [item['height'] for item in row]
+                    assert max(heights) - min(heights) <= 1, (family, cards, row)
+                widths = [item['width'] for item in dimensions]
+                assert max(widths) - min(widths) <= 1
                 assert not any(d['overflow'] for d in dimensions)
                 assert 'Milch' in b.locator('main').inner_text()
                 if cards == '.menu-slot':

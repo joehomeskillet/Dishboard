@@ -61,10 +61,6 @@ tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[390-844-True]
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[1440-True]
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[390-False]
-# 2026-09-26 rot auf Produktion R11 d2e66fe (Baseline-Lauf gegen R14-Gate); Rezept-/Vorlagenseiten erwarten Texte vor dem Semantic Pack («Ansehen», Langtexte) - Nachzug in den P4-Paketen rezepte/vorlagen.
-tests/test_ui_korrektur_vorlagen_browser.py::test_recipe_editor_density_matrix
-tests/test_ui_korrektur_vorlagen_browser.py::test_save_activate_and_load_version_keep_native_requests[js]
-tests/test_ui_korrektur_vorlagen_browser.py::test_save_activate_and_load_version_keep_native_requests[nojs]
 # 2026-09-26 rot auf Produktion R11 d2e66fe (Baseline-Lauf): PDF-Paint bei 1440/JS und 390/noJS - Ursache noch nicht klassifiziert.
 tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[1440-True]
 tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[390-False]

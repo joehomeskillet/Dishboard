@@ -268,12 +268,20 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                         summary.focus()
                         page.keyboard.press('Enter')
                         expect(details).to_have_attribute('open', '')
-                        expect(summary).to_be_focused()
+                        if javascript and selector == '.ui-sem-actions':
+                            # Opening the action menu moves focus to the first item.
+                            focused = details.locator('.ui-sem-action-items :is(a, button)').first
+                            expect(focused).to_be_focused()
+                        else:
+                            focused = summary
+                            expect(summary).to_be_focused()
                         summary_class = summary.get_attribute('class') or ''
-                        assert summary.bounding_box()['height'] >= (36 if 'ui-sem-control--icon-only' in summary_class else 48)
-                        assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-                        page.keyboard.press('Enter')
+                        summary_min = 36 if 'ui-sem-control' in summary_class else 44
+                        assert summary.bounding_box()['height'] >= summary_min
+                        assert focused.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+                        page.keyboard.press('Escape' if javascript and selector == '.ui-sem-actions' else 'Enter')
                         expect(details).not_to_have_attribute('open', '')
+                        expect(summary).to_be_focused()
                     assert page.goto('/admin/screens/cafeteria/wochenvorlage').status == 200
                     form = page.locator('#screen-assignment-details form')
                     fields = form.evaluate('form => Array.from(new FormData(form))')
@@ -297,7 +305,8 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                     expect(page.locator('#screen-assignment-version')).not_to_have_attribute('open', '')
                     for target in page.locator('main .btn:visible, main summary:visible').all():
                         target_class = target.get_attribute('class') or ''
-                        assert target.bounding_box()['height'] >= (36 if 'ui-sem-control--icon-only' in target_class else 48)
+                        target_min = 36 if 'ui-sem-control' in target_class else 44
+                        assert target.bounding_box()['height'] >= target_min
                     assert page.goto('/admin/cafeteria/preview?week=2026-08-31').status == 200
                     expect(page.locator('.page-header .admin-statusbar')).to_have_count(1)
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

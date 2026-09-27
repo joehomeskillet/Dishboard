@@ -38,6 +38,23 @@ Wochen-Selektoren erwarten das in `62888f0c` entfernte `<details>` statt Collaps
 (Wrapper seit `a191cea9`). Als T mit Grund in `tools/release/known_red.txt`
 erfasst. Keine offenen Produktfehler aus R1; keine Deploy-/Releasefreigabe.
 
+## Release 18 Gruppe V: Bildschirmzeilen und Aktionsmenüs (2026-09-27)
+
+`/admin/screens`, Admin, veröffentlichte Pläne, JS/No-JS, 320–1440 px:
+Zeilen wachsen mit Vorschau und Inhalt; mobile Schalter bleiben anklickbar.
+Geschlossene gemeinsame Aktionsmenüs beanspruchen keinen Inhaltsplatz.
+R44/M64 (36/44-px-Symbolaktionen), R47/M66 (Inhalt ohne Abschneiden).
+Pool `worker-test-ps5`, jede Datei in eigenem pytest-Prozess:
+Bildschirmvorschauen `13 passed in 114.52s (0:01:54)`;
+Logo-/Karten-Geometrie `12 passed in 64.69s (0:01:04)`;
+Ausgabehubs mit Tastatur und Wochenwahl `21 passed in 96.99s (0:01:36)`.
+`/admin/vorlagen/rezepte`, Admin, Rezept und gespeicherter Stand, JS/No-JS:
+Tooltips bleiben über/unter dem Auslöser und blockieren nach Browser-Zurück
+keinen benachbarten Kopfbutton. Rezeptvorlagen-Browser: `5 passed in 31.00s`.
+Branding-Korrekturen: `9 passed in 36.50s`; Vorlagen-Korrekturen einschliesslich
+nativer Requests, Fehlerzustände und Zoom: `29 passed in 92.03s (0:01:32)`.
+Keine Formular- oder Screenshot-Baselineänderung.
+
 ## Release 17: Formularlabels und Symbolaktionen (2026-09-27)
 
 `/admin/{cafeteria,patienten}/menu`, Admin, befüllt und Feldfehler:
