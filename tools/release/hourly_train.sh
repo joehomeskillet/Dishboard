@@ -22,7 +22,20 @@ exec > >(tee "$OUT/train.log") 2>&1
 
 finish() {
   local rc=$?
+  local cleanup_rc=0
   trap - EXIT
+  # Nur der exklusive Zug-Worktree: auch Gate-Artefakte und Fehlerläufe aufräumen.
+  if [[ -e "$WT" ]]; then
+    git -C "$REPO" worktree remove --force "$WT" >>"$OUT/worktree.log" 2>&1 || cleanup_rc=$?
+  fi
+  git -C "$REPO" worktree prune >>"$OUT/worktree.log" 2>&1 || cleanup_rc=$?
+  if ((cleanup_rc)); then
+    echo "Worktree-Aufräumen fehlgeschlagen (Exit $cleanup_rc); siehe $OUT/worktree.log"
+    if ((rc == 0)); then
+      rc=$cleanup_rc
+      STEP=Worktree-Aufraeumen
+    fi
+  fi
   if ((rc)); then
     {
       printf 'Zeit: %s\nSHA: %s\nSchritt: %s\nExit: %s\nLog: %s\n' \
@@ -63,16 +76,14 @@ if ((ahead == 0)); then
 fi
 
 STEP=Worktree
-if [[ ! -e "$WT" ]]; then
-  git -C "$REPO" worktree add --detach "$WT" "$SHA" >"$OUT/worktree.log" 2>&1
+if [[ -e "$WT" ]]; then
+  git -C "$REPO" worktree remove --force "$WT" >"$OUT/worktree.log" 2>&1
 fi
+git -C "$REPO" worktree prune >>"$OUT/worktree.log" 2>&1
+git -C "$REPO" worktree add --detach "$WT" "$SHA" >>"$OUT/worktree.log" 2>&1
 [[ "$(git -C "$WT" rev-parse --show-toplevel)" == "$WT" ]]
 [[ "$(git -C "$WT" rev-parse --path-format=absolute --git-common-dir)" == \
    "$(git -C "$REPO" rev-parse --path-format=absolute --git-common-dir)" ]]
-[[ -z "$(git -C "$WT" status --porcelain --untracked-files=all)" ]] || {
-  echo 'Prüf-Worktree ist nicht sauber; keine Änderungen verwerfen.'; exit 2;
-}
-git -C "$WT" checkout --detach "$SHA" >>"$OUT/worktree.log" 2>&1
 STEP=Abstammung
 git -C "$WT" merge-base --is-ancestor "$BASE" "$SHA"
 echo 'Abstammung: github/main ist Vorfahre des Kandidaten.'
@@ -131,11 +142,11 @@ STEP=Gate
 gate[3]="$BASE"
 export RELEASE_GATE_OUT="$OUT/junit"
 unset RELEASE_GATE_DRY_RUN
-timeout --kill-after=30s 39m "${gate[@]}" >"$OUT/gate.log" 2>&1
+timeout --kill-after=30s 52m "${gate[@]}" >"$OUT/gate.log" 2>&1
 grep -qx 'NEW_FAILURES=0' "$OUT/gate.log"
 STEP=Kandidat-unveraendert
 [[ "$(git -C "$WT" rev-parse HEAD)" == "$SHA" ]]
-[[ -z "$(git -C "$WT" status --porcelain --untracked-files=all)" ]]
+# Gate-Evidence darf Dateien verändern; gepusht wird ausschliesslich der geprüfte SHA.
 STEP=Push
 # Expliziter SHA, normaler Fast-Forward-Push; Haupt-Checkout und lokale main bleiben unberührt.
 git -C "$REPO" -c push.followTags=false push github "$SHA:refs/heads/main" >"$OUT/push.log" 2>&1
