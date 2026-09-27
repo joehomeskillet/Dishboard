@@ -596,6 +596,7 @@ docs/licenses/iso-codes-copyright.txt
 docs/licenses/iso-codes-LGPL-2.1.txt
 docs/operations/release-zug.md
 docs/README.md
+docs/reports/r18-reds-v-0927.md
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.docx
 docs/SDD_Klinik_Suedhang_Cafeteria_v3.0.md
 docs/superpowers/allergen-proposals-0905.md
