@@ -1,5 +1,29 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Wochen-Symbolgrößen und Release-Testverträge 2026-09-28
+
+`wp-5348075ecbdb`, `64ccc7aa`: beide Wochenübersichten verwenden für
+Symbolaktionen wieder 36 px mit feinem und 44 px mit grobem Zeiger.
+Navigation und Formularfelder behalten ihre bisherigen Mindestgrößen.
+Patienten-Tageshöhe 321 → 285 px; bestehende Grenze 300 px unverändert.
+Eigene Desktopaufnahme und unveränderte Dichtefälle beider Profile geprüft.
+
+Worker-Vollgate mit `-p no:randomly -p no:cacheprovider`:
+`33 passed in 125.19s (0:02:05)`, `GATE_EXIT=0`, äußerer Exit 0.
+JUnit `/var/tmp/release-regression-0928-week-release-order.xml`.
+Zwei frühere Vollaufrufe mit aktivem Randomly scheiterten ausschließlich an
+der Reihenfolge der Playwright-Kontexte; beide Nachweise sind aufbewahrt.
+Unabhängige Root-Gates: 8 Geometrie-, 2 Dichte-, 9 Katalog-, 5 Speicher-/Rückkehr-,
+4 Menü- und 7 Rezeptnavigationstests, jeweils Exit 0. JUnits unter
+`/var/tmp/dishboard-{week-geometry,week-density,catalog-regression,saveback,menus-regression,recipe-navigation}-root-0928.xml`.
+Die Testanpassungen bewahren native Tastaturbedienung, Formularwerte, Rollen,
+PDF-Ziele und Mutationsverbote. Kein Skip, kein gelockerter Dichtewert.
+Integriert nach Quellreview, noch nicht live; Zug 04:07 prüft den älteren SHA `b47c957d`.
+
+Offen bleiben CSS-Zoom-Überlauf der Referenzliste und konkrete §5.4-Labels
+in geöffneten Aktionen-/Bestätigungsbereichen. Der sichtbare fachliche
+Bestätigungskontext allein beweist keine korrekte Beschriftung des finalen Buttons.
+
 ## Rezept-Rücknavigation 2026-09-28
 
 `wp-73b651824160`, `bafda787`: der lesbare Link «Zur Liste» im Rezepteditor

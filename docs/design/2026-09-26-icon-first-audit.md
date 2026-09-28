@@ -31,6 +31,37 @@ geprüft: healthy, Login 200, identisch mit `github/main`.
 Ein erfolgreicher unbeaufsichtigter Push/Deploy nach der Auth-Reparatur steht
 damit weiterhin aus.
 
+Die Fahrt 04:07 prüft unveränderlich `b47c957d040269e973f5b8ed51d0547fe6f1ac8d`.
+Zwischenstand 04:27: A `2016 passed`, D0 `640 passed`, B `7 failed, 143 passed`,
+C `3 failed, 572 passed`; die isolierten Browserdateien laufen noch.
+Log: `/var/tmp/dishboard-release-train/20260928T020700Z-Nz1M6U`.
+Später integrierte Korrekturen gehören nicht zu diesem Kandidaten.
+
+Release-Korrektur `wp-5348075ecbdb`, `64ccc7aa`: entfernt die veraltete
+48-px-Übersteuerung der Wochen-Symbolaktionen und passt ersetzte
+Karten-/Text-/Disclosure-Testverträge gezielt an. Formular- und
+Navigationsgrenzen bleiben erhalten; keine Skips oder Änderungen an `known_red`.
+Vollständige Wochenprüfung mit der Release-Reihenfolge:
+`33 passed in 125.19s`, `GATE_EXIT=0`, äußerer Exit 0.
+Zwei vorherige identische Aufrufe ohne `-p no:randomly` scheiterten an der
+Reihenfolge eigener Sync-Playwright-Kontexte nach dem Session-Browser;
+beide Fehlernachweise bleiben erhalten. Die korrekte Invocation behebt das
+Aufrufproblem ohne Quelländerung oder ausgelassene Fälle.
+Unabhängige Root-Läufe: Wochengeometrie 8, ursprüngliche Dichte 2,
+Katalog 9, Speichern/zurück 5, Menüansichten 4 und Rezeptnavigation 7 Tests,
+jeweils Exit 0. Eigene Patientenaufnahme gesichtet: Tageshöhe 285 statt
+321 px; Grenze 300 px unverändert. Integration ist kein Live-Nachweis.
+
+Getrennte offene Abnahmebefunde: aktualisierte Referenzlisten-Typografie
+legt in vier Fällen horizontalen Überlauf bei CSS-Zoom 200 % offen
+(`4 failed, 6 passed in 271.23s`); diese Teständerung ist nicht integriert.
+Die vorherigen Shell-/Pilotnachweise verwenden echten Browserzoom mit
+CDP-Zoomnachweis und bleiben davon getrennt. Ein Quellen-/Sichtaudit fand
+zudem fehlende kurze Aktionsnamen in geöffneten Rezept-/Vorlagenmenüs
+sowie fehlende sichtbare Labels an einzelnen Archivbestätigungen.
+Gezielte Folgepakete bleiben offen; Payload-/AuthZ-Lücken wurden dabei
+nicht festgestellt. Artefakt: `/var/tmp/dishboard-overflow-label-audit-0928.md`.
+
 Governance-Abgleich `wp-8db997a09cea`: AGENTS.md, CLAUDE.md und zentrales
 UI-Manifest nennen jetzt ausdrücklich den Vorrang der Icon-first-Spezifikation
 vor historischen Text-/48-px-/Statuskartenregeln. Unabhängiger Quellenreview:
@@ -64,7 +95,7 @@ gesonderter Druckreparatur ebenfalls integriert (`e9c0cdff` + `028c983e`,
 `wp-08363347d3d3`): eigener Browserlauf `1 passed in 18.75s` und eigener
 Vertragslauf `259 passed in 30.94s`, beide Exit 0. Sichtprüfung bestätigt
 lesbare einzeilige Drucklabels; Bildschirmaktionen bleiben Symbolbuttons.
-Pilot-Listenkopf und weitere Release-Korrekturen bleiben isolierte Pakete.
+Pilot-Listenkopf und weitere UI-Abnahmen bleiben isolierte Pakete.
 Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
 Manifestpflege vor Aufnahme in `integrate/icon-first-r18`. Paketverträge lokal
 unter `/var/tmp/dishboard-*-0928*.json`. Die nach `c8c2e3c` integrierten Pakete
