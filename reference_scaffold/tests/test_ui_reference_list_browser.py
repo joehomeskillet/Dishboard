@@ -1,6 +1,7 @@
 """MP-UI-REF-LIST: real HTTP, scoped PostgreSQL data and proposed Chromium captures."""
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import platform
@@ -133,14 +134,85 @@ def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None
             assert max(same_row) - min(same_row) <= 1
         assert all(card['radius'] == '12px' and card['shadow'] != 'none'
                    and not card['overflow'] for card in geometry), json.dumps(geometry)
-    for cell in page.locator('.dishboard-menu-table :is(th, td):visible').all():
-        minimum = 12 if cell.evaluate('el => !!el.closest("thead")') else 14
-        assert cell.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= minimum
+    for heading in page.locator('.dishboard-menu-table thead th:visible').all():
+        assert heading.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 12
+    table = page.locator('.dishboard-menu-table')
+    primary = table.locator('th[scope="row"]:visible, .admin-list-primary:visible')
+    expect(primary).to_have_count(2 * table.locator('[data-menu-list-id]:visible').count())
+    secondary = table.locator(
+        'td[data-label="Tag"]:visible, td[data-label="Tag"] time:visible, '
+        'td[data-label="Mahlzeit / Zuweisung"]:visible, td.admin-table-status:visible, '
+        '[data-menu-list-id] .admin-list-secondary:visible, '
+        '[data-menu-list-id] .text-secondary:visible',
+    )
+    for role, elements, size, weight in (
+        ('primary', primary, 14, '600'), ('secondary', secondary, 13, '400'),
+    ):
+        for element in elements.all():
+            typography = element.evaluate('''el => {
+                const style = getComputedStyle(el);
+                return {size: parseFloat(style.fontSize), weight: style.fontWeight};
+            }''')
+            assert typography == {'size': size, 'weight': weight}, (role, typography)
     assert page.locator('[data-menu-id]:visible :is(h2, p, li)').evaluate_all('''els => els.every(el => {
         const s = getComputedStyle(el);
         return s.webkitLineClamp === 'none' && el.scrollHeight <= el.clientHeight + 1 &&
             el.scrollWidth <= el.clientWidth + 1;
     })''')
+
+
+def _native_reference_zoom(chromium, origin, client, javascript, route, directory,
+                           contrast_failures, errors) -> None:
+    with chromium.browser_type.launch_persistent_context(
+        str(directory / 'native-zoom-profile'), channel='chromium', headless=True,
+        no_viewport=True, base_url=origin, locale='de-CH', timezone_id='Europe/Zurich',
+        java_script_enabled=javascript, reduced_motion='reduce',
+        args=['--no-sandbox', '--disable-dev-shm-usage', '--window-size=1440,900'],
+    ) as context:
+        page = context.pages[0]
+        page.goto('chrome://settings/appearance')
+        page.evaluate('new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))')
+        assert page.evaluate('new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))') == 2
+        context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value,
+                             'url': origin}])
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
+        page.on('requestfailed', lambda request: errors.append(request.failure))
+        _goto(page, route + '?q=Langtext')
+        cdp = context.new_cdp_session(page)
+        try:
+            metrics = cdp.send('Page.getLayoutMetrics')
+            geometry_script = '''() => ({url: location.href, innerWidth, innerHeight,
+                outerWidth, outerHeight, devicePixelRatio, scrollX, scrollY,
+                scrollWidth: document.documentElement.scrollWidth,
+                rootZoom: getComputedStyle(document.documentElement).zoom,
+                bodyZoom: getComputedStyle(document.body).zoom,
+                rootTransform: getComputedStyle(document.documentElement).transform,
+                bodyTransform: getComputedStyle(document.body).transform})'''
+            geometry = page.evaluate(geometry_script)
+            png = base64.b64decode(cdp.send('Page.captureScreenshot', {
+                'format': 'png', 'captureBeyondViewport': False,
+            })['data'], validate=True)
+            (directory / 'zoom200-1440-viewport.png').write_bytes(png)
+            image_size = [int.from_bytes(png[16:20], 'big'), int.from_bytes(png[20:24], 'big')]
+            after_capture = page.evaluate(geometry_script)
+            proof = {'cdp': metrics, 'geometry': geometry, 'after_capture': after_capture,
+                     'viewport_image_size': image_size, 'requested_window': [1440, 900],
+                     'javascript': javascript, 'captureBeyondViewport': False}
+            (directory / 'zoom200-1440.json').write_text(json.dumps(proof, indent=2))
+            assert urlsplit(geometry['url']).path == route
+            assert parse_qs(urlsplit(geometry['url']).query) == {'q': ['Langtext']}
+            assert metrics['cssVisualViewport']['zoom'] == 2, proof
+            assert [geometry['innerWidth'], geometry['outerWidth'], geometry['devicePixelRatio']] == [720, 1440, 2], proof
+            assert geometry['rootZoom'] == geometry['bodyZoom'] == '1', proof
+            assert geometry['rootTransform'] == geometry['bodyTransform'] == 'none', proof
+            assert geometry == after_capture, proof
+            assert abs(image_size[0] - geometry['innerWidth'] * geometry['devicePixelRatio']) <= 2, proof
+            assert abs(image_size[1] - geometry['innerHeight'] * geometry['devicePixelRatio']) <= 2, proof
+            _measure(page, 1, contrast_failures, 'list')
+            _capture(page, directory, 'zoom200-1440')
+        finally:
+            cdp.detach()
 
 
 def _views(page: Page, javascript: bool, directory: Path, state: str, count: int,
@@ -325,13 +397,13 @@ def test_reference_states_and_viewports(
             assert parse_qs(urlsplit(link.get_attribute('href')).query) == {'q': ['Gemüse']}
         _goto(page, route + '?q=Langtext')
         expect(page.locator('[data-menu-list-id]')).to_have_count(1)
-        # CSS zoom exercises layout magnification; DPR is deliberately unchanged.
-        for width, height in ((1440, 900), (390, 844)):
+        # Narrow CSS viewports and actual browser zoom are separate contracts.
+        for width, height in ((320, 844), (390, 844)):
             page.set_viewport_size({'width': width, 'height': height})
-            page.evaluate("document.documentElement.style.zoom = '2'")
             _measure(page, 1, contrast_failures, 'list')
-            _capture(page, tmp_path, f'zoom200-{width}')
-            page.evaluate("document.documentElement.style.zoom = ''")
+            _capture(page, tmp_path, f'long-text-reflow-{width}')
+        _native_reference_zoom(browser, origin, client, javascript, route, tmp_path,
+                               contrast_failures, errors)
         assert _versions(database_engine) == before
         _goto(page, route + '?q=Pouletbrust')
         if javascript:
@@ -358,6 +430,8 @@ def test_reference_states_and_viewports(
         expect(page.locator('input[name="title"]')).to_have_value('Pouletbrust an Kräutersauce')
         assert not errors, errors
         evidence = {'family': family, 'javascript': javascript, 'viewports': VIEWPORTS,
+                    'long_text_reflow_viewports': ((320, 844), (390, 844)),
+                    'native_zoom_evidence': 'zoom200-1440.json',
                     'browser': browser.version, 'platform': platform.platform(),
                     'locale': 'de-CH', 'timezone': 'Europe/Zurich', 'dpr': 1,
                     'demo_today': app.config['DEMO_TODAY'], 'reduced_motion': 'reduce',
