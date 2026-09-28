@@ -131,7 +131,11 @@ def _capture_shell(page, name, *, title=None, native=False, viewport_only=False)
             box = control.bounding_box()
             icon_only = control.evaluate("el => el.matches('.ui-sem-control--icon-only')")
             minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
-            assert box and box['height'] >= (minimum if icon_only else 48) and box['width'] >= (minimum if icon_only else 44), box
+            assert box and box['height'] >= (minimum if icon_only else 48) and box['width'] >= (minimum if icon_only else 44), {
+                'box': box, 'name': visible_text or aria_label or labelledby_text,
+                'semantic': control.get_attribute('data-semantic'),
+                'classes': control.get_attribute('class'), 'icon_only': icon_only,
+            }
     metrics.update(page.evaluate('''() => ({innerWidth, innerHeight, outerWidth, outerHeight,
         devicePixelRatio, cssZoom: getComputedStyle(document.documentElement).zoom,
         visualViewportHeight: visualViewport.height})'''))

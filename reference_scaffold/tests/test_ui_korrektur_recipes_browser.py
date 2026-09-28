@@ -112,12 +112,19 @@ def test_recipe_pages_follow_correction_contract(
             _open(page, base, editor_path)
             expect(page.get_by_text('Entwurf · Änderungen werden erst mit Speichern übernommen.', exact=True)).to_be_visible()
             editor_menu = page.locator('.admin-compact-toolbar > details.admin-compact-actions')
-            expect(editor_menu.locator('summary')).to_have_text('Mehr')
+            expect(editor_menu.locator('summary')).to_have_attribute('data-semantic', 'actions.more')
+            expect(editor_menu.locator('summary')).to_have_accessible_name('Weitere Aktionen')
+            expect(editor_menu.locator('summary')).to_have_attribute('data-ui-tooltip', 'Weitere Aktionen')
+            expect(editor_menu.locator('summary')).to_have_text('')
             expect(editor_menu.locator('summary')).to_be_visible()
             expect(editor_menu).not_to_have_attribute('open', '')
             expect(page.locator('#recipe-editor')).to_be_visible()
             expect(page.get_by_role('heading', name='Kennzeichnungen', exact=True)).to_be_visible()
-            expect(page.locator('#recipe-editor button[formaction]').first).not_to_have_text('')
+            add_ingredient = page.locator('#recipe-editor button[formaction]').first
+            expect(add_ingredient).to_have_attribute('data-semantic', 'actions.add')
+            expect(add_ingredient).to_have_accessible_name('Zutat hinzufügen')
+            expect(add_ingredient).to_have_attribute('data-ui-tooltip', 'Zutat hinzufügen')
+            expect(add_ingredient).to_have_text('')
             assert page.locator('#recipe-editor').get_attribute('method') == 'post'
             assert page.locator('#recipe-editor').get_attribute('action') == editor_path
             editor_menu.locator('summary').click()

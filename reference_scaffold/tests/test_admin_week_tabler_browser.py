@@ -208,12 +208,17 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     page.locator('details.admin-week-more > summary').click()
     expect(page.locator('.admin-week-more-menu')).to_be_visible()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), width
+    coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
+    action_size = 44 if coarse else 36
     for control in page.locator(
         '.admin-week-controls .btn, .admin-overview-form .form-control, .admin-overview-form .btn, '
         '.admin-week-service .form-select, .admin-week-service .form-control, .menu-slot .btn',
     ).all():
         box = control.bounding_box()
-        assert box is not None and box['height'] >= 48, control.evaluate('(el) => el.outerHTML')
+        icon_only = control.evaluate("el => el.matches('.ui-sem-control--icon-only')")
+        assert box is not None and box['height'] >= (action_size if icon_only else 48), control.evaluate('(el) => el.outerHTML')
+        if icon_only:
+            assert box['width'] >= action_size, box
     if width in (360, 1280):
         page.screenshot(path=str(tmp_path / f'{family}-week-overview-{width}.png'))
         page.locator('.admin-day-card, .patient-admin-day').first.screenshot(

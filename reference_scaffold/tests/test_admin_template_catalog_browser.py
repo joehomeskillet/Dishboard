@@ -115,8 +115,9 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     response = client.get(f'/admin/vorlagen?week={DAY}')
     assert response.status_code == 200
     assert 'Winter &amp; Festtage' in response.text and 'Winter & Festtage' not in response.text
-    assert response.text.count('Aktiver Herbst · Version 2') == 4
-    assert response.text.count('Neuester Stand: Version 3 · Entwurf') == 2
+    assert response.text.count('<h3 class="admin-list-primary text-break mb-0">Aktiver Herbst</h3>') == 2
+    assert response.text.count('<p class="admin-list-secondary print-tpl-meta mb-0">Version 2</p>') == 2
+    assert response.text.count('Neuer Entwurf: Winter &amp; Festtage · Version 3') == 2
     assert response.text.count('Festliche Kopie') == 6
     links = MainLinks(response.text).links
     assert '/admin/gerichtvorlagen' in links
@@ -149,7 +150,10 @@ def test_read_roles_see_catalog_but_no_privileged_revision_links(editor_app, dat
     populate(admin, database_engine)
     client, _ = _login(editor_app, database_engine, [role])
     response = client.get('/admin/vorlagen')
-    assert response.status_code == 200 and 'Aktiver Herbst · Version 2' in response.text
+    assert response.status_code == 200
+    assert response.text.count('<h3 class="admin-list-primary text-break mb-0">Aktiver Herbst</h3>') == 2
+    assert response.text.count('<p class="admin-list-secondary print-tpl-meta mb-0">Version 2</p>') == 2
+    assert response.text.count('Neuer Entwurf: Winter &amp; Festtage · Version 3') == 2
     assert not any(urlsplit(link).path in PDF_TARGETS for link in MainLinks(response.text).links)
     assert '/admin/gerichtvorlagen' in MainLinks(response.text).links
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
@@ -204,21 +208,22 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             expect(page.get_by_role('heading', level=1)).to_have_text('Vorlagen')
             assert page.locator('[data-template-id]').count() == 5
             assert page.locator('[data-template-id] use[href$="#tabler-edit"]').count() == 5
-            weekly_cards = page.locator('article.card:has([data-template-id]):not([aria-labelledby="recipe-templates-heading"])')
-            assert weekly_cards.count() == 2
-            assert weekly_cards.locator('[data-template-id]').count() == 4
-            assert weekly_cards.locator('[data-template-id="standard"]').count() == 2
-            for card in weekly_cards.all():
-                pane_id = card.evaluate('el => el.closest(".tab-pane").id')
+            weekly_sections = page.locator('.output-area-panels .output-layouts-section')
+            assert weekly_sections.count() == 2
+            assert weekly_sections.locator('ul.admin-list > li[data-template-id]').count() == 4
+            assert weekly_sections.locator('[data-template-id="standard"]').count() == 2
+            for section in weekly_sections.all():
+                pane_id = section.evaluate('el => el.closest(".tab-pane").id')
                 page.locator(f'[aria-controls="{pane_id}"]').click()
-                card.locator('details summary').filter(has_text='Frühere Versionen').click()
-                for item in card.locator('[data-template-id="standard"]').all():
-                    expect(item.get_by_role('heading')).to_have_text('Winter & Festtage')
-                    expect(item.get_by_text('Aktiver Herbst · Version 2', exact=False)).to_be_visible()
-            recipe_card = page.locator('article[aria-labelledby="recipe-templates-heading"]')
+                current = section.locator('li[data-template-id="standard"][data-current-template]')
+                expect(current.get_by_role('heading')).to_have_text('Aktiver Herbst')
+                expect(current.locator('.print-tpl-meta')).to_have_text('Version 2')
+                expect(current.get_by_text('Neuer Entwurf: Winter & Festtage · Version 3', exact=True)).to_be_visible()
+                expect(current.locator('[data-semantic="status.active"]')).to_be_visible()
+            recipe_card = page.locator('section[aria-labelledby="recipe-templates-heading"]')
             assert recipe_card.locator('[data-template-id="standard"]').count() == 1
-            expect(recipe_card.get_by_text('Neuester Stand: Revision 1', exact=True)).to_be_visible()
-            dish_card = page.locator('article.card').filter(
+            expect(recipe_card.locator('.print-tpl-meta')).to_have_text('Revision 1')
+            dish_card = page.locator('.print-related-grid > section').filter(
                 has=page.get_by_role('heading', name='Gerichtvorlagen', exact=True),
             )
             if width == 1440:
@@ -262,7 +267,7 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
                 link.focus()
                 expect(link).to_be_focused()
 
-            for link in page.locator('main form .btn:visible, main .row-cards .btn:visible, main .screens-grid .btn:visible').all():
+            for link in page.locator('main form .btn:visible, main .print-related-grid .btn:visible, main .screens-grid .btn:visible').all():
                 check_keyboard_link(link)
             page.keyboard.press('Escape')
             for menu in page.locator('main .screens-grid .ui-sem-actions').all():
@@ -275,31 +280,38 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
                 page.keyboard.press('Escape')
                 summary.focus()
                 page.keyboard.press('Enter')
-            for card in weekly_cards.all():
-                pane_id = card.evaluate('el => el.closest(".tab-pane").id')
+            for section in weekly_sections.all():
+                pane_id = section.evaluate('el => el.closest(".tab-pane").id')
                 page.locator(f'[aria-controls="{pane_id}"]').click()
                 pane = page.locator(f'#{pane_id}')
-                pane.locator('details summary').filter(has_text='Frühere Versionen').click()
-                for selector in (
-                    '.output-print-section .btn',
-                    '.output-layouts-section > .btn-list .btn',
-                    '.output-content-links .btn',
-                    'details:has(summary:has-text("Frühere Versionen")) .btn',
-                ):
-                    require_focus = 'Frühere Versionen' not in selector
-                    for link in pane.locator(selector).all():
-                        check_keyboard_link(link, require_focus=require_focus)
+                for link in pane.locator('a.btn:visible').all():
+                    check_keyboard_link(link)
+                menus = section.locator('.admin-list-actions .admin-row-actions > .ui-sem-actions')
+                expect(menus).to_have_count(2)
+                for menu in menus.all():
+                    summary = menu.locator(':scope > summary')
+                    expect(summary).to_have_accessible_name('Weitere Aktionen')
+                    expect(summary).to_have_text('')
+                    summary.focus()
+                    summary.press('Enter')
+                    expect(menu).to_have_attribute('open', '')
+                    for link in menu.locator('a.btn').all():
+                        check_keyboard_link(link)
+                    summary.focus()
+                    summary.press('Enter')
+                    expect(menu).not_to_have_attribute('open', '')
             for link in recipe_card.locator('.btn').all():
                 check_keyboard_link(link)
             EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
             EVIDENCE_DIR.chmod(0o700)
             page.get_by_role('heading', level=1).click()
+            page.keyboard.press('Escape')
+            expect(page.locator('[role="tooltip"]:visible')).to_have_count(0)
             page.screenshot(path=str(EVIDENCE_DIR / f'catalog-{width}.png'), full_page=True)
             Path(EVIDENCE_DIR / f'catalog-{width}.png').chmod(0o600)
             page.locator('[aria-controls="output-cafeteria"]').click()
-            cafeteria_card = weekly_cards.first
-            cafeteria_card.locator('details summary').filter(has_text='Frühere Versionen').click()
-            editor = cafeteria_card.locator('[data-template-id="standard"]').get_by_role(
+            cafeteria_section = weekly_sections.first
+            editor = cafeteria_section.locator('[data-template-id="standard"]').get_by_role(
                 'link', name='Winter & Festtage bearbeiten',
             )
             target = editor.get_attribute('href')

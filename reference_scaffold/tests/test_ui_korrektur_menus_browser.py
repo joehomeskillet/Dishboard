@@ -176,7 +176,11 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             details = gratin_card.locator('details.menu-note-details')
             expect(details).to_have_count(1)
             summary = details.locator('summary')
-            expect(summary).to_contain_text('Details')
+            details_name = 'Kartoffelgratin mit Gemüse · 07.09.2026: Details ein- oder ausklappen'
+            expect(summary).to_have_attribute('data-semantic', 'ui.disclosure.details')
+            expect(summary).to_have_accessible_name(details_name)
+            expect(summary).to_have_attribute('data-ui-tooltip', details_name)
+            expect(summary).to_have_text('')
 
             # Before open, description is inside details content
             expect(details.locator('.menu-description')).to_contain_text(long_desc)
