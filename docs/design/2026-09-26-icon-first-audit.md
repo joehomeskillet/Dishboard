@@ -6,12 +6,14 @@ Stand der Zählung: 2026-09-26, Worktree `docs/icon-first-inventory-0926`. Kein 
 
 ## Fortsetzung 2026-09-28: Abnahme noch offen
 
-Aktualisierung 06:53: Zug `9873b033` hat alle 4386 Fälle mit null Fehlern und acht
-Skips beendet; Deployment läuft, neue Liveprüfung bleibt offen. Der nächste
-Integrationsstand enthält die unabhängig geprüfte Tooltip-Escape-Korrektur
-`40623846`. Druckvorlagen bleiben wegen eines tatsächlich gesehenen Fehlertext-
-Überlaufs zurückgehalten. Aktuelle Einzelbelege und Restlücken stehen am Anfang
-von `docs/ui-consistency-inventory.md`; die folgenden Zeitstände sind historisch.
+Aktualisierung 07:23: Live `d7a5eb63` seit 07:20, healthy, Login 200 und exakt
+`github/main`. Zug 07:07 bestand 2781 Tests ohne Fehler/Skips und deployte
+automatisch; sofortiger Status `starting` erforderte erneut eine unabhängige
+erfolgreiche Live-Nachprüfung. Die getrennt geprüfte begrenzte Bereitschaftswartezeit
+wird erst bei beendetem Dienst integriert. Fehlerindikator, Screen-Reihenfolge
+und Importdetails haben weitere Root-Nachweise; verbleibende Altgates verhindern
+noch ihre vollständige Paketabnahme. Aktuelle Belege und Grenzen stehen am Anfang
+von `docs/ui-consistency-inventory.md`; folgende Zeitstände sind historisch.
 
 Die folgenden Abschnitte bleiben das historische Quelleninventar. Ihre offenen
 Zeilen werden nicht allein durch Release 18 oder einen bestandenen Listenvergleich

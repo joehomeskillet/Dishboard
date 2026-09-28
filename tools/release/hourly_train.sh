@@ -153,6 +153,28 @@ git -C "$REPO" -c push.followTags=false push github "$SHA:refs/heads/main" >"$OU
 STEP=Deploy
 systemctl start dishboard-deploy-main.service >"$OUT/deploy.log" 2>&1
 STEP=Live-Pruefung
+# Compose may return before Docker's first successful healthcheck. Only the
+# exact deployed candidate in "starting" gets this bounded readiness allowance.
+ready_deadline=$((SECONDS + 60))
+while :; do
+  ready_remaining=$((ready_deadline - SECONDS))
+  ((ready_remaining > 0)) || { echo 'FEHLER: Healthcheck nach 60s weiterhin starting'; exit 1; }
+  if ! ready_state=$(timeout "$ready_remaining" docker inspect -f \
+    '{{index .Config.Labels "org.opencontainers.image.revision"}} {{if .State.Health}}{{.State.Health.Status}}{{else}}ohne-healthcheck{{end}}' \
+    suedhang-cafeteria-app-1); then
+    echo 'FEHLER: Readiness-Status nicht lesbar'; exit 2
+  fi
+  read -r ready_revision ready_health <<< "$ready_state"
+  [[ "$ready_revision" == "$SHA" ]] || {
+    echo "FEHLER: Live-Revision $ready_revision entspricht nicht Kandidat $SHA"; exit 1;
+  }
+  case "$ready_health" in
+    healthy) break ;;
+    starting) echo "Readiness: health=starting; noch ${ready_remaining}s Budget" ;;
+    *) echo "FEHLER: Produktion nicht gesund (health=$ready_health)"; exit 1 ;;
+  esac
+  sleep 1
+done
 DISHBOARD_EXPECTED_REVISION="$SHA" bash "$WT/tools/release/deploy_status.sh" "$LINE"
 printf '%s %s\n' "$SHA" "$(date -u +%FT%TZ)" >"$STATE/last_success.tmp"
 mv "$STATE/last_success.tmp" "$STATE/last_success"

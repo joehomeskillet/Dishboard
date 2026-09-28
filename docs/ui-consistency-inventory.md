@@ -1,5 +1,33 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Release und Bereitschaft 2026-09-28, 07:23 CEST
+
+Live ist `d7a5eb63324324a007b8a5f3c7c380e534c97e59` seit 07:20 CEST:
+healthy, Login 200, identisch mit `github/main`; erwartete Revision unabhängig
+geprüft, Statuskommando Exit 0. Zug 07:07 bestand 2781 Tests ohne Fehler oder
+Skips (A2016/B150/C599/D16), `NEW_FAILURES=0`. Push/Deploy liefen automatisch.
+Die sofortige Liveprüfung sah erneut `health=starting` und endete mit Exit 1.
+Nachprüfung und archivierter Originalalarm:
+`/var/tmp/dishboard-release-train/20260928T050701Z-2nyGFw/recovery.md`.
+
+Bereitschaftsfix `wp-7120ae692932`, `86036a44`: maximal 60 Sekunden auf
+Docker-Health warten, ausschließlich bei passender Kandidatenrevision und
+Zustand `starting`. Falsche Revision, ungesunder/fehlender Status oder
+Inspect-Fehler bleiben Fehler; Deployment wird nicht wiederholt. Danach läuft
+die unveränderte exakte Liveprüfung einmal. Autor und Root prüften unabhängig
+alle 15 Readiness-/Status-Unitfälle (Root 7.356s, Exit 0), Bash/Ruff/Diff grün.
+Integration erfolgt erst nach bestätigtem MainPID 0 des 07:07-Zuges, da dessen
+ExecStart direkt dieses Integrationsskript verwendet. Unbeaufsichtigter Erfolg
+mit dieser Korrektur muss im nächsten Zug noch nachgewiesen werden.
+
+Einzelpakete weiter isoliert: gemeinsamer Fehlerindikator mit Root11,
+Tooltip16 und echtem Druckeditor30 grün; eigenes mobiles Bestätigungsbild zeigt
+das Fehlericon innerhalb des Öffners. Druckeditor-Altgates laufen noch.
+Screen34 ist nach unabhängig geprüfter Contentbox-Messkorrektur grün
+(228.23s); unveränderte 1-px-Toleranz, Mindestbreite und Formularverträge.
+Listenfamilien-Ratchet läuft. Import/Bilder8 und vorhandener Importbrowser24
+sind grün; weitere Bild-/Routengates stehen aus. Keine appweite UI-Abnahme.
+
 ## Release und Tooltip-Nachweis 2026-09-28, 06:53 CEST
 
 Der wiederaufgenommene Zug prüfte `9873b033` vollständig: 4386 Fälle,
