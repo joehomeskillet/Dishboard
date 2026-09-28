@@ -1,5 +1,16 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Rezept-Rücknavigation 2026-09-28
+
+`wp-73b651824160`, `bafda787`: der lesbare Link «Zur Liste» im Rezepteditor
+verwendet wieder die bestehende 48-px-Navigationshöhe. Eine gezielte Regel in
+`recipe-admin.css` betrifft nur den direkten Toolbar-Link; Symbolaktionen
+behalten 36/44 px. Korrektur durch einen anderen Autor, keine Testgrenze gesenkt.
+Eigener unveränderter Shelllauf in isoliertem Review-Worktree:
+`7 passed in 128.29s`, Exit 0, inklusive JS/No-JS, niedriger Fensterhöhe und
+echtem 200-%-Browserzoom. Eigene Mobilaufnahme gesichtet. JUnit:
+`/var/tmp/dishboard-nav-root-0928.xml`. Integriert, noch nicht live.
+
 ## Native Detailaktionen 2026-09-28
 
 `wp-2b4ee926bca9` mit unabhängigem Reparaturpaket `wp-08363347d3d3`
