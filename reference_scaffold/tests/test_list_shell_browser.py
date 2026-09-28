@@ -56,15 +56,14 @@ def test_real_list_edges_and_calendar_state(admin_app, admin_engine, live_server
                         assert page.goto(path, wait_until='networkidle').status == 200
                         if name == 'vorlagen':
                             _hook(page, 'catalog', '')
-                            assert page.locator('.output-area-panels > .tab-pane > .card').evaluate_all(
-                                "els => els.length > 0 && els.every(el => getComputedStyle(el).borderBottomWidth === '1px')")
-                            nested = page.locator('.card .card:has(.admin-list-row)')
-                            assert nested.count() == 2
-                            assert nested.evaluate_all("""els => els.every(el => {
+                            assert page.locator('.output-area-panels .card').count() == 0
+                            catalogs = page.locator('.output-area-panels .admin-list')
+                            assert catalogs.count() == 2
+                            assert catalogs.evaluate_all("""els => els.every(el => {
                                 const s = getComputedStyle(el);
-                                return s.borderBottomWidth === '0px' && s.boxShadow === 'none';
+                                return s.borderBottomWidth === '1px' && s.boxShadow === 'none';
                             })""")
-                            nested.first.screenshot(path=str(tmp_path / f'template-catalog-{width}.png'))
+                            catalogs.first.screenshot(path=str(tmp_path / f'template-catalog-{width}.png'))
                         rows = page.locator(selector)
                         assert rows.count() > 0, name
                         for index in range(rows.count()):

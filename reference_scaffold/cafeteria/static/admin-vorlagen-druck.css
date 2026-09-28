@@ -1,4 +1,4 @@
-/* Compact print-template hub and editor. Tokens only; 48 px targets. */
+/* Compact print-template hub and editor using shared tokens and controls. */
 .dishboard-admin:has(.output-week-form) .page,
 .dishboard-admin:has(.print-template-editor) .page,
 .dishboard-admin .page-body .container-xl:has(.output-week-form),
@@ -10,7 +10,6 @@
 .output-week-form,
 .output-area-tabs,
 .output-area-panels,
-.output-area-panels .card,
 .print-related-grid,
 .print-screens-grid,
 .screens-grid {
@@ -37,8 +36,6 @@
   min-width: 0;
   max-width: 100%;
 }
-.output-current-template { min-width: 0; }
-.output-current-template .print-tpl-name,
 .print-tpl-row .print-tpl-name {
   flex: 1 1 12rem;
   min-width: 0;
@@ -57,7 +54,6 @@
   grid-template-columns: minmax(0, 1fr);
   gap: var(--app-space-3);
 }
-.print-related-card .card-body { padding: var(--app-space-3); }
 .print-screen-row {
   padding: var(--app-space-3);
 }
@@ -76,7 +72,6 @@
 .print-version-row { padding-block: var(--app-space-2); }
 .print-template-unavailable .empty { padding: var(--app-space-4); }
 @media (min-width: 1024px) {
-  .print-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .print-screens-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -87,8 +82,6 @@
   .print-tpl-row .btn-list,
   .print-version-row .btn-list,
   .print-screen-row .btn-list { margin-inline-start: 0; flex-basis: 100%; }
-  .output-print-actions { flex-direction: column; align-items: stretch; }
-  .output-print-actions .btn { width: 100%; }
 }
 .print-screens-grid,
 #screen-assignment-details .screens-grid {

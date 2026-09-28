@@ -283,8 +283,8 @@ def test_hub_and_editor_statusbar_viewports_keyboard_and_no_js(
         response = page.goto(f'/admin/vorlagen?week={DAY}')
         assert response is not None and response.status == 200
         expect(page.get_by_role('heading', level=1)).to_have_text('Vorlagen')
-        expect(page.locator('.admin-statusbar')).to_be_visible()
-        expect(page.locator('.admin-statusbar-item')).to_have_count(4)
+        expect(page.locator('.admin-statusbar')).to_have_count(0)
+        expect(page.locator('#output-cafeteria [data-current-template]')).to_be_visible()
         expect(page.locator('main .btn-primary')).to_have_count(1)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         _targets(page)

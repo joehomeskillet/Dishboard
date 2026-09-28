@@ -109,13 +109,13 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
             assert len(screen_links) == 6
         links = [link for link in links if link not in screen_links]
         if path == '/admin/vorlagen':
-            # WP28: week status anchor (1), area tabs (2), print/public/content (10),
+            # Area tabs (2), print/public/content (10),
             # dish templates/recipes/master data/cookbooks (4), admin editors/previews (5).
             # The header owns the cafeteria PDF action; status and overflow add no duplicates.
-            expected_links = 22 if role == 'Cafeteria.Admin' else 17
+            expected_links = 21 if role == 'Cafeteria.Admin' else 16
             expected_unique_links = expected_links
             assert {link for link in links if link.startswith('#')} == {
-                '#output-week', '#output-cafeteria', '#output-patienten',
+                '#output-cafeteria', '#output-patienten',
             }
             template_links = [link for link in links if link.startswith('/admin/vorlagen/')]
             assert len(template_links) == (5 if role == 'Cafeteria.Admin' else 0)
@@ -298,16 +298,16 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
                     controls.extend(page.locator('main form :is(.btn, .form-control)').all())
                     controls.extend(page.locator(
                         'main .print-related-grid .btn, main .screens-grid .btn, '
-                        'main .page-header .btn, main .admin-statusbar a'
+                        'main .page-header .btn'
                     ).all())
                     more_options = page.locator('main details.admin-compact-details').last
                     more_options.locator('summary').click()
                     controls.extend(more_options.locator('.btn').all())
-                    families = ('cafeteria', 'patienten') if javascript else ('cafeteria',)
+                    families = ('cafeteria', 'patienten')
                     for family in families:
-                        if javascript:
-                            page.locator(f'[aria-controls="output-{family}"]').click()
+                        page.locator(f'[aria-controls="output-{family}"]').click()
                         pane = page.locator(f'#output-{family}')
+                        expect(pane).to_be_visible()
                         for summary in pane.locator('details summary').all():
                             summary.click()
                         # Check each family's controls while that tab is still active.

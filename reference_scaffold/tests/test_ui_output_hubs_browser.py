@@ -551,7 +551,7 @@ def test_output_hubs_matrix_empty_states(
             focus_target = page.locator(".screen-card .nav-link").first
         elif focus_role == "tab":
             empty_state = page.locator(
-                ".tab-pane.active .output-publication-note"
+                ".output-publication-note"
             )
             expect(empty_state).to_contain_text(empty_text)
             expect(empty_state).to_be_visible()
