@@ -10356,7 +10356,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "9965772dc33aeae95ec3962b65a0bee1478acdfb87e53c25860c13789dace1a3",
+      "sha256": "fb5aaea4067b1b96c251c606dffc9d83d817fcdd76a5552e31ee80628418c707",
       "used_by_endpoints": [
         "admin.recipe_revision",
         "admin.recipe_revisions",
@@ -10818,7 +10818,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "53e2d9f517ede7906c8c41c77d2c7939337482f4f8133a2a507dfb5d9c66f024",
+      "sha256": "16fdfb7cacd9782a094c01c8106babb49974785f7af16806b5b0ab45a92833f3",
       "used_by_endpoints": [
         "admin.component_detail"
       ],

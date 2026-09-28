@@ -16,7 +16,20 @@ scheiterte dann beim Push am fehlenden systemd-Login-Kontext. Derselbe geprüfte
 SHA wurde manuell gepusht und deployed. Dienst-Drop-in setzt jetzt `User=root`
 und `SetLoginEnvironment=yes`; separater systemd-Push-Dry-Run bestand. Beleg:
 `/var/tmp/dishboard-release-train/20260928T000700Z-lbkljO/recovery.md`.
-Die nächste vollständig unbeaufsichtigte Fahrt steht noch aus.
+Die Fahrt 03:07 prüfte den festgehaltenen Kandidaten
+`dab6fda61c407883f7026c3bf7b1eed76c1b7a25` vollständig und stoppte um 03:46 CEST
+vor Push/Deploy: `NEW_FAILURES=21`, `verdict=1`. Log/ALERT:
+`/var/tmp/dishboard-release-train/20260928T010700Z-MK8Rly`.
+16 Fehler betreffen inzwischen ersetzte Text-/Karten-/Disclosure-Testverträge;
+drei betreffen die auf 44 statt 48 px verkleinerte Rezept-Rücknavigation,
+einer die mobile Baustein-Zeilenhöhe 309 statt höchstens 260 px und einer die
+Patienten-Tageshöhe 321 statt höchstens 300 px. Diese Fehler werden separat
+korrigiert; `known_red.txt` und Release-Regeln bleiben unverändert.
+Vier Fehler der Listen-Typografie gehören bereits zu `known_red` und sind keine
+zusätzlichen neuen Fehler. Produktion wurde danach erneut exakt auf `c8c2e3c`
+geprüft: healthy, Login 200, identisch mit `github/main`.
+Ein erfolgreicher unbeaufsichtigter Push/Deploy nach der Auth-Reparatur steht
+damit weiterhin aus.
 
 Governance-Abgleich `wp-8db997a09cea`: AGENTS.md, CLAUDE.md und zentrales
 UI-Manifest nennen jetzt ausdrücklich den Vorrang der Icon-first-Spezifikation
@@ -46,8 +59,12 @@ und präzise Label-Schlüsselworterkennung (`wp-da3257c1d042`, `69e87ddd`).
 Vorlagenverdichtung (`wp-1491fd9d623a`, `8624fe48`) und native Listenmessung
 (`wp-14feb78d051f`, `4c8cac50`) sind ebenfalls unabhängig geprüft integriert.
 Native Rezeptauswahl-/Menüdetails-/Fehleraktionen (`wp-dcf177dec7ad`, `72862c47`)
-sind ebenfalls unabhängig geprüft integriert. Weitere Detailaktionen und die
-Pilot-Dichtemessung bleiben isolierte Pakete.
+sind ebenfalls unabhängig geprüft integriert. Weitere Detailaktionen sind nach
+gesonderter Druckreparatur ebenfalls integriert (`e9c0cdff` + `028c983e`,
+`wp-08363347d3d3`): eigener Browserlauf `1 passed in 18.75s` und eigener
+Vertragslauf `259 passed in 30.94s`, beide Exit 0. Sichtprüfung bestätigt
+lesbare einzeilige Drucklabels; Bildschirmaktionen bleiben Symbolbuttons.
+Pilot-Listenkopf und weitere Release-Korrekturen bleiben isolierte Pakete.
 Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
 Manifestpflege vor Aufnahme in `integrate/icon-first-r18`. Paketverträge lokal
 unter `/var/tmp/dishboard-*-0928*.json`. Die nach `c8c2e3c` integrierten Pakete

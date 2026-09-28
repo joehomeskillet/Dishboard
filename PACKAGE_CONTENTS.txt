@@ -1446,6 +1446,7 @@ reference_scaffold/tests/test_food_symbol_assets.py
 reference_scaffold/tests/test_food_symbols.py
 reference_scaffold/tests/test_github_pages.py
 reference_scaffold/tests/test_icon_api_browser.py
+reference_scaffold/tests/test_icon_component_recipe_details_browser.py
 reference_scaffold/tests/test_icon_m1_stammdaten_browser.py
 reference_scaffold/tests/test_icon_mb2_stammdaten_browser.py
 reference_scaffold/tests/test_icon_native_summaries_browser.py

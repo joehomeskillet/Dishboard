@@ -1,5 +1,26 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Native Detailaktionen 2026-09-28
+
+`wp-2b4ee926bca9` mit unabhängigem Reparaturpaket `wp-08363347d3d3`
+(`e9c0cdff` + `028c983e`): Baustein-Editor beider Profile sowie Rezeptentwurf
+und gespeicherte Rezeptrevision verwenden gemeinsame Symbol-Summaries für
+weitere Aktionen, Originalmengen und Herkunft. Fachinhalte und ausdrückliche
+Archivbestätigung bleiben lesbar. Native Details, ungespeicherte Formwerte,
+Admin/reduzierte Editor-Rechte und unveränderliche Revisionsinhalte bleiben erhalten.
+
+Eigene Prüfung: `test_icon_component_recipe_details_browser.py` meldet
+`1 passed in 18.75s`, Exit 0; 32 Bildschirmmessungen, vier Druckmessungen,
+DE/EN/Pseudo-Locale, Tastatur/Tooltip/Escape, JS/No-JS, 1440/390 und echter
+200-%-Browserzoom. Drucktexte zuvor in 36-px-Flächen vertikal umgebrochen;
+jetzt passen Originalmengen/Herkunft in 172/119 px, jeweils eine 24-px-Textzeile.
+Desktop-/Mobilbilder gesichtet. Separater eigener Vertragslauf:
+`259 passed in 30.94s`, Exit 0, einschliesslich 48 nativer PDF-Fälle.
+JUnit: `/var/tmp/dishboard-detail-root-0928.xml` und
+`/var/tmp/dishboard-detail-contracts-root-0928.xml`.
+Integration ist kein Live-Nachweis; Release-Zug 03:07 stoppte mit 21 neuen
+Fehlern in anderen Prüfungen. Produktion bleibt auf `c8c2e3c`.
+
 ## Pilot-Reflow 2026-09-28
 
 `b8438235` korrigiert einen im Zehn-Datensätze-Pilot sichtbaren Mobilfehler:
