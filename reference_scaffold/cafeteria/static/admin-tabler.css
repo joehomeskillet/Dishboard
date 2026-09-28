@@ -656,7 +656,8 @@
   .dishboard-admin .admin-table--stack thead {
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
   }
-  .dishboard-admin .admin-table--stack tbody tr {
+  .dishboard-admin .admin-table--stack tbody tr,
+  .dishboard-admin .admin-table--stack tbody tr:has(.admin-list-secondary, .admin-list-subtitle) {
     display: grid; grid-template-columns: minmax(0, 1fr); height: auto;
     gap: var(--app-space-2); padding: var(--app-list-pad-y) var(--app-list-pad-x);
     min-height: var(--app-list-row-min-height);
