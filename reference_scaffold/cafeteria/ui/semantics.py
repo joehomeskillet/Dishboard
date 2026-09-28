@@ -113,7 +113,8 @@ def validate_locales(registry: Mapping[str, Semantic], locales: Mapping[str, Map
     expected = {getattr(item, field) for item in registry.values()
                 for field in ('label_key', 'tooltip_key', 'aria_key')}
     expected |= {f'{item.key}.object' for item in registry.values() if item.category == 'actions'}
-    expected.add('ui.action_object')
+    expected.update({'ui.action_object', 'recipe.import.row_details',
+                     'print_template.reactivate.label', 'print_template.reactivate.aria'})
     if 'de' not in locales:
         raise SemanticError('de: required primary locale missing')
     for locale, messages in locales.items():
