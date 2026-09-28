@@ -30,9 +30,9 @@
       {% if cell.title %}
       <div data-menu-metadata>
         {% if not cell.allergens %}
-        <p>{{ ui_label('Allergenangaben nicht erfasst', 'warning', detail='Nicht erfasst bedeutet nicht allergenfrei') }}</p>
+        <p class="admin-list-secondary" data-allergen-state="missing" title="Nicht erfasst bedeutet nicht allergenfrei">Allergenangaben nicht erfasst<span class="visually-hidden"> · Nicht erfasst bedeutet nicht allergenfrei</span></p>
         {% elif cell.allergen_review_status|default('not_checked') != 'checked' %}
-        <p>{{ ui_label('Allergenprüfung offen', 'warning') }}</p>
+        <p class="admin-list-secondary" data-allergen-state="review-open">Allergenprüfung offen</p>
         {% endif %}
         <div class="labels badge-list">
           {% for label in cell.labels if label.code|lower in ('vegan', 'vegetarian') %}

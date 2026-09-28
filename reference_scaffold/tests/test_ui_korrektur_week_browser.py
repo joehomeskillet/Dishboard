@@ -263,7 +263,8 @@ def test_a06_live_checked_and_missing_allergens_are_separate(
     expect(page.locator('main')).not_to_contain_text('Keine offenen Prüfungen')
     _assert_no_overflow(page)
     card = page.locator('.menu-slot').filter(has_text='Allergenangaben nicht erfasst').first
-    expect(card.locator('[data-menu-metadata] .admin-status--warning')).to_contain_text('Allergenangaben nicht erfasst')
+    expect(card.locator('[data-menu-metadata] [data-allergen-state="missing"]')).to_contain_text('Allergenangaben nicht erfasst')
+    expect(card.locator('[data-menu-metadata] [data-allergen-state="missing"]')).to_be_visible()
     expect(card.locator('[data-menu-metadata]')).to_contain_text('nicht allergenfrei')
     _shot(page, family, 'a06', 1366, 768)
 

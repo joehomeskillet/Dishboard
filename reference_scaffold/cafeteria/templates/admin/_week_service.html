@@ -29,7 +29,7 @@
     {{ state_labels.get(state, state) }}{% if start and end %} · {{ start }}–{{ end }}{% endif %}
   </span>
   {% if not start and not end %}
-  {{ label('Zeiten nicht eingetragen', 'warning') }}
+  <span class="admin-list-secondary" data-service-time-state="missing">Zeiten nicht eingetragen</span>
   {% endif %}
   {% if notice %}
   <span>Hinweis: {{ notice }}</span>
