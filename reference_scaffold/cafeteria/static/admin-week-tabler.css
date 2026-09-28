@@ -150,9 +150,11 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--app-space-2);
-  min-height: var(--app-control-min-height);
   cursor: pointer;
   list-style: none;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-settings, .admin-week-service, .admin-week-note) > summary:not(.ui-sem-control--icon-only) {
+  min-height: var(--app-control-min-height);
 }
 .dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-settings, .admin-week-service, .admin-week-note) > summary::-webkit-details-marker {
   display: none;
