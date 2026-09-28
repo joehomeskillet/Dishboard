@@ -74,12 +74,23 @@ def test_admin_overview_keyboard_order_focus_and_targets(page_context: Page):
     page = page_context
     page.goto('/admin/cafeteria')
     page.set_viewport_size({"width": 390, "height": 844})
-    
-    targets_ok = page.evaluate('''() => {
+
+    assert page.evaluate("matchMedia('(pointer: fine)').matches && "
+                         "!matchMedia('(pointer: coarse), (any-pointer: coarse)').matches"), \
+        'Expected the standard fine-pointer context'
+    targets = page.evaluate('''() => {
         let ok = true;
+        const offenders = [];
         document.querySelectorAll('.btn').forEach(btn => {
             const rect = btn.getBoundingClientRect();
-            if (rect.width > 0 && (rect.width < 44 || rect.height < 44)) ok = false;
+            const iconOnly = btn.matches('.ui-sem-control--icon-only');
+            const sized = iconOnly ? rect.width === 36 && rect.height === 36
+                                  : rect.width >= 44 && rect.height >= 44;
+            if (rect.width > 0 && !sized) {
+                ok = false;
+                offenders.push({target: btn.id || btn.getAttribute('aria-label') || btn.textContent.trim(),
+                    iconOnly, width: rect.width, height: rect.height});
+            }
         });
         document.querySelectorAll('input[type="checkbox"]').forEach(chk => {
             const label = chk.closest('label') || document.querySelector(`label[for="${chk.id}"]`);
@@ -88,9 +99,9 @@ def test_admin_overview_keyboard_order_focus_and_targets(page_context: Page):
                 if (rect.width > 0 && (rect.width < 44 || rect.height < 44)) ok = false;
             }
         });
-        return ok;
+        return {ok, offenders};
     }''')
-    assert targets_ok, "Touch targets too small"
+    assert targets['ok'], f"Invalid button or checkbox-label targets: {targets}"
     
     page.keyboard.press("Tab")
     outline = page.evaluate('window.getComputedStyle(document.activeElement).outlineStyle')
