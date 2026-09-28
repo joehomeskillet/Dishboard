@@ -16,8 +16,9 @@ from test_ui_route_inventory import _recipe_revision
 
 def _check_action(page, summary, javascript):
     expect(summary.locator('svg')).to_have_count(1)
-    assert summary.evaluate('el => el.getBoundingClientRect().width >= 32')
-    assert summary.evaluate('el => el.getBoundingClientRect().height >= 32')
+    minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+    assert summary.evaluate('(el, minimum) => el.getBoundingClientRect().width >= minimum', minimum)
+    assert summary.evaluate('(el, minimum) => el.getBoundingClientRect().height >= minimum', minimum)
     summary.focus()
     expect(summary).to_be_focused()
     page.keyboard.press('Shift')
@@ -109,15 +110,36 @@ def test_detail_actions_native_roles_profiles_and_print(
                                 page.screenshot(path=str(tmp_path / f'{label}-{state}.png'), full_page=True)
                                 if role == 'Cafeteria.Admin' and javascript and state == 'saved':
                                     page.emulate_media(media='print')
+                                    page.evaluate('document.fonts.ready')
                                     for selector, text in (('.recipe-originals', 'Originalmengen'),
                                                            ('.recipe-provenance', 'Herkunft')):
                                         summary = document.locator(selector + ' > summary')
-                                        printed = summary.evaluate('''el => ({
-                                            text: el.textContent.trim(),
-                                            after: getComputedStyle(el, '::after').content,
-                                            width: el.getBoundingClientRect().width
-                                        })''')
+                                        printed = summary.evaluate('''el => {
+                                            const style = getComputedStyle(el);
+                                            const after = getComputedStyle(el, '::after');
+                                            const label = el.dataset.printLabel;
+                                            const canvas = document.createElement('canvas').getContext('2d');
+                                            canvas.font = [after.fontStyle, after.fontWeight, after.fontSize, after.fontFamily].join(' ');
+                                            const textWidth = canvas.measureText(label).width;
+                                            const gap = parseFloat(style.columnGap) || 0;
+                                            const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+                                            const border = parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
+                                            const iconWidth = el.querySelector('svg').getBoundingClientRect().width;
+                                            return {
+                                                text: el.textContent.trim(), after: after.content,
+                                                width: el.getBoundingClientRect().width,
+                                                height: el.getBoundingClientRect().height,
+                                                textWidth, afterWidth: parseFloat(after.width),
+                                                afterHeight: parseFloat(after.height), lineHeight: parseFloat(after.lineHeight),
+                                                requiredWidth: textWidth + iconWidth + gap + padding + border,
+                                                gap, padding, font: canvas.font,
+                                            };
+                                        }''')
                                         assert text in printed['text'] or text in printed['after']
+                                        if (printed['width'] + 1 < printed['requiredWidth']
+                                                or printed['afterWidth'] + 1 < printed['textWidth']
+                                                or printed['afterHeight'] > printed['lineHeight'] + 1):
+                                            failures.append((label, selector, 'printed label wraps or escapes its control', printed))
                                         measurements.append(dict(case=label, media='print', selector=selector, **printed))
                                     page.screenshot(path=str(tmp_path / f'{label}-print.png'), full_page=True)
                                     page.emulate_media(media='screen')

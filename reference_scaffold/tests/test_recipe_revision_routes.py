@@ -359,8 +359,8 @@ def test_document_partial_retains_legacy_and_exact_child_contents_without_curren
     from test_recipe_pdf import prepared_revision, recipe, revision
     app = Flask(__name__, template_folder=str(Path(__file__).resolve().parents[1] / 'cafeteria/templates'))
     register_ui(app)
-    from cafeteria.template_filters import datetime_short
-    app.add_template_filter(datetime_short, 'datetime_short')
+    from cafeteria.template_filters import register_template_filters
+    register_template_filters(app)
     app.add_url_rule('/recipes/<recipe_id>/images/<sha256>', endpoint='admin.recipe_asset')
     app.add_url_rule('/recipes/<recipe_id>/revisions/<revision_id>', endpoint='admin.recipe_revision')
     values = recipe()
@@ -396,7 +396,7 @@ def test_long_reading_document_html_keeps_all_sixty_rows_and_forty_steps():
     from pathlib import Path
     from cafeteria.ui import register_ui
     from cafeteria.admin.recipe_document import build_recipe_document
-    from cafeteria.template_filters import datetime_short
+    from cafeteria.template_filters import register_template_filters
     from test_recipe_pdf import recipe
     values = recipe()
     values['ingredients'] = [dict(values['ingredients'][0], ingredient_text=f'Zutat Ende {n}') for n in range(60)]
@@ -404,7 +404,7 @@ def test_long_reading_document_html_keeps_all_sixty_rows_and_forty_steps():
                         'image_sha256': None} for n in range(40)]
     app = Flask(__name__, template_folder=str(Path(__file__).resolve().parents[1] / 'cafeteria/templates'))
     register_ui(app)
-    app.add_template_filter(datetime_short, 'datetime_short')
+    register_template_filters(app)
     with app.test_request_context():
         html = app.jinja_env.get_template('admin/_recipe_document.html').render(
             document=build_recipe_document(values), recipe_id='synthetic-draft')
