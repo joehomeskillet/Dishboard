@@ -30,4 +30,6 @@
   .recipe-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
   .recipe-document :is(h2, h3) { break-after: avoid; }
   .recipe-image { break-inside: avoid; }
+  .dishboard-admin .recipe-document summary[data-print-label] { width: auto; flex-basis: auto; padding-inline: var(--app-space-3); gap: var(--app-button-icon-gap); }
+  .recipe-document summary[data-print-label]::after { content: attr(data-print-label); }
 }

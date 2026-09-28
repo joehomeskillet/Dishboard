@@ -1166,6 +1166,28 @@
     "role": "neutral"
   },
   {
+    "key": "recipe.original_quantities",
+    "category": "recipe",
+    "ascii": "[Q]",
+    "icon": "scale",
+    "label_key": "recipe.original_quantities.label",
+    "tooltip_key": "recipe.original_quantities.tooltip",
+    "aria_key": "recipe.original_quantities.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
+    "key": "recipe.provenance",
+    "category": "recipe",
+    "ascii": "[H]",
+    "icon": "history",
+    "label_key": "recipe.provenance.label",
+    "tooltip_key": "recipe.provenance.tooltip",
+    "aria_key": "recipe.provenance.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
     "key": "recipe.quantity",
     "category": "recipe",
     "ascii": "[Q]",
