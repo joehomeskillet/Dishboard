@@ -185,6 +185,39 @@ def test_locale_symmetry_orphans_missing_and_pseudo():
         validate_locales(registry, locales)
 
 
+@pytest.mark.parametrize('locale', ['de', 'en'])
+@pytest.mark.parametrize('key', ['recipe.import.row_details',
+                                'print_template.reactivate.label', 'print_template.reactivate.aria'])
+@pytest.mark.parametrize('mutation', ['missing', 'empty', 'unknown'])
+def test_context_message_allowlist_stays_strict(locale, key, mutation):
+    locales = load_locales()
+    if mutation == 'missing':
+        locales[locale].pop(key)
+        message = 'translation missing'
+    elif mutation == 'empty':
+        locales[locale][key] = ' '
+        message = 'empty or invalid translation'
+    else:
+        locales[locale][key + '.extra'] = 'Not allowed'
+        message = 'orphan translation'
+    with pytest.raises(SemanticError, match=message):
+        validate_locales(load_registry(), locales)
+
+
+@pytest.mark.parametrize('locale,label,row,aria', [
+    ('de', 'Reaktivieren', 'Details für Zeile 7', 'Druckvorlage &lt;b&gt;&amp; reaktivieren'),
+    ('en', 'Reactivate', 'Details for row 7', 'Reactivate print template &lt;b&gt;&amp;'),
+])
+def test_import_and_print_context_messages_translate_and_escape(locale, label, row, aria):
+    translator = Translator(load_locales(testing=True))
+    assert translator.translate('print_template.reactivate.label', locale) == label
+    assert translator.translate('recipe.import.row_details', locale, row=7) == row
+    assert translator.translate('print_template.reactivate.aria', locale, name=Markup('<b>&')) == aria
+    for key in ('recipe.import.row_details', 'print_template.reactivate.aria'):
+        with pytest.raises(SemanticError, match='missing parameters'):
+            translator.translate(key, locale)
+
+
 def test_fallback_missing_markers_and_warning_deduplication(caplog):
     locales = {'de': {'known': 'Speichern'}, 'en': {}}
     production = Translator(locales, production=True)

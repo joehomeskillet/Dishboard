@@ -669,5 +669,8 @@
   "ui.disclosure.details.tooltip": "Details ein- oder ausklappen",
   "ui.disclosure.more_options.label": "Weitere Optionen",
   "ui.disclosure.more_options.aria": "Weitere Optionen ein- oder ausklappen",
-  "ui.disclosure.more_options.tooltip": "Weitere Optionen ein- oder ausklappen"
+  "ui.disclosure.more_options.tooltip": "Weitere Optionen ein- oder ausklappen",
+  "recipe.import.row_details": "Details für Zeile {row}",
+  "print_template.reactivate.label": "Reaktivieren",
+  "print_template.reactivate.aria": "Druckvorlage {name} reaktivieren"
 }

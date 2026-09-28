@@ -669,5 +669,8 @@
   "ui.disclosure.details.tooltip": "Expand or collapse details",
   "ui.disclosure.more_options.label": "More options",
   "ui.disclosure.more_options.aria": "Expand or collapse more options",
-  "ui.disclosure.more_options.tooltip": "Expand or collapse more options"
+  "ui.disclosure.more_options.tooltip": "Expand or collapse more options",
+  "recipe.import.row_details": "Details for row {row}",
+  "print_template.reactivate.label": "Reactivate",
+  "print_template.reactivate.aria": "Reactivate print template {name}"
 }
