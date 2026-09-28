@@ -14,6 +14,36 @@ Dieses Dokument ist eigenständig verwendbar. Die beiden älteren Entwürfe zum 
 
 ---
 
+## Vorrang der Icon-first-Spezifikation vom 2026-09-26
+
+Für Verwaltungsoberflächen ist die [Icon-first-Spezifikation](2026-09-26-icon-first-simplification-spec.md)
+der aktuelle Gestaltungsvertrag. Sie ersetzt widersprechende ältere Vorgaben in
+diesem Manifest, insbesondere die generelle sichtbare Aktionsbeschriftung,
+48-px-Aktionsflächen und eine obligatorische Statuskartenleiste. Historische
+Messwerte und Release-Nachweise weiter unten beschreiben ihren damaligen Stand;
+sie begründen keine Rückkehr zu diesen ersetzten Vorgaben.
+
+- Normale Toolbar- und Zeilenaktionen nutzen die gemeinsame semantische
+  Komponente, lokalisierte zugängliche Namen und denselben Tooltip. Sichtbarer
+  Text bleibt gemäss §5.4 bei Navigation/Profilauswahl, Fachinhalten, Formularlabels,
+  verständlichen Inhaltsabschnitten, geöffneten Menüs, Sicherheitsbestätigungen
+  sowie notwendigen Warn-/Zustandserklärungen.
+- M45/M64 regeln Aktionsflächen: 36 × 36 CSS-px bei feinem Zeiger, mindestens
+  44 × 44 bei grobem Zeiger, 20-px-Icon. Eingabefelder und Navigation behalten
+  ihre eigenen Komponentenverträge; keine pauschale Verkleinerung aller Controls.
+- Listen verwenden eine gemeinsame Anatomie und Typografie, 1-px-Trenner und
+  rechts höchstens Hauptaktion plus Überlauf. Keine Karte je Datensatz, keine
+  dekorativen Statusdoppelungen. Details werden bei Bedarf geöffnet.
+- Gemeinsame Filter haben einen konsistenten Einstieg. Normalzustände bleiben
+  bei eindeutigem Kontext ruhig; gemischte Zustände bleiben unterscheidbar.
+  Gleiche Warnursachen werden gebündelt, betroffene Einträge bleiben erkennbar.
+- Mobile Stapelzeilen müssen mit ihren sichtbaren Zellen und Texten wachsen;
+  reine Zeilenbox- oder Scrollbreitenmessung beweist keine überlappungsfreie
+  Darstellung. Echte Tastatur-, Touch-, No-JS- und Browserzoom-Prüfungen bleiben
+  erforderlich. UI-23/24 beschreiben die Richtziele für Listenkopf und Dichte.
+- Fachliche Bedeutungen, Rollen, serverseitige Freigabesperren, CSRF und native
+  Formularverträge werden durch Gestaltungsänderungen nicht verändert.
+
 ## Auftraggeber-Entscheid 2026-09-20
 
 Gemäss Auftraggeber-Entscheid im Handoff (`docs/design/uiux-handoff-2026-09-20/`) werden folgende Regeln und Strukturen ersetzt bzw. präzisiert:
@@ -2912,7 +2942,7 @@ Nutze die vorhandenen Testmittel. Neue reine Entwicklungsabhängigkeiten nur im 
 | A13 | Patientenumfang | Alle sieben Tage, Mittag/Abend und bestehenden Menüarten erreichbar; keine Preise. |
 | A14 | Cafeteriaumfang | Fünf reguläre Tage, vorhandene Menüarten und beide Preisgruppen korrekt; Ausnahmen aus bestehender Konfiguration erhalten. |
 | A15 | Druckdatenstand | Absichtlich unterschiedliche gewählte/veröffentlichte Wochen ergeben korrekt beschriftete und tatsächlich passende Ausgaben. |
-| A16 | Symbole und Texte | Vorhandene Icons geladen; gleiche Handlung gleich; Hauptaktionen auf Desktop und Mobil sichtbar beschriftet. |
+| A16 | Symbole und Texte | Gemeinsame Icons und lokalisierte zugängliche Namen; normale Aktionen auf Desktop und Mobil icon-only, sichtbare Textausnahmen ausschliesslich gemäss Icon-first-Spezifikation §5.4. |
 | A17 | Bedienbarkeit | Maus, Tastatur, Touch, Trefferflächen, Fokus, Smartphone und echte Zoom-/Reflowprüfungen korrekt. *(Ersetzt am 2026-09-20 durch: Pflichtbreiten 360, 768, 1024, 1440 px in der Testmatrix. Sidebar darf mobil zu Drawer werden.)* |
 | A18 | Sticky-Leisten | Kein Feld, Fehler oder Fokus verdeckt; eingeblendete mobile Tastatur und geringe Höhe berücksichtigt. |
 | A19 | Suche und Leerzustände | Gesamte bestehende Suchsemantik erhalten; Datenleerstand, Filtertrefferlosigkeit, Fehler und Rechte unterscheiden. |

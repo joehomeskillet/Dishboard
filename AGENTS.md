@@ -47,7 +47,18 @@ This project is indexed by GitNexus as **menuplan** (12946 symbols, 25095 relati
 Vor jeder Frontend-Änderung das [zentrale UI-Manifest](docs/design/2026-09-09-unified-ui-design-system.md)
 vollständig lesen; passende R-/M-/A-Regeln verwenden. Jede interne Oberfläche nutzt
 die volle Arbeitsbreite, kompakte Wiederholungszeilen, direkt bedienbare häufige Felder
-und konsistente Icons mit sichtbarem Text. Details, Fehler, Formulardaten und
+und gemeinsame Listenanatomie mit 1-px-Trennern. Für Verwaltungsaktionen hat die
+[Icon-first-Spezifikation](docs/design/2026-09-26-icon-first-simplification-spec.md)
+Vorrang vor älteren Text-/48-px-Regeln: gemeinsame Symbolbuttons mit lokalisiertem
+zugänglichem Namen und Tooltip; 36 px bei feinem, mindestens 44 px bei grobem
+Zeiger. Sichtbarer Text bleibt in den Ausnahmen aus §5.4, insbesondere Navigation,
+Formular-/Inhaltsabschnitten, geöffneten Menüs und eindeutigen Sicherheitsbestätigungen.
+Pro normaler Zeile höchstens Hauptaktion plus Überlauf, Details erst bei Bedarf.
+Gemeinsame Filter verwenden, Normalzustände nicht doppelt anzeigen und gleiche
+Warnursachen bündeln; einzelne Probleme und ihre Bedeutung bleiben erreichbar.
+Nicht erfasst bleibt ungleich allergenfrei, fehlender Bestand ungleich null;
+Berechtigungen, Freigabesperren und native Formularverträge bleiben erhalten.
+Details, Fehler, Formulardaten und
 Speicherzustände sicher behandeln. Gemeinsame Tokens/Komponenten erhalten; keine
 Framework- oder fachlichen Änderungen als Nebenprodukt. Route, Rolle/Zustand,
 Muster und tatsächliche Tests im vorhandenen UI-Inventar nachführen. Alte
