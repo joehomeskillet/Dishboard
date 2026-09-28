@@ -48,12 +48,12 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         page.get_by_label('Zutat', exact=True).fill('rüebli')
         page.get_by_label('Kennzeichnung', exact=True).select_option(tag)
         page.get_by_label('Archivierte einschliessen', exact=True).check()
-        page.get_by_role('button', name='Filtern', exact=True).focus()
+        page.get_by_role('button', name='Übernehmen', exact=True).focus()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         expect(page.locator('.recipe-row')).to_have_count(50)
         expect(page.locator('form[role="search"] .admin-filter-more')).to_have_attribute('open', '')
-        expect(page.get_by_label('Suche', exact=True)).to_have_attribute('maxlength', '200')
+        expect(page.get_by_role('searchbox', name='Suchen', exact=True)).to_have_attribute('maxlength', '200')
         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_attribute('maxlength', '200')
         filters = {'q': ['Seitensuppe'], 'ingredient': ['rüebli'], 'tag': [tag], 'archived': ['1']}
         assert parse_qs(urlsplit(page.url).query) == filters
@@ -84,7 +84,7 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         form.locator('.admin-filter-more > summary').click()
         page.get_by_label('Kennzeichnung', exact=True).select_option(filter_catalog['tag'])
         page.get_by_label('Zutat', exact=True).fill('keine solche Zutat')
-        page.get_by_role('button', name='Filtern', exact=True).click()
+        page.get_by_role('button', name='Übernehmen', exact=True).click()
         expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_have_text('Keine passenden Rezepte')
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('[data-empty-kind="no_match"] .btn-primary')).to_have_count(0)

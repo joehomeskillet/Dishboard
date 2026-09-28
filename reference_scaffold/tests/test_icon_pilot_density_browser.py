@@ -140,10 +140,7 @@ def test_pilot_density_real_records_filtering_and_native_forms(
         metrics = page.evaluate(MEASURE, {'rows': row_selector, 'component': component})
         metrics.update(slug=slug, role=role, javascript=javascript, zoom=zoom,
                        recipeTwoLineCoverage='not applicable: actual template has name and a separate yield column' if not component else None)
-        metrics['headerDensityFinding'] = (
-            f'First row {metrics["firstOffset"]:.1f}px from main exceeds UI-23 target 220px; header refinement remains open'
-            if width == 1440 and zoom == 1 and metrics['firstOffset'] > 220 else None
-        )
+        metrics['headerDensityFinding'] = metrics['firstOffset'] > 220 if width == 1440 and zoom == 1 else None
         name = f'{slug}-{role.rsplit(".", 1)[1]}-{width}-{zoom}x-js{javascript}'
         if zoom == 2:
             cdp = context.new_cdp_session(page)
@@ -179,7 +176,7 @@ def test_pilot_density_real_records_filtering_and_native_forms(
         expect(search).to_have_attribute('action', path)
         field = search.locator('[name="q"]' if component else '[name="text"]')
         field.fill(names[-1])
-        search.get_by_role('button', name='Suchen' if component else 'Filtern', exact=True).press('Enter')
+        search.get_by_role('button', name='Suchen', exact=True).press('Enter')
         expect(page.locator(row_selector)).to_have_count(1)
         expect(page.locator(row_selector)).to_contain_text(names[-1])
         assert parse_qs(urlsplit(page.url).query)['q' if component else 'text'] == [names[-1]]
@@ -201,5 +198,71 @@ def test_pilot_density_real_records_filtering_and_native_forms(
         assert not metrics['overflowingRows'], f'Cells or visible text escape rows: {metrics["overflowingRows"]}'
         if width == 1440 and zoom == 1:
             assert metrics['completeVisible'] >= 8, metrics
+            assert metrics['firstOffset'] <= 220, metrics
     finally:
         context.close()
+
+
+@pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
+def test_long_component_names_remain_contained_at_mobile_and_native_zoom(
+    admin_app, admin_engine, browser, live_server, tmp_path, family,
+):
+    client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    scope = _scope(admin_engine, actor, 'staff_guest' if family == 'cafeteria' else 'patient')
+    names = [f'{prefix} Karottengemüse mit Kräutersauce, gebratenen Kartoffeln und saisonalen Beilagen'
+             for prefix in ('A', 'B')]
+    for name in names:
+        create_component(admin_engine, scope, 'side', name, 'CH', 'common', ['VEGAN'], [])
+    cookie = client.get_cookie('session')
+    assert cookie is not None
+    for javascript in (True, False):
+        for width, zoom in ((360, 1), (390, 1), (1440, 2)):
+            options = dict(base_url=live_server, java_script_enabled=javascript, reduced_motion='reduce')
+            if zoom == 2:
+                context = browser.browser_type.launch_persistent_context(
+                    str(tmp_path / f'long-profile-{javascript}'), channel='chromium', headless=True,
+                    no_viewport=True,
+                    args=['--no-sandbox', '--disable-dev-shm-usage', '--window-size=1440,900'], **options,
+                )
+                page = context.pages[0]
+            else:
+                context = browser.new_context(viewport={'width': width, 'height': 844}, **options)
+                page = context.new_page()
+            try:
+                if zoom == 2:
+                    page.goto('chrome://settings/appearance')
+                    page.evaluate('new Promise(resolve => chrome.settingsPrivate.setDefaultZoom(2, resolve))')
+                    assert page.evaluate('new Promise(resolve => chrome.settingsPrivate.getDefaultZoom(resolve))') == 2
+                context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
+                assert page.goto(f'/admin/{family}/komponenten', wait_until='networkidle').status == 200
+                page.evaluate('document.fonts.ready')
+                expect(page.locator('.component-row')).to_have_count(2)
+                measured = page.evaluate(MEASURE, {'rows': '.component-row', 'component': True})
+                assert [row['primary']['text'] for row in measured['rows']] == names
+                assert not measured['overflowingRows'], measured
+                assert measured['scrollWidth'] <= measured['viewport']['width'] + 1
+                for row in measured['rows']:
+                    assert (row['primary']['fontSize'], row['primary']['fontWeight']) == ('14px', '600')
+                for category in page.locator('.category').all():
+                    expect(category).to_have_attribute('data-label', 'Kategorie')
+                for usage in page.locator('.usage').all():
+                    expect(usage).to_have_attribute('data-label', 'Verwendung')
+                name = f'long-components-{family}-{width}-{zoom}x-js{javascript}'
+                if zoom == 2:
+                    cdp = context.new_cdp_session(page)
+                    try:
+                        measured['nativeZoom'] = cdp.send('Page.getLayoutMetrics')
+                        assert measured['nativeZoom']['cssVisualViewport']['zoom'] == 2
+                        assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
+                        png = base64.b64decode(cdp.send('Page.captureScreenshot', {
+                            'format': 'png', 'captureBeyondViewport': False,
+                        })['data'], validate=True)
+                        (tmp_path / f'{name}.png').write_bytes(png)
+                        assert int.from_bytes(png[16:20], 'big') == 1440
+                    finally:
+                        cdp.detach()
+                else:
+                    page.screenshot(path=str(tmp_path / f'{name}.png'), full_page=True)
+                (tmp_path / f'{name}.json').write_text(json.dumps(measured, ensure_ascii=False, indent=2))
+            finally:
+                context.close()

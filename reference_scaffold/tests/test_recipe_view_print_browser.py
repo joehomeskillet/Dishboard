@@ -145,7 +145,7 @@ def test_reader_view_print_without_write_actions(view_print, recipe_editor, reci
             expect(page.locator('main .btn-primary')).to_have_count(1)
             if label == 'recipes':
                 expect(page.locator('form[role="search"] .btn-primary')).to_have_attribute(
-                    'data-semantic', 'view.filter')
+                    'data-semantic', 'view.search')
             elif label == 'view':
                 back = page.locator('main .btn-primary')
                 expect(back).to_have_attribute('data-semantic', 'actions.back')

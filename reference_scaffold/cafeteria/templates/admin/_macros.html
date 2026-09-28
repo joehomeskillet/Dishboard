@@ -461,13 +461,13 @@
 </fieldset>
 {%- endmacro %}
 
-{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none) -%}
+{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none, search_id=none, search_emphasis=none) -%}
 {% from 'ui/_semantic.html' import icon_button, filter_trigger %}
 {# Compatibility for the existing profile-only slot; new callers use profile=. #}
 {% if profile is none and filters and 'profile-tabs' in filters %}{% set profile = filters %}{% set filters = none %}{% endif %}
 {% set count = active_count if active_count is not none else active_filters|length if active_filters else 0 %}
 <form class="admin-filter-bar" method="get" action="{{ action }}" data-dirty-tracking="off" role="search" data-filter-remove-label="{{ t(sem('view.reset').aria_key) }}"{% if loading is not none %} data-loading="{{ 'true' if loading is sameas true else 'false' if loading is sameas false else loading }}"{% endif %}>
-  <div class="admin-filter-search"><div class="admin-filter-query">{{ field(search_name, t(sem('view.search').label_key), search_value, type='search', id=id ~ '-search', maxlength=maxlength, describedby=describedby) }}</div>{{ icon_button('view.search') }}</div>
+  <div class="admin-filter-search"><div class="admin-filter-query">{{ field(search_name, t(sem('view.search').label_key), search_value, type='search', id=search_id if search_id is not none else id ~ '-search', maxlength=maxlength, describedby=describedby) }}</div>{{ icon_button('view.search', emphasis=search_emphasis) }}</div>
   {% if profile %}<div class="admin-filter-profile">{{ profile }}</div>{% endif %}
   {% if filters or more_filters %}
   <details class="admin-filter-more"{% if open %} open{% endif %}>

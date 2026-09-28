@@ -90,8 +90,10 @@
       </div>
       <p class="form-hint mt-2 mb-0" id="component-allergen-filter-hint">«Nicht erfasst» bedeutet keine bestätigte Allergenfreiheit.</p>
 {% endset %}
-{{ filter_bar_sem('/admin/' ~ family ~ '/komponenten', search_value=query|default(''), filters=component_filters, active=filtered, reset_url='/admin/' ~ family ~ '/komponenten', id='component', open=filtered) }}
-<p id="component-result-count" class="admin-list-meta" role="status">{{ rows|length }} Treffer · {{ 'Aktiv' if selected_status == 'active' else 'Archiviert' if selected_status == 'archived' else 'Aktiv und archiviert' }}</p>
+<div class="row g-2 align-items-end">
+  <div class="col-12 col-md">{{ filter_bar_sem('/admin/' ~ family ~ '/komponenten', search_value=query|default(''), filters=component_filters, active=filtered, reset_url='/admin/' ~ family ~ '/komponenten', id='component', open=filtered) }}</div>
+  <div class="col-12 col-md-auto"><p id="component-result-count" class="admin-list-meta mb-3" role="status">{{ rows|length }} Treffer · {{ 'Aktiv' if selected_status == 'active' else 'Archiviert' if selected_status == 'archived' else 'Aktiv und archiviert' }}</p></div>
+</div>
 
 <div class="component-list-container">
   {% if rows %}
@@ -103,11 +105,11 @@
       <thead><tr><th scope="col">Name</th><th scope="col">Kategorie</th><th scope="col">Herkunft / Kennzeichnungen</th><th scope="col">Verwendung</th>{% if selected_status == 'all' %}<th scope="col">Status</th>{% endif %}<th scope="col">Aktionen</th></tr></thead>
       <tbody>
         {% for row in rows %}
-        <tr class="component-row" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
+        <tr class="component-row gap-1" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
           <th scope="row" class="component-row-name admin-list-primary" data-label="Name"><a class="admin-list-primary" href="/admin/{{ family }}/komponenten/{{ row.public_id }}">{{ row.name }}</a>
             {% if row.food_name %}<div class="admin-list-secondary text-break">{{ row.food_name }}</div>{% endif %}
           </th>
-          <td class="category" data-label="Kategorie">{{ ui_label(categories.get(row.category, row.category), 'category') }}</td>
+          <td class="category d-flex d-md-table-cell align-items-center gap-2" data-label="Kategorie">{{ ui_label(categories.get(row.category, row.category), 'category') }}</td>
           <td class="component-markers" data-label="Herkunft / Kennzeichnungen">
             <div class="d-flex flex-wrap gap-1 align-items-center">
               {% if row.labels %}{% for label in row.labels[:2] %}{{ ui_label(label.name|default(label.code), 'category') }}{% endfor %}{% endif %}
@@ -116,7 +118,7 @@
             </div>
             {% if row.profile_scope == 'common' %}<div class="admin-list-secondary">gemeinsam</div>{% endif %}
           </td>
-          <td class="usage" data-label="Verwendung">{{ row.usage_count }} {{ 'Gericht' if row.usage_count == 1 else 'Gerichte' }}</td>
+          <td class="usage d-flex d-md-table-cell align-items-center gap-2" data-label="Verwendung">{{ row.usage_count }} {{ 'Gericht' if row.usage_count == 1 else 'Gerichte' }}</td>
           {% if selected_status == 'all' %}<td class="component-status admin-table-status" data-label="Status">{{ ui_label('Aktiv' if row.active else 'archiviert', 'active' if row.active else 'neutral', icon=sem('status.active' if row.active else 'actions.archive').resolved_icon) }}</td>{% endif %}
           <td class="admin-table-actions" data-label="Aktionen">
             {{ row_actions([{'key': 'actions.edit', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}, {'key': 'actions.archive' if row.active else 'actions.activate', 'href': '/admin/' ~ family ~ '/komponenten/' ~ row.public_id}], object=row.name) }}
