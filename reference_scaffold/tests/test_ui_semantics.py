@@ -891,6 +891,35 @@ def test_icon_summary_rejects_invalid_name_contract(semantic_app, args):
                                "{{ icon_summary('actions.more', " + args + ') }}')
 
 
+@pytest.mark.parametrize('hidden', [True, False])
+def test_icon_summary_keeps_native_hidden_and_safe_attrs(semantic_app, hidden):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context():
+        template = "{% from 'ui/_semantic.html' import icon_summary %}{{ icon_summary('actions.more', **options) }}"
+        default = render_template_string(template, options={})
+        assert default == render_template_string(template, options={'attrs': None})
+        doc = BeautifulSoup(render_template_string(template, options={
+            'attrs': {'hidden': hidden, 'data-recipe-details': '\"<>&'},
+        }), 'html.parser')
+    assert doc.summary.has_attr('hidden') is hidden
+    assert doc.summary['data-recipe-details'] == '\"<>&'
+    assert not doc.select('button, a, input, img, script')
+
+
+@pytest.mark.parametrize('attrs', [{'hidden': 'false'}, {'onclick': 'bad()'}, {'autofocus': 'true'}])
+def test_icon_summary_rejects_unsafe_or_nonboolean_attrs(semantic_app, attrs):
+    with semantic_app.test_request_context(), pytest.raises(SemanticError):
+        render_template_string("{% from 'ui/_semantic.html' import icon_summary %}"
+                               "{{ icon_summary('actions.more', attrs=attrs) }}", attrs=attrs)
+
+
+@pytest.mark.parametrize('focus', [True, False])
+def test_icon_button_keeps_native_boolean_autofocus(semantic_app, focus):
+    doc = _p2c_action(semantic_app, attrs={'autofocus': focus})
+    assert doc.button.has_attr('autofocus') is focus
+
+
 @pytest.mark.parametrize('locale,labels', [('de', ['Aktivieren', 'Übernehmen', 'Verlauf']), ('en', ['Activate', 'Apply', 'History'])])
 def test_p2c_canonical_actions(semantic_app, locale, labels):
     semantic_app.config['UI_LOCALE'] = locale
@@ -964,7 +993,8 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
             recipe=recipe, item=recipe, recipe_id='r1', can_write=False, token='token', batch=None,
             links=SimpleNamespace(latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
     control = BeautifulSoup(html, 'html.parser').select_one('a, button')
-    assert (control.get_text(strip=True), control['aria-label']) == ('', aria)
+    visible = text if template == 'rezepte_editor.html' else ''  # Navigation / opened overflow, spec §5.4.
+    assert (control.get_text(strip=True), control['aria-label']) == (visible, aria)
     assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
     assert control['data-ui-tooltip'] == aria
     assert control.select_one('use')['href'].endswith('#tabler-' + icon)
@@ -996,7 +1026,7 @@ def test_p4_owned_templates_pair_german_aria_with_text():
         for args in call.findall(source):
             if 'aria_label=' not in args:
                 continue
-            if 'icon_only=true' in args.replace(' ', ''):
+            if 'show_text=true' not in args.replace(' ', ''):
                 continue
             assert 'text=' in args, f'{name}: visible text missing for {args[:160]}'
 
@@ -1045,8 +1075,13 @@ def test_p4_registry_visible_text_is_in_accessible_name(semantic_app, locale, mo
             recipe=recipe, token='token')
     editor_doc = BeautifulSoup(editor, 'html.parser')
     for summary in editor_doc.select('.admin-compact-actions > summary'):
-        _visible_word_in_name(summary, more)
+        assert summary.get_text(strip=True) == ''
+        assert ('Weitere Aktionen' if locale == 'de' else 'More actions') in summary['aria-label']
+        assert summary['data-ui-tooltip'] == summary['aria-label']
     _visible_word_in_name(editor_doc.select_one('a[data-semantic="data.image"]'), image)
-    _visible_word_in_name(editor_doc.select_one('button[data-recipe-toggle^="step-details"]'), edit)
+    edit_control = editor_doc.select_one('button[data-recipe-toggle^="step-details"]')
+    assert edit_control.get_text(strip=True) == ''
+    assert edit in edit_control['aria-label']
+    assert edit_control['data-ui-tooltip'] == edit_control['aria-label']
     upload_button = BeautifulSoup(images, 'html.parser').select_one('button[data-semantic="actions.upload"]')
     _visible_word_in_name(upload_button, upload)

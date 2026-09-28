@@ -30,10 +30,10 @@
       {%- for char in attr[5:] if char not in 'abcdefghijklmnopqrstuvwxyz0123456789-' -%}
         {{- action_contract_error('forbidden attribute ' ~ attr) -}}
       {%- endfor -%}
-    {%- elif attr not in ['aria-describedby', 'aria-controls', 'aria-expanded', 'aria-current', 'aria-disabled', 'aria-busy', 'formaction', 'formmethod', 'formenctype', 'formtarget', 'formnovalidate', 'disabled', 'target', 'rel', 'tabindex', 'hidden'] -%}
+    {%- elif attr not in ['aria-describedby', 'aria-controls', 'aria-expanded', 'aria-current', 'aria-disabled', 'aria-busy', 'formaction', 'formmethod', 'formenctype', 'formtarget', 'formnovalidate', 'disabled', 'target', 'rel', 'tabindex', 'hidden', 'autofocus'] -%}
       {{- action_contract_error('forbidden attribute ' ~ attr) -}}
     {%- endif -%}
-    {%- if attr in ['formnovalidate', 'disabled', 'hidden'] -%}
+    {%- if attr in ['formnovalidate', 'disabled', 'hidden', 'autofocus'] -%}
       {%- if value is not boolean -%}{{ action_contract_error(attr ~ ' must be boolean') }}{%- endif -%}
       {%- if value -%}{{ ' ' ~ attr }}{%- endif -%}
     {%- elif attr == 'rel' and blank -%}
@@ -70,7 +70,7 @@
 
 {# Native disclosure only: the owning details supplies content and any safe form.
    Menu entries may opt into text; ordinary triggers use the shared icon geometry. #}
-{% macro icon_summary(key, id=none, aria_label=none, object=none, class='', show_text=false) -%}
+{% macro icon_summary(key, id=none, aria_label=none, object=none, class='', show_text=false, attrs=none) -%}
   {%- set item = sem(key) -%}
   {%- if show_text is not boolean -%}{{ action_contract_error('show_text must be boolean') }}{%- endif -%}
   {%- if aria_label is not none and (aria_label is not string or not aria_label|trim) -%}{{ action_contract_error('aria_label must be nonempty text') }}{%- endif -%}
@@ -78,7 +78,7 @@
   {%- set accessible_name = aria_label|forceescape if aria_label is not none else t(key ~ '.object', object=object) if object is not none and item.category == 'actions' else t('ui.action_object', object=object, action=t(item.aria_key)) if object is not none else t(item.aria_key) -%}
   {%- set visible_text = t(item.label_key) -%}
   {%- if show_text and visible_text|lower not in accessible_name|lower -%}{%- set accessible_name = visible_text ~ ': ' ~ accessible_name -%}{%- endif -%}
-  <summary class="btn ui-sem-control{% if item.role == 'danger' %} btn-danger{% endif %}{% if not show_text %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" data-ui-tooltip="{{ accessible_name }}" aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}>{{ sem_icon(key) }}{% if show_text %}<span>{{ visible_text }}</span>{% endif %}</summary>
+  <summary class="btn ui-sem-control{% if item.role == 'danger' %} btn-danger{% endif %}{% if not show_text %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" data-ui-tooltip="{{ accessible_name }}" aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}{{ action_attrs(attrs) }}>{{ sem_icon(key) }}{% if show_text %}<span>{{ visible_text }}</span>{% endif %}</summary>
 {%- endmacro %}
 
 {% macro status_badge_sem(key, detail=none) -%}
