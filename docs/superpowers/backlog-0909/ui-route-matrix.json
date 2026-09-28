@@ -10378,7 +10378,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "2d047e5e3a159fc165695e17177316055abe81c0c53c96867865beb193ee8dd8",
+      "sha256": "da35de564dc8f171181f2661811691493a22b34265d947c5c17e6443db4c26be",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -11319,7 +11319,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "fd652bcddb6a2e411c3849f77be9b974912796b9e2dd35088960786fb9121ad3",
+      "sha256": "39e0129f17491acf6bd59b7e7849622a0c55bdab203eebc1f6eadcd400573f4f",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],
@@ -11739,7 +11739,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "444621c0f64d7bf47d8d5b43d34dbd8bb283c7399bdfba4fd66797d7cf373eea",
+      "sha256": "14781d0a135cc84c8dcb75d48c7df624a69abde53288af2a55f3851d9f34f6f5",
       "used_by_endpoints": [
         "admin.screen_template_assignment",
         "public.cafeteria_week",

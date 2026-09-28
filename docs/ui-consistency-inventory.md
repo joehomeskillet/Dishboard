@@ -106,6 +106,19 @@ aber noch nicht deployed. Gemeinsame API-/Rezepteditor-Browsermatrix auf
 integrierter Basis: `16 passed in 67.18s (0:01:07)`, `GATE_EXIT=0`,
 JUnit `/var/tmp/dishboard-icon-combined-root-0928.xml`.
 
+Native Auswahl-/Detailaktionen `72862c47`: Rezeptvorlagen-Auswahl, Menü-Sammlung
+(beide Profile, Admin/Publisher, Liste/Karten) und Bildschirm-Fehlerseite.
+Gemeinsame Symbol-Summaries bewahren ausgewählte Rezeptstände, Hinweise und
+ungespeicherte Formularfelder. Der DB-freie 503-Fallback lädt bestehende lokale
+Tooltip-Assets; erneuter GET nach fehlgeschlagenem POST bleibt möglich, private
+Fehlerdetails und DB-abhängige Context-Processor bleiben ausgeschlossen.
+Eigener Lauf `16 passed in 53.28s`, `GATE_EXIT=0`, JS/No-JS, 390/1440 px.
+JUnit `/var/tmp/dishboard-native-root-0928.xml`; eigene Bilder im gleichnamigen
+Verzeichnis für Fehlerseite, gewählten Rezeptstand und Menüdetails gesichtet.
+Noch offen im übergeordneten Druckvorlageneditor: redundante Statuskarten und
+Klassifikation seiner übrigen beschrifteten Disclosures. Keine volle Editor-
+oder appweite Gestaltungsabnahme aus diesem Paket abgeleitet.
+
 `/admin/rezepte`, Editor, Ansicht, Revisionen und Rezeptdruckvorlagen: Admin,
 Nur-Lesen und archiviert, JS/No-JS, 320/390/768/1024/1440/1920/2560 px sowie
 echter 200-%-Browserzoom. R44/M64: Symbolaktionen mit zugänglichen Namen;

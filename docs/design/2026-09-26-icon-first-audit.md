@@ -27,7 +27,9 @@ Integriert nach eigener Diffprüfung und erneutem Gate: API-Symbolaktionen
 und präzise Label-Schlüsselworterkennung (`wp-da3257c1d042`, `69e87ddd`).
 Vorlagenverdichtung (`wp-1491fd9d623a`, `8624fe48`) und native Listenmessung
 (`wp-14feb78d051f`, `4c8cac50`) sind ebenfalls unabhängig geprüft integriert.
-Weitere native Aktionen und die Pilot-Dichtemessung bleiben isolierte Pakete.
+Native Rezeptauswahl-/Menüdetails-/Fehleraktionen (`wp-dcf177dec7ad`, `72862c47`)
+sind ebenfalls unabhängig geprüft integriert. Weitere Detailaktionen und die
+Pilot-Dichtemessung bleiben isolierte Pakete.
 Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
 Manifestpflege vor Aufnahme in `integrate/icon-first-r18`. Paketverträge lokal
 unter `/var/tmp/dishboard-*-0928*.json`. Die nach `c8c2e3c` integrierten Pakete
