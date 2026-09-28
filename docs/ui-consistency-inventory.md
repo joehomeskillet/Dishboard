@@ -50,6 +50,17 @@ jeweils `GATE_EXIT=0`. Eigene Screenshots:
 `/var/tmp/dishboard-list-shell-root-0928/`. Keine Behauptung appweiter
 Gestaltungsabnahme: Vorlagenstatus und Anlegen-Disclosures sind noch zu verdichten.
 
+Wochenwarnungen `6ef6fb40`: `/admin/cafeteria` und `/admin/patienten`, Mittag/Abend,
+fehlende/gemischte/vollständige Angaben, 390/1440 px. Wiederholte Warnplaketten
+werden lesbare Sekundärtexte; Kopfsumme, Eintragslinks und Veröffentlichungssperre
+bleiben unverändert. Fehlend bleibt ausdrücklich ungleich allergenfrei, gespeicherte
+Angaben bleiben ungeprüft. Unabhängige Matrix: `12 passed in 39.21s`; bestehende
+Prüf-/Formularfälle a04–a07: `10 passed, 27 deselected in 32.39s`, beide
+`GATE_EXIT=0`. JUnit `/var/tmp/dishboard-week-warnings-root-0928.xml` und
+`/var/tmp/dishboard-week-safety-root-0928.xml`. Vorher/Nachher visuell geprüft.
+Bereits vorher sichtbar und separat zu beheben: überlappende lange Gangnamen
+bei Patienten sowie abgeschnittene Bildfehlermeldungen bei Cafeteria.
+
 `/admin/rezepte`, Editor, Ansicht, Revisionen und Rezeptdruckvorlagen: Admin,
 Nur-Lesen und archiviert, JS/No-JS, 320/390/768/1024/1440/1920/2560 px sowie
 echter 200-%-Browserzoom. R44/M64: Symbolaktionen mit zugänglichen Namen;

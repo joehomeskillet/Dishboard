@@ -10461,7 +10461,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "807749469844a3c44d509daf611337f9a2e4551ed821cd9460dde68360d0a2b7",
+      "sha256": "9fbb2b917a8ce0c08a4d4f39e246ae4d793a9c42bc5c1b41440a359aae68a746",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10481,7 +10481,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "c53c25bdfd9e3f69bfa9eb33a8b22c2e084469ec20aaab0014cc5bcc82aad538",
+      "sha256": "36c9a0c5b20269038faba58d2c35fb4cbc66eca5973b1e5db08d0481280e9b7f",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -12366,7 +12366,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "b98030969577ebb34bb28f8d83af0a38c7475214cc94b17f37ba0e86743f0277",
+      "sha256": "57694dbc91dc5b4ce6eba5d078ff37e9689ba6bc5a3f1f8b0866df7134752a52",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"

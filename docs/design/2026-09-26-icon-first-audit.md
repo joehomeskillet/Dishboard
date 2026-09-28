@@ -15,7 +15,8 @@ Der Timer ist aktiv, nächste reguläre Fahrt bei Übernahme: 02:07 CEST.
 Integriert nach eigener Diffprüfung und erneutem Gate: API-Symbolaktionen
 (`wp-cb8f25515d05`, `6a656cd7`/`45d12e76`), Listenhülle
 (`wp-edf89d346095`, `e169a69d`) und faire Listenmessung
-(`wp-ae3225c63108`, `75453eee`). Wochenwarnungen und Rezepteditor sind nächste
+(`wp-ae3225c63108`, `75453eee`) sowie kompakte Wochenwarnungen
+(`wp-229caefe57d9`, `6ef6fb40`). Rezepteditor und Vorlagenverdichtung sind nächste
 isolierte Pakete. Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
 Manifestpflege vor Aufnahme in `integrate/icon-first-r18`. Paketverträge lokal
 unter `/var/tmp/dishboard-*-0928*.json`. Noch kein neuer Deploy behauptet.
@@ -79,7 +80,7 @@ und kein automatischer Anbieterwechsel.
 | UI-22 | Echter 200-%-Zoom für Woche, Rezeptansicht und Editor bestanden; restliche Referenztypen offen. |
 | UI-23 | Vorlagen beginnen im neuen Sichtbeleg erst unterhalb 500 px. Statuskarten und Doppelanzeigen reduzieren, neu messen. |
 | UI-24 | Mindestens zehn kurze zweizeilige Fixtures und acht voll sichtbare Zeilen für Referenzlisten noch messen. |
-| UI-25 | Sichtbelege zeigen redundante Vorlagenstatus, wiederholte Wochenwarnungen und Bereichs-/Zeitmeldungen. Produktkorrekturen offen. |
+| UI-25 | Wochenwarnungen verdichtet; eigene Matrix 12 und bestehende Sicherheits-/Formularfälle 10 grün. Redundante Vorlagenstatus und Bereichs-/Zeitmeldungen bleiben offen. |
 | UI-26 | Erst nach Migration belegbar tote Overrides entfernen; keine vorsorgliche globale Stilbereinigung. |
 | UI-27 | Shellnavigation im Zoom geprüft; aktive Parent-/Child-Zustände, Touch und reduzierte Rollen weiter prüfen. |
 | UI-28 | Neue lokale Screenshots vorhanden. Vergleichbare Vorher/Nachher-Belege für beide Piloten, Woche und schmale Ansicht noch zusammenführen. |
