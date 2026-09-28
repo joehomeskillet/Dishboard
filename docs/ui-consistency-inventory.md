@@ -1,5 +1,21 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Strikte Kontextübersetzungen 2026-09-28
+
+`ca65fd60` ergänzt genau `recipe.import.row_details`,
+`print_template.reactivate.label` und `print_template.reactivate.aria` in DE/EN.
+Der Locale-Validator erhält dieselbe feste Allowlist; unbekannte, fehlende
+oder leere Nachrichten bleiben Fehler. Parameter werden auch bei als sicher
+markiertem Eingabetext escaped. Registry und vorhandene Icons bleiben gleich.
+Die appweite Aufrufwirkung (GitNexus HIGH, 63 Symbole) wurde vor Änderung gemeldet.
+
+Unabhängige Root-Prüfung: `228 passed in 26.82s` für Semantik-/Localeverträge;
+`6 passed in 2.48s` für echten Appstart und öffentliche Profil-/Ausgabeverträge.
+Jeweils `GATE_EXIT=0`, äußerer Exit 0; Ruff ohne Befund.
+JUnits `/var/tmp/dishboard-context-messages-root-0928.xml` und
+`/var/tmp/dishboard-context-appstart-root-0928.xml`.
+Das ist eine geprüfte Voraussetzung, keine Abnahme der folgenden Import-/Druckoberflächen.
+
 ## Pilot-Listenköpfe und native Rezeptfilter 2026-09-28
 
 `wp-ef3412676030`, `9191178b`: Baustein-Suche und Trefferzahl teilen eine

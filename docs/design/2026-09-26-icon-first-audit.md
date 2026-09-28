@@ -68,6 +68,18 @@ vor historischen Text-/48-px-/Statuskartenregeln. Unabhängiger Quellenreview:
 ACCEPT; identische Projektregeln, Manifestprüfung und `git diff --check` grün.
 Keine Produktänderung oder zusätzliche Browserabnahme durch dieses Dokumentpaket.
 
+Gemeinsame Voraussetzung `ca65fd60`: drei feste DE/EN-Kontextnachrichten für
+Importzeilendetails und Reaktivierung einer Druckvorlage. Der bisher streng
+geschlossene Locale-Validator nimmt genau diese Schlüssel zusätzlich an;
+Registry und Symbolzuordnung bleiben gleich. Impact vor Änderung: HIGH,
+63 betroffene Symbole über den Appstart; Warnung vorab kommuniziert.
+Unabhängig: `228 passed in 26.82s` einschließlich Missing/Empty/Orphan-
+Negativfällen sowie Escaping, danach `6 passed in 2.48s` mit echtem
+`create_app` und beiden veröffentlichten Profilen, jeweils äußerer Exit 0.
+Ruff grün. JUnits `/var/tmp/dishboard-context-messages-root-0928.xml` und
+`/var/tmp/dishboard-context-appstart-root-0928.xml`. Die konsumierenden
+Import-/Druckeditoränderungen brauchen eigene Browserabnahmen.
+
 Statusanzeige `wp-e0e6302c8073`, `25f09eea`: mehrere explizite bzw. lokale
 Integrationslinien werden wieder angezeigt. Nur aktive zusätzlich entdeckte
 Linien beeinflussen die Überfälligkeitswarnung; die konfigurierte Zug-Linie
