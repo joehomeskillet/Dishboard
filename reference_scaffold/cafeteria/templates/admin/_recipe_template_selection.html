@@ -1,5 +1,5 @@
 {% from 'admin/_macros.html' import pagination, list_row, empty_state %}
-{% from 'ui/_semantic.html' import icon_label, icon_button, filter_bar_sem %}
+{% from 'ui/_semantic.html' import icon_summary, icon_button, filter_bar_sem %}
 {% macro selected_fields(omit=[]) %}
 {% for key in ['template', 'recipe', 'recipe_revision', 'yield'] %}{% if key in arguments and key not in omit %}<input type="hidden" name="{{ key }}" value="{{ arguments[key] }}">{% endif %}{% endfor %}
 {% if 'template' not in arguments %}<input type="hidden" name="template" value="standard">{% endif %}
@@ -15,11 +15,12 @@
       <div class="col-12 col-md-auto">{{ icon_button('actions.preview') }}</div>
     </form>
     <details class="admin-compact-details" data-recipe-selection {% if not recipe_revision or 'q' in arguments or 'page' in arguments or 'revision_page' in arguments %}open{% endif %}>
-    <summary class="btn" title="{% if recipe_revision %}{{ recipe_revision.snapshot.recipe.title }} · Stand {{ recipe_revision.revision_number }} · {{ arguments.get('yield', recipe_revision.snapshot.recipe.servings) }} {{ recipe_revision.snapshot.recipe.servings_unit_code }}{% else %}Vorschaurezept auswählen{% endif %}">{{ icon_label('recipe.recipe') }}</summary>
+    {% set selection_context = recipe_revision.snapshot.recipe.title ~ ' · ' ~ (t('data.revision.label')|striptags) ~ ' ' ~ recipe_revision.revision_number ~ ' · ' ~ arguments.get('yield', recipe_revision.snapshot.recipe.servings) ~ ' ' ~ recipe_revision.snapshot.recipe.servings_unit_code if recipe_revision else t('actions.preview.label')|striptags %}
+    {{ icon_summary('recipe.recipe', object=selection_context) }}
     <div class="pt-3">
     {% if not recipe_revision %}<p class="form-hint">Einen gespeicherten Stand auswählen. Entwürfe der Druckvorlage können Sie auch ohne Rezept speichern und kopieren.</p>{% endif %}
     <details class="mb-3" {% if not recipe or 'q' in arguments or 'page' in arguments %}open{% endif %}>
-    <summary class="btn mb-3">{{ icon_label('view.search') }}</summary>
+    {{ icon_summary('view.search', object=t('recipe.recipe.label')|striptags, class='mb-3') }}
     {% set recipe_filters %}
       {{ selected_fields() }}
       <div><label class="form-label" for="recipe-archived">Rezeptstatus</label><select class="form-select" id="recipe-archived" name="archived"><option value="0">Verfügbare Rezepte</option><option value="1" {% if arguments.get('archived') == '1' %}selected{% endif %}>Auch archivierte Rezepte</option></select></div>
@@ -35,7 +36,7 @@
     </details>
     {% if recipe %}
     <details {% if not recipe_revision %}open{% endif %}>
-    <summary class="btn mb-3">{{ icon_label('data.revision') }}</summary>
+    {{ icon_summary('data.revision', object=recipe.payload.title, class='mb-3') }}
     <h3 class="h4">{{ recipe.payload.title }}{% if not recipe.active %} · Archiviert{% endif %}</h3>
     {% if recipe_revisions %}<form method="get" action="{{ url_for('admin.recipe_print_template_editor') }}" class="row g-3 align-items-end">
       {{ selected_fields(['recipe_revision', 'yield']) }}

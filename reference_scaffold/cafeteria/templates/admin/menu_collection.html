@@ -1,7 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
 {% from 'admin/_macros.html' import icon, page_header, pagination, empty_state, hint, label %}
-{% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem %}
+{% from 'ui/_semantic.html' import icon_button, icon_summary, filter_bar_sem %}
 {% block title %}Menüs {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-collection.css') }}">{% endblock %}
 {% set workflow_nav = 'menus' %}
@@ -89,7 +89,7 @@
                     {% if review_mixed %}{{ review_status(row) }}{% else %}{{ allergen_hint(row) }}{% endif %}
                     {% if row.description or row.note %}
                     <details class="menu-note-details" id="menu-details-{{ row.id }}">
-                      <summary>Hinweis</summary>
+                      {{ icon_summary('ui.disclosure.details', object=row.title ~ ' · ' ~ row.service_date.strftime('%d.%m.%Y')) }}
                       {% if row.description %}<div class="menu-description"><strong>Beschreibung:</strong> {{ row.description }}</div>{% endif %}
                       {% if row.note %}<div class="shared-note"><strong>Hinweis:</strong> {{ row.note }}</div>{% endif %}
                     </details>
@@ -121,7 +121,7 @@
                 {% if review_mixed %}{{ review_status(row) }}{% else %}{{ allergen_hint(row) }}{% endif %}
                 {% if row.description or row.note %}
                 <details class="menu-note-details mt-2">
-                  <summary class="btn btn-ghost-secondary border-0 btn-sm text-start p-0 d-inline-flex align-items-center gap-1">{{ icon_label('ui.disclosure.details') }}</summary>
+                  {{ icon_summary('ui.disclosure.details', object=row.title ~ ' · ' ~ row.service_date.strftime('%d.%m.%Y')) }}
                   <div class="menu-note-content mt-1">
                     {% if row.description %}<p class="menu-description mb-1"><strong>Beschreibung:</strong> {{ row.description }}</p>{% endif %}
                     {% if row.note %}<p class="shared-note mb-0"><strong>Hinweis:</strong> {{ row.note }}</p>{% endif %}
