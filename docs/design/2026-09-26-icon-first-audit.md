@@ -95,7 +95,19 @@ gesonderter Druckreparatur ebenfalls integriert (`e9c0cdff` + `028c983e`,
 `wp-08363347d3d3`): eigener Browserlauf `1 passed in 18.75s` und eigener
 Vertragslauf `259 passed in 30.94s`, beide Exit 0. Sichtprüfung bestätigt
 lesbare einzeilige Drucklabels; Bildschirmaktionen bleiben Symbolbuttons.
-Pilot-Listenkopf und weitere UI-Abnahmen bleiben isolierte Pakete.
+Pilot-Listenkopf `wp-ef3412676030`, `9191178b`, ist ebenfalls integriert:
+Bausteine beginnen bei 207 statt 243 px, Rezepte bei 212.30 statt 285.80 px
+ab Main; jeweils zehn vollständige Datensätze. Bausteinzeile mobil 253 statt
+309 px, unveränderte Grenze 260 px. Eigene Prüfung: Dichte 38 Tests mit
+48 tatsächlichen Ansichten, Filter 8, Nur-Lesen 2 und HTTP-Suche/Filter 14,
+alle Exit 0. Kein Zeilen-/Zell-/Textüberlauf; eigene Aufnahmen gesichtet.
+Native GET-Parameter, Paging, Reset, Rollen und Mutationsverbote bleiben geprüft.
+Die neuen optionalen Makroargumente bewahren bestehende Aufrufe; der Worker
+verglich 20 alte/neue DE/EN-Ausgaben bytegleich. Das geöffnete Rezeptmenü
+hat weiterhin den separat erfassten §5.4-Labelbefund. Im Tastatur-Fullpagebild
+erscheint zusätzlich der globale Skiplink außerhalb seiner normalen Position;
+Quelle deutet auf Aufnahme bei gescrolltem Viewport, Laufzeitdiagnose bleibt offen.
+Weitere UI-Abnahmen bleiben isolierte Pakete.
 Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
 Manifestpflege vor Aufnahme in `integrate/icon-first-r18`. Paketverträge lokal
 unter `/var/tmp/dishboard-*-0928*.json`. Die nach `c8c2e3c` integrierten Pakete
@@ -158,7 +170,7 @@ und kein automatischer Anbieterwechsel.
 | UI-20 | Lange Texte und Shell-Reflow geprüft; Leer-/Lade-/Fehlerzustände über alle Module offen. |
 | UI-21 | Shellmatrix 1440/1024/768/390 und weitere Breiten bestanden; Seitenmatrix samt geöffneten Zuständen noch offen. |
 | UI-22 | Echter 200-%-Zoom für Woche, Rezeptansicht und Editor bestanden; restliche Referenztypen offen. |
-| UI-23 | Vorlagen nach Korrektur 189.80 px ab Main. Pilotlisten noch darüber: Bausteine 243 px, Rezepte 285.8 px; Kopfverdichtung bleibt offen. |
+| UI-23 | Vorlagen 189.80 px, Bausteine 207 px, Rezepte 212.30 px ab Main; Pilot-Kopfgrenze 220 px bestanden. 48 eigene Ansichten prüfen vollständige Zeilen/Textgrenzen und zehn vollständige Desktop-Datensätze. Weitere Referenztypen bleiben separat abzugleichen. |
 | UI-24 | Zehn vollständige Desktopdatensätze in beiden Bausteinprofilen und Rezepten nachgewiesen; Bausteine natürlich zweizeilig. Rezepte verwenden separate Ertragsspalte, kein Zweizeilen-Rezeptnachweis. |
 | UI-25 | Wochenwarnungen und Vorlagen-Hub verdichtet. Druckvorlageneditor sowie Bereichs-/Zeitmeldungen bleiben offen. |
 | UI-26 | Erst nach Migration belegbar tote Overrides entfernen; keine vorsorgliche globale Stilbereinigung. |

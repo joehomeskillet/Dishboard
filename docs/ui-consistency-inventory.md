@@ -1,5 +1,31 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Pilot-Listenköpfe und native Rezeptfilter 2026-09-28
+
+`wp-ef3412676030`, `9191178b`: Baustein-Suche und Trefferzahl teilen eine
+Desktopzeile; mobile Kategorie/Verwendung stehen kompakt neben ihren Labels.
+Rezepte verwenden den gemeinsamen Filterbaustein und keine redundante Statuskarte.
+Felder `text/q/ingredient/tag/archived`, Pagination, Rollen und native GET-Aktionen
+bleiben erhalten. Makroparameter `search_id` und `search_emphasis` sind optional
+und stehen am Ende; 20 alte/neue DE/EN-Ausgaben wurden vom Worker bytegleich geprüft.
+
+Eigene Gates, alle mit `GATE_EXIT=0` und äußerem Exit 0:
+
+- Dichte: `38 passed in 155.63s`, 48 reale Ansichten mit gleichen zehn Datensätzen.
+- Native Filter: `8 passed in 59.14s`, einschließlich Tastatur, JS/No-JS, Nur-Lesen,
+  Archivfilter, DE/EN-Namen, Paging/Reset und unverändertem DB-Snapshot.
+- Vorhandene Nur-Lesen-Fälle: `2 passed in 10.42s`.
+- HTTP-Suche und Bausteinfilter: `14 passed in 27.94s`.
+
+Erste Desktop-Datenzeile: Bausteine 243 → 207 px, Rezepte 285.80 → 212.30 px;
+jeweils zehn vollständig sichtbare Datensätze. Mobile Bausteinzeile 309 → 253 px;
+Grenze 260 px unverändert. Null Zeilen-, Zell- oder Textüberläufe in der Matrix.
+JUnits: `/var/tmp/dishboard-pilot-{headers,filters,readonly,http}-root-0928.xml`.
+Desktop und mobile Filteraufnahme selbst gesichtet. Der bekannte fehlende Text
+im geöffneten Rezept-Aktionsmenü bleibt ein eigenes §5.4-Korrekturpaket.
+Der im gescrollten Fullpagebild sichtbare Skiplink ist ein offener Aufnahme-/Fokusbefund,
+kein bewiesener neuer Produktfehler. Integriert, noch nicht live.
+
 ## Wochen-Symbolgrößen und Release-Testverträge 2026-09-28
 
 `wp-5348075ecbdb`, `64ccc7aa`: beide Wochenübersichten verwenden für
