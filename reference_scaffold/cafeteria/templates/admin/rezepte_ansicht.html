@@ -17,9 +17,9 @@
 {{ icon_button('actions.back', href=url_for('admin.recipes_list'), icon_only=can_write and recipe.active, text='Zur Liste', aria_label='Zur Liste der Rezepte', title='Zur Liste der Rezepte', emphasis='primary' if not (can_write and recipe.active) else none) }}
 {% if can_write and recipe.active %}{{ icon_button('actions.edit', href=url_for('admin.recipe_edit', recipe_id=recipe_id), emphasis='primary') }}{% endif %}
 <details class="ui-sem-actions"><summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" data-ui-tooltip="{{ t('actions.more.aria') }}" aria-label="{{ t('actions.more.aria') }}">{{ sem_icon('actions.more') }}</summary><div class="ui-sem-action-items">
-{{ icon_button('recipe.quantity', href=scale_url, text='Berechnen', aria_label='Mengen berechnen', title='Mengen berechnen') }}
-{{ icon_button('actions.history', href=url_for('admin.recipe_revisions', recipe_id=recipe_id), icon_only=true, aria_label='Rezept-History', title='Rezeptverlauf öffnen') }}
-{% if links.latest_revision %}{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=links.latest_revision.public_id), icon_only=true, aria_label='PDF öffnen') }}{% endif %}
+{{ icon_button('recipe.quantity', href=scale_url, text='Berechnen', aria_label='Mengen berechnen', title='Mengen berechnen', show_text=true) }}
+{{ icon_button('actions.history', href=url_for('admin.recipe_revisions', recipe_id=recipe_id), icon_only=true, text='Rezept-History', aria_label='Rezept-History', title='Rezeptverlauf öffnen', show_text=true) }}
+{% if links.latest_revision %}{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=links.latest_revision.public_id), icon_only=true, text='PDF öffnen', aria_label='PDF öffnen', show_text=true) }}{% endif %}
 </div></details>
 {% endcall %}
 {% endblock %}

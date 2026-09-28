@@ -1032,7 +1032,10 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
             recipe=recipe, item=recipe, recipe_id='r1', can_write=False, token='token', batch=None,
             links=SimpleNamespace(latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
     control = BeautifulSoup(html, 'html.parser').select_one('a, button')
-    visible = text if template == 'rezepte_editor.html' else ''  # Navigation / opened overflow, spec §5.4.
+    recipe_menu = (template, key) in {
+        ('rezepte.html', 'actions.print'), ('rezepte.html', 'actions.history'),
+    }
+    visible = text if template == 'rezepte_editor.html' or recipe_menu else ''  # Spec §5.4.
     assert (control.get_text(strip=True), control['aria-label']) == (visible, aria)
     assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
     assert control['data-ui-tooltip'] == aria
