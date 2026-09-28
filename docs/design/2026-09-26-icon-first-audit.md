@@ -11,6 +11,14 @@ Zeilen werden nicht allein durch Release 18 oder einen bestandenen Listenverglei
 zu einer appweiten Abnahme. Aktuelle Produktionsrevision ist
 `c8c2e3c11149b41523a50a34dcba64cdc60230a6`, seit 02:32 CEST gesund,
 Login HTTP 200 und `github/main` exakt gleich. Der Timer bleibt bei `*:07` aktiv.
+Aktualisierung 06:05: Fahrt 05:07 auf `1424adecc` vollständig beendet,
+4382 Tests, 16 Fehler (vier bekannte), acht Skips, `NEW_FAILURES=12`;
+kein Push/Deploy. Letzte Liveprüfung 05:39 weiterhin gesund auf `c8c2e3c`,
+aber seit 186 Minuten kein Deploy. Aktuelle Einzelabnahmen und verbleibende
+Tool-/Funktionslücken stehen am Anfang von `docs/ui-consistency-inventory.md`.
+Root hat inzwischen Wochen-Summary-Geometrie, native Rezeptfilter,
+Referenzliste mit echtem 200-%-Browserzoom sowie Rezeptmenü-/Navigationsverträge
+erneut geprüft. Die folgenden Zugbeschreibungen sind historische Kandidatenstände.
 Die Fahrt 02:07 schloss mit `NEW_FAILURES=0` ab (3137 Tests, 13 bekannte Fehler),
 scheiterte dann beim Push am fehlenden systemd-Login-Kontext. Derselbe geprüfte
 SHA wurde manuell gepusht und deployed. Dienst-Drop-in setzt jetzt `User=root`

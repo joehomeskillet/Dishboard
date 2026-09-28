@@ -11502,7 +11502,7 @@
         "admin/_macros.html",
         "admin/rezepte_ansicht.html"
       ],
-      "sha256": "ad3ef8c7c733609e4aee50f4842341a1f16279b84c90d48f9f6b4d5c1e1fb31e",
+      "sha256": "a612e28467cf5e36b6dacc673c10a0d10606aca5e92fe0c194f866827ef08478",
       "used_by_endpoints": [
         "admin.recipes_list"
       ],
@@ -11523,7 +11523,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "a920c6543077f2f4781e729e0a9f2dbb43f19f3fa1086a114f81dd2e89b89677",
+      "sha256": "2fbcfd04807d720367fe94978876fe62a3c953f6943c91395274d34ff9f87b48",
       "used_by_endpoints": [
         "admin.recipe_revision",
         "admin.recipe_revisions",

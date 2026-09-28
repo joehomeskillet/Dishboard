@@ -1,6 +1,36 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
-## Release- und Diagnosezustand 2026-09-28, 04:54 CEST
+## Release- und Diagnosezustand 2026-09-28, 06:05 CEST
+
+Zug 05:07 auf `1424adecc` ist vollständig beendet: 4382 Tests, 16 Fehler,
+davon vier bereits bekannte Typografiefehler und `NEW_FAILURES=12`, acht Skips.
+Kein Push/Deploy. Alle 56 isolierten Browserdateien liefen durch.
+Log: `/var/tmp/dishboard-release-train/20260928T030700Z-9NRdt3`.
+Liveprüfung 05:39: `c8c2e3c`, healthy, Login 200, gleich `github/main`;
+zweimal Exit 1 wegen 186 Minuten Deploy-Alter. Der sporadische Rezept-Anlegefall
+bestand diesmal mit allen zwölf Rezepteditorfällen; seine Ursache bleibt offen.
+
+Separat geprüft und zur Integration freigegeben: semantische Wochen-Summaries
+erben 36/44 px statt alter 44/48-px-Übersteuerungen. Text-Summaries behalten ihre
+Mindesthöhen. Root: 19 Adminfälle, acht echte Fine/Coarse-Fälle beider Profile,
+acht Fälle mit echten Browserassets; unabhängiger Peer: komplette 69 Renderfälle.
+Die Messung erfasst jetzt auch sichtbare Öffner geschlossener Details und prüft
+deren nichtleere Soll-/Ist-Anzahl. Root sichtete eigene Desktop-/Mobilaufnahmen.
+
+Rezeptfilter: Worker und Root jeweils zwei komplette Fälle mit fünf Viewports,
+JS/No-JS und unveränderten Formular-/Layoutprüfungen; Root `2 passed in 91.58s`.
+Referenzliste: Worker zehn, Root `10 passed in 223.82s`; vier native Zoomfälle
+mit App-CDP-Zoom 2, CSS-Zoom 1, DPR 2, 1440×813-PNG und unveränderter Geometrie.
+320-/390-px-Reflow bleibt separat, keine gelockerte Overflowgrenze.
+Rezeptmenüs: Root sieben Navigations-, 228 Semantik- und 23 Ansicht-/Druckfälle
+grün; sichtbare kurze Labels nur im geöffneten Überlauf. Zusätzliche Menüprüfung
+schließt ihren fokussierten Tooltip explizit mit Escape vor dem nächsten Klick.
+Dies behebt nicht den separat reproduzierten Import-Escape-Konflikt.
+JUnits: `/var/tmp/dishboard-{week-summary,week-summary-geometry,week-summary-live,
+recipe-filter,reference-native,recipe-menu,recipe-menu-semantics,recipe-menu-view}-root-0928.xml`.
+OCR bleibt wegen beobachtetem HTTP 402 ohne Ergebnis; neue Worktrees sind nicht
+GitNexus-indexiert. Quellreview und echte Diffs ergänzen diese offenen Toolgrenzen.
+Die folgenden älteren Abschnitte bleiben historische Nachweise; keine Live-Abnahme.
 
 Zug 04:07 auf `b47c957d` ist vollständig beendet: `NEW_FAILURES=19`,
 `verdict=1`, kein Push/Deploy. 18 Fehler betreffen später integrierte Korrekturen;
