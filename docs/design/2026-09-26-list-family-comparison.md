@@ -1,6 +1,6 @@
 # Listenfamilie — Vergleich der administrativen Listen
 
-Gemessen 2026-09-27T23:33:40+00:00 gegen `docs/design/2026-09-26-icon-first-simplification-spec.md` (§3.2 Aktionsbudget, §4 gemeinsames Listenmuster, §5 Symbolbuttons; Abnahme UI-02, UI-03, UI-04, UI-05, UI-24).
+Gemessen 2026-09-28T00:38:16+00:00 gegen `docs/design/2026-09-26-icon-first-simplification-spec.md` (§3.2 Aktionsbudget, §4 gemeinsames Listenmuster, §5 Symbolbuttons; Abnahme UI-02, UI-03, UI-04, UI-05, UI-24).
 Fett markiert ist jeder Wert, der von der häufigsten Ausprägung dieser Messgrösse abweicht.
 Typografie wird nur zwischen vorhandenen Textrollen verglichen; fehlende Kopfzeilen zählen nicht als Abweichung. Kopf-Hintergrund, Kopf-Höhe und Linkstatus bleiben Messwerte, gehören aber nicht zur Schrift-Signatur. Abweichende Linkfarben zählen weiterhin.
 Geschlossene Überlaufmenüs und Bestätigungsdialoge (§5.4) sind nicht geöffnet und zählen nicht als sichtbarer Text.
@@ -9,7 +9,7 @@ Seiten: 41. Listenblöcke bei 1440×900: 82.
 
 ## Zusammenfassung
 
-- Seiten mit Buttontext in Zeile oder Kopf: API-Schlüssel
+- Seiten mit Buttontext in Zeile oder Kopf: keine
 - Seiten mit Karte je Zeile: keine
 - Seiten mit mehr als zwei Zeilenaktionen: keine
 - Seiten mit abweichender Kopf-, Haupt- oder Sekundärtypografie: keine
@@ -94,6 +94,27 @@ belegt diese Interaktionen und Zustände nicht. Nach Integration anderer Pakete
 ist ein erneuter Scan erforderlich; dieser Bericht beschreibt deren frühere
 Produktbasis.
 
+### Nachmessung nativer Menüeinträge (2026-09-28, MP-LIST-NATIVE-ENTRY-0928)
+
+Die vollständige Nachmessung auf Produktbasis `c8c2e3c11149b41523a50a34dcba64cdc60230a6`
+umfasst erneut 41 Seiten, 82 Desktop-Listenblöcke und beide Viewports. Ein
+verschachteltes natives `summary` zählt jetzt als erreichbarer Überlaufeintrag;
+äusserer Auslöser, leere Menüs sowie `hidden`- und `inert`-Einträge sind durch
+eine Regression getrennt abgesichert. Die frühere Leer-Meldung der API-Details
+war ein Messfehler. API-Schlüssel zeigt in beiden Breiten jetzt 0 leere
+Überläufe und keine sichtbaren Texte an Kopf-/Zeilenaktionen. Damit entfallen
+die vier alten API-Codes; neue Abweichungscodes wurden keine zugelassen.
+
+Die handgeschriebenen Sichtbefunde oben wurden beim Regenerieren vollständig
+erhalten (vor dieser Ergänzung 7856 Zeichen unverändert). Ihre historische
+Produktbasis und Evidenzgrenzen bleiben gültig. Die API-Aufnahmen bei 1440×900
+und 390×844 wurden erneut gesichtet; die übrigen Aufnahmen dieses Laufs liefern
+keine neue vollständige Sichtabnahme. Messmatrix:
+`/var/tmp/list-native-entry-0928-full/test_list_family_across_admin_0/list-family-measurements.json`.
+Aufnahmen: `/var/tmp/list-native-entry-0928-evidence/`. Neue Screenshots wurden
+als lokale Evidenz gesichert; die eingecheckten Screenshot-Baselines bleiben
+unverändert.
+
 ## Messwerte
 
 | Seite | Viewport | Messgrösse | Wert |
@@ -136,83 +157,83 @@ Produktbasis.
 | Wochenplan Cafeteria · div | 1440×900 | Leere Info-Symbole | 0 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-send; Treffer 48×48; gefüllte Primärflächen 1** |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
 | Wochenplan Cafeteria · div | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 121px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Wochenplan Cafeteria · div | 1440×900 | Zeile | **Höhe 117px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenplan Cafeteria · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Cafeteria · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Cafeteria · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Cafeteria · div | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
 | Wochenplan Cafeteria · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Cafeteria · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Kopfaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-send; Treffer 48×48; gefüllte Primärflächen 1** |
@@ -226,7 +247,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-send; Treffer 48×48; gefüllte Primärflächen 1** |
@@ -235,7 +256,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -243,7 +264,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -251,7 +272,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -259,7 +280,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -267,7 +288,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -275,7 +296,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -283,7 +304,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -291,7 +312,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -299,7 +320,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -307,7 +328,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -315,7 +336,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -323,7 +344,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -331,7 +352,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -339,7 +360,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -347,7 +368,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -355,7 +376,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -363,7 +384,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -371,7 +392,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -379,7 +400,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -387,7 +408,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -395,7 +416,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -403,7 +424,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -411,7 +432,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -419,7 +440,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -427,7 +448,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -435,7 +456,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
@@ -443,7 +464,7 @@ Produktbasis.
 | Wochenplan Patienten · div | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Wochenplan Patienten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenplan Patienten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Wochenplan Patienten · div | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Wochenplan Patienten · div | 1440×900 | Status | keine |
 | Wochenplan Patienten · div | 1440×900 | Zeilenaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenplan Patienten · div | 390×844 | Zeilenaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 48×48 |
 | Wochenprüfung Cafeteria · Ausgabeangaben | 1440×900 | Kopfaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-left; Treffer 36×36; gefüllte Primärflächen 0** |
@@ -457,7 +478,7 @@ Produktbasis.
 | Wochenprüfung Cafeteria · Ausgabeangaben | 1440×900 | Zeile | **Höhe 48px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenprüfung Cafeteria · Ausgabeangaben | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenprüfung Cafeteria · Ausgabeangaben | 1440×900 | Sekundärtext | keine |
-| Wochenprüfung Cafeteria · Ausgabeangaben | 1440×900 | Status | **keine** |
+| Wochenprüfung Cafeteria · Ausgabeangaben | 1440×900 | Status | keine |
 | Wochenprüfung Cafeteria · Ausgabeangaben | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Wochenprüfung Cafeteria · Ausgabeangaben | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Wochenprüfung Cafeteria · Ausgabeangaben | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-left; Treffer 36×36; gefüllte Primärflächen 0** |
@@ -472,7 +493,7 @@ Produktbasis.
 | Wochenprüfung Patienten · Ausgabeangaben | 1440×900 | Zeile | **Höhe 48px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Wochenprüfung Patienten · Ausgabeangaben | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Wochenprüfung Patienten · Ausgabeangaben | 1440×900 | Sekundärtext | keine |
-| Wochenprüfung Patienten · Ausgabeangaben | 1440×900 | Status | **keine** |
+| Wochenprüfung Patienten · Ausgabeangaben | 1440×900 | Status | keine |
 | Wochenprüfung Patienten · Ausgabeangaben | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Wochenprüfung Patienten · Ausgabeangaben | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Wochenprüfung Patienten · Ausgabeangaben | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-left; Treffer 36×36; gefüllte Primärflächen 0** |
@@ -487,7 +508,7 @@ Produktbasis.
 | Menüs Cafeteria · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Zeile | **Höhe 66px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Menüs Cafeteria · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Menüs Cafeteria · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Menüs Cafeteria · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Menüs Cafeteria · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Status | **admin-label.admin-status--warning.badge** |
 | Menüs Cafeteria · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Zeilenaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 36×36** |
 | Menüs Cafeteria · Gespeicherte Menüs der aktuellen Suche | 390×844 | Zeilenaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 36×36** |
 | Menüs Cafeteria · Gespeicherte Menüs der aktuellen Suche | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-calendar-week; Treffer 36×36; gefüllte Primärflächen 1** |
@@ -502,7 +523,7 @@ Produktbasis.
 | Menüs Patienten · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Zeile | **Höhe 66px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Menüs Patienten · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Menüs Patienten · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Menüs Patienten · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Menüs Patienten · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Status | **admin-label.admin-status--warning.badge** |
 | Menüs Patienten · Gespeicherte Menüs der aktuellen Suche | 1440×900 | Zeilenaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 36×36** |
 | Menüs Patienten · Gespeicherte Menüs der aktuellen Suche | 390×844 | Zeilenaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 36×36** |
 | Menüs Patienten · Gespeicherte Menüs der aktuellen Suche | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-calendar-week; Treffer 36×36; gefüllte Primärflächen 1** |
@@ -547,7 +568,7 @@ Produktbasis.
 | Küchenkalender · Monatsraster Küchenkalender | 1440×900 | Zeile | **Höhe 219px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten vorhanden · Karte nein** |
 | Küchenkalender · Monatsraster Küchenkalender | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Küchenkalender · Monatsraster Küchenkalender | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Küchenkalender · Monatsraster Küchenkalender | 1440×900 | Status | **keine** |
+| Küchenkalender · Monatsraster Küchenkalender | 1440×900 | Status | keine |
 | Küchenkalender · Monatsraster Küchenkalender | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Küchenkalender · Kalendertage | 390×844 | Kopfaktionen schmal | **4 sichtbar, 0 mit Text (—); Icons tabler: tabler-chevron-left, tabler-chevron-right, tabler-calendar-event, tabler-plus; Treffer 36×36, 36×36, 36×36, 36×36; gefüllte Primärflächen 1** |
 | Zutaten · div | 1440×900 | Kopfaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -561,7 +582,7 @@ Produktbasis.
 | Zutaten · div | 1440×900 | Zeile | **Höhe 64px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Zutaten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Zutaten · div | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / Link rgb(89, 98, 115) |
-| Zutaten · div | 1440×900 | Status | **keine** |
+| Zutaten · div | 1440×900 | Status | keine |
 | Zutaten · div | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Zutaten · div | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Zutaten · div | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -576,7 +597,7 @@ Produktbasis.
 | Einheiten · div | 1440×900 | Zeile | **Höhe 53px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Einheiten · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Einheiten · div | 1440×900 | Sekundärtext | keine |
-| Einheiten · div | 1440×900 | Status | **keine** |
+| Einheiten · div | 1440×900 | Status | keine |
 | Einheiten · div | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Einheiten · div | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Einheiten · div | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -591,7 +612,7 @@ Produktbasis.
 | Kategorien · keine Datenliste | 1440×900 | Zeile | **keine Datenzeile** |
 | Kategorien · keine Datenliste | 1440×900 | Haupttext | keine |
 | Kategorien · keine Datenliste | 1440×900 | Sekundärtext | keine |
-| Kategorien · keine Datenliste | 1440×900 | Status | **keine** |
+| Kategorien · keine Datenliste | 1440×900 | Status | keine |
 | Kategorien · keine Datenliste | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Kategorien · keine Datenliste | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Kategorien · keine Datenliste | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -606,7 +627,7 @@ Produktbasis.
 | Kennzeichnungen · div | 1440×900 | Zeile | **Höhe 53px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Kennzeichnungen · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Kennzeichnungen · div | 1440×900 | Sekundärtext | keine |
-| Kennzeichnungen · div | 1440×900 | Status | **keine** |
+| Kennzeichnungen · div | 1440×900 | Status | keine |
 | Kennzeichnungen · div | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Kennzeichnungen · div | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Kennzeichnungen · div | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -621,7 +642,7 @@ Produktbasis.
 | Lagerorte · div | 1440×900 | Zeile | **Höhe 53px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Lagerorte · div | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Lagerorte · div | 1440×900 | Sekundärtext | keine |
-| Lagerorte · div | 1440×900 | Status | **keine** |
+| Lagerorte · div | 1440×900 | Status | keine |
 | Lagerorte · div | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Lagerorte · div | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Lagerorte · div | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -636,7 +657,7 @@ Produktbasis.
 | Rezepte · Rezepte | 1440×900 | Zeile | **Höhe 53px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Rezepte · Rezepte | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Rezepte · Rezepte | 1440×900 | Sekundärtext | keine |
-| Rezepte · Rezepte | 1440×900 | Status | **keine** |
+| Rezepte · Rezepte | 1440×900 | Status | keine |
 | Rezepte · Rezepte | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Rezepte · Rezepte | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Rezepte · Rezepte | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -651,7 +672,7 @@ Produktbasis.
 | Gerichtvorlagen · table | 1440×900 | Zeile | **Höhe 53px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Gerichtvorlagen · table | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Gerichtvorlagen · table | 1440×900 | Sekundärtext | keine |
-| Gerichtvorlagen · table | 1440×900 | Status | **keine** |
+| Gerichtvorlagen · table | 1440×900 | Status | keine |
 | Gerichtvorlagen · table | 1440×900 | Zeilenaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right; Treffer 36×36** |
 | Gerichtvorlagen · table | 390×844 | Zeilenaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right; Treffer 36×36** |
 | Gerichtvorlagen · table | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -666,7 +687,7 @@ Produktbasis.
 | Lager · Zuordnungen | 1440×900 | Zeile | **Höhe 53px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Lager · Zuordnungen | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Lager · Zuordnungen | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Lager · Zuordnungen | 1440×900 | Status | **keine** |
+| Lager · Zuordnungen | 1440×900 | Status | keine |
 | Lager · Zuordnungen | 1440×900 | Zeilenaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right; Treffer 36×36** |
 | Lager · Zuordnungen | 390×844 | Zeilenaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right; Treffer 36×36** |
 | Lager · Zuordnungen | 390×844 | Kopfaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —; gefüllte Primärflächen 0** |
@@ -681,7 +702,7 @@ Produktbasis.
 | Kochbücher · Kochbücher | 1440×900 | Zeile | **Höhe 64px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Kochbücher · Kochbücher | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Kochbücher · Kochbücher | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Kochbücher · Kochbücher | 1440×900 | Status | **keine** |
+| Kochbücher · Kochbücher | 1440×900 | Status | keine |
 | Kochbücher · Kochbücher | 1440×900 | Zeilenaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 36×36** |
 | Kochbücher · Kochbücher | 390×844 | Zeilenaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 36×36** |
 | Kochbücher · Kochbücher | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -696,7 +717,7 @@ Produktbasis.
 | Einkaufslisten · form | 1440×900 | Zeile | **Höhe 64px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Einkaufslisten · form | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Einkaufslisten · form | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Einkaufslisten · form | 1440×900 | Status | **keine** |
+| Einkaufslisten · form | 1440×900 | Status | keine |
 | Einkaufslisten · form | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right, tabler-dots; Treffer 36×36, 36×36** |
 | Einkaufslisten · form | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right, tabler-dots; Treffer 36×36, 36×36** |
 | Einkaufslisten · form | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -706,7 +727,7 @@ Produktbasis.
 | Bestellungen · Warenkorb | 1440×900 | Überlaufmenü ohne Einträge | 0 |
 | Bestellungen · Warenkorb | 1440×900 | Doppelte Aufklappmarker | 0 |
 | Bestellungen · Warenkorb | 1440×900 | Leere Info-Symbole | 0 |
-| Bestellungen · Warenkorb | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
+| Bestellungen · Warenkorb | 1440×900 | Listencontainer | **div · Rahmen 1px solid rgb(229, 231, 235) · Radius 8px · Schatten none** |
 | Bestellungen · Warenkorb | 1440×900 | Kopfzeile | keine Kopfzeile |
 | Bestellungen · Warenkorb | 1440×900 | Zeile | **Höhe 52px · Trenner 0px none rgb(89, 98, 115) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Bestellungen · Warenkorb | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
@@ -715,7 +736,7 @@ Produktbasis.
 | Bestellungen · Warenkorb | 1440×900 | Zeilenaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right; Treffer 36×36** |
 | Bestellungen · Warenkorb | 390×844 | Zeilenaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right; Treffer 36×36** |
 | Bestellungen · Warenkorb | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
-| Bestellungen · Lieferant | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
+| Bestellungen · Lieferant | 1440×900 | Listencontainer | **div · Rahmen 1px solid rgb(229, 231, 235) · Radius 8px · Schatten none** |
 | Bestellungen · Lieferant | 1440×900 | Kopfzeile | keine Kopfzeile |
 | Bestellungen · Lieferant | 1440×900 | Zeile | **Höhe 64px · Trenner 0px none rgb(89, 98, 115) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Bestellungen · Lieferant | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
@@ -734,7 +755,7 @@ Produktbasis.
 | Kalkulation · table | 1440×900 | Zeile | **Höhe 49px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Kalkulation · table | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Kalkulation · table | 1440×900 | Sekundärtext | keine |
-| Kalkulation · table | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Kalkulation · table | 1440×900 | Status | **admin-label.admin-status--warning.badge** |
 | Kalkulation · table | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Kalkulation · table | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Kalkulation · table | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-check; Treffer 36×36; gefüllte Primärflächen 1** |
@@ -761,7 +782,7 @@ Produktbasis.
 | Druckvorlagen und Vorlagenkatalog · Verfügbare Vorlagen | 1440×900 | Status | **admin-label.admin-status--active.badge.ui-sem-label** |
 | Druckvorlagen und Vorlagenkatalog · Verfügbare Vorlagen | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
 | Druckvorlagen und Vorlagenkatalog · Verfügbare Vorlagen | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit, tabler-dots; Treffer 36×36, 36×36** |
-| Druckvorlagen und Vorlagenkatalog · ul | 1440×900 | Listencontainer | **ul · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none** |
+| Druckvorlagen und Vorlagenkatalog · ul | 1440×900 | Listencontainer | **ul · Rahmen 1px solid rgb(229, 231, 235) · Radius 8px · Schatten none** |
 | Druckvorlagen und Vorlagenkatalog · ul | 1440×900 | Kopfzeile | keine Kopfzeile |
 | Druckvorlagen und Vorlagenkatalog · ul | 1440×900 | Zeile | **Höhe 76px · Trenner 0px none rgb(89, 98, 115) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Druckvorlagen und Vorlagenkatalog · ul | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
@@ -769,9 +790,9 @@ Produktbasis.
 | Druckvorlagen und Vorlagenkatalog · ul | 1440×900 | Status | **admin-label.admin-status--active.badge.ui-sem-label** |
 | Druckvorlagen und Vorlagenkatalog · ul | 1440×900 | Zeilenaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 36×36** |
 | Druckvorlagen und Vorlagenkatalog · ul | 390×844 | Zeilenaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-edit; Treffer 36×36** |
-| Druckvorlagen und Vorlagenkatalog · Screen-Vorlagen | 1440×900 | Listencontainer | div · Rahmen 0px none rgb(31, 41, 55) · Radius 0px · Schatten none |
+| Druckvorlagen und Vorlagenkatalog · Screen-Vorlagen | 1440×900 | Listencontainer | **div · Rahmen 1px solid rgb(229, 231, 235) · Radius 8px · Schatten none** |
 | Druckvorlagen und Vorlagenkatalog · Screen-Vorlagen | 1440×900 | Kopfzeile | keine Kopfzeile |
-| Druckvorlagen und Vorlagenkatalog · Screen-Vorlagen | 1440×900 | Zeile | **Höhe 60px · Trenner 0px none rgb(89, 98, 115) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| Druckvorlagen und Vorlagenkatalog · Screen-Vorlagen | 1440×900 | Zeile | **Höhe 53px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Druckvorlagen und Vorlagenkatalog · Screen-Vorlagen | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Druckvorlagen und Vorlagenkatalog · Screen-Vorlagen | 1440×900 | Sekundärtext | keine |
 | Druckvorlagen und Vorlagenkatalog · Screen-Vorlagen | 1440×900 | Status | **admin-label.admin-status--active.badge.ui-sem-label** |
@@ -803,7 +824,7 @@ Produktbasis.
 | Bildschirmvorlagen Cafeteria · keine Datenliste | 1440×900 | Zeile | **keine Datenzeile** |
 | Bildschirmvorlagen Cafeteria · keine Datenliste | 1440×900 | Haupttext | keine |
 | Bildschirmvorlagen Cafeteria · keine Datenliste | 1440×900 | Sekundärtext | keine |
-| Bildschirmvorlagen Cafeteria · keine Datenliste | 1440×900 | Status | **keine** |
+| Bildschirmvorlagen Cafeteria · keine Datenliste | 1440×900 | Status | keine |
 | Bildschirmvorlagen Cafeteria · keine Datenliste | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Bildschirmvorlagen Cafeteria · keine Datenliste | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Bildschirmvorlagen Cafeteria · keine Datenliste | 390×844 | Kopfaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —; gefüllte Primärflächen 0** |
@@ -818,7 +839,7 @@ Produktbasis.
 | Bildschirmvorlagen Patienten · keine Datenliste | 1440×900 | Zeile | **keine Datenzeile** |
 | Bildschirmvorlagen Patienten · keine Datenliste | 1440×900 | Haupttext | keine |
 | Bildschirmvorlagen Patienten · keine Datenliste | 1440×900 | Sekundärtext | keine |
-| Bildschirmvorlagen Patienten · keine Datenliste | 1440×900 | Status | **keine** |
+| Bildschirmvorlagen Patienten · keine Datenliste | 1440×900 | Status | keine |
 | Bildschirmvorlagen Patienten · keine Datenliste | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Bildschirmvorlagen Patienten · keine Datenliste | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Bildschirmvorlagen Patienten · keine Datenliste | 390×844 | Kopfaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —; gefüllte Primärflächen 0** |
@@ -848,24 +869,24 @@ Produktbasis.
 | Kontoereignisse · Kontoereignisse | 1440×900 | Zeile | **Höhe 48px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Kontoereignisse · Kontoereignisse | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Kontoereignisse · Kontoereignisse | 1440×900 | Sekundärtext | keine |
-| Kontoereignisse · Kontoereignisse | 1440×900 | Status | **keine** |
+| Kontoereignisse · Kontoereignisse | 1440×900 | Status | keine |
 | Kontoereignisse · Kontoereignisse | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Kontoereignisse · Kontoereignisse | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Kontoereignisse · Kontoereignisse | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-left; Treffer 36×36; gefüllte Primärflächen 1** |
 | API-Schlüssel · table | 1440×900 | Kopfaktionen | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
 | API-Schlüssel · table | 1440×900 | Filtereinstiege | 0 |
 | API-Schlüssel · table | 1440×900 | Filtereinstiege mit sichtbarem Text | 0 |
-| API-Schlüssel · table | 1440×900 | Überlaufmenü ohne Einträge | **1** |
+| API-Schlüssel · table | 1440×900 | Überlaufmenü ohne Einträge | 0 |
 | API-Schlüssel · table | 1440×900 | Doppelte Aufklappmarker | 0 |
 | API-Schlüssel · table | 1440×900 | Leere Info-Symbole | 0 |
 | API-Schlüssel · table | 1440×900 | Listencontainer | **section · Rahmen 1px solid rgb(229, 231, 235) · Radius 8px · Schatten none** |
 | API-Schlüssel · table | 1440×900 | Kopfzeile | 12px / 500 / uppercase / rgb(89, 98, 115) / Grund rgb(250, 249, 247) / Höhe 33px |
-| API-Schlüssel · table | 1440×900 | Zeile | **Höhe 67px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
+| API-Schlüssel · table | 1440×900 | Zeile | **Höhe 64px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | API-Schlüssel · table | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | API-Schlüssel · table | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
 | API-Schlüssel · table | 1440×900 | Status | **admin-label.admin-status--neutral.badge** |
-| API-Schlüssel · table | 1440×900 | Zeilenaktionen | **2 sichtbar, 2 mit Text (Widerrufen, Mehr); Icons tabler: tabler-trash, tabler-dots; Treffer 136×42, 85×42** |
-| API-Schlüssel · table | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 2 mit Text (Widerrufen, Mehr); Icons tabler: tabler-trash, tabler-dots; Treffer 136×42, 85×42** |
+| API-Schlüssel · table | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-trash, tabler-dots; Treffer 36×36, 36×36** |
+| API-Schlüssel · table | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-trash, tabler-dots; Treffer 36×36, 36×36** |
 | API-Schlüssel · table | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
 | Zugriffsverlauf · keine Datenliste | 1440×900 | Kopfaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-left; Treffer 36×36; gefüllte Primärflächen 0** |
 | Zugriffsverlauf · keine Datenliste | 1440×900 | Filtereinstiege | **1** |
@@ -878,7 +899,7 @@ Produktbasis.
 | Zugriffsverlauf · keine Datenliste | 1440×900 | Zeile | **keine Datenzeile** |
 | Zugriffsverlauf · keine Datenliste | 1440×900 | Haupttext | keine |
 | Zugriffsverlauf · keine Datenliste | 1440×900 | Sekundärtext | keine |
-| Zugriffsverlauf · keine Datenliste | 1440×900 | Status | **keine** |
+| Zugriffsverlauf · keine Datenliste | 1440×900 | Status | keine |
 | Zugriffsverlauf · keine Datenliste | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Zugriffsverlauf · keine Datenliste | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Zugriffsverlauf · keine Datenliste | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-left; Treffer 36×36; gefüllte Primärflächen 0** |
@@ -908,7 +929,7 @@ Produktbasis.
 | Datenimport · keine Datenliste | 1440×900 | Zeile | **keine Datenzeile** |
 | Datenimport · keine Datenliste | 1440×900 | Haupttext | keine |
 | Datenimport · keine Datenliste | 1440×900 | Sekundärtext | keine |
-| Datenimport · keine Datenliste | 1440×900 | Status | **keine** |
+| Datenimport · keine Datenliste | 1440×900 | Status | keine |
 | Datenimport · keine Datenliste | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Datenimport · keine Datenliste | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Datenimport · keine Datenliste | 390×844 | Kopfaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —; gefüllte Primärflächen 0** |
@@ -923,7 +944,7 @@ Produktbasis.
 | Bereiche und Zeiten · Einstellungen | 1440×900 | Zeile | **Höhe 65px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Bereiche und Zeiten · Einstellungen | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / Link rgb(31, 41, 55) |
 | Bereiche und Zeiten · Einstellungen | 1440×900 | Sekundärtext | keine |
-| Bereiche und Zeiten · Einstellungen | 1440×900 | Status | admin-label.admin-status--warning.badge |
+| Bereiche und Zeiten · Einstellungen | 1440×900 | Status | **admin-label.admin-status--warning.badge** |
 | Bereiche und Zeiten · Einstellungen | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Bereiche und Zeiten · Einstellungen | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Bereiche und Zeiten · Einstellungen | 390×844 | Kopfaktionen schmal | 1 sichtbar, 0 mit Text (—); Icons tabler: tabler-plus; Treffer 36×36; gefüllte Primärflächen 1 |
@@ -938,7 +959,7 @@ Produktbasis.
 | Rezeptverlauf · table | 1440×900 | Zeile | **Höhe 57px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Rezeptverlauf · table | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Rezeptverlauf · table | 1440×900 | Sekundärtext | 13px / 400 / rgb(89, 98, 115) / kein Link |
-| Rezeptverlauf · table | 1440×900 | Status | **keine** |
+| Rezeptverlauf · table | 1440×900 | Status | keine |
 | Rezeptverlauf · table | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Rezeptverlauf · table | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Rezeptverlauf · table | 390×844 | Kopfaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right, tabler-versions; Treffer 36×36, 36×36; gefüllte Primärflächen 1** |
@@ -947,7 +968,7 @@ Produktbasis.
 | Rezeptverlauf · table | 1440×900 | Zeile | Höhe 105px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein |
 | Rezeptverlauf · table | 1440×900 | Haupttext | 14px / 600 / rgb(31, 41, 55) / kein Link |
 | Rezeptverlauf · table | 1440×900 | Sekundärtext | keine |
-| Rezeptverlauf · table | 1440×900 | Status | **keine** |
+| Rezeptverlauf · table | 1440×900 | Status | keine |
 | Rezeptverlauf · table | 1440×900 | Zeilenaktionen | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right, tabler-dots; Treffer 36×36, 36×36** |
 | Rezeptverlauf · table | 390×844 | Zeilenaktionen schmal | **2 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right, tabler-dots; Treffer 36×36, 36×36** |
 | Rezeptskalierung · table | 1440×900 | Kopfaktionen | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right; Treffer 36×36; gefüllte Primärflächen 0** |
@@ -961,7 +982,7 @@ Produktbasis.
 | Rezeptskalierung · table | 1440×900 | Zeile | **Höhe 48px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Rezeptskalierung · table | 1440×900 | Haupttext | keine |
 | Rezeptskalierung · table | 1440×900 | Sekundärtext | keine |
-| Rezeptskalierung · table | 1440×900 | Status | **keine** |
+| Rezeptskalierung · table | 1440×900 | Status | keine |
 | Rezeptskalierung · table | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Rezeptskalierung · table | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Rezeptskalierung · table | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-right; Treffer 36×36; gefüllte Primärflächen 0** |
@@ -976,7 +997,7 @@ Produktbasis.
 | Rezeptbilder · keine Datenliste | 1440×900 | Zeile | **keine Datenzeile** |
 | Rezeptbilder · keine Datenliste | 1440×900 | Haupttext | keine |
 | Rezeptbilder · keine Datenliste | 1440×900 | Sekundärtext | keine |
-| Rezeptbilder · keine Datenliste | 1440×900 | Status | **keine** |
+| Rezeptbilder · keine Datenliste | 1440×900 | Status | keine |
 | Rezeptbilder · keine Datenliste | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Rezeptbilder · keine Datenliste | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Rezeptbilder · keine Datenliste | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-arrow-left; Treffer 36×36; gefüllte Primärflächen 0** |
@@ -991,7 +1012,7 @@ Produktbasis.
 | Kochbuch · table | 1440×900 | Zeile | **Höhe 65px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Kochbuch · table | 1440×900 | Haupttext | keine |
 | Kochbuch · table | 1440×900 | Sekundärtext | keine |
-| Kochbuch · table | 1440×900 | Status | **keine** |
+| Kochbuch · table | 1440×900 | Status | keine |
 | Kochbuch · table | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Kochbuch · table | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Kochbuch · table | 390×844 | Kopfaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —; gefüllte Primärflächen 0** |
@@ -1006,7 +1027,7 @@ Produktbasis.
 | Einkaufsliste · keine Datenliste | 1440×900 | Zeile | **keine Datenzeile** |
 | Einkaufsliste · keine Datenliste | 1440×900 | Haupttext | keine |
 | Einkaufsliste · keine Datenliste | 1440×900 | Sekundärtext | keine |
-| Einkaufsliste · keine Datenliste | 1440×900 | Status | **keine** |
+| Einkaufsliste · keine Datenliste | 1440×900 | Status | keine |
 | Einkaufsliste · keine Datenliste | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Einkaufsliste · keine Datenliste | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Einkaufsliste · keine Datenliste | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-printer; Treffer 36×36; gefüllte Primärflächen 0** |
@@ -1021,7 +1042,7 @@ Produktbasis.
 | Bestellkorb · table | 1440×900 | Zeile | **Höhe 65px · Trenner 1px solid rgb(229, 231, 235) · Grund rgba(0, 0, 0, 0) · Radius 0px · Schatten none · Karte nein** |
 | Bestellkorb · table | 1440×900 | Haupttext | keine |
 | Bestellkorb · table | 1440×900 | Sekundärtext | keine |
-| Bestellkorb · table | 1440×900 | Status | **keine** |
+| Bestellkorb · table | 1440×900 | Status | keine |
 | Bestellkorb · table | 1440×900 | Zeilenaktionen | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Bestellkorb · table | 390×844 | Zeilenaktionen schmal | **0 sichtbar, 0 mit Text (—); Icons keins: keins; Treffer —** |
 | Bestellkorb · table | 390×844 | Kopfaktionen schmal | **1 sichtbar, 0 mit Text (—); Icons tabler: tabler-download; Treffer 36×36; gefüllte Primärflächen 0** |
