@@ -29,6 +29,20 @@
   padding: 0; flex: 0 0 var(--ui-control-size);
 }
 .dishboard-admin .ui-sem-control--icon-only .icon { margin: 0; }
+.dishboard-admin summary.ui-sem-control--icon-only > .ui-sem-summary-error {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  width: var(--app-space-4);
+  height: var(--app-space-4);
+  color: var(--app-danger-text);
+  background: var(--app-surface);
+  border-radius: var(--app-radius-pill);
+}
+.dishboard-admin .ui-sem-summary-error > .icon {
+  width: 100%;
+  height: 100%;
+}
 /* Semantic actions retain the native dropdown's full-width, leading alignment. */
 .dishboard-admin .ui-sem-control.dropdown-item {
   width: 100%;

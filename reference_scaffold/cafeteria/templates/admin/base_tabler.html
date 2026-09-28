@@ -19,7 +19,9 @@
 {% set tabler_admin = true %}
 {% import 'admin/_area_tabs.html' as area_nav with context %}
 {% from 'admin/_macros.html' import flash_region %}
+{% from 'ui/_semantic.html' import icon_label %}
 <body class="admin-body dishboard-admin">
+  <template id="admin-details-error-template">{{ icon_label('status.error') }}</template>
   <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
   <div class="page">
     {% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}

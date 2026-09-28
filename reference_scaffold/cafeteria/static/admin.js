@@ -334,6 +334,7 @@
     }
 
     // Disclosures retain their controls and show errors even after being closed again.
+    let detailsErrorSequence = 0;
     function syncDetailsErrors() {
         document.querySelectorAll('details').forEach(details => {
             const summary = details.querySelector(':scope > summary');
@@ -341,12 +342,29 @@
             const invalid = details.querySelector('[aria-invalid="true"]:not(:disabled):not([type="hidden"]), [data-admin-native-invalid]');
             let badge = summary.querySelector('[data-admin-details-error]');
             if (invalid && !badge) {
-                badge = document.createElement('span');
+                const template = summary.matches('.ui-sem-control--icon-only')
+                    ? document.getElementById('admin-details-error-template') : null;
+                badge = template ? template.content.firstElementChild.cloneNode(true) : document.createElement('span');
                 badge.dataset.adminDetailsError = '';
-                badge.className = 'text-danger';
-                badge.textContent = ' · Fehler';
+                badge.classList.add('text-danger');
+                if (template) {
+                    badge.classList.add('ui-sem-summary-error');
+                    badge.querySelector('span').classList.add('visually-hidden');
+                    do { badge.id = 'admin-details-error-' + ++detailsErrorSequence; }
+                    while (document.getElementById(badge.id));
+                    const descriptions = (summary.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+                    summary.setAttribute('aria-describedby', [...descriptions, badge.id].join(' '));
+                } else badge.textContent = ' · Fehler';
                 summary.append(badge);
-            } else if (!invalid) badge?.remove();
+            } else if (!invalid && badge) {
+                if (badge.classList.contains('ui-sem-summary-error')) {
+                    const descriptions = (summary.getAttribute('aria-describedby') || '').split(/\s+/)
+                        .filter(id => id && id !== badge.id);
+                    if (descriptions.length) summary.setAttribute('aria-describedby', descriptions.join(' '));
+                    else summary.removeAttribute('aria-describedby');
+                }
+                badge.remove();
+            }
         });
     }
     document.addEventListener('invalid', event => {

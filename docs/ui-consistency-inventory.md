@@ -1,5 +1,29 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Fehleranzeige an Symbolöffnern 2026-09-28, 07:28 CEST
+
+`wp-3ba9cd7236a8`, `ca314632`: ungültige native Felder erhalten am
+Symbol-Summary ein lokalisiertes Fehlericon statt überlaufendem sichtbarem
+Fehlertext. Die bestehende Semantikregistrierung liefert Icon und Übersetzung;
+ein eigenes eindeutiges Beschreibungsziel ergänzt vorhandene Hilfs-/Tooltip-IDs.
+Bei gültigen Feldern verschwindet ausschließlich diese eigene Beschreibung.
+Text-Summaries und native Fokus-/Validierungs-/Submitverträge bleiben erhalten.
+
+Root prüfte 11 neue Fälle (24.38s), 16 unveränderte Tooltipfälle (18.50s)
+und 30 Fälle im tatsächlichen Druckeditor aller drei Profile (132.54s).
+Alle GATE-/Prozess-Exits 0. JS/No-JS, 390/1440, tatsächlicher Coarse-Pointer,
+DE/EN/Fallback, Serverfehler und Beschreibung bei Hover sind berücksichtigt.
+Eigenes mobiles Archivbestätigungsbild zeigt das rote Fehlericon innerhalb
+des 36-px-Öffners; der vorherige vertikale Textüberlauf ist behoben.
+JUnits `/var/tmp/dishboard-icon-error-root-0928.xml`,
+`/var/tmp/dishboard-icon-error-tooltip-root-0928.xml` und
+`/var/tmp/dishboard-print-error-root-0928.xml`. Die gemeinsamen drei Produktdateien
+im Verbraucher sind SHA-identisch mit dem geprüften Error-Worktree.
+OCR weiterhin ohne Ergebnis; neuer Worktree zweimal nicht indexiert,
+Quellreview berücksichtigt den appweiten gemeinsamen Radius.
+Diese Integration nimmt weder den noch isolierten Druckeditor noch die
+gesamte UI-Matrix ab. Der 07:20-Livestand enthält diese Fehlerkorrektur noch nicht.
+
 ## Release und Bereitschaft 2026-09-28, 07:23 CEST
 
 Live ist `d7a5eb63324324a007b8a5f3c7c380e534c97e59` seit 07:20 CEST:
