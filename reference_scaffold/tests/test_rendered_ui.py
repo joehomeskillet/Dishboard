@@ -921,6 +921,7 @@ def test_mobile_interactive_targets_focus_and_layout_contracts(
 @_NEEDS_DB
 @pytest.mark.parametrize('path', ('/admin/cafeteria', '/admin/patienten'))
 @pytest.mark.parametrize(('width', 'height'), ((390, 844), (1440, 1100)))
+@pytest.mark.parametrize('coarse', (False, True), ids=('fine', 'coarse'))
 def test_every_admin_control_is_reachable_sized_and_non_overlapping(
     admin_app: Flask,
     admin_engine: Engine,
@@ -928,21 +929,30 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
     path: str,
     width: int,
     height: int,
+    coarse: bool,
+    tmp_path: Path,
 ) -> None:
     client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     profile = 'staff_guest' if path.endswith('/cafeteria') else 'patient'
     _save_reviewed(admin_engine, profile,
                    _staff_values() if profile == 'staff_guest' else _patient_values())
-    page = _page(browser, client.get(f'{path}?week={DAY}').get_data(as_text=True), width, height)
+    page = browser.new_page(viewport={'width': width, 'height': height}, has_touch=coarse)
+    page.set_content(_inline_css(client.get(f'{path}?week={DAY}').get_data(as_text=True)), wait_until='load')
+    page.emulate_media(reduced_motion='reduce')
     page.add_script_tag(path=str(CSS_PATH.parent / 'vendor/tabler/tabler.min.js'))
     try:
+        assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is coarse
+        icon_size = 44 if coarse else 36
         metrics_script = """
             rootSelector => {
-              const selector = 'a[href], button, input:not([type="hidden"]), select, textarea';
+              const selector = 'a[href], button, input:not([type="hidden"]), select, textarea, summary.ui-sem-control--icon-only';
               const controls = [...document.querySelector(rootSelector).querySelectorAll(selector)].filter(element => {
                 const style = getComputedStyle(element);
+                const closedDetails = element.closest('details:not([open])');
                 return element.getClientRects().length && style.visibility !== 'hidden'
-                  && !element.closest('details:not([open])');
+                  && (!closedDetails || (element.matches('summary.ui-sem-control--icon-only')
+                    && element.parentElement === closedDetails
+                    && !closedDetails.parentElement.closest('details:not([open])')));
               });
               const reachable = controls.map(element => {
                 element.focus({preventScroll: true});
@@ -953,7 +963,9 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
                   Math.min(innerHeight - 1, Math.max(0, rect.top + rect.height / 2)),
                 );
                 return {
-                  target: element.id || element.name || element.textContent.trim(),
+                  target: element.id || element.name || element.getAttribute('aria-label') || element.textContent.trim(),
+                  iconOnly: element.matches('.ui-sem-control--icon-only'),
+                  serviceSummary: element.matches('.admin-week-service > summary.ui-sem-control--icon-only'),
                   width: rect.width,
                   height: rect.height,
                   reachable: Boolean(hit && (hit === element || element.contains(hit))),
@@ -1028,10 +1040,16 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
         def assert_controls(root_selector: str = 'body') -> None:
             result = page.evaluate(metrics_script, root_selector)
             assert result['reachable']
+            if root_selector == 'body':
+                expected_summaries = page.locator('.admin-week-service > summary.ui-sem-control--icon-only:visible').count()
+                assert expected_summaries > 0
+                assert sum(item['serviceSummary'] for item in result['reachable']) == expected_summaries
             assert result['missingContainers'] == []
             assert all(
-                item['width'] >= 44 and item['height'] >= 44 for item in result['reachable']
-            ), [item for item in result['reachable'] if item['width'] < 44 or item['height'] < 44]
+                (item['width'] == icon_size and item['height'] == icon_size) if item['iconOnly']
+                else (item['width'] >= 44 and item['height'] >= 44)
+                for item in result['reachable']
+            ), result['reachable']
             assert all(item['reachable'] for item in result['reachable']), [
                 item for item in result['reachable'] if not item['reachable']
             ]
@@ -1053,6 +1071,7 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
         assert_controls('#week-publish-modal')
         page.locator('#week-publish-modal').get_by_role('button', name='Abbrechen', exact=True).click()
         page.wait_for_selector('#week-publish-modal', state='hidden')
+        page.locator('.admin-day-card, .patient-admin-day').first.screenshot(path=str(tmp_path / 'week-controls.png'))
     finally:
         page.close()
 

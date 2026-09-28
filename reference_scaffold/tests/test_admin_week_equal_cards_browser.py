@@ -161,7 +161,11 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
             )
             for control in controls.all():
                 box = control.bounding_box()
-                assert box is not None and box['width'] >= 48 and box['height'] >= 48
+                assert box is not None
+                if control.evaluate("el => el.matches('.ui-sem-control--icon-only')"):
+                    assert box['width'] == box['height'] == 36
+                else:
+                    assert box['width'] >= 48 and box['height'] >= 48
             page.locator('.admin-day-card, .patient-admin-day').last.screenshot(
                 path=str(tmp_path / f'{family}-equal-cards-{width}.png'),
             )
