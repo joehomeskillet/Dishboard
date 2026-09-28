@@ -97,7 +97,17 @@ def test_save_and_back_error_keeps_editor_values_then_returns(page_context: Page
 
     # The default submit still posts to the plain action and stays in the editor.
     page.goto(_editor('patienten'))
-    page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True).fill('Normal gespeichert')
+    output_texts = page.locator('#sec-output-texts')
+    expect(output_texts).not_to_have_attribute('open', '')
+    summary = output_texts.locator(':scope > summary')
+    summary.focus()
+    summary.press('Enter')
+    expect(output_texts).to_have_attribute('open', '')
+    note = page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True)
+    expect(note).to_be_visible()
+    note.fill('Normal gespeichert')
     _submit_menu(page)
     assert urlsplit(page.url).path == '/admin/patienten/menu'
-    expect(page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True)).to_have_value('Normal gespeichert')
+    expect(output_texts).to_have_attribute('open', '')
+    expect(note).to_be_visible()
+    expect(note).to_have_value('Normal gespeichert')

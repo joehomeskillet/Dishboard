@@ -106,10 +106,6 @@
   box-shadow: none;
   background: transparent;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .btn.ui-sem-control,
-.dishboard-admin .page-header .btn.ui-sem-control {
-  --ui-control-size: var(--app-space-12);
-}
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot [data-menu-metadata] .labels {
   margin-bottom: 0;
 }
