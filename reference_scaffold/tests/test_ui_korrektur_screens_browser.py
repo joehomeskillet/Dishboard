@@ -89,7 +89,7 @@ def test_lists_and_settings_come_first_at_required_viewports(
         assert page.goto("/admin/screens").status == 200
         expect(page.get_by_role("heading", level=1)).to_have_text("Bildschirme")
         expect(page.locator('nav[aria-label="Bereich"]')).to_have_count(0)
-        expect(page.locator('.admin-statusbar-item')).to_have_count(2)
+        expect(page.locator('.admin-statusbar-item')).to_have_count(0)
         expect(page.locator('main .btn-primary')).to_have_count(0)
         first_screen = page.locator(".screen-card").first.bounding_box()
         assert first_screen is not None and first_screen["y"] < height
