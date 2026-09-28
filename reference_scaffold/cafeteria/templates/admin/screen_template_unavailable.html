@@ -1,5 +1,5 @@
 {% from 'admin/_macros.html' import page_header, empty_state %}
-{% from 'ui/_semantic.html' import icon_label %}
+{% from 'ui/_semantic.html' import icon_button %}
 <!doctype html>
 <html lang="de-CH">
 <head>
@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">
+  <script src="{{ url_for('static', filename='vendor/tabler/tabler.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin.js') }}" defer></script>
 </head>
 <body class="admin-body dishboard-admin">
 <main class="container-fluid py-4 unavailable-container">
@@ -17,7 +19,7 @@
   <div role="alert">
     {% set unavailable_text %}Die gespeicherte Bildschirmvorlage ist zurzeit nicht erreichbar.{% if request.method == 'POST' %} Der Abschluss der Zuweisung konnte nicht bestätigt werden. Laden Sie den gespeicherten Stand, bevor Sie erneut zuweisen.{% endif %}{% endset %}
     {% call empty_state('error', t('ui.request_failed.label'), unavailable_text) %}
-      <a class="btn btn-primary" href="{{ request.path }}">{{ icon_label('actions.refresh') }}</a>
+      {{ icon_button('actions.refresh', href=request.path, emphasis='primary') }}
     {% endcall %}
   </div>
 </main>
