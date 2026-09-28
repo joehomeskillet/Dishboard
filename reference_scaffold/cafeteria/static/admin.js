@@ -60,16 +60,6 @@
         Array.from(menu.querySelectorAll('.ui-sem-action-items :is(a[href], button):not(:disabled)'))
             .find(control => control.getClientRects().length && !control.closest('[hidden], [inert]'))?.focus();
     }, true);
-    document.addEventListener('keydown', event => {
-        if (event.key !== 'Escape') return;
-        const menu = event.target.closest('.ui-sem-actions[open], .admin-filter-more[open]');
-        if (!menu) return;
-        menu.open = false;
-        menu.querySelector(':scope > summary')?.focus();
-        event.preventDefault();
-        event.stopImmediatePropagation();
-    }, true);
-
     // Legacy HTML filter slots gain chips from their rendered successful controls.
     // Explicit chips remain server-owned and work without JavaScript.
     document.querySelectorAll('.admin-filter-bar[data-filter-remove-label]').forEach(form => {
@@ -134,14 +124,33 @@
 
     // One Tabler tooltip per action. Text stays text, including record names.
     const iconActions = new Set(document.querySelectorAll('[data-admin-icon-action]'));
+    const escapeFocus = new WeakSet();
+    function focusAfterEscape(control) {
+        if (control && document.activeElement !== control && iconActions.has(control)) escapeFocus.add(control);
+        control?.focus();
+    }
     function actionTooltip(link) {
         return (link.getAttribute('aria-describedby') || '').split(/\s+/)
             .map(id => document.getElementById(id)).find(node => node?.getAttribute('role') === 'tooltip');
     }
     function bindActionTooltip(link) {
         let description = link.getAttribute('aria-describedby');
-        link.addEventListener('show.bs.tooltip', () => {
+        link.addEventListener('show.bs.tooltip', event => {
+            if (escapeFocus.has(link)) {
+                event.preventDefault();
+                return;
+            }
             description = link.getAttribute('aria-describedby');
+        });
+        link.addEventListener('blur', () => escapeFocus.delete(link));
+        link.addEventListener('mouseenter', () => {
+            // A fresh hover may explain the action even while returned focus stays here.
+            if (escapeFocus.delete(link)) window.tabler.Tooltip.getInstance(link)?.show();
+        });
+        link.addEventListener('keydown', event => {
+            if (event.target !== link || !link.matches('summary') || !['Enter', ' '].includes(event.key)) return;
+            // Native keyboard activation is deliberate even when focus never left.
+            if (escapeFocus.delete(link)) window.tabler.Tooltip.getInstance(link)?.show();
         });
         link.addEventListener('inserted.bs.tooltip', () => {
             const tip = actionTooltip(link);
@@ -185,21 +194,33 @@
         initSemanticTooltip(link);
         window.tabler?.Tooltip.getInstance(link)?.show();
     }));
-    // Only the focused tooltip owns Escape; a stale hover tip must not trap a modal.
+    // Dismiss the focused action or its own disclosure's summary before closing it.
+    // Unrelated hover tips must still let native and Tabler modals handle Escape.
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
-        let dismissedFocused = false;
+        const details = event.target.closest('.modal, dialog') ? null : event.target.closest('details[open]');
+        const summary = details?.querySelector(':scope > summary');
+        let dismissedOwned = false;
         iconActions.forEach(link => {
             const tip = actionTooltip(link);
             if (!tip?.classList.contains('show') || !tip.getClientRects().length) return;
             tip.dataset.dismissed = 'true';
             window.tabler.Tooltip.getInstance(link).hide();
-            if (link.contains(event.target) || tip.contains(event.target)) dismissedFocused = true;
+            if (link.contains(event.target) || tip.contains(event.target) || link === summary) dismissedOwned = true;
         });
-        if (dismissedFocused) {
+        if (dismissedOwned) {
             event.preventDefault();
             event.stopImmediatePropagation();
         }
+    }, true);
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const menu = event.target.closest('.ui-sem-actions[open], .admin-filter-more[open]');
+        if (!menu) return;
+        menu.open = false;
+        focusAfterEscape(menu.querySelector(':scope > summary'));
+        event.preventDefault();
+        event.stopImmediatePropagation();
     }, true);
 
     // 1. Dirty-Tracking
@@ -802,7 +823,7 @@
                 const trigger = detailTriggers.get(details) || details.querySelector(':scope > summary');
                 detailTriggers.delete(details);
                 details.removeAttribute('open');
-                trigger?.focus();
+                focusAfterEscape(trigger);
             });
         }
     });
