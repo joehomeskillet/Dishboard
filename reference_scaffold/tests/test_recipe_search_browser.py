@@ -42,7 +42,7 @@ def test_native_text_search_is_keyboard_operable_ranked_and_no_overflow(
         form = page.locator('form[action="/admin/rezepte"]')
         assert form.get_attribute('method') == 'get'
         assert form.get_attribute('data-loading') == 'Rezepte suchen'
-        control = page.get_by_label('Suche', exact=True)
+        control = page.get_by_role('searchbox', name='Suchen', exact=True)
         assert control.get_attribute('id') == 'text'
         assert control.get_attribute('maxlength') == '200'
         assert 'text-hint' in (control.get_attribute('aria-describedby') or '')
@@ -50,8 +50,8 @@ def test_native_text_search_is_keyboard_operable_ranked_and_no_overflow(
         expect(control).to_be_focused()
         assert control.bounding_box()['height'] >= 44
         control.fill('zauberwort')
-        page.get_by_role('button', name='Filtern', exact=True).focus()
-        expect(page.get_by_role('button', name='Filtern', exact=True)).to_be_focused()
+        page.get_by_role('button', name='Suchen', exact=True).focus()
+        expect(page.get_by_role('button', name='Suchen', exact=True)).to_be_focused()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         assert 'text=zauberwort' in page.url
@@ -59,8 +59,8 @@ def test_native_text_search_is_keyboard_operable_ranked_and_no_overflow(
         expect(page.locator('.recipe-row .admin-list-primary')).to_have_text('Zauberwort Auflauf')
         expect(page.locator('.recipe-row .admin-status--info')).to_have_count(0)
         expect(page.locator('main .btn-primary')).to_have_count(1)
-        expect(page.locator('form[role="search"] button[type="submit"] use')).to_have_attribute(
-            'href', re.compile(r'#tabler-filter$'))
+        expect(page.locator('form[role="search"] button[data-semantic="view.search"] use')).to_have_attribute(
+            'href', re.compile(r'#tabler-search$'))
         assert recipe_ids(page.content()) == [title_hit.public_id]
         expect(page.get_by_text('Sortiert nach Relevanz.', exact=True)).to_be_visible()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -98,7 +98,7 @@ def test_recipe_frame_measurements(search_lab, master_server, tmp_path, javascri
                         page.screenshot(path=str(shot), full_page=True)
                         print('WP07_METRICS ' + json.dumps(measurements | {'javascript': javascript, 'shot': str(shot)}))
                         assert not measurements['overflow']
-                        expect(page.locator('dl.admin-statusbar')).to_contain_text('Aktiv')
+                        expect(page.get_by_label('Archivierte einschliessen', exact=True)).not_to_be_checked()
                         expect(page.locator('main .btn-primary')).to_have_count(1)
                         assert measurements['filter'] < (330 if width == 360 else 210)
                         assert measurements['row'] < (230 if width == 360 else 180)
@@ -109,7 +109,7 @@ def test_recipe_frame_measurements(search_lab, master_server, tmp_path, javascri
                         page.keyboard.press('Enter')
                         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_be_visible()
                         page.keyboard.press('Enter')
-                        assert page.get_by_role('button', name='Filtern', exact=True).bounding_box()['height'] >= 36
+                        assert page.get_by_role('button', name='Suchen', exact=True).bounding_box()['height'] >= 36
                         expect(page.locator('.recipe-row')).to_have_count(2)
                         expect(page.locator('.recipe-row .admin-status--info')).to_have_count(0)
             finally:
