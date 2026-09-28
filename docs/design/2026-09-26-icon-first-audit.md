@@ -92,9 +92,9 @@ und kein automatischer Anbieterwechsel.
 | UI-20 | Lange Texte und Shell-Reflow geprüft; Leer-/Lade-/Fehlerzustände über alle Module offen. |
 | UI-21 | Shellmatrix 1440/1024/768/390 und weitere Breiten bestanden; Seitenmatrix samt geöffneten Zuständen noch offen. |
 | UI-22 | Echter 200-%-Zoom für Woche, Rezeptansicht und Editor bestanden; restliche Referenztypen offen. |
-| UI-23 | Vorlagen beginnen im neuen Sichtbeleg erst unterhalb 500 px. Statuskarten und Doppelanzeigen reduzieren, neu messen. |
-| UI-24 | Mindestens zehn kurze zweizeilige Fixtures und acht voll sichtbare Zeilen für Referenzlisten noch messen. |
-| UI-25 | Wochenwarnungen verdichtet; eigene Matrix 12 und bestehende Sicherheits-/Formularfälle 10 grün. Redundante Vorlagenstatus und Bereichs-/Zeitmeldungen bleiben offen. |
+| UI-23 | Vorlagen nach Korrektur 189.80 px ab Main. Pilotlisten noch darüber: Bausteine 243 px, Rezepte 285.8 px; Kopfverdichtung bleibt offen. |
+| UI-24 | Zehn vollständige Desktopdatensätze in beiden Bausteinprofilen und Rezepten nachgewiesen; Bausteine natürlich zweizeilig. Rezepte verwenden separate Ertragsspalte, kein Zweizeilen-Rezeptnachweis. |
+| UI-25 | Wochenwarnungen und Vorlagen-Hub verdichtet. Druckvorlageneditor sowie Bereichs-/Zeitmeldungen bleiben offen. |
 | UI-26 | Erst nach Migration belegbar tote Overrides entfernen; keine vorsorgliche globale Stilbereinigung. |
 | UI-27 | Shellnavigation im Zoom geprüft; aktive Parent-/Child-Zustände, Touch und reduzierte Rollen weiter prüfen. |
 | UI-28 | Neue lokale Screenshots vorhanden. Vergleichbare Vorher/Nachher-Belege für beide Piloten, Woche und schmale Ansicht noch zusammenführen. |

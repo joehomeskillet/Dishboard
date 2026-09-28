@@ -1,5 +1,28 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Pilot-Reflow 2026-09-28
+
+`b8438235` korrigiert einen im Zehn-Datensätze-Pilot sichtbaren Mobilfehler:
+Die zweizeilige 64-px-Regel war spezifischer als die mobile Auto-Höhe.
+Sichtbare Zellen liefen bis y=655 über das Zeilenende y=411 in Folgezeilen.
+Eine zusätzliche Selektorzeile in der bestehenden mobilen Regel stellt die
+automatische Höhe wieder her; Desktop bleibt unverändert.
+Unabhängig: `36 passed in 146.19s (0:02:26)`, `GATE_EXIT=0`; beide
+Bausteinprofile und Rezepte, Admin/Editor, JS/No-JS, 1440/390 und echter
+Browserzoom 200 %. Harte Prüfungen erfassen sichtbare Zell-/Textgrenzen,
+Folgezeilen, Schriftgrößen 14/13 px, Filter und native Formularverträge.
+JUnit `/var/tmp/dishboard-pilot-density-root-0928.xml`; eigene Mobil-/Desktopbilder
+im gleichnamigen Verzeichnis gesichtet. Nach Integration: 41-Seiten-Listenprüfung
+`6 passed in 18.09s`, `GATE_EXIT=0`,
+JUnit `/var/tmp/dishboard-list-mobile-fix-root-0928.xml`.
+
+UI-24: Desktop zeigt zehn vollständige Datensätze. Bausteine haben natürliche
+zweizeilige Namen; Rezepte führen Ausbeute in separater Spalte, weshalb dieser
+Teil nicht als zweizeiliger Rezeptnachweis gilt. UI-23 bleibt offen: erster
+Bausteindatensatz 243 px, Rezeptdatensatz 285.8 px ab Main. Diese Richtziel-
+Abweichung wird erfasst und nicht als bestandene Kopfverdichtung ausgegeben.
+Noch kein Deploy dieses Pakets behauptet.
+
 Statische Quellenzählung aller Templates; Laufzeitzweige und dynamische Labels
 brauchen Browserprüfung. Öffentliche/Signage-Einträge erteilen keine Migrationsfreigabe.
 Nullzeilen bleiben erhalten, damit jede Quelle erfasst ist.
