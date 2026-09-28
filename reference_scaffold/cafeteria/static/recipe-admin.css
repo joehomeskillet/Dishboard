@@ -8,6 +8,7 @@
 .dishboard-admin .recipe-list .ui-sem-actions { min-width: 0; }
 .dishboard-admin .recipe-list .ui-sem-action-items { white-space: normal; }
 .dishboard-admin .recipe-list .ui-sem-actions > summary { display: flex; }
+.dishboard-admin .admin-compact-toolbar[data-sticky-form="recipe-editor"] > a.ui-sem-control { min-height: var(--app-button-size); }
 .recipe-tag-options { display: grid; gap: var(--app-space-2); grid-template-columns: minmax(0, 1fr); }
 .recipe-image-thumb { width: calc(var(--app-space-6) * 4); height: calc(var(--app-space-6) * 4); object-fit: contain; }
 .recipe-recovery > div { min-width: 0; overflow-wrap: anywhere; }
