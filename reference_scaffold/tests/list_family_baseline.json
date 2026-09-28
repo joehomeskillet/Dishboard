@@ -32,12 +32,7 @@
     "bildschirmvorlagen-patienten": [],
     "benutzer": [],
     "benutzerprotokoll": [],
-    "api-schluessel": [
-      "1440:ueberlauf_leer",
-      "1440:zeilenaktion_text:tabelle-1",
-      "390:ueberlauf_leer",
-      "390:zeilenaktion_text:tabelle-1"
-    ],
+    "api-schluessel": [],
     "zugriffsverlauf": [],
     "importe": [],
     "datenimport": [],

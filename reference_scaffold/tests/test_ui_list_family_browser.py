@@ -195,7 +195,7 @@ MEASURE_JS = r"""() => {
   const emptyOverflow = [...main.querySelectorAll('details, .dropdown')].filter(menu => {
     const trigger = menu.querySelector(':scope > summary, :scope > [data-bs-toggle="dropdown"]');
     if (!trigger || !visible(trigger) || !iconNames(trigger).includes('tabler-dots')) return false;
-    return ![...menu.querySelectorAll('a[href], button, input[type=submit]')].some(el =>
+    return ![...menu.querySelectorAll('a[href], button, input[type=submit], summary')].some(el =>
       !trigger.contains(el) && !el.hidden && !el.closest('[hidden], [inert]'));
   }).length;
   const doubleMarkers = [...main.querySelectorAll('summary')].filter(summary => {
@@ -280,6 +280,42 @@ def test_filter_and_empty_overflow_measurement():
             assert measured['emptyOverflow'] == 1
         finally:
             browser.close()
+
+
+def test_native_summary_is_an_entry_but_empty_hidden_and_inert_menus_stay_empty():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox'])
+        try:
+            page = browser.new_page()
+            entries = [
+                ('', 1),
+                ('<a href="/details" hidden>Details</a>', 1),
+                ('<div inert><button>Details</button></div>', 1),
+                ('<details hidden><summary>Details</summary><p>Content</p></details>', 1),
+                ('<details inert><summary>Details</summary><p>Content</p></details>', 1),
+                ('<a href="/details">Details</a>', 0),
+                ('<details><summary>Details</summary><p>Content</p></details>', 0),
+            ]
+            for entry, expected in entries:
+                for opened in ('', ' open'):
+                    page.set_content(f'''<main><details{opened}>
+                        <summary><svg><use href="#tabler-dots"></use></svg></summary>
+                        {entry}</details></main>''')
+                    assert page.evaluate(MEASURE_JS)['emptyOverflow'] == expected, (entry, opened)
+        finally:
+            browser.close()
+
+
+def test_regenerated_comparison_preserves_manual_visual_findings():
+    findings = '## Sichtprüfung und verbleibende Arbeit (Prüfung)\n\nUngeprüfte Rollen bleiben offen.\n'
+    for previous in (
+        '# Alter Bericht\n\n' + findings + '\n## Messwerte\n\nAlte Tabelle\n',
+        '# Alter Bericht\n\n## Messwerte\n\nAlte Tabelle\n\n' + findings,
+    ):
+        regenerated = _markdown([], {}, previous)
+        assert findings.strip() in regenerated
+        assert regenerated.count('## Sichtprüfung und verbleibende Arbeit') == 1
+        assert 'Alte Tabelle' not in regenerated
 
 
 def test_c3_measurements_distinguish_empty_help_native_markers_and_responsive_text():
@@ -564,7 +600,7 @@ def _deviations(desktop: list[dict], mobile: list[dict], modes: dict[str, str | 
     return sorted(codes)
 
 
-def _markdown(desktop: list[dict], mobile_by_slug: dict[str, list[dict]]) -> str:
+def _markdown(desktop: list[dict], mobile_by_slug: dict[str, list[dict]], previous_report: str = '') -> str:
     metric_values: dict[str, list[str]] = {}
     lines_raw: list[tuple[str, str, str, str, str | None]] = []
     typography = {'Kopfzeile': 'header_sig', 'Haupttext': 'primary_sig', 'Sekundärtext': 'secondary_sig'}
@@ -639,6 +675,10 @@ def _markdown(desktop: list[dict], mobile_by_slug: dict[str, list[dict]]) -> str
         *body,
         '',
     ]
+    _, marker, findings = previous_report.partition('## Sichtprüfung und verbleibende Arbeit')
+    if marker:
+        manual_section = marker + findings.split('\n## Messwerte', 1)[0].rstrip()
+        summary[summary.index('## Messwerte'):summary.index('## Messwerte')] = [manual_section, '']
     return '\n'.join(summary)
 
 
@@ -741,7 +781,8 @@ def test_list_family_across_admin_pages(admin_app, admin_engine, live_server, tm
     assert not new_codes, 'Neue Abweichungen:\n' + '\n'.join(new_codes)
     if report:
         REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        REPORT_PATH.write_text(_markdown(desktop, mobile), encoding='utf-8')
+        previous_report = REPORT_PATH.read_text(encoding='utf-8') if REPORT_PATH.exists() else ''
+        REPORT_PATH.write_text(_markdown(desktop, mobile, previous_report), encoding='utf-8')
         BASELINE_PATH.write_text(json.dumps({'pages': current}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(f'LIST_FAMILY_REPORT={REPORT_PATH}')
         print(f'LIST_FAMILY_BASELINE={BASELINE_PATH}')
