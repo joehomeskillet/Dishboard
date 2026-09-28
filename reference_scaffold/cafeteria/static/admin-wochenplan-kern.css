@@ -79,9 +79,12 @@
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course {
   grid-column: 1 / -1;
   order: initial;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course-exception {
   grid-column: 1 / -1;
+  overflow-wrap: anywhere;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .card-body {
   display: grid;
@@ -129,11 +132,6 @@
   align-items: baseline;
   gap: 0 var(--app-space-2);
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-week-image-missing {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  max-width: 96px;
-}
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot :is(.admin-week-note, .menu-description, .shared-note) {
   grid-column: 1 / -1;
 }
@@ -171,9 +169,6 @@
 @media (min-width: 768px) {
   .dishboard-admin .admin-main[data-layout="workspace"] .admin-menu-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course {
-    grid-column: auto;
   }
 }
 @media (min-width: 1200px) {
@@ -240,8 +235,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meal .admin-week-course {
-    grid-row: 4;
-    grid-column: auto;
+    grid-row: auto;
+    grid-column: 1 / -1;
   }
   .dishboard-admin .admin-main[data-layout="workspace"] .patient-admin-meal .admin-menu-options {
     grid-row: 3;
