@@ -1,5 +1,23 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Release- und Diagnosezustand 2026-09-28, 04:54 CEST
+
+Zug 04:07 auf `b47c957d` ist vollständig beendet: `NEW_FAILURES=19`,
+`verdict=1`, kein Push/Deploy. 18 Fehler betreffen später integrierte Korrekturen;
+ein weiterer Rezeptfall liest nach Anlegen eine leere Zutatenzeilen-ID.
+Sein isolierter Originalfall bestand; Ursache und Synchronisation bleiben in Prüfung.
+Alle 55 isolierten Browserdateien wurden ausgeführt. Log:
+`/var/tmp/dishboard-release-train/20260928T020700Z-Nz1M6U`.
+Live `c8c2e3c` bleibt healthy, Login 200 und gleich `github/main`.
+Statusprüfung zweimal Exit 1: seit 142 Minuten kein Deploy; Warnung bleibt bestehen.
+
+Die Referenzlistenprüfung scheitert auch im identischen Retry an vier
+CSS-Zoom-Überläufen (`4 failed, 6 passed in 249.99s`). Keine Grenzlockerung;
+die Testanpassung bleibt isoliert. Importdetails zeigen zusätzlich einen
+reproduzierten Escape-Konflikt: ein Hover-Tooltip wird versteckt und durch
+Fokusübergabe beim Schließen des Details erneut geöffnet. Root-Cause-Diagnose
+vorhanden, Shared-JS noch unverändert; die neue Importprüfung bleibt rot.
+
 ## Strikte Kontextübersetzungen 2026-09-28
 
 `ca65fd60` ergänzt genau `recipe.import.row_details`,

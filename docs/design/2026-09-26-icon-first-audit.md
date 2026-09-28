@@ -31,11 +31,18 @@ geprüft: healthy, Login 200, identisch mit `github/main`.
 Ein erfolgreicher unbeaufsichtigter Push/Deploy nach der Auth-Reparatur steht
 damit weiterhin aus.
 
-Die Fahrt 04:07 prüft unveränderlich `b47c957d040269e973f5b8ed51d0547fe6f1ac8d`.
-Zwischenstand 04:27: A `2016 passed`, D0 `640 passed`, B `7 failed, 143 passed`,
-C `3 failed, 572 passed`; die isolierten Browserdateien laufen noch.
+Die Fahrt 04:07 prüfte unveränderlich `b47c957d040269e973f5b8ed51d0547fe6f1ac8d`
+und stoppte um 04:46 vor Push/Deploy: `NEW_FAILURES=19`, `verdict=1`.
+A `2016 passed`, D0 `640 passed`, B `7 failed, 143 passed`,
+C `3 failed, 572 passed`; alle 55 isolierten Browserdateien sind beendet.
 Log: `/var/tmp/dishboard-release-train/20260928T020700Z-Nz1M6U`.
-Später integrierte Korrekturen gehören nicht zu diesem Kandidaten.
+18 Fehler betreffen inzwischen integrierte Korrekturen. Neu hinzu kam eine leere
+Zutatenzeilen-ID nach dem Anlegen im Rezept-Browserfall `[True-1440]`;
+der isolierte Originalfall bestand anschließend. Diagnose und gezielte
+Synchronisationsprüfung laufen getrennt; keine behauptete Reparatur aus diesem Einzelpass.
+Später integrierte Korrekturen gehören nicht zu diesem Kandidaten. Aktuelle
+Statusprüfung 04:54 zweimal Exit 1 wegen Überfälligkeit: Deploy-Alter 142 Minuten,
+Live weiterhin `c8c2e3c`, healthy, Login 200, gleich `github/main`.
 
 Release-Korrektur `wp-5348075ecbdb`, `64ccc7aa`: entfernt die veraltete
 48-px-Übersteuerung der Wochen-Symbolaktionen und passt ersetzte
@@ -54,7 +61,8 @@ jeweils Exit 0. Eigene Patientenaufnahme gesichtet: Tageshöhe 285 statt
 
 Getrennte offene Abnahmebefunde: aktualisierte Referenzlisten-Typografie
 legt in vier Fällen horizontalen Überlauf bei CSS-Zoom 200 % offen
-(`4 failed, 6 passed in 271.23s`); diese Teständerung ist nicht integriert.
+(`4 failed, 6 passed in 271.23s`, identischer Retry `4 failed, 6 passed in 249.99s`);
+diese Teständerung ist nicht integriert. Beide Fehlernachweise bleiben erhalten.
 Die vorherigen Shell-/Pilotnachweise verwenden echten Browserzoom mit
 CDP-Zoomnachweis und bleiben davon getrennt. Ein Quellen-/Sichtaudit fand
 zudem fehlende kurze Aktionsnamen in geöffneten Rezept-/Vorlagenmenüs

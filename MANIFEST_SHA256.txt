@@ -462,7 +462,7 @@ c41c76afc5e7b9743f4c445409bccffd7e9860a5ffefae6f29fae6175e1b3f9b  docs/design/20
 450cab00a0673fec299e6ae91b610ed5dd464d82776eb46f41647117ea55bfb5  docs/design/2026-09-13-menu-accompaniments-sdd.md
 15daf69a9415bf2dce9dc11f9d50a7d3415d851df98f45568868e3d9efa529d1  docs/design/2026-09-13-recipe-reading-document.md
 6d79f15d9294e69af9dc5f3732bd605896332328cd32093c9e124098d442d77c  docs/design/2026-09-16-kitchen-calendar-month.md
-cc62799befb95ae9f389ef5a71bf0764cb8494464cb67c71fb363de715bcb586  docs/design/2026-09-26-icon-first-audit.md
+99755a376bf04cd85d81677602992c4a3d61a83e75b3080df21c980dfa598d25  docs/design/2026-09-26-icon-first-audit.md
 7010a9d28823abc619abc5890866b22df097826a83b9488bac72cab60f120b21  docs/design/2026-09-26-icon-first-contract.md
 1e7e09b733871ac347813279f676bc90dc01be53ee2792207e5f977ab97737a7  docs/design/2026-09-26-icon-first-simplification-spec.md
 816611b6291889adb6c68aaa4c222b5801f09fee42954b217593f514c9ce09c0  docs/design/2026-09-26-list-family-comparison.md
@@ -642,7 +642,7 @@ fb9bb367915a4c9d933f67727997c411fa2dc45d4b794001a7eda3425d35cbb3  docs/superpowe
 d1cd6cea051f85fbe97683a5e55743aa3ccee22e2cc1ab2bbf0e37c76555b2b4  docs/superpowers/specs/2026-09-02-dishboard-admin-redesign-design.md
 36e5592ac293490e1455de9601ff00c7cf958f44dfbfe14aff8f586dc6304717  docs/superpowers/specs/2026-09-05-dishboard-api-mcp-fhir-design.md
 55840fa7ffd684696de1350774f022bf6332de4b2add545e51e9c58867229ea2  docs/superpowers/ui003-delivery-0906.md
-f0c0404d6cd6fcb6ce85ac81341f8ed6116461b5a7bd89e944a052e538961b14  docs/ui-consistency-inventory.md
+1e2ce9117df51b9a49197b085f5575c933ee8bf06b699f44dc40c092508cf1cc  docs/ui-consistency-inventory.md
 f8d10484847ac84c7e90949084194e6ee03d716d4221f457909cb1fc4280b57f  docs/ui-semantic-audit.md
 4f520503970deb613e3ce0d359305a4ac946283c02e982c6f1524536c5f928e9  entra/app-roles-manifest.json
 189293e103f3c239a293eacab021513ec6bf09dad79ea39747c3aa4a7ef65dfd  entra/configure-entra-app.ps1
