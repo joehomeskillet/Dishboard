@@ -354,9 +354,11 @@ def test_reading_document_and_explicit_revision_calculator_keep_exact_stand(a3):
 def test_document_partial_retains_legacy_and_exact_child_contents_without_current_reads(prepared):
     from flask import Flask
     from pathlib import Path
+    from cafeteria.ui import register_ui
     from cafeteria.admin.recipe_document import build_recipe_document
     from test_recipe_pdf import prepared_revision, recipe, revision
     app = Flask(__name__, template_folder=str(Path(__file__).resolve().parents[1] / 'cafeteria/templates'))
+    register_ui(app)
     from cafeteria.template_filters import datetime_short
     app.add_template_filter(datetime_short, 'datetime_short')
     app.add_url_rule('/recipes/<recipe_id>/images/<sha256>', endpoint='admin.recipe_asset')
@@ -392,6 +394,7 @@ def test_document_partial_retains_legacy_and_exact_child_contents_without_curren
 def test_long_reading_document_html_keeps_all_sixty_rows_and_forty_steps():
     from flask import Flask
     from pathlib import Path
+    from cafeteria.ui import register_ui
     from cafeteria.admin.recipe_document import build_recipe_document
     from cafeteria.template_filters import datetime_short
     from test_recipe_pdf import recipe
@@ -400,6 +403,7 @@ def test_long_reading_document_html_keeps_all_sixty_rows_and_forty_steps():
     values['steps'] = [{'instruction': f'Anleitung Ende {n}\nFortsetzung {n}', 'duration_minutes': None,
                         'image_sha256': None} for n in range(40)]
     app = Flask(__name__, template_folder=str(Path(__file__).resolve().parents[1] / 'cafeteria/templates'))
+    register_ui(app)
     app.add_template_filter(datetime_short, 'datetime_short')
     with app.test_request_context():
         html = app.jinja_env.get_template('admin/_recipe_document.html').render(
