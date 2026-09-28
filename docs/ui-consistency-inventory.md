@@ -37,8 +37,12 @@ Listenfamilienmessung `75453eee`: 41 Seiten/82 Blöcke, Kopfvergleich nur für
 vorhandene Köpfe; Links mit gleicher Typografie gelten nicht mehr als abweichend.
 Hintergrund/Höhe bleiben Messwerte. REPORT-Modus darf keine neue Abweichung in
 die Baseline übernehmen. Eigener Zweitlauf `4 passed in 18.46s`, `GATE_EXIT=0`.
-Natives Details-Summary im API-Überlauf wird vom alten Leer-Menü-Zähler noch
-fälschlich als leer bewertet; kein fehlender Produktzugang. Weitere konkrete
+Nachmessung `4c8cac50`: native verschachtelte Summaries zählen als Einträge;
+leere, verborgene und inerte Menüs bleiben erkannt. Vier alte API-Codes entfernt,
+keine Baseline erhöht. Eigener Zweitlauf `6 passed in 19.50s`, `GATE_EXIT=0`,
+JUnit `/var/tmp/dishboard-list-native-root-0928.xml`. Die manuelle Sichtsektion
+des Vergleichsberichts bleibt beim Regenerieren unverändert erhalten.
+Weitere konkrete
 Restpunkte und UI-01 bis UI-28: `docs/design/2026-09-26-icon-first-audit.md`.
 
 Listenhülle `e169a69d`: `/admin/bestellung` und `/admin/vorlagen`, Admin, 390/1440 px.
@@ -50,7 +54,20 @@ Unabhängig: `test_list_shell_browser.py`: `1 passed in 15.62s` und
 `test_admin_shared_patterns_browser.py`: `55 passed in 76.10s (0:01:16)`,
 jeweils `GATE_EXIT=0`. Eigene Screenshots:
 `/var/tmp/dishboard-list-shell-root-0928/`. Keine Behauptung appweiter
-Gestaltungsabnahme: Vorlagenstatus und Anlegen-Disclosures sind noch zu verdichten.
+Gestaltungsabnahme: Anlegen-Disclosures und andere Reststellen werden weiter
+klassifiziert; Vorlagenstatus ist im folgenden Paket verdichtet.
+
+Vorlagen `8624fe48`: `/admin/vorlagen`, Admin/Editor, beide Profile und Rezept,
+aktive Revision mit neuerem Entwurf, JS/No-JS und 390/1440 px. Vier Statuskarten
+und doppelte aktive Vorlage entfernt; aktive Revision und neuer Entwurf bleiben
+unterscheidbar, gespeicherte und veröffentlichte Druckziele bleiben getrennt.
+Gleiche Fixture: erste Desktopzeile 517.19→189.80 CSS px ab Main; mobile erste
+Zeile 985.89→354 px. Vorhandener nativer `:target`-Tabwechsel bleibt erhalten.
+Eigener Lauf `1 passed in 151.70s (0:02:31)`, `GATE_EXIT=0`; JUnit und gesichtete
+Desktop-/Mobilbilder `/var/tmp/dishboard-template-calm-root-0928*`.
+Auf integrierter Basis bestehende Output-Matrix inklusive echtem Zoom,
+Leer-/Fehler-/Konfliktzuständen: `16 passed in 77.99s (0:01:17)`, `GATE_EXIT=0`,
+JUnit `/var/tmp/dishboard-template-output-root-0928.xml`.
 
 Wochenwarnungen `6ef6fb40`: `/admin/cafeteria` und `/admin/patienten`, Mittag/Abend,
 fehlende/gemischte/vollständige Angaben, 390/1440 px. Wiederholte Warnplaketten
@@ -84,7 +101,10 @@ Release-Messwerkzeug `69e87ddd`: `show_text=` wird nicht mehr als `text=` gelese
 Sechs unabhängige Unitfälle bestanden; echte entfernte Labels und gesperrte
 Testdateien bleiben erkannt. Editorvergleich fällt dadurch von acht vermeintlich
 entfernten Texten auf die zwei tatsächlich entfernten Labels zurück.
-Diese drei Pakete sind integriert, aber noch nicht deployed.
+Diese Pakete sowie Vorlagenverdichtung und Listen-Nachmessung sind integriert,
+aber noch nicht deployed. Gemeinsame API-/Rezepteditor-Browsermatrix auf
+integrierter Basis: `16 passed in 67.18s (0:01:07)`, `GATE_EXIT=0`,
+JUnit `/var/tmp/dishboard-icon-combined-root-0928.xml`.
 
 `/admin/rezepte`, Editor, Ansicht, Revisionen und Rezeptdruckvorlagen: Admin,
 Nur-Lesen und archiviert, JS/No-JS, 320/390/768/1024/1440/1920/2560 px sowie

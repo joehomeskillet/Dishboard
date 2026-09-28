@@ -11787,7 +11787,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "7234b7bab5ab348a43fb5ab7581ac15a639b2c049d3d8fd77ca3eeab8da9d68e",
+      "sha256": "1e6821e0a96acd5f874774135c69e3e0ef70c721e00f4a667148033003abba69",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],

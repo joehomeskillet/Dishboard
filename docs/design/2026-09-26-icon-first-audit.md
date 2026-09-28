@@ -25,7 +25,9 @@ Integriert nach eigener Diffprüfung und erneutem Gate: API-Symbolaktionen
 (`wp-229caefe57d9`, `6ef6fb40`). Danach integriert: Rezepteditor
 (`wp-811ff239d8e4`, `24be3ef8`), Wochen-Reflow (`wp-f1ea058b4ab3`, `1825cdd7`)
 und präzise Label-Schlüsselworterkennung (`wp-da3257c1d042`, `69e87ddd`).
-Vorlagenverdichtung und weitere native Aktionen bleiben isolierte Pakete.
+Vorlagenverdichtung (`wp-1491fd9d623a`, `8624fe48`) und native Listenmessung
+(`wp-14feb78d051f`, `4c8cac50`) sind ebenfalls unabhängig geprüft integriert.
+Weitere native Aktionen und die Pilot-Dichtemessung bleiben isolierte Pakete.
 Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
 Manifestpflege vor Aufnahme in `integrate/icon-first-r18`. Paketverträge lokal
 unter `/var/tmp/dishboard-*-0928*.json`. Die nach `c8c2e3c` integrierten Pakete
