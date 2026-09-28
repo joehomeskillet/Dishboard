@@ -43,7 +43,7 @@ def locale_labels(worktree: str, rev: str) -> dict[str, str]:
 def visible_texts(line: str, labels: dict[str, str]) -> set[str]:
     found = {text.strip() for text in TAG_TEXT.findall(line)}
     found |= {match[1].strip() for match in KWARG_TEXT.findall(line)}
-    if 'text=' not in line:
+    if not re.search(r'\btext\s*=', line):
         found |= {labels[f'{key}.label'] for key in REGISTRY_CALL.findall(line) if f'{key}.label' in labels}
     return found
 
