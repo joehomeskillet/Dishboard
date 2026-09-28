@@ -29,7 +29,9 @@ JUnit: `/var/tmp/dishboard-icon-api-root-0928.xml` und
 `/var/tmp/dishboard-icon-api-root-browser-0928.xml`. Stabile Screenshotbelege unter
 `/var/tmp/icon-api-0928-browser-stable/`, Mobilbestätigung auch unabhängig gesichtet.
 OCR aktuell HTTP 402, kein OCR-PASS. Bestehende deutsche API-Spezialtexte sind
-weiter eine Lokalisierungslücke. Noch kein Deploy dieser Änderungen behauptet.
+weiter eine Lokalisierungslücke. Diese Welle ist als `c8c2e3c` seit 02:32 CEST
+live (exakte Revision, gesund, Login HTTP 200); keine authentifizierte
+Produktions-Sichtprüfung behauptet.
 
 Listenfamilienmessung `75453eee`: 41 Seiten/82 Blöcke, Kopfvergleich nur für
 vorhandene Köpfe; Links mit gleicher Typografie gelten nicht mehr als abweichend.
@@ -58,8 +60,31 @@ Angaben bleiben ungeprüft. Unabhängige Matrix: `12 passed in 39.21s`; bestehen
 Prüf-/Formularfälle a04–a07: `10 passed, 27 deselected in 32.39s`, beide
 `GATE_EXIT=0`. JUnit `/var/tmp/dishboard-week-warnings-root-0928.xml` und
 `/var/tmp/dishboard-week-safety-root-0928.xml`. Vorher/Nachher visuell geprüft.
-Bereits vorher sichtbar und separat zu beheben: überlappende lange Gangnamen
-bei Patienten sowie abgeschnittene Bildfehlermeldungen bei Cafeteria.
+Bereits vorher sichtbare überlappende Gangnamen und abgeschnittene Bildhinweise
+sind durch das folgende separate Paket korrigiert.
+
+Rezepteditor `24be3ef8`, `/admin/rezepte/<id>/bearbeiten`: gemeinsame native
+Symbol-Summaries, lesbare Sicherheitsbestätigung, unveränderte POST- und
+Fokusverträge. Eigene getrennte Läufe: neue Matrix `12 passed in 50.03s`,
+Semantik/Makros `250 passed in 71.26s`, vorhandener Editor `12 passed in 57.62s`,
+Dichte `21 passed in 93.08s`, Suche `7 passed in 24.23s`; alle `GATE_EXIT=0`.
+JUnit `/var/tmp/dishboard-editor-{icons,shared,existing,density,search}-root-0928.xml`.
+Die Dichtefälle beweisen noch nicht das Pilotkriterium von acht sichtbaren
+Datensätzen bei mindestens zehn angelegten Einträgen.
+
+Wochen-Reflow `1825cdd7`: lange Suppen-/Dessertnamen erhalten eigene Grid-Zeilen
+und Wortumbruch; fehlendes Menübild bleibt vollständiger Sekundärtext.
+Eigene Matrix `20 passed in 66.73s (0:01:06)`, `GATE_EXIT=0`, beide Profile,
+JS/No-JS, 1440/1024/768/390 px und echter Browserzoom 200 %.
+JUnit `/var/tmp/dishboard-week-reflow-root-0928.xml`, Bilder im gleichnamigen
+Verzeichnis; Patient Desktop und Cafeteria Mobil unabhängig gesichtet.
+Veröffentlichungssperre und native Formularfelder bleiben geprüft.
+
+Release-Messwerkzeug `69e87ddd`: `show_text=` wird nicht mehr als `text=` gelesen.
+Sechs unabhängige Unitfälle bestanden; echte entfernte Labels und gesperrte
+Testdateien bleiben erkannt. Editorvergleich fällt dadurch von acht vermeintlich
+entfernten Texten auf die zwei tatsächlich entfernten Labels zurück.
+Diese drei Pakete sind integriert, aber noch nicht deployed.
 
 `/admin/rezepte`, Editor, Ansicht, Revisionen und Rezeptdruckvorlagen: Admin,
 Nur-Lesen und archiviert, JS/No-JS, 320/390/768/1024/1440/1920/2560 px sowie

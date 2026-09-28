@@ -8,18 +8,28 @@ Stand der Zählung: 2026-09-26, Worktree `docs/icon-first-inventory-0926`. Kein 
 
 Die folgenden Abschnitte bleiben das historische Quelleninventar. Ihre offenen
 Zeilen werden nicht allein durch Release 18 oder einen bestandenen Listenvergleich
-zu einer appweiten Abnahme. Aktuelle Ausgangsbasis ist
-`0b6c40f07ba38e95e91b36c602db2e19e68d35b7`, Produktion seit 01:19 CEST gesund.
-Der Timer ist aktiv, nächste reguläre Fahrt bei Übernahme: 02:07 CEST.
+zu einer appweiten Abnahme. Aktuelle Produktionsrevision ist
+`c8c2e3c11149b41523a50a34dcba64cdc60230a6`, seit 02:32 CEST gesund,
+Login HTTP 200 und `github/main` exakt gleich. Der Timer bleibt bei `*:07` aktiv.
+Die Fahrt 02:07 schloss mit `NEW_FAILURES=0` ab (3137 Tests, 13 bekannte Fehler),
+scheiterte dann beim Push am fehlenden systemd-Login-Kontext. Derselbe geprüfte
+SHA wurde manuell gepusht und deployed. Dienst-Drop-in setzt jetzt `User=root`
+und `SetLoginEnvironment=yes`; separater systemd-Push-Dry-Run bestand. Beleg:
+`/var/tmp/dishboard-release-train/20260928T000700Z-lbkljO/recovery.md`.
+Die nächste vollständig unbeaufsichtigte Fahrt steht noch aus.
 
 Integriert nach eigener Diffprüfung und erneutem Gate: API-Symbolaktionen
 (`wp-cb8f25515d05`, `6a656cd7`/`45d12e76`), Listenhülle
 (`wp-edf89d346095`, `e169a69d`) und faire Listenmessung
 (`wp-ae3225c63108`, `75453eee`) sowie kompakte Wochenwarnungen
-(`wp-229caefe57d9`, `6ef6fb40`). Rezepteditor und Vorlagenverdichtung sind nächste
-isolierte Pakete. Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
+(`wp-229caefe57d9`, `6ef6fb40`). Danach integriert: Rezepteditor
+(`wp-811ff239d8e4`, `24be3ef8`), Wochen-Reflow (`wp-f1ea058b4ab3`, `1825cdd7`)
+und präzise Label-Schlüsselworterkennung (`wp-da3257c1d042`, `69e87ddd`).
+Vorlagenverdichtung und weitere native Aktionen bleiben isolierte Pakete.
+Je ein Worktree, Testpool und Dateibesitzer; Prüfung und
 Manifestpflege vor Aufnahme in `integrate/icon-first-r18`. Paketverträge lokal
-unter `/var/tmp/dishboard-*-0928*.json`. Noch kein neuer Deploy behauptet.
+unter `/var/tmp/dishboard-*-0928*.json`. Die nach `c8c2e3c` integrierten Pakete
+sind noch nicht live.
 
 Eigene neue Prüfungen auf R18, Pool `worker-test-api-int2`, über
 `rtk bash tools/release/gate.sh <pool> <worktree> -q <datei>`:

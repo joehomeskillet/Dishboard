@@ -10398,7 +10398,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "39ac560c46e2964f47a022aa7873472de2bab6d1e973d8a47a593825cfc02025",
+      "sha256": "9b68c4d34823f15676b4aee41a757c0bf864649257771db328683b103031395f",
       "used_by_endpoints": [
         "admin.recipe_edit",
         "admin.recipe_new",
@@ -10461,7 +10461,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "9fbb2b917a8ce0c08a4d4f39e246ae4d793a9c42bc5c1b41440a359aae68a746",
+      "sha256": "510461d0dec3b2b8a15235ddd33f8985bbdac2016765c757695f58b247c2672a",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -11572,7 +11572,7 @@
         "admin/_macros.html",
         "admin/_rezepte_fields.html"
       ],
-      "sha256": "7b8c65ce34983a0f1e463c0156fccd9fefac765740962f0604614d3f8e90e242",
+      "sha256": "e778d8b851c82d5e82f387d919ab876cf7cc1eaa95758de8a5e0b16b6a4021ae",
       "used_by_endpoints": [
         "admin.recipe_edit",
         "admin.recipe_new",
@@ -12473,7 +12473,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "2feb333beaaccdc6801963f4dcfa2cd864b39a6a0f56cbfd9f7dad4555b5096f",
+      "sha256": "2f57e3fd571cc1be779f93c07da1e57d4a239115c708f7883adb657444eff2ac",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
