@@ -17,7 +17,6 @@
       <th scope="col">Aktionen</th>
     </tr>
   </thead>
-  <tbody>
   {% for label, endpoint in [(area_names.staff_guest, 'cafeteria'), (area_names.patient, 'patient')] %}
   {% for channel, channel_label, day_suffix in [('public', 'Web', 'today'), ('signage', 'Bildschirm', 'day')] %}
   {% set screen_id = endpoint ~ '-' ~ channel %}
@@ -32,14 +31,20 @@
   {% if channel == 'public' %}
     {% set row.items = row.items + [{'key': 'actions.edit', 'href': url_for('admin.screen_template_assignment', family='cafeteria' if endpoint == 'cafeteria' else 'patienten'), 'aria_label': label ~ ' Vorlage zuweisen', 'text': 'Zuweisen'}] %}
   {% endif %}
-    <tr class="screen-card"{% if loop.first %} id="screens-{{ 'cafeteria' if endpoint == 'cafeteria' else 'patienten' }}"{% endif %} aria-labelledby="{{ screen_id }}-title">
-      <th scope="row" data-label="Bildschirm">
+  <tbody class="screen-card"{% if loop.first %} id="screens-{{ 'cafeteria' if endpoint == 'cafeteria' else 'patienten' }}"{% endif %} aria-labelledby="{{ screen_id }}-title">
+    <tr>
+      <th scope="rowgroup" id="{{ screen_id }}-heading" data-label="Bildschirm">
         <span class="admin-list-primary" id="{{ screen_id }}-title">{{ label }} · {{ channel_label }}</span>
         {% if channel == 'public' %}
         <p class="screen-status admin-list-secondary mb-0">
           {% if assignments[output_profile].version == 0 %}{{ status_label('Vorgabe', 'neutral') }}{% else %}{{ status_badge_sem('status.active') }}{% endif %} Vorlage für Web-Wochenplan: <strong>{{ assignments[output_profile].template.name }}</strong>
         </p>
         {% endif %}
+      </th>
+      <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items) }}</td>
+    </tr>
+    <tr>
+      <td colspan="2" headers="{{ screen_id }}-heading">
         <details class="screen-preview-details">
           <summary class="card-header gap-2 px-0">{{ icon('eye') }}Vorschau{{ icon('chevron-right', class='ms-auto') }}</summary>
           <div class="pt-2">
@@ -75,12 +80,11 @@
         <p class="text-secondary small mb-0">Vorschau des aktuell veröffentlichten Plans.</p>
           </div>
         </details>
-      </th>
-      <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items) }}</td>
+      </td>
     </tr>
-  {% endfor %}
-  {% endfor %}
   </tbody>
+  {% endfor %}
+  {% endfor %}
 </table>
 </div>
 {% endblock %}

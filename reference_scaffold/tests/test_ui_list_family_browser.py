@@ -163,6 +163,8 @@ MEASURE_JS = r"""() => {
   for (const table of main.querySelectorAll('table')) {
     if (!visible(table) || table.closest('nav, .navbar, article.menu-slot, article.recipe-card, article.screen-card')) continue;
     let rows = [...table.querySelectorAll(':scope > tbody > tr')].filter((tr) => tr.querySelector('td, th[scope=row]'));
+    const screenGroups = table.matches('.screens-overview > table') ? [...table.querySelectorAll(':scope > tbody.screen-card')] : [];
+    if (screenGroups.length) rows = screenGroups;
     if (table.classList.contains('kitchen-cal-table')) {
       const days = [...table.querySelectorAll('td.kitchen-cal-day')].filter((td) => !td.classList.contains('kitchen-cal-day-muted') && visible(td));
       const busy = days.filter((td) => td.querySelector('.kitchen-cal-dish, .kitchen-cal-event, .kitchen-cal-meal'));
@@ -244,6 +246,7 @@ MEASURE_JS = r"""() => {
     const statusEl = first.querySelector('.admin-label, .badge, [data-status]');
     const rowBody = first.matches('.admin-list-row') ? first : (first.querySelector('.admin-list-row') || first);
     const rowStyle = getComputedStyle(rowBody);
+    const dividerStyle = first.matches('tbody.screen-card') ? getComputedStyle(first.querySelector(':scope > tr:last-child')) : rowStyle;
     return {
       key: group.kind + '-' + kindCount[group.kind],
       label: labelOf(group.root),
@@ -251,7 +254,7 @@ MEASURE_JS = r"""() => {
       total: group.total,
       container: paint(shell),
       header: headerStyle,
-      row: {height: Math.round(first.getBoundingClientRect().height), divider: rowStyle.borderBottomWidth + ' ' + rowStyle.borderBottomStyle + ' ' + rowStyle.borderBottomColor, background: rowStyle.backgroundColor, radius: rowStyle.borderRadius, shadow: rowStyle.boxShadow === 'none' ? 'none' : 'vorhanden', card: sample.some(isCard)},
+      row: {height: Math.round(first.getBoundingClientRect().height), divider: dividerStyle.borderBottomWidth + ' ' + dividerStyle.borderBottomStyle + ' ' + dividerStyle.borderBottomColor, background: rowStyle.backgroundColor, radius: rowStyle.borderRadius, shadow: rowStyle.boxShadow === 'none' ? 'none' : 'vorhanden', card: sample.some(isCard)},
       primary, secondary,
       status: statusEl ? [...statusEl.classList].sort().join('.') : 'keine',
       rowActions: {count: worst.count, withText: Math.max(0, ...rowPacks.map((pack) => pack.withText), 0), texts, icons, family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins', hits: worst.hits},
