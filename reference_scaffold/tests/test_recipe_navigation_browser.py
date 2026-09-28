@@ -148,12 +148,36 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         assert expanded[0]['height'] > boxes[0]['height']
         assert all(abs(after['height'] - before['height']) <= 1
                    for before, after in zip(boxes[1:], expanded[1:])), {'before': boxes, 'after': expanded}
-        # JS focuses the first menu action. Return focus and leave its hover
-        # region so its focus/hover tooltip closes before clicking the summary.
-        more.focus()
+        # Focus on the semantic summary shows its own tooltip; close natively.
         page.mouse.move(0, 0)
-        expect(page.get_by_role('tooltip')).to_be_hidden()
-        more.click()
+        more.focus()
+        expect(more).to_be_focused()
+        if javascript:
+            tooltip_name = more.get_attribute('data-ui-tooltip')
+            assert tooltip_name
+            expect(more).to_have_accessible_name(tooltip_name)
+            expect(page.get_by_role('tooltip', name=tooltip_name, exact=True)).to_be_visible()
+        more.press('Enter')
+        expect(cards.first.locator('.ui-sem-actions')).not_to_have_attribute('open', '')
+        expect(more).to_be_focused()
+        for index, row in enumerate(cards.all()):
+            title = row.locator('.admin-list-primary').inner_text()
+            saved = title == 'Suppe'
+            summary = row.locator('.ui-sem-actions > summary')
+            expect(summary).to_have_text('')
+            summary.press('Enter')
+            entries = row.locator('.ui-sem-action-items > a[data-semantic]')
+            expect(entries).to_have_text(['Ansehen', 'PDF öffnen' if saved else 'Verlauf', 'Rezept-History'])
+            names = [f'{title} ansehen', f'PDF öffnen · Stand 1 · {title}' if saved else f'Verlauf · {title}',
+                     f'Rezept-History · {title}']
+            for entry, name in zip(entries.all(), names):
+                expect(entry).to_be_visible()
+                expect(entry).to_have_accessible_name(name)
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            if index == 0 or saved:
+                page.evaluate('window.scrollTo(0, 0)')
+                page.screenshot(path=str(tmp_path / f'recipe-menu-{index}-{width}-js{javascript}.png'), full_page=True)
+            summary.press('Enter')
         editor = page.locator(f'main a[href="/admin/rezepte/{public_id}"]')
         expect(editor).to_have_attribute('data-semantic', 'actions.edit')
         expect(editor).to_have_attribute('aria-label', 'Suppe bearbeiten')
@@ -224,6 +248,23 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         page.get_by_role('link', name='Zur Rezept-History', exact=True).click()
         page.get_by_role('link', name='Aktuellen Entwurf ansehen', exact=True).click()
         expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
+        page.mouse.move(0, 0)
+        summary = page.locator('.page-header .ui-sem-actions > summary')
+        expect(summary).to_have_text('')
+        summary.press('Enter')
+        entries = page.locator('.page-header .ui-sem-action-items > a[data-semantic]')
+        expect(entries).to_have_text(['Berechnen', 'Rezept-History', 'PDF öffnen'])
+        for entry, name in zip(entries.all(), ['Mengen berechnen', 'Rezept-History', 'PDF öffnen']):
+            expect(entry).to_be_visible()
+            expect(entry).to_have_accessible_name(name)
+        page.evaluate('window.scrollTo(0, 0)')
+        page.screenshot(path=str(tmp_path / f'recipe-view-menu-{width}-js{javascript}.png'), full_page=True)
+        summary.press('Enter')
+        expect(page.locator('.page-header .ui-sem-actions')).not_to_have_attribute('open', '')
+        expect(summary).to_be_focused()
+        if javascript:
+            summary.press('Escape')
+            expect(page.get_by_role('tooltip')).to_have_count(0)
         page.get_by_role('link', name='Bearbeiten', exact=True).click()
         page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
         page.get_by_role('link', name='Mengen berechnen', exact=True).click()
