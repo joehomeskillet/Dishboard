@@ -6,6 +6,13 @@ Stand der Zählung: 2026-09-26, Worktree `docs/icon-first-inventory-0926`. Kein 
 
 ## Fortsetzung 2026-09-28: Abnahme noch offen
 
+Aktualisierung 06:53: Zug `9873b033` hat alle 4386 Fälle mit null Fehlern und acht
+Skips beendet; Deployment läuft, neue Liveprüfung bleibt offen. Der nächste
+Integrationsstand enthält die unabhängig geprüfte Tooltip-Escape-Korrektur
+`40623846`. Druckvorlagen bleiben wegen eines tatsächlich gesehenen Fehlertext-
+Überlaufs zurückgehalten. Aktuelle Einzelbelege und Restlücken stehen am Anfang
+von `docs/ui-consistency-inventory.md`; die folgenden Zeitstände sind historisch.
+
 Die folgenden Abschnitte bleiben das historische Quelleninventar. Ihre offenen
 Zeilen werden nicht allein durch Release 18 oder einen bestandenen Listenvergleich
 zu einer appweiten Abnahme. Aktuelle Produktionsrevision ist

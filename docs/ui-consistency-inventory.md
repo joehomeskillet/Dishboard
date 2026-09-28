@@ -1,5 +1,40 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Release und Tooltip-Nachweis 2026-09-28, 06:53 CEST
+
+Der wiederaufgenommene Zug prüfte `9873b033` vollständig: 4386 Fälle,
+keine Fehler, acht Skips, alle 60 JUnit-Dateien terminal. Push/Deployment sind
+angelaufen; eine neue Live-Abnahme steht noch aus. Log:
+`/var/tmp/dishboard-release-train/20260928T040754Z-quWLVT`.
+Der geplante Start 06:07 war zuvor am Manifest eines Zwischenstands gescheitert.
+Integrationen werden deshalb ab jetzt ohne Zwischencommit zusammengeführt und
+erst mit aktualisierten Hashes und geprüftem Manifest gemeinsam committed.
+
+`40623846` korrigiert Escape an semantischen Öffnern: zuerst den eigenen Tooltip
+schließen, danach den eigenen Bereich; Rückgabefokus erzeugt keinen Ersatztooltip.
+Fremde Hover-Hilfe blockiert keine native oder Tabler-Modal-Abbrechhandlung.
+Neuer Hover sowie bewusstes Wiederöffnen per Enter/Leertaste geben die Hilfe
+wieder frei. Namen, ursprüngliche Beschreibungen, FormData, Dateiidentität und
+native Aktionen bleiben erhalten. Root bestätigte den finalen Stand separat:
+16 neue Browserfälle (`18.54s`), acht unveränderte Readonly-/Archiv-Rezeptfälle
+mit JS/No-JS bei 390/1440 px (`26.98s`) und vier echte Menü-CSP-Fälle (`11.40s`).
+Alle GATE-/Prozess-Exits 0. JUnits:
+`/var/tmp/dishboard-tooltip-{reviewfix,readonly-reviewfix,csp-reviewfix}-root-0928.xml`.
+Root sichtete eigene Escape-Aufnahmen. Die zusätzlich bestandenen 55 Shared-
+Pattern- und 42 Semantikfälle stammen vor der letzten fünfzeiligen Tastaturkorrektur.
+Diese behebt eine im unabhängigen Review zweimal beobachtete Regression
+(`4 failed, 4 passed`); der alte Rezepttest blieb unverändert. Unterschiedliche
+Autoren lieferten Produkt, Reviewkorrektur und Root-Abnahme. OCR bleibt ohne
+Ergebnis, der neue Worktree ohne GitNexus-Index; Quellradius ausdrücklich appweit.
+
+Druckvorlagen bleiben isoliert: Root 30 Browser- und 17 Archiv-Serverfälle grün,
+echter App-Zoom 2× in allen sechs Profil-/JS-Kombinationen gemessen. Die eigene
+Bildkontrolle zeigt jedoch einen vertikal überlaufenden Fehlertext am Symbol-
+Summary nach ungültiger Archivbestätigung. WP `wp-3ba9cd7236a8` korrigiert diesen
+gemeinsamen Fehlerindikator; fünf alte Browserdateien und umfassende Routen-Gates
+bleiben offen. Bildschirm-Reihenfolge, Importdetails und der ursprüngliche
+vollständige Bildschirm-Retry laufen separat und sind hier nicht abgenommen.
+
 ## Release- und Diagnosezustand 2026-09-28, 06:05 CEST
 
 Zug 05:07 auf `1424adecc` ist vollständig beendet: 4382 Tests, 16 Fehler,
