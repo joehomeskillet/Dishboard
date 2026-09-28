@@ -18,6 +18,24 @@ und `SetLoginEnvironment=yes`; separater systemd-Push-Dry-Run bestand. Beleg:
 `/var/tmp/dishboard-release-train/20260928T000700Z-lbkljO/recovery.md`.
 Die nächste vollständig unbeaufsichtigte Fahrt steht noch aus.
 
+Governance-Abgleich `wp-8db997a09cea`: AGENTS.md, CLAUDE.md und zentrales
+UI-Manifest nennen jetzt ausdrücklich den Vorrang der Icon-first-Spezifikation
+vor historischen Text-/48-px-/Statuskartenregeln. Unabhängiger Quellenreview:
+ACCEPT; identische Projektregeln, Manifestprüfung und `git diff --check` grün.
+Keine Produktänderung oder zusätzliche Browserabnahme durch dieses Dokumentpaket.
+
+Statusanzeige `wp-e0e6302c8073`, `25f09eea`: mehrere explizite bzw. lokale
+Integrationslinien werden wieder angezeigt. Nur aktive zusätzlich entdeckte
+Linien beeinflussen die Überfälligkeitswarnung; die konfigurierte Zug-Linie
+behält ihre bisherige Altersprüfung. Exakter Live-SHA, Health/Login und
+120-Minuten-Grenze bleiben erhalten. Eigener isolierter Lauf:
+`rtk python3 -m unittest discover -s tools/release -p test_deploy_status.py -v`,
+`Ran 10 tests in 6.371s`, `OK`, Exit 0. Stub-PATH, kein Dienst-/DB-/Browserzugriff.
+Quellreview bestätigt zitierte Argumente, keine Shell-Auswertung von Branchwerten
+und unveränderten Einzelzweig-Aufruf im Release-Zug. Lauf 03:07 bleibt auf
+`dab6fda61c407883f7026c3bf7b1eed76c1b7a25` festgehalten; diese späteren Änderungen
+gehören erst zur nächsten Fahrt.
+
 Integriert nach eigener Diffprüfung und erneutem Gate: API-Symbolaktionen
 (`wp-cb8f25515d05`, `6a656cd7`/`45d12e76`), Listenhülle
 (`wp-edf89d346095`, `e169a69d`) und faire Listenmessung

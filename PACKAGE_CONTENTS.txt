@@ -1739,6 +1739,7 @@ tools/release/refresh_template_hashes.py
 tools/release/release_gate.sh
 tools/release/sync_manifest.py
 tools/release/test_delta.py
+tools/release/test_deploy_status.py
 tools/release/test_label_grep.py
 tools/rotate_admin_password.py
 tools/ui_consistency_inventory.py
