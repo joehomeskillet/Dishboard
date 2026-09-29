@@ -620,6 +620,7 @@
         form.addEventListener('change', event => syncMetadataControls(form, event.target));
     });
 
+    let clonedActionDescriptionSequence = 0;
     document.querySelectorAll('form[data-menu-editor]').forEach(form => {
         form.setAttribute('data-component-enhanced', '');
         let unitDisplayNames = {};
@@ -753,6 +754,19 @@
                     else control.removeAttribute('aria-describedby');
                 });
                 clone.querySelectorAll('.field-error').forEach(error => error.remove());
+                // Request-local action descriptions need fresh ids in each cloned row.
+                const actionDescriptions = new Map();
+                clone.querySelectorAll('[id^="ui-action-description-"]').forEach(description => {
+                    const oldId = description.id;
+                    do { description.id = 'ui-action-description-clone-' + ++clonedActionDescriptionSequence; }
+                    while (document.getElementById(description.id));
+                    actionDescriptions.set(oldId, description.id);
+                });
+                clone.querySelectorAll('[aria-describedby]').forEach(control => {
+                    const descriptions = control.getAttribute('aria-describedby').split(/\s+/)
+                        .map(id => actionDescriptions.get(id) || id);
+                    control.setAttribute('aria-describedby', descriptions.join(' '));
+                });
                 list.appendChild(clone);
                 if (clone.matches('.component-row')) {
                     clone.classList.add('is-editing');

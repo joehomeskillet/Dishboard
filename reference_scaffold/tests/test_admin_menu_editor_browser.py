@@ -65,6 +65,11 @@ def _assert_visible_editor_labels(page: Page) -> None:
         els.flatMap(el => el.getAttribute('aria-describedby').split(/\\s+/))
            .filter(id => !document.getElementById(id))''')
     assert dangling == []
+    misplaced = page.locator('form[data-menu-editor] [data-row] [aria-describedby]').evaluate_all('''els =>
+        els.flatMap(el => el.getAttribute('aria-describedby').split(/\\s+/)
+            .filter(id => id.startsWith('ui-action-description-'))
+            .filter(id => !el.closest('[data-row]').contains(document.getElementById(id))))''')
+    assert misplaced == []
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
 
