@@ -71,7 +71,7 @@
 </div>
 <p class="form-hint mb-0">Dezimalzahlen mit Punkt eingeben. Archivierte Zuordnungen vor dem Speichern ausdrücklich ersetzen oder entfernen.</p>
 {% endcall %}
-{{ form_footer(icon_button('actions.save', form='food-core-form', emphasis='primary'), url_for('admin.master_data_list', kind=query_kinds[kind]), sticky=not (error and error_purpose == core), form_id='food-core-form') }}
+{{ form_footer(icon_button('actions.save', form='food-core-form', emphasis='primary'), g.get('food_list_return') or url_for('admin.master_data_list', kind=query_kinds[kind]), sticky=not (error and error_purpose == core), form_id='food-core-form') }}
 {{ hint('Speichert Stammdaten, Lagerorte und Zubereitung.' ~ (' Die folgenden Abschnitte haben eigene Speicheraktionen.' if row else ''), 'food-core-save-hint', mode='inline') }}
 </form>
 {% else %}<h3>{{ row.name if row else 'Keine Schreibberechtigung' }}</h3>{% if row %}<p>{{ row.base_unit.display_name }}{% if not row.base_unit.active %} (archiviert){% endif %} · {{ row.category.name if row.category else 'Keine Kategorie' }}{% if row.category and not row.category.active %} (archiviert){% endif %}</p><dl><dt>Dichte in g/ml</dt><dd>{{ row.density_g_per_ml if row.density_g_per_ml is not none else 'Nicht erfasst' }}</dd><dt>Stückgewicht in g</dt><dd>{{ row.piece_weight_g if row.piece_weight_g is not none else 'Nicht erfasst' }}</dd></dl><p>{{ row.note }}</p>{% endif %}{% endif %}

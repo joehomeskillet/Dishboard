@@ -367,6 +367,46 @@ def test_valid_return_context_preserves_page_and_escaped_search(editor_session):
 @pytest.mark.parametrize('editor_session', [
     ('ingredient', None, 1440, True), ('ingredient', None, 1440, False),
 ], indirect=True, ids=['ingredient-js', 'ingredient-nojs'])
+@pytest.mark.parametrize('return_context', ['valid', 'invalid', 'absent'])
+def test_ingredient_footer_cancel_preserves_only_valid_list_context(editor_session, return_context):
+    """Footer cancel retains filters without saving, or returns to the default list."""
+    page, owner, evidence = editor_session
+    before = _database_state(owner)
+    evidence['filter_values'].update(q='Kräuter & "<Zitrone>" / ? #', page='2')
+    args = {'from': 'foods', **evidence['filter_values']}
+    if return_context == 'invalid':
+        args['from'] = '//example.invalid'
+    elif return_context == 'absent':
+        args = {}
+    response = page.goto(
+        urlsplit(evidence['editor']).path + '?' + urlencode(args), wait_until='networkidle',
+    )
+    assert response is not None and response.status == 200
+    form = page.locator(evidence['form'])
+    cancel = form.locator('.admin-form-footer').get_by_role('link', name='Abbrechen', exact=True)
+    expect(cancel).to_be_visible()
+    form.locator('[name="name"]').fill('R15 ungespeichert')
+
+    def leave(dialog):
+        evidence['dialogs'].append(dialog.type)
+        dialog.accept()
+
+    page.on('dialog', leave)
+    if evidence['javascript']:
+        with page.expect_event('dialog', timeout=5000):
+            cancel.click()
+        assert evidence['dialogs'] == ['beforeunload']
+    else:
+        cancel.click()
+        assert evidence['dialogs'] == []
+    _expect_list(page, evidence, 'footer-cancel', retained=return_context == 'valid')
+    assert evidence['writes'] == []
+    assert _database_state(owner) == before
+
+
+@pytest.mark.parametrize('editor_session', [
+    ('ingredient', None, 1440, True), ('ingredient', None, 1440, False),
+], indirect=True, ids=['ingredient-js', 'ingredient-nojs'])
 def test_ingredient_recipe_search_keeps_its_validation_with_return_context(editor_session):
     page, owner, evidence = editor_session
     before = _database_state(owner)
