@@ -32,3 +32,5 @@ tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_p
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[390-False]
 # 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 200-%-Zoom. V3-4: seither nur ein grüner Lauf (r18b-0927 d-8) - bleibt bis zur zweiten Bestätigung.
 tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromium_200_percent_zoom
+# 2026-09-29 sporadischer Testfehler (Wettlauf: Speichern-Button instabil/detached während noch laufender Navigation, danach Navigations-Timeout); rot in Zügen 14:07, 15:07 und 17:07 (Kandidat ohne Fix). Fix R11 65c6ece4 integriert (15/15 isoliert grün) - Zeile erst nach «BEKANNT ROT, JETZT GRÜN» in einem Zug streichen.
+tests/test_course_browser.py::test_native_course_add_edit_preserves_neighbor_slots[False-390-844-patienten-patient-LUNCH]
