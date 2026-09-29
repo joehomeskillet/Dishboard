@@ -1011,6 +1011,10 @@ def test_action_budget_across_all_normal_rows(admin_app, admin_engine, live_serv
                 context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
                 page = context.new_page()
                 for slug, _title, path, hook in pages:
+                    # Planungsansicht (Spec §4.3, §14): Dichteziele gelten nicht für
+                    # Kalender; Tagestitel und Planen bleiben dort bewusst erhalten.
+                    if slug == 'kuechenkalender':
+                        continue
                     response = page.goto(path, wait_until='domcontentloaded', timeout=30000)
                     if not response or response.status != 200:
                         continue
