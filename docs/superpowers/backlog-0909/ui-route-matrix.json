@@ -10307,7 +10307,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "3e5799d13de0f2fafa2697992a9272dca43c932343924c7d9a1d9619b570cb3b",
+      "sha256": "8b1a4461badf616c29bb08622259bee60d02a70c7b87b901c5690f787e7d9b83",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -12528,7 +12528,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "70418d30cbc8d7f86fcd307e65d16696788f7745e9c34d47ab9bed3c5d549773",
+      "sha256": "e60cd8073f640df273cf227d375fc65ada5eff954102b7e8eb90d7209c3d565e",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
