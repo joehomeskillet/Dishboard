@@ -18,3 +18,5 @@ tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_p
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[390-False]
 # 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 200-%-Zoom. V3-4: seither nur ein grüner Lauf (r18b-0927 d-8) - bleibt bis zur zweiten Bestätigung.
 tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromium_200_percent_zoom
+# 2026-09-29 19:46 VERALTETER TEST nach D20 (f0e80147/9d8ff039): Editorlink aus der Zutatenliste trägt jetzt den validierten Rückkehrkontext ?from=foods&q=&archived=1&page=1; Test erwartet noch die nackte Detail-URL (to_have_url, Zeile 399). Integrationslauf 19:36: 1 failed, 60 passed. Testnachzug R14 läuft; Zeile nach Integration streichen.
+tests/test_ui_korrektur_grundlagen_browser.py::test_p3_polish_foundations_primary_hint_overflow
