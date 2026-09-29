@@ -23,6 +23,12 @@ VIEWPORTS = ((1440, 900), (1024, 768), (768, 1024), (390, 844),
 
 
 def shot(page, name):
+    if name.startswith('planning-'):
+        # Dismiss hover/focus tooltips before measuring the resized planning page.
+        # Escape is scoped here so editor disclosures retain their native state.
+        page.mouse.move(0, 0)
+        page.keyboard.press('Escape')
+        expect(page.locator('.ui-sem-tooltip:visible')).to_have_count(0)
     page.evaluate('document.fonts.ready')
     assert page.evaluate('document.fonts.status') == 'loaded'
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
