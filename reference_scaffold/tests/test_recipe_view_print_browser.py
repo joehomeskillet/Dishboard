@@ -70,7 +70,7 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
             has=page.locator('.admin-list-primary', has_text=re.compile(r'^Suppe$')))
         edit = card.get_by_role('link', name='Suppe bearbeiten', exact=True)
         card.locator('details.ui-sem-actions > summary').click()
-        view = card.get_by_role('link', name='Suppe ansehen', exact=True)
+        view = card.get_by_role('link', name='Suppe öffnen', exact=True)
         pdf = card.get_by_role('link', name='PDF öffnen · Stand 1 · Suppe', exact=True)
         expect(pdf).to_have_accessible_name('PDF öffnen · Stand 1 · Suppe')
         assert 'PDF öffnen' in (pdf.get_attribute('aria-label') or '')

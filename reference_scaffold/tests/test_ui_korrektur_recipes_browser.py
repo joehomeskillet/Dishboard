@@ -104,8 +104,8 @@ def test_recipe_pages_follow_correction_contract(
             row_menu = page.locator('tr.recipe-row', has=page.locator(f'a[href="/admin/rezepte/{recipe_id}"]')).locator('summary')
             # Neighbor tooltip uses pointer-events and covers this summary; the click itself still toggles.
             row_menu.click(force=True)
-            expect(page.locator(f'tr.recipe-row a[href="/admin/rezepte/{recipe_id}/ansicht"]')).to_have_accessible_name('Suppe ansehen')
-            expect(page.locator(f'tr.recipe-row a[href="/admin/rezepte/{recipe_id}/revisionen"]')).to_have_accessible_name('Rezept-History · Suppe')
+            expect(page.locator(f'tr.recipe-row a[href="/admin/rezepte/{recipe_id}/ansicht"]')).to_have_accessible_name('Suppe öffnen')
+            expect(page.locator(f'tr.recipe-row a[href="/admin/rezepte/{recipe_id}/revisionen"]')).to_have_accessible_name('Verlauf für Suppe')
             row_menu.click(force=True)
             _check_layout(page, width)
             _capture(page, 'liste-regulaer', width, height, javascript)
