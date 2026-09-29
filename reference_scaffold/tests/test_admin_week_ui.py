@@ -201,7 +201,10 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         expect(publish).to_be_visible()
         assert modal.locator('button').evaluate_all('''buttons => buttons.every(button => {
             const box = button.getBoundingClientRect();
-            return box.width >= 44 && box.height >= 44 && box.left >= 0 && box.right <= innerWidth + 1;
+            const coarse = matchMedia('(pointer: coarse), (any-pointer: coarse)').matches;
+            // Icon-only actions use 36/44 px; confirmation text buttons keep 44 px.
+            const minimum = !coarse && button.matches('.ui-sem-control--icon-only') ? 36 : 44;
+            return box.width >= minimum && box.height >= minimum && box.left >= 0 && box.right <= innerWidth + 1;
         })''')
         modal.get_by_role('button', name='Abbrechen', exact=True).click()
         expect(modal).not_to_be_visible()
@@ -210,10 +213,16 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         copy = page.get_by_role('link', name='Vorwoche kopieren', exact=True)
         publish_trigger.focus()
         page.keyboard.press('Tab')
+        # The quiet header's warning details precede the secondary action row.
+        expect(page.locator('#week-check-entries > summary')).to_be_focused()
+        page.keyboard.press('Tab')
         expect(page.locator('a[href*="/preview"]')).to_be_focused()
         page.keyboard.press('Tab')
         expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_be_focused()
-        page.locator('details.admin-week-more').evaluate('el => { el.open = true }')
+        more = page.locator('details.admin-week-more > summary')
+        page.keyboard.press('Tab')
+        expect(more).to_be_focused()
+        page.keyboard.press('Enter')
         expect(copy).to_have_class(re.compile(r'\bdropdown-item\b'))
         export = page.get_by_role('link', name='CSV exportieren', exact=True)
         expect(export).to_have_class(re.compile(r'\bdropdown-item\b'))
@@ -222,13 +231,21 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         expect(apply).to_have_text('Übernehmen')
         expect(apply).to_have_class(re.compile(r'\bdropdown-item\b'))
         expect(apply).to_have_attribute('data-semantic', 'actions.apply')
-        copy.focus()
+        page.keyboard.press('Tab')
+        expect(export).to_be_focused()
+        page.keyboard.press('Tab')
         expect(copy).to_be_focused()
         assert copy.evaluate('element => getComputedStyle(element).outlineStyle !== "none"')
-        page.locator('details.admin-week-settings > summary').click()
+        page.keyboard.press('Tab')
+        expect(apply).to_be_focused()
+        more.focus()
+        page.keyboard.press('Enter')
+        page.keyboard.press('Tab')
+        expect(page.locator('details.admin-week-settings > summary')).to_be_focused()
+        page.keyboard.press('Enter')
         title = page.locator('input[name="title"]')
         expect(title).to_be_visible()
-        title.focus()
+        page.keyboard.press('Tab')
         expect(title).to_be_focused()
         title.fill('Angepasste Woche')
         focused_box = title.bounding_box()
