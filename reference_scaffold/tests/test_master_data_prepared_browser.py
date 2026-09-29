@@ -32,8 +32,10 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
         page.goto(base + '/admin/grundlagen/zutaten/neu')
-        expect(page.get_by_role('heading', level=1)).to_have_text('Zutat anlegen')
-        primary = page.get_by_role('button', name='Zutat speichern', exact=True)
+        expect(page.get_by_role('heading', level=1)).to_have_text('Zutaten')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Zutat anlegen')
+        core = page.locator('#food-core-form')
+        primary = core.get_by_role('button', name='Speichern', exact=True)
         expect(primary).to_have_count(1)
         assert primary.evaluate('button => button.form.id') == 'food-core-form'
         posts = []
@@ -44,6 +46,7 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         assert not posts
         page.get_by_label('Name', exact=True).fill('Hummus vorbereitet Browser')
         page.get_by_label('Testlager', exact=True).check()
+        core.locator('details').filter(has=page.locator('#prepared_recipe_choice')).locator('summary').click()
         page.get_by_label('Zubereitung aus einem Rezept', exact=False).select_option(preparation_choice(frozen))
         box = primary.bounding_box()
         output = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(tmp_path)))
@@ -54,7 +57,8 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         viewport.chmod(0o600)
         assert box is not None and 0 <= box['y'] and box['y'] + box['height'] <= 1100
         expect(primary).to_be_in_viewport(ratio=1)
-        controls = page.locator('#food-core-form').locator('input:not([type="hidden"]), select, textarea, a[href], button')
+        core.locator('details').filter(has=page.get_by_label('Notiz', exact=True)).locator('summary').click()
+        controls = core.locator('input:not([type="hidden"]), select, textarea, a[href], button, summary')
         controls.first.focus()
         for index in range(controls.count()):
             field = controls.nth(index)
@@ -77,10 +81,12 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
             'element => getComputedStyle(element).position') == 'static'
         page.set_viewport_size({'width': width, 'height': height})
         primary.click()
-        expect(page.get_by_role('heading', level=1)).to_have_text('Zutat bearbeiten')
+        expect(page.get_by_role('heading', level=1)).to_have_text('Zutaten')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Zutat bearbeiten')
         path = urlsplit(page.url).path
         expect(page.get_by_label('Zubereitung aus einem Rezept', exact=False)).to_have_value(preparation_choice(frozen))
         expect(page.get_by_label('Testlager', exact=True)).to_be_checked()
+        page.get_by_text('Verknüpfungen', exact=True).click()
         expect(page.get_by_role('link', name='Rezeptverlauf', exact=True)).to_have_attribute(
             'href', '/admin/rezepte/' + str(frozen['recipe_public_id']) + '/revisionen')
         expect(page.get_by_text('Kein Bestand erfasst', exact=True)).to_be_visible()
@@ -108,7 +114,7 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         page.screenshot(path=str(viewport))
         viewport.chmod(0o600)
         page.get_by_role('link', name='Lagerorte verwalten', exact=True).click()
-        expect(page.get_by_role('heading', level=1)).to_have_text('Grundlagen')
+        expect(page.get_by_role('heading', level=1)).to_have_text('Lagerorte')
         expect(page.get_by_role('heading', name='Lagerorte', exact=True)).to_be_visible()
         assert snapshot(owner) == before
 
@@ -131,9 +137,10 @@ def test_original_storage_and_prepared_pin_are_visible_after_location_change(
             connection.execute(text("INSERT INTO cafeteria.locations(code,name,active) VALUES('NEW','Neuer Standort',true)"))
         before = snapshot(owner)
         with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
-            page.get_by_role('button', name='Zutat speichern', exact=True).click()
+            form.get_by_role('button', name='Speichern', exact=True).click()
         assert outcome.value.status == 409
-        expect(page.get_by_role('heading', level=1)).to_have_text('Ursprüngliche Eingaben')
+        expect(page.get_by_role('heading', level=1)).to_have_text('Zutaten')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Ursprüngliche Eingaben')
         returned = page.get_by_role('region', name='Ursprüngliche Eingaben', exact=True)
         assert returned.evaluate(
             'el => Array.from(el.querySelectorAll("input[type=hidden]"), input => [input.name, input.value])',
