@@ -1,5 +1,96 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Abschlussstand Icon-first-Migration (H18, korrigiert durch H18b)
+
+Quellenstand: 2026-09-29, Dokumentkorrektur auf `21bfc4cb`. Die unten genannten
+`reports/`- und `audit/`-Pfade liegen unter
+`/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/claude-session-2026-09-29/`.
+Testpfade sind relativ zu `reference_scaffold/`. Die Tabelle nennt tatsächlich
+ausgeführte Tests aus den jeweiligen Reports, keine neuen H18b-Produktläufe und
+keine pauschale Freigabe: rote Zwischenläufe, Reviewblocker und Grenzen bleiben
+in den Quellen erhalten. `<family>` steht für `cafeteria` oder `patienten`.
+
+### Migrierte Ansichten (Route, Muster, tatsächliche Tests)
+
+| Ansicht / Route | Muster, Rolle und Zustand | Tatsächliche Tests / Quelle |
+|---|---|---|
+| Bausteine: `/admin/<family>/komponenten` | DEC-2/D3: Namen als Text; Editor-Einstieg über Bearbeiten-Icon, archivierte Einträge über Öffnen. Beide Profile, vorhandene Rollen, JS/No-JS. | `tests/test_component_catalog_browser.py`, `tests/test_icon_pilot_density_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
+| Zutaten: `/admin/grundlagen` und `/admin/grundlagen/<kind>/<public_id>` | DEC-2/D3: Namen als Text, Symbolaktion als Zugang; ohne Schreibrecht Öffnen, Statusaktionen nur mit Recht. Fünf Stammdatenarten, aktiv/archiviert. | `tests/test_master_data_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
+| Menüsammlung: `/admin/<family>/menues` | DEC-2/D3: Textnamen und Bearbeiten-/Öffnen-Aktion, Liste und vorhandene Kartenansicht; Admin/Editor/Publisher, aktiv/archiviert. | `tests/test_menu_collection_browser.py`; `reports/D3-report.md`. Folgeanpassungen: `tests/test_ui_korrektur_menus_browser.py`, `reports/R10-report.md`. |
+| Gerichtvorlagen: `/admin/gerichtvorlagen` | D4: wirksame Titelsuche, Archivfilter, Zurücksetzen und Paginierung mit erhaltenem `q`; Enter mit/ohne JS. | `tests/test_dish_template_browser.py`, `tests/test_dish_template_routes.py`, `tests/test_recipe_link_reads_db.py`; `reports/D4-report.md`, Abschnitte „Gerichtvorlagen-Browser komplett“ und „Routen-/Store-Regressionen“. |
+| Kochbücher: `/admin/kochbuecher` | D5: normale aktive Liste ohne redundantes Aktiv-Badge/Strich; bei `archived=1` Aktiv und Archiviert unterscheidbar. D13b: Bearbeiten für aktive schreibbare Bücher, sonst Öffnen; Leseansicht bei Bedarf im Überlauf. | `tests/test_cookbooks_browser.py`, `tests/test_ui_korrektur_cookbooks_browser.py`, `tests/test_cookbook_routes.py`; `reports/D5-report.md`, `reports/D13-report.md`, Abschnitt „D13b — Korrigierter Auftrag“. |
+| Kochbuch-Leseansicht: `/admin/kochbuecher/<cookbook_id>/ansicht` | D13b/DEC-1: GET mit `draft.read`, geordnete Rezeptansichtslinks; Bearbeiten nur mit Recht. Writer/Reader/Archiv, JS/No-JS, Desktop/mobile fine/coarse. | `tests/test_icon_cookbook_view_browser.py`, `tests/test_ui_route_inventory.py`; `reports/D13-report.md`, Abschnitte „Endgültige Änderung“ und „Ergebnisübersicht“. |
+| Wochenplan: `/admin/cafeteria`, `/admin/patienten` | D7: Publish-Controls nur mit `publication.publish`, serverseitige Sperren bleiben erhalten (D6). D19: Titel/Kontext → gebündelte Prüfhinweise → weitere Hinweise/Raster. M45/M64: 36 px fine / mindestens 44 px coarse. | `tests/test_icon_publish_controls_role_browser.py`, `tests/test_icon_publish_guards_browser.py`, `tests/test_week_check_header_browser.py`, `tests/test_ui_korrektur_week_browser.py`; `reports/D6-report.md`, `reports/D7-report.md`, `reports/D19-report.md`. |
+| Rezepte: `/admin/rezepte` | D14: tatsächlich leere Zellen gestapelter Tabellen ohne Pseudolabel und Platzbedarf; gemischte Zustände bleiben sichtbar, Desktop-Tabelle bleibt erhalten. 390/1440 px, fine/coarse. | `tests/test_icon_stack_empty_labels_browser.py`, `tests/test_recipe_density_browser.py`, `tests/test_ui_korrektur_recipes_browser.py`; `reports/D14-report.md`, Abschnitt „Änderung und Abnahme“. |
+| Rezepteditor: `/admin/rezepte/neu`, `/admin/rezepte/<recipe_id>` | D15: Ausbeuteeinheit bei 360/390 px nicht abgeschnitten; bestehendes Desktop-Grid erhalten. | `tests/test_icon_recipe_editor_browser.py`, `tests/test_recipe_browser.py`; `reports/D15-report.md`. |
+| Menüeditor: `/admin/<family>/menu` | D8/D16: ungespeicherte Änderungen geschützt; Abbrechen aus Sammlung übernimmt gültige Suche/Seite. Wochenlink/Breadcrumb bleiben bei der Woche; nach POST bzw. 400/409-Rerender Wochen-Fallback. Beide Profile, JS/No-JS. | `tests/test_icon_menu_unsaved_changes_browser.py`, `tests/test_menu_collection_browser.py`, `tests/test_admin_menu_editor_browser.py`; `reports/D8-report.md`, `reports/D16-report.md`, Abschnitt „Vertrag und Umfang“. Formularvergleich: `reports/R9-report.md`. |
+| Einkaufslisten: `/admin/einkaufslisten` | D17: datensatzbezogener Überlaufname in allen vier Zustands-/Rechtezweigen. | `tests/test_shopping_list_browser.py`, `tests/test_ui_list_family_browser.py`; `reports/D17-report.md`, Abschnitte „Änderungen und Dateibesitz“ / „Testresultat“. |
+| Bildschirme: `/admin/screens` | D17: Überlaufname mit Bereich und Kanal. | `tests/test_screen_template_browser.py`, `tests/test_ui_korrektur_screens_browser.py`; `reports/D17-report.md`. |
+| Rezeptstände: `/admin/rezepte/<recipe_id>/revisionen` | D17: Überlaufname mit lesbarer Standnummer. | `tests/test_recipe_revision_routes.py`, `tests/test_ui_list_family_browser.py`; `reports/D17-report.md`. |
+| Vorlagen: `/admin/vorlagen` | D17: Überlaufname mit tatsächlichem Vorlagen-/Bereichsnamen; Hauptaktion plus Überlauf. | `tests/test_admin_template_catalog_browser.py`, `tests/test_ui_korrektur_vorlagen_browser.py`; `reports/D17-report.md`. |
+| Wochenverwaltung: `/admin/<family>/wochen` | D17: Überlaufname „Woche ab …“ mit Datensatzbezug. | `tests/test_week_management_browser.py`, `tests/test_admin_week_tabler_browser.py`; `reports/D17-report.md`. |
+| Bestätigungen: `/admin/einkaufslisten`, `/admin/einkaufslisten/<public_id>`, `/admin/gerichtvorlagen/<public_id>` | R3: `admin.js` beachtet `data-confirm` am Submitter; Löschen/Archivieren ausführen oder abbrechen, native Formulardaten/CSRF/CAS erhalten. | `tests/test_icon_confirm_submitter_browser.py`, `tests/test_shopping_list_browser.py`, `tests/test_dish_template_browser.py`; `reports/R3-report.md`, Abschnitte „Ergebnis und Blocker“ / „Roh-Ausgaben der Browsergates“. |
+
+Routenabgleich: `reference_scaffold/cafeteria/admin/` mit `workflow_routes.py`,
+`master_data_routes.py`, `menu_collection_routes.py`, `dish_template_routes.py`,
+`cookbook_routes.py` (registrierte GET-Regeln), `recipe_routes.py`,
+`recipe_revision_routes.py`, `shopping_list_routes.py`, `output_routes.py` und
+`week_management_routes.py`.
+
+### Bekannte Ausnahmen
+
+- **Kalender** bleibt Planungsansicht nach Spec §4.3/§14. Tagestitel plus Planen
+  bleiben erhalten; UI-23/24-Dichteziele normaler Listen gelten hier nicht.
+  Quelle: `reports/D17-report.md`, Abschnitt „Änderungen und Dateibesitz“.
+- **Swagger UI (`/api/v1/docs`)** ist eine Fremdkomponente ausserhalb der
+  Icon-first-Adminoberfläche. Unbenannte Buttons bleiben als bekannte A11y-Lücke
+  dokumentiert. Quelle: `audit/D10b/classification.md`, Zeile „Fremdkomponente“.
+- **Fragmentrouten `/admin/<family>/header` und `/admin/<family>/service`**
+  liefern per GET Formularzustand (CSRF-Hidden und Datenspans), keine eigene
+  Nutzeransicht; deshalb kein `h1`. Quelle: `workflow_routes.py`, `header_get`
+  und `service_get`; `audit/D10b/classification.md`, Zeilen „kein View“.
+
+### Offene Punkte und Grenzen der Abnahme
+
+- **Gesamtabnahme offen.** `audit/closure-matrix.json` (`generated_at` 12:25,
+  Basis `8e56bf7`, Abschnitte `criteria`/`overall`) führt 2 PASS, 25 PARTIAL und
+  1 OPEN. Das ist ein früherer Stand: spätere Nachweise, darunter D9b, D10b,
+  D16 und D18, ergänzen einzelne Kriterien; eine neu konsolidierte Freigabe ist
+  daraus nicht ableitbar.
+- **Interaktionsbreite offen:** Tastatur über alle Ansichten (UI-07),
+  Tooltip/Escape je Ansicht/Rolle/Locale (UI-08), Touch über weitere Ansichten
+  (UI-09), Abbruchpfade Rezept/Kochbuch/Vorwochenkopie (UI-15), weitere
+  Leer-/Fehler-/Langtextzustände (UI-20), echter 200-%-Zoom weiterer Ansichten
+  (UI-22) sowie Navigation über alle Ansichten (UI-27). Quelle:
+  `audit/closure-matrix.json`, jeweilige `criteria`-Einträge. Spätere Teilbelege
+  ersetzen keine vollständige Abnahme; D13b nennt Zoom/Kontrast seiner neuen
+  Leseansicht ausdrücklich als nicht belegt (`reports/D13-report.md`, „Sichtnachweis und Grenzen“).
+- **Restvarianten offen:** kein vollständiger Consumer-Nachweis für weitere
+  lokale Varianten, kein pauschaler Löschauftrag. Quelle:
+  `audit/closure-matrix.json`, `criteria.UI-26`.
+- **Messbasis ergänzt, Abnahme begrenzt:** `audit/D10b/classification.md` belegt
+  402 Captures in vier Pflichtviewports, keinen horizontalen Überlauf und nach
+  Klassifizierung keine Adminview-Verstösse aus diesem Lauf. Das ersetzt keine
+  Interaktions-/Accessibility-Abnahme; `reports/D10b-report.md` begrenzt die
+  Namensmessung auf aria-label/aria-labelledby/Text und bewertet keine semantische
+  Qualität/Lokalisierung. Die alten fehlenden Tablet-Zellen aus D10 sind damit
+  kein aktueller Restpunkt.
+- **UI-28 teilbelegt:** `audit/D18/pairs.md` liefert sieben vergleichbare Paare
+  (`42c85fef` → `24100fee`, Admin, Standardfilter, 100 % Zoom, gleicher Seed).
+  Pilotlisten enthalten je einen Datensatz; grosse Listen, weitere Rollen,
+  Touch, geöffnete Menüs und 200-%-Zoom wurden nicht verglichen. Der frühere
+  Matrixeintrag „kein Paar“ ist durch diese Teilbelege überholt.
+- **Review-/Gate-Abnahme bleibt gesondert:** mehrere D-Reports melden fehlenden
+  OCR-Nachweis. `reports/D19-report.md`, „Vorbestehendes Pflicht-Gate“, dokumentiert
+  16 identische Basisfehler in `tests/test_admin_week_ui.py`. `reports/R11-report.md`,
+  „Runs so far“, ist noch `IN_PROGRESS`; ein R12-Abschlussreport liegt beim
+  H18b-Quellenabgleich nicht vor. Aktueller Abschluss dieser beiden Folgepakete
+  daher offen; keine Behauptung eines neuen Produktfehlers.
+
+---
+
+## Historische Reports (vor H18-Abschluss)
+
 ## Kalender: Heute, Fokus und nativer Überlauf — 2026-09-28, 15:02 CEST
 
 Zwei ergänzte UI19-Fälle prüfen JS mit Fine-Pointer bei1440/390px. Sechs echte
