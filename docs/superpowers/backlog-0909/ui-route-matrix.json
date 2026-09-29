@@ -10439,7 +10439,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "57aedb9670f108d8d32c2332f3ef60b8dccc24dda2f1e2802a63629d39516be7",
+      "sha256": "46d9f9d2bf584c7972a03efdd347ffd97f4eb4f6c94a106090e5400c87ad3df3",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -11142,7 +11142,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "3a5aa30e56f2e42ba92bae0b6417039b43b26177bc5fbfd8b1f2442165f48726",
+      "sha256": "614840229063af94cc9c0493b579e14fae6cd8eec186e7d4655250864fbef2ab",
       "used_by_endpoints": [
         "admin.cookbooks_list"
       ],
