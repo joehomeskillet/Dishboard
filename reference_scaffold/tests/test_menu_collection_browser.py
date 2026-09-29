@@ -317,7 +317,8 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
         destination = urlsplit(link.get_attribute('href'))
         assert destination.path == f'/admin/{family}/menu'
         fields = parse_qs(destination.query)
-        assert set(fields) == {'week', 'day', 'meal', 'option'}
+        assert set(fields) == {'week', 'day', 'meal', 'option', 'from', 'page'}
+        assert fields['from'] == ['menus'] and fields['page'] == ['1']
         assert fields['week'] == fields['day']
         assert fields['meal'] == ['LUNCH'] and fields['option'] == ['MENU_1']
         assert link.bounding_box()['height'] >= 36
@@ -350,7 +351,8 @@ def test_menu_text_names_keep_active_and_archived_keyboard_targets(
     _save(admin_engine, _scope(client, admin_engine, profile), title='Menü D3')
     cookie = client.get_cookie('session')
     assert cookie is not None
-    destination = f'/admin/{family}/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
+    destination = (f'/admin/{family}/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
+                   '&from=menus&q=&page=1')
     with browser.new_context(base_url=live_server, java_script_enabled=javascript) as context:
         context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
         page = context.new_page()

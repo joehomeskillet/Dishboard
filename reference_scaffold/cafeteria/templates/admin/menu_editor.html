@@ -338,7 +338,7 @@
         {{ icon_button('actions.save', text='Menü speichern', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'} if cell.template_proposal else {}) }}
         {# Native secondary submit: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
         {% if not cell.template_proposal %}{{ icon_button('actions.save', aria_label=t('menu.save_return.aria'), emphasis='secondary', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'}) }}{% endif %}
-        {{ icon_button('actions.cancel', href=back_url) }}
+        {{ icon_button('actions.cancel', href=g.get('menu_collection_return') or back_url) }}
       </div>
     </form>
   </div>
