@@ -1696,6 +1696,7 @@ reference_scaffold/tests/test_ui_semantic_macros_browser.py
 reference_scaffold/tests/test_ui_semantics.py
 reference_scaffold/tests/test_ui_shell_fixes_browser.py
 reference_scaffold/tests/test_ui_weeks_browser.py
+reference_scaffold/tests/test_week_check_header_browser.py
 reference_scaffold/tests/test_week_form_focus_browser.py
 reference_scaffold/tests/test_week_form_rerender.py
 reference_scaffold/tests/test_week_form_rerender_browser.py

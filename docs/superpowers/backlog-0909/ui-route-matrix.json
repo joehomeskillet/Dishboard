@@ -10837,7 +10837,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "81fb8d029e956637a2a9481b72c26a45ee80b1f87e65dedc85c938511e58f224",
+      "sha256": "6ca844f79f80bed4584a7a93de7df164a340f19c6d325dbfc63739ac32cb547c",
       "used_by_endpoints": [
         "admin.cafeteria"
       ],
@@ -11447,7 +11447,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "77931b63f3a9504435509d4f28b3fc1745c76e03a6857f3e48dfd53d24f479f8",
+      "sha256": "e92f3cc9cce21787d1f035607640ce8852b98d9c8ffc6f859907801545d5e809",
       "used_by_endpoints": [
         "admin.patienten"
       ],
