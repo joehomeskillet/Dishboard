@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, empty_state, pagination, status_badge, list_row %}
-{% from 'ui/_semantic.html' import icon_button, filter_bar_sem %}
+{% from 'ui/_semantic.html' import icon_button, icon_summary, filter_bar_sem %}
 {% set workflow_nav = 'cookbooks' %}
 {% block title %}{{ t('navigation.cookbooks.label') }} · Menüplanung{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
@@ -23,7 +23,12 @@
   {% set count = book.recipe_public_ids|length %}
   {% set editable = can_write and book.active %}
   {% set actions %}
-  {{ icon_button('actions.edit' if editable else 'actions.open', href=url_for('admin.cookbook_edit', cookbook_id=book.public_id), object=book.name, class='cookbook-row-action') }}
+  {{ icon_button('actions.edit' if editable else 'actions.open', href=url_for('admin.cookbook_edit' if editable else 'admin.cookbook_view', cookbook_id=book.public_id), object=book.name, class='cookbook-row-action') }}
+  {% if editable %}
+  <details class="ui-sem-actions">{{ icon_summary('actions.more', object=book.name) }}<div class="ui-sem-action-items">
+    {{ icon_button('actions.open', href=url_for('admin.cookbook_view', cookbook_id=book.public_id), object=book.name, show_text=true) }}
+  </div></details>
+  {% endif %}
   {% endset %}
   {% set book_status = status_badge('archived') if not book.active else (status_badge('active') if include_archived else ' ') %}
   {{ list_row(primary=book.name, secondary=book.description|truncate(160) if book.description else none, meta=(count ~ (' Rezept' if count == 1 else ' Rezepte')), status=book_status, actions=actions) }}

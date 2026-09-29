@@ -21,7 +21,9 @@
 {% block title %}{{ 'Neues Kochbuch' if creating else book.name }} · Kochbücher{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
 {% block page_header %}
-{{ page_header('Neues Kochbuch' if creating else book.name, 'Name und Beschreibung festlegen.' if creating else ('Archiviertes Kochbuch. Zum Ändern zuerst reaktivieren.' if archived else 'Name, Beschreibung und Rezept-Zuordnung bearbeiten.'), status_items=editor_status) }}
+{% call page_header('Neues Kochbuch' if creating else book.name, 'Name und Beschreibung festlegen.' if creating else ('Archiviertes Kochbuch. Zum Ändern zuerst reaktivieren.' if archived else 'Name, Beschreibung und Rezept-Zuordnung bearbeiten.'), status_items=editor_status) %}
+{% if book %}{{ icon_button('actions.open', href=url_for('admin.cookbook_view', cookbook_id=book.public_id), object=book.name) }}{% endif %}
+{% endcall %}
 {% endblock %}
 {% block content %}
 {% if status_action %}

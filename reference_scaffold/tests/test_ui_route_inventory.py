@@ -341,6 +341,7 @@ def _prepare_inventory_entities(application, database_engine, admin_user_id) -> 
         'admin.service_get': '/admin/cafeteria/service?week=2026-08-31&day=2026-08-31&meal=LUNCH',
         'admin.branding_preview': f"/admin/design/marke/vorschau/{brand['revisions'][-1]['id']}",
         'admin.cookbook_edit': f'/admin/kochbuecher/{book.public_id}',
+        'admin.cookbook_view': f'/admin/kochbuecher/{book.public_id}/ansicht',
         'admin.cookbook_status': f'/admin/kochbuecher/{book.public_id}/status',
         'admin.local_user_detail': f'/admin/benutzer/{user.public_id}',
         'admin.master_data_new': '/admin/grundlagen/tags/neu',
@@ -539,7 +540,7 @@ def test_versioned_manifest_tracks_historical_gaps_without_current_pass(monkeypa
     assert current['browser_status'] == current['usability_status'] == 'not_run'
     assert manifest['meta']['source_commit'] == current['historical_source_commit']
     assert {endpoint for endpoint, _, _ in _visual_gaps(application, _matrix(), manifest)} == set(
-        current['uncaptured_visual_endpoints'])
+        current['uncaptured_visual_endpoints']) | {'admin.cookbook_view'}
     _assert_states(application, _matrix(), manifest)
     _assert_meta(manifest)
 
