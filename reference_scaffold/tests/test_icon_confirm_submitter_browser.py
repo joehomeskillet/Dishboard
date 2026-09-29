@@ -209,13 +209,15 @@ def test_archive_recipe_and_cookbook_native_confirmation(
         page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
 
         def open_confirmation():
-            if kind == 'recipe':  # Handwritten WP3/WP4 menu remains until its migration.
-                page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
-            else:
-                expect(page.locator('.admin-form-rare > summary')).to_have_count(0)
+            expect(page.locator('[data-semantic="actions.more"], .admin-form-rare > summary')).to_have_count(0)
+            name = 'Alpha archivieren' if kind == 'recipe' else 'Bestätigung Kochbuch archivieren'
+            archive = page.get_by_role('link', name=name, exact=True)
+            expect(archive).to_be_visible()
+            expect(archive).to_have_attribute('data-ui-tooltip', name)
+            expect(archive).to_have_text('')
             assert posts == [] and recipe_snapshot(owner) == before
             with page.expect_navigation(wait_until='load'):
-                page.get_by_role('link', name='Archivieren', exact=True).click()
+                archive.click()
             expect(page).to_have_url(base + path + '/status')
             expect(page.get_by_text(
                 'Archivieren erhält Zutaten, Bilder und gespeicherte Stände.' if kind == 'recipe'
@@ -269,7 +271,8 @@ def test_previous_week_copy_native_confirmation(
         page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
 
         def open_confirmation():
-            page.locator('.admin-week-more > summary').click()
+            expect(page.locator('.admin-week-more > summary')).to_have_count(0)
+            expect(page.get_by_role('link', name='Vorwoche kopieren', exact=True)).to_be_visible()
             assert posts == [] and _database_snapshot(admin_engine) == before
             with page.expect_navigation(wait_until='load') as response:
                 page.get_by_role('link', name='Vorwoche kopieren', exact=True).click()

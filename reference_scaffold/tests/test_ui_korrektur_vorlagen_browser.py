@@ -148,7 +148,7 @@ def test_recipe_editor_density_matrix(recipe_editor, recipe_server, browser):
             for state, route in (('empty-selection', BASE), ('selected', recipe_path(recipe, revision.public_id))):
                 assert page.goto(route).status == 200
                 _assert_controls(page)
-                for area in ('appearance', 'texts', 'activation', 'versions', 'more-actions'):
+                for area in ('appearance', 'texts', 'activation', 'versions', 'copy', 'lifecycle'):
                     expect(page.locator(f'details[data-template-{area}]')).not_to_have_attribute('open', '')
                 if state == 'selected':
                     expect(page.locator('[data-recipe-selection]')).not_to_have_attribute('open', '')
@@ -246,10 +246,15 @@ def test_editor_prioritises_form_and_one_primary_save_action(
         expect(page.locator("details[data-template-versions] > summary")).to_have_text(
             "Versionen"
         )
-        more = page.locator("details[data-template-more-actions] > summary")
-        expect(more).to_have_accessible_name("Weitere Aktionen für Standard")
-        expect(more).to_have_attribute("data-ui-tooltip", "Weitere Aktionen für Standard")
-        expect(more).to_have_text("")
+        expect(page.locator('[data-template-more-actions], [data-semantic="actions.more"]')).to_have_count(0)
+        for attribute, name in (('copy', 'Standard kopieren'), ('lifecycle', 'Standard archivieren')):
+            action = page.locator(f'details[data-template-{attribute}] > summary')
+            expect(action).to_be_visible()
+            expect(action).to_have_accessible_name(name)
+            expect(action).to_have_attribute('data-ui-tooltip', name)
+            expect(action).to_have_text('')
+            action.focus()
+            expect(action).to_be_focused()
         form = page.locator("form[data-template-properties]")
         expect(form).to_be_visible()
         expect(page.locator("details[data-template-appearance]")).not_to_have_attribute(
@@ -516,7 +521,7 @@ def test_native_validation_reveals_closed_copy_form(recipe_editor, recipe_server
         page.goto(BASE)
         posts = []
         page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
-        details = page.locator('[data-template-more-actions]')
+        details = page.locator('[data-template-copy]')
         expect(details).not_to_have_attribute('open', '')
         field = page.get_by_label('Name der Kopie', exact=True)
         # Exercise browser constraint validation while its required field is hidden.

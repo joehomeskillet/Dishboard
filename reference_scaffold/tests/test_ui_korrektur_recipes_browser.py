@@ -119,13 +119,11 @@ def test_recipe_pages_follow_correction_contract(
             editor_path = f'/admin/rezepte/{recipe_id}'
             _open(page, base, editor_path)
             expect(page.get_by_text('Entwurf · Änderungen werden erst mit Speichern übernommen.', exact=True)).to_be_visible()
-            editor_menu = page.locator('.admin-compact-toolbar > details.admin-compact-actions')
-            expect(editor_menu.locator('summary')).to_have_attribute('data-semantic', 'actions.more')
-            expect(editor_menu.locator('summary')).to_have_accessible_name('Weitere Aktionen')
-            expect(editor_menu.locator('summary')).to_have_attribute('data-ui-tooltip', 'Weitere Aktionen')
-            expect(editor_menu.locator('summary')).to_have_text('')
-            expect(editor_menu.locator('summary')).to_be_visible()
-            expect(editor_menu).not_to_have_attribute('open', '')
+            expect(page.locator('.admin-compact-toolbar [data-semantic="actions.more"]')).to_have_count(0)
+            editor_actions = page.locator('.admin-compact-toolbar > .admin-row-actions')
+            expect(editor_actions).to_have_accessible_name('Aktionen für Suppe')
+            expect(editor_actions).to_be_visible()
+            expect(editor_actions.locator('details, summary')).to_have_count(0)
             expect(page.locator('#recipe-editor')).to_be_visible()
             expect(page.get_by_role('heading', name='Kennzeichnungen', exact=True)).to_be_visible()
             add_ingredient = page.locator('#recipe-editor button[formaction]').first
@@ -135,14 +133,20 @@ def test_recipe_pages_follow_correction_contract(
             expect(add_ingredient).to_have_text('')
             assert page.locator('#recipe-editor').get_attribute('method') == 'post'
             assert page.locator('#recipe-editor').get_attribute('action') == editor_path
-            editor_menu.locator('summary').click()
             expected_links = {
-                'Bild': f'{editor_path}/bilder',
-                'Rezept-History': f'{editor_path}/revisionen',
-                'Mengen berechnen': f'{editor_path}/skalierung',
+                'Suppe: Bild': f'{editor_path}/bilder',
+                'Verlauf für Suppe': f'{editor_path}/revisionen',
+                'Mengen für Suppe berechnen': f'{editor_path}/skalierung',
+                'Suppe archivieren': f'{editor_path}/status',
             }
             for label, path in expected_links.items():
-                assert page.get_by_role('link', name=label, exact=True).get_attribute('href') == path
+                link = editor_actions.get_by_role('link', name=label, exact=True)
+                expect(link).to_be_visible()
+                expect(link).to_have_text('')
+                expect(link).to_have_attribute('data-ui-tooltip', label)
+                assert link.get_attribute('href') == path
+                link.focus()
+                expect(link).to_be_focused()
             _check_layout(page, width)
             _capture(page, 'editor-regulaer', width, height, javascript)
 
