@@ -602,7 +602,7 @@
 .dishboard-admin .admin-table :is(.admin-table-status, .admin-table-actions) { width: 1%; white-space: nowrap; }
 .dishboard-admin .admin-table-actions { text-align: end; }
 .dishboard-admin .admin-table-status .badge { white-space: nowrap; }
-.dishboard-admin .admin-table-actions .admin-row-actions { min-width: max-content; flex-wrap: nowrap; }
+.dishboard-admin .admin-table-actions .admin-row-actions { min-width: 0; flex-wrap: wrap; }
 
 /* Eine Listentypografie: Haupttext sowie identische Sekundär-/Metarollen.
    Legacy-Zeilen nutzen denselben Vertrag bis zur
