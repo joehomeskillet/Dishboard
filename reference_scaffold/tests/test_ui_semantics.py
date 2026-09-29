@@ -64,6 +64,7 @@ def test_week_actions_keep_publish_labels_and_native_contracts(
             "{% from 'admin/_week_controls.html' import overview_header with context %}"
             "{{ overview_header('Wochenplan', '') }}",
             family=family, status=status, status_label=status, publish_blocked=blocked,
+            can_publish=True,
             week_value='2026-08-31', week_csrf='test-publish',
             schedule_defaults_csrf='test-defaults', week_row_version=3,
             iso_week=36, title='', date_range='', cells=[], filled_slots=0, open_checks=0,
@@ -99,6 +100,35 @@ def test_week_actions_keep_publish_labels_and_native_contracts(
     assert [item['aria-label'] for item in doc.select('.admin-week-more-menu .dropdown-item')] == [
         'CSV exportieren', 'Vorwoche kopieren', 'Wochenvorgaben übernehmen',
     ]
+
+
+@pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
+@pytest.mark.parametrize('status', ('ready', 'review_open'))
+def test_week_actions_hide_publish_without_capability(semantic_app, family, status):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context('/'):
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import page_header %}"
+            "{% include 'admin/_week_controls.html' %}"
+            "{% from 'admin/_week_controls.html' import overview_header with context %}"
+            "{{ overview_header('Wochenplan', '') }}",
+            family=family, status=status, status_label=status,
+            publish_blocked=status == 'review_open', can_publish=False,
+            week_value='2026-08-31', week_csrf='test-publish',
+            schedule_defaults_csrf='test-defaults', week_row_version=3,
+            iso_week=36, title='', date_range='', cells=[], filled_slots=0, open_checks=0,
+            url_for=lambda endpoint, **kwargs: '/test/' + endpoint,
+        )
+    doc = BeautifulSoup(html, 'html.parser')
+    assert doc.select_one('[data-bs-target="#week-publish-modal"]') is None
+    assert doc.select_one('#week-publish-form') is None
+    assert doc.select_one('noscript .admin-week-nojs-publish') is None
+    assert doc.select_one('noscript button') is None
+    primary = doc.select('.btn-primary')
+    assert [button.get('aria-label', button.get_text(strip=True)) for button in primary] == (
+        ['Offene Punkte prüfen'] if status == 'review_open' else []
+    )
 
 
 def test_registry_source_schema_and_frozen_resolution():
