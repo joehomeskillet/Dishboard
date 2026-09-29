@@ -533,6 +533,10 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
                     assert box['width'] >= (44 if width == 390 else 36)
                     assert box['height'] >= (44 if width == 390 else 36)
                     assert control.get_attribute('aria-label')
+            (tmp_path / f'capture-{state}.json').write_text(json.dumps({
+                'route': path, 'viewport': page.viewport_size, 'role': 'Cafeteria.Publisher',
+                'state': state, 'javascript': javascript, 'coarse': width == 390,
+            }, indent=2))
             page.screenshot(path=str(tmp_path / f'cookbook-{state}.png'), full_page=False)
             before_posts = len(posts)
             if state == 'active':
