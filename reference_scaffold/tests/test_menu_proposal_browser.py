@@ -84,6 +84,7 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
     failures = []
     try:
         page = context.new_page()
+        assert page.evaluate("matchMedia('(pointer: coarse)').matches") is False
         page.on('pageerror', lambda error: failures.append(str(error)))
         for route, name in (('/admin/gerichtvorlagen', 'list'),
                 (f'/admin/gerichtvorlagen/{template["public_id"]}', 'template')):
@@ -93,13 +94,16 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
                 shot(page, f'{name}-{family}-{width}-{javascript}')
             link = page.get_by_role('link', name=template['title'] + ' als Menü einplanen', exact=True)
             expect(link).to_be_visible()
-            assert link.bounding_box()['height'] >= 48
+            assert link.bounding_box()['height'] >= 36
+            assert link.bounding_box()['width'] >= 36
         page.get_by_role('link', name=template['title'] + ' als Menü einplanen', exact=True).click()
         page.get_by_label('Woche ab Montag', exact=True).fill(DAY)
         page.get_by_label('Bereich', exact=True).select_option('patient' if family == 'patienten' else 'staff_guest')
         original = page.locator('[name="template_context"]').input_value()
         refresh = page.get_by_role('button', name='Ziel aktualisieren', exact=True)
-        expect(refresh).to_have_text('Ziel aktualisieren')
+        expect(refresh).to_have_text('')
+        expect(refresh).to_have_accessible_name('Ziel aktualisieren')
+        expect(refresh).to_have_attribute('data-ui-tooltip', 'Ziel aktualisieren')
         expect(refresh).to_have_attribute('data-semantic', 'actions.refresh')
         expect(refresh).to_have_attribute('name', 'action')
         expect(refresh).to_have_attribute('value', 'refresh')
@@ -136,7 +140,7 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
             page.set_viewport_size({'width': width, 'height': height})
             shot(page, f'editor-{family}-{width}-{javascript}')
         if family == 'cafeteria':
-            page.locator('#sec-output-texts > summary').click()
+            expect(page.locator('#sec-output-texts')).to_have_attribute('open', '')
             page.locator('[name="internal_chf"]').fill('9.50')
             page.locator('[name="external_chf"]').fill('14.50')
         else:
@@ -242,8 +246,9 @@ def test_invalid_week_keeps_native_values_and_focuses_error(
 
 @pytest.mark.parametrize('javascript', (True, False))
 @pytest.mark.parametrize('width,height', ((390, 844), (320, 900), (1440, 900)))
+@pytest.mark.parametrize('has_touch', (False, True), ids=['fine', 'coarse'])
 def test_list_planning_action_stays_inside_visible_entry(
-    browser, live_server, admin_app, admin_engine, javascript, width, height,  # noqa: F811
+    browser, live_server, admin_app, admin_engine, javascript, width, height, has_touch,  # noqa: F811
 ):
     client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     revision = _insert_revision(admin_engine, actor, 'Gespeicherter Stand mit Kräutern')
@@ -257,10 +262,11 @@ def test_list_planning_action_stays_inside_visible_entry(
     evidence.mkdir(parents=True, exist_ok=True)
     before = stored_state(admin_engine)
     with browser.new_context(base_url=live_server, java_script_enabled=javascript,
-            viewport={'width': width, 'height': height}, reduced_motion='reduce') as context:
+            viewport={'width': width, 'height': height}, reduced_motion='reduce', has_touch=has_touch) as context:
         context.add_cookies([{'name': 'session', 'value': client.get_cookie('session').value, 'url': live_server}])
         page = context.new_page()
         assert page.goto('/admin/gerichtvorlagen?archived=1').status == 200
+        assert page.evaluate("matchMedia('(pointer: coarse)').matches") is has_touch
         page.evaluate('document.fonts.ready')
         link = page.get_by_role('link', name=template['title'] + ' als Menü einplanen', exact=True)
         expect(link).to_have_count(1)
@@ -271,7 +277,7 @@ def test_list_planning_action_stays_inside_visible_entry(
             page.mouse.wheel(0, height // 2)
             expect(link).to_be_in_viewport(timeout=2_000)
         metrics = link.evaluate('''el => {
-            const row = el.closest('tr'), clip = el.closest('.table-responsive');
+            const row = el.closest('tr'), clip = el.closest('.card');
             const title = row.querySelector('td > a');
             const bounds = node => {const r=node.getBoundingClientRect();
                 return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};};
@@ -289,7 +295,7 @@ def test_list_planning_action_stays_inside_visible_entry(
                 titleContained:heading.left >= left-1 && heading.right <= right+1,
                 text:row.innerText};
         }''')
-        name = f'list-{width}-{javascript}'
+        name = f'list-{width}-{javascript}-{"coarse" if has_touch else "fine"}'
         page.screenshot(path=str(evidence / f'{name}.png'), full_page=True)
         (evidence / f'{name}.json').write_text(json.dumps({
             'template_sha256': source_hash, 'test_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -299,14 +305,23 @@ def test_list_planning_action_stays_inside_visible_entry(
         assert metrics['documentWidth'] <= width + 1, metrics
         assert metrics['intersectionWidth'] >= metrics['action']['width'] - 1, metrics
         assert metrics['intersectionHeight'] >= metrics['action']['height'] - 1, metrics
-        assert metrics['action']['height'] >= 48 and metrics['action']['width'] >= 48
+        action_min = 44 if has_touch else 36
+        assert metrics['action']['height'] >= action_min and metrics['action']['width'] >= action_min
         assert metrics['titleContained'] and metrics['heading']['width'] >= metrics['longestWord'] - 1
         assert title in metrics['text'] and 'Gemeinsam' in metrics['text']
-        assert 'Gespeicherter Stand mit Kräutern' in metrics['text']
-        assert '1 gespeicherte Stände' in metrics['text'] and 'In 0 Menüs verwendet' in metrics['text']
-        expect(page.get_by_role('columnheader', name='Dazu', exact=True)).to_be_visible(
-            visible=width >= 768
-        )
+        column = page.get_by_role('columnheader', name='Dazu', exact=True)
+        expect(column).to_have_count(1)
+        if width < 768:
+            # Stacked tables retain screen-reader headers while visually clipping the head.
+            assert column.evaluate('''el => {
+                const style = getComputedStyle(el.closest('thead'));
+                return [style.position, style.width, style.height, style.overflow, style.clipPath];
+            }''') == ['absolute', '1px', '1px', 'hidden', 'inset(50%)']
+            cell = link.locator('xpath=ancestor::tr').locator('[data-label="Dazu"]')
+            expect(cell).to_be_visible()
+            assert cell.evaluate("el => getComputedStyle(el, '::before').content") == '"Dazu"'
+        else:
+            expect(column).to_be_visible()
         expect(page.locator(f'a[href="/admin/gerichtvorlagen/{archived["public_id"]}/einplanen"]')).to_have_count(0)
         assert link.get_attribute('href') == f'/admin/gerichtvorlagen/{template["public_id"]}/einplanen'
         link.focus()
@@ -317,4 +332,13 @@ def test_list_planning_action_stays_inside_visible_entry(
         expect(page.get_by_role('heading', name='Gerichtvorlagen', exact=True)).to_be_visible()
         expect(page.locator('.page-header')).to_contain_text('Als Menü einplanen · ' + title)
         expect(page.locator('#planning-summary')).to_contain_text(title)
+        assert stored_state(admin_engine) == before
+        # Recipe and usage details now live in the template's native disclosure.
+        page.get_by_role('link', name='Zur Vorlage ' + title, exact=True).click()
+        details = page.locator('#template-recipe-details')
+        expect(details).not_to_have_attribute('open', '')
+        details.locator(':scope > summary').click()
+        expect(details.get_by_role('link', name='Rezept: Gespeicherter Stand mit Kräutern', exact=True)).to_be_visible()
+        expect(details).to_contain_text('1 gespeicherte Stände')
+        expect(details).to_contain_text('In 0 Menüs verwendet')
         assert stored_state(admin_engine) == before

@@ -272,6 +272,14 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                             # Opening the action menu moves focus to the first item.
                             focused = details.locator('.ui-sem-action-items :is(a, button)').first
                             expect(focused).to_be_focused()
+                            # Escape dismisses the focused item's tooltip before its menu.
+                            tooltip = page.get_by_role('tooltip', name=focused.get_attribute('data-ui-tooltip'), exact=True)
+                            expect(tooltip).to_have_text(focused.get_attribute('data-ui-tooltip'))
+                            expect(tooltip).to_be_visible()
+                            page.keyboard.press('Escape')
+                            expect(page.get_by_role('tooltip')).to_have_count(0)
+                            expect(details).to_have_attribute('open', '')
+                            expect(focused).to_be_focused()
                         else:
                             focused = summary
                             expect(summary).to_be_focused()

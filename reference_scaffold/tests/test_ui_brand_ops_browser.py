@@ -29,12 +29,14 @@ VIEWPORTS = [
 ]
 
 
-def _create_context(playwright_browser: Browser, server_url: str, client, *, javascript: bool = True):
+def _create_context(playwright_browser: Browser, server_url: str, client, *, javascript: bool = True,
+                    has_touch: bool = False):
     cookie = client.get_cookie('session')
     assert cookie is not None
     context = playwright_browser.new_context(
         base_url=server_url,
         java_script_enabled=javascript,
+        has_touch=has_touch,
         reduced_motion='reduce',
     )
     context.add_cookies([{
@@ -72,23 +74,31 @@ def _assert_page_container_width(page, width: int) -> None:
 
 def _assert_no_overflow_and_min_targets(page, min_height: int = 44, scope: str = 'main'):
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    coarse = page.evaluate("matchMedia('(pointer: coarse)').matches")
+    action_min = 44 if coarse else 36
     for locator in page.locator(f'{scope} :is(.btn, .form-select, .form-control)').all():
         if locator.is_visible():
             box = locator.bounding_box()
-            assert box is not None and box['height'] >= min_height
+            semantic_action = locator.evaluate("el => el.matches('.btn.ui-sem-control')")
+            assert box is not None and box['height'] >= (action_min if semantic_action else min_height)
+            if semantic_action:
+                assert box['width'] >= action_min
             assert locator.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 14
 
 
 @pytest.mark.parametrize('width,height', VIEWPORTS)
+@pytest.mark.parametrize('has_touch', [False, True], ids=['fine', 'coarse'])
 def test_brand_editor_normal_state_and_viewports(
     browser: Browser, live_server: str, admin_app, admin_engine, width: int, height: int, tmp_path: Path,  # noqa: F811
+    has_touch: bool,
 ):
     client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
-    with _create_context(browser, live_server, client) as context:
+    with _create_context(browser, live_server, client, has_touch=has_touch) as context:
         page = context.new_page()
         page.set_viewport_size({'width': width, 'height': height})
         response = page.goto(BRAND_PATH)
         assert response is not None and response.status == 200
+        assert page.evaluate("matchMedia('(pointer: coarse)').matches") is has_touch
 
         expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'standard')
         _assert_page_container_width(page, width)
@@ -128,15 +138,18 @@ def test_brand_preview_standalone_page(
 
 
 @pytest.mark.parametrize('width,height', VIEWPORTS)
+@pytest.mark.parametrize('has_touch', [False, True], ids=['fine', 'coarse'])
 def test_operations_normal_state_and_viewports(
     browser: Browser, live_server: str, admin_app, admin_engine, width: int, height: int, tmp_path: Path,  # noqa: F811
+    has_touch: bool,
 ):
     client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
-    with _create_context(browser, live_server, client) as context:
+    with _create_context(browser, live_server, client, has_touch=has_touch) as context:
         page = context.new_page()
         page.set_viewport_size({'width': width, 'height': height})
         response = page.goto(OPS_PATH)
         assert response is not None and response.status == 200
+        assert page.evaluate("matchMedia('(pointer: coarse)').matches") is has_touch
 
         # Full-width shell: the operations page no longer uses the narrow variant (audit group A).
         expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'standard')
@@ -251,7 +264,11 @@ def test_brand_ops_nojs_operations_save(
         page.goto(OPS_PATH)
         page.locator('#weekend-editor > summary').click()
         page.locator('#allows_weekend').check()
-        # Canonical verb: the weekend form's submit is «Speichern» inside its own editor.
-        page.locator('#weekend-editor').get_by_role('button', name='Speichern', exact=True).click()
+        form = page.locator('#weekend-form')
+        expect(form).to_have_attribute('method', 'post')
+        expect(form).to_have_attribute('action', OPS_PATH)
+        expect(form.locator('[name="action"]')).to_have_value('save_weekend')
+        assert form.locator('[name="_csrf"]').input_value()
+        form.get_by_role('button', name='Mitarbeitende und externe Gäste speichern', exact=True).click()
         expect(page.locator('#allows_weekend')).to_be_checked()
         page.screenshot(path=str(tmp_path / 'brand-ops-nojs-weekend.png'), full_page=True)

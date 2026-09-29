@@ -91,8 +91,13 @@ def _assert_one_primary_save(page: Page) -> None:
     expect(page.locator('#review .admin-list-row')).to_have_count(2)
     expect(form.get_by_role('button', name='Menü speichern', exact=True)).to_have_count(1)
     expect(form.get_by_role('button', name='Speichern und zum Wochenplan', exact=True)).to_have_count(1)
-    secondary = form.locator('input[type="submit"][formaction*="return_to=week"]')
+    secondary = form.locator('button[type="submit"][formaction*="return_to=week"]')
     expect(secondary).to_have_count(1)
+    expect(secondary).to_have_accessible_name('Speichern und zum Wochenplan')
+    expect(secondary).to_have_attribute('formaction', form.get_attribute('action') + '?return_to=week')
+    assert secondary.evaluate('el => el.form === el.closest("form[data-menu-editor]")')
+    expect(form).to_have_attribute('method', 'post')
+    assert form.locator('[name="_csrf"]').input_value()
     assert secondary.evaluate('el => !el.classList.contains("btn-primary")')
 
 
@@ -393,12 +398,12 @@ def test_a09_origin_error_opens_closed_details(
     page.goto(_menu_url(family))
     origin = page.locator('details[data-mode-section="origin"]')
     if origin.get_attribute('open') is None:
-        origin.locator('summary').click()
+        origin.locator(':scope > summary').click()
     page.locator('[name="origin_mode"][value="manual"]').check()
     page.locator('[name="origin_ingredient"]').first.fill('Rind')
     page.locator('[name="origin_country_code"]').first.select_option('')
     if origin.get_attribute('open') is not None:
-        origin.locator('summary').click()
+        origin.locator(':scope > summary').click()
     _submit_menu_form(page, 400)
     expect(page.locator('.error-region[role="alert"]')).to_be_visible()
     expect(page.locator('details[data-mode-section="origin"]')).to_have_attribute('open', '')
