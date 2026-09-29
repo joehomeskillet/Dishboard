@@ -115,3 +115,70 @@ def test_recipe_editor_icons_preserve_native_state(
         expect(page.locator('#recipe-editor')).to_be_visible()
         assert len(posts) == 1 and snapshot(owner) == before and not errors
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+
+@pytest.mark.parametrize('width', [390, 360])
+def test_recipe_editor_servings_unit_select_fits_mobile_viewport(
+    b3, master_server, browser, width, tmp_path,  # noqa: F811
+):
+    _, owner, client, _ = b3
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': width, 'height': 844},
+                             has_touch=True, reduced_motion='reduce', service_workers='block') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        page.goto(base + '/admin/rezepte/neu', wait_until='networkidle')
+        page.evaluate('document.fonts.ready')
+
+        # Form contract
+        select = page.locator('#servings_unit_code')
+        expect(select).to_be_visible()
+        assert select.get_attribute('name') == 'servings_unit_code'
+        options = select.locator('option').all_inner_texts()
+        assert 'Keine Auswahl' in options
+        assert any('Esslöffel' in opt for opt in options)
+
+        # Page horizontal overflow check
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+        # Check for both "Keine Auswahl" and long unit "EL" ("Esslöffel (15 ml)")
+        for option_value in ['', 'EL']:
+            select.select_option(option_value)
+            metrics = page.evaluate('''() => {
+                const el = document.querySelector('#servings_unit_code');
+                const style = window.getComputedStyle(el);
+                const paddingLeft = parseFloat(style.paddingLeft) || 0;
+                const paddingRight = parseFloat(style.paddingRight) || 0;
+                const innerWidth = el.clientWidth - paddingLeft - paddingRight;
+
+                const span = document.createElement('span');
+                span.style.font = style.font;
+                span.style.visibility = 'hidden';
+                span.style.position = 'absolute';
+                span.style.whiteSpace = 'nowrap';
+                const selectedOpt = el.options[el.selectedIndex];
+                span.textContent = selectedOpt ? selectedOpt.text : '';
+                document.body.appendChild(span);
+                const textWidth = span.getBoundingClientRect().width;
+                span.remove();
+
+                return {
+                    text: selectedOpt ? selectedOpt.text : '',
+                    textWidth: textWidth,
+                    innerWidth: innerWidth,
+                    clientWidth: el.clientWidth,
+                    scrollWidth: el.scrollWidth,
+                };
+            }''')
+            assert metrics['scrollWidth'] <= metrics['clientWidth'], (
+                f"At {width}px, option '{metrics['text']}' scrollWidth {metrics['scrollWidth']} "
+                f"exceeds clientWidth {metrics['clientWidth']}"
+            )
+            assert metrics['textWidth'] <= metrics['innerWidth'], (
+                f"At {width}px, option '{metrics['text']}' textWidth {metrics['textWidth']:.1f}px "
+                f"exceeds select innerWidth {metrics['innerWidth']:.1f}px (clientWidth={metrics['clientWidth']}px)"
+            )
+        assert not errors
+
