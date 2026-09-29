@@ -232,6 +232,10 @@ def test_recipe_template_associations_have_distinct_native_actions(
         path = create_template(client, title=name, recipe_public_id=public_id)
         archived = index == 2
         if archived:
+            name += ' "Kräuter" & Gemüse'
+            data = template_fields(client, path)
+            data['title'] = name
+            assert client.post(path, data=data).status_code == 303
             data = template_fields(client, path)
             data['action'] = 'archive'
             assert client.post(path, data=data).status_code == 303
