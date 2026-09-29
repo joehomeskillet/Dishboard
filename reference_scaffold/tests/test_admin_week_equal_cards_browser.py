@@ -56,7 +56,11 @@ def test_card_visuals_cafeteria_exact_image_and_fallback(
         expect(card).to_contain_text('Mitarbeitende CHF')
         expect(card).to_contain_text('Externe CHF')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        edit = card.get_by_role('link', name='Bearbeiten:', exact=False)
+        edit = card.get_by_role(
+            'link',
+            name=f'Montag, 31. August, Mittag, Menü 1 – {image["title"]} bearbeiten',
+            exact=True,
+        )
         assert card.locator('h3').bounding_box()['y'] >= card.bounding_box()['y']
         assert edit.bounding_box()['y'] + edit.bounding_box()['height'] <= card.bounding_box()['y'] + card.bounding_box()['height']
         if width < 768:
@@ -84,7 +88,8 @@ def _assert_edit_link_context(page: Page, family: str, titles: list[str]) -> Non
         day_index, slot = divmod(index, per_day)
         meal, meal_label = ('LUNCH', 'Mittag') if slot < 2 else ('DINNER', 'Abend')
         option, option_label = ('MENU_1', 'Menü 1') if slot % 2 == 0 else ('VEGGIE', 'Vegetarisch')
-        name = f'Bearbeiten: {day_labels[day_index]}, {meal_label}, {option_label} – {title}'
+        verb = 'anlegen' if title == 'Noch kein Gericht' else 'bearbeiten'
+        name = f'{day_labels[day_index]}, {meal_label}, {option_label} – {title} {verb}'
         link = page.get_by_role('link', name=name, exact=True)
         expect(link).to_have_count(1)
         expect(link).to_have_attribute('data-semantic', 'actions.add' if title == 'Noch kein Gericht' else 'actions.edit')
