@@ -205,13 +205,12 @@ def recipe_new():
 def recipe_edit(recipe_id):
     recipe_id = _recipe_id(recipe_id)
     if request.method == 'GET':
+        _query({'from', 'q', 'archived', 'page'})
         query = request.args.get('q', '')
         page = request.args.get('page', '1')
         archived = request.args.get('archived', '0')
         g.recipe_list_return = None
         if (request.args.getlist('from') == ['recipes']
-                and not set(request.args) - {'from', 'q', 'archived', 'page'}
-                and all(len(request.args.getlist(key)) == 1 for key in request.args)
                 and len(query) <= 200 and '\x00' not in query
                 and archived in ('0', '1')
                 and re.fullmatch(r'[1-9][0-9]{0,5}', page) is not None

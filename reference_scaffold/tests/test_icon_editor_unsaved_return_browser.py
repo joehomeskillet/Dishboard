@@ -272,6 +272,7 @@ def test_invalid_return_context_falls_back_without_writes(editor_session):
     marker = {'recipe': 'recipes', 'ingredient': 'foods', 'cookbook': 'cookbooks', 'component': 'components'}[evidence['kind']]
     valid = {'from': marker, **evidence['filter_values']}
     variants = [
+        ('unknown-only', [('unexpected', 'value')]),
         ('missing-source', [(k, v) for k, v in valid.items() if k != 'from']),
         ('wrong-source', list({**valid, 'from': '//example.invalid'}.items())),
         ('long-search', list({**valid, 'q': 'x' * 201}.items())),
@@ -294,7 +295,13 @@ def test_invalid_return_context_falls_back_without_writes(editor_session):
     evidence['invalid_contexts'] = []
     for label, args in variants:
         response = page.goto(editor + '?' + urlencode(args), wait_until='networkidle')
-        assert response is not None and response.status == 200, label
+        strict_keys = evidence['kind'] in ('recipe', 'ingredient')
+        invalid_keys = label in ('unknown-only', 'free-target') or label.startswith('duplicate-')
+        expected_status = 400 if strict_keys and invalid_keys else 200
+        assert response is not None and response.status == expected_status, label
+        if expected_status == 400:
+            evidence['invalid_contexts'].append(label)
+            continue
         destination = urlsplit(_return_control(page, evidence).get_attribute('href'))
         assert destination.path == evidence['list_path'], label
         assert parse_qs(destination.query) == evidence['return_query'], label
@@ -303,6 +310,32 @@ def test_invalid_return_context_falls_back_without_writes(editor_session):
         evidence['invalid_contexts'].append(label)
     assert evidence['writes'] == []
     assert _database_state(owner) == before
+
+
+@pytest.mark.parametrize('kind', ['recipe', 'ingredient'])
+@pytest.mark.parametrize('with_context', [False, True])
+def test_strict_editor_query_rejects_unknown_and_duplicate_keys(b3, kind, with_context):
+    """The pre-D20 strict routes retain their key contract with list context."""
+    _, owner, client, _ = b3
+    editor = create_recipe(client, TITLE) if kind == 'recipe' else create_food(client, name=TITLE)
+    marker = 'recipes' if kind == 'recipe' else 'foods'
+    context = {'from': marker, 'q': TITLE, 'archived': '1', 'page': '2'}
+    if kind == 'ingredient':
+        context.update(kind='foods', recipe_q='Suchtest', recipe_page='2')
+    before = _database_state(owner)
+    prefix = list(context.items()) if with_context else []
+    invalid_queries = [
+        [*prefix, ('unexpected', 'value')],
+        [*prefix, ('unexpected', 'first'), ('unexpected', 'second')],
+    ]
+    for key, value in context.items():
+        args = prefix if with_context else [(key, value)]
+        invalid_queries.append([*args, (key, value)])
+    for args in invalid_queries:
+        response = client.get(editor, query_string=args)
+        assert response.status_code == 400, args
+    assert _database_state(owner) == before
+
 
 def test_valid_return_context_preserves_page_and_escaped_search(editor_session):
     page, owner, evidence = editor_session
