@@ -115,7 +115,7 @@ def test_visible_editor_labels_with_populated_and_error_states(
     page.locator('[data-component-kind-option][value="text"]').last.check()
     page.locator('[name="component_text"]').last.fill('Zusätzliche Gemüsebeilage')
     page.locator('#components-list [data-row]').last.get_by_role('button', name='Bestätigen', exact=True).click()
-    page.locator('#components-list [data-row]').last.locator('summary').click()
+    expect(page.locator('#components-list [data-row]').last.get_by_role('button', name='Nach oben', exact=True)).to_be_visible()
     page.locator('#components-list [data-row]').last.get_by_role('button', name='Nach oben', exact=True).click()
     _assert_visible_editor_labels(page)
 
@@ -135,13 +135,13 @@ def test_error_descriptions_follow_surviving_rows_and_are_not_cloned(page_contex
     expect(rows.nth(1).locator('[name="origin_country_code"]')).to_have_attribute(
         'aria-describedby', 'origin-1-country-error',
     )
-    rows.first.locator('.menu-editor-row-actions summary').press('Enter')
+    expect(rows.first.get_by_role('button', name='Herkunft löschen')).to_be_visible()
     rows.first.get_by_role('button', name='Herkunft löschen').click()
     expect(rows.first.locator('[name="origin_country_code"]')).to_have_attribute(
         'aria-describedby', 'origin-0-country-error',
     )
     expect(rows.first.locator('#origin-0-country-error')).to_be_visible()
-    rows.first.locator('.menu-editor-row-actions summary').press('Enter')
+    expect(rows.first.get_by_role('button', name='Herkunft löschen')).to_be_visible()
     remove = rows.first.get_by_role('button', name='Herkunft löschen')
     remove.hover()
     tooltip = page.get_by_role('tooltip', name='Herkunft löschen', exact=True)
@@ -151,8 +151,9 @@ def test_error_descriptions_follow_surviving_rows_and_are_not_cloned(page_contex
     page.get_by_role('button', name='Herkunft hinzufügen').click()
     expect(rows).to_have_count(2)
     expect(rows.last.locator('[name="origin_ingredient"]')).to_be_focused()
-    # Native details clone its source's open state; both rows remain usable.
-    expect(rows.last.locator('.ui-sem-actions')).to_have_attribute('open', '')
+    # Cloned rows keep their direct action and discard tooltip references.
+    expect(rows.last.get_by_role('button', name='Herkunft löschen')).to_be_visible()
+    expect(rows.last.locator('[data-semantic="actions.more"]')).to_have_count(0)
     assert tooltip_id not in (rows.last.get_by_role('button', name='Herkunft löschen').get_attribute('aria-describedby') or '').split()
     expect(rows.last.locator('.field-error')).to_have_count(0)
     assert rows.last.locator('[name="origin_country_code"]').get_attribute('aria-describedby') is None
@@ -359,11 +360,11 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
     rows = page.locator('#components-list .component-row')
     expect(rows).to_have_count(3)
     expect(rows.nth(2).locator('legend').first).to_have_text('Baustein 3')
-    rows.nth(2).locator('summary').click()
+    expect(rows.nth(2).get_by_role('button', name='Nach oben')).to_be_visible()
     rows.nth(2).get_by_role('button', name='Nach oben').click()
     expect(page.locator('[name="component_text"]').nth(1)).to_have_value('Dritte')
     expect(rows.nth(1).get_by_role('button', name='Nach oben')).to_be_focused()
-    rows.nth(0).locator('summary').click()
+    expect(rows.nth(0).get_by_role('button', name=re.compile(r'löschen$', re.I))).to_be_visible()
     rows.nth(0).get_by_role('button', name=re.compile(r'löschen$', re.I)).click()
     expect(rows).to_have_count(2)
     expect(rows.nth(0).locator('legend').first).to_have_text('Baustein 1')
@@ -389,7 +390,7 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
         'els => els.map(el => el.htmlFor).filter(id => !document.getElementById(id))',
     )
     assert dangling == []
-    origin_rows.first.locator('.menu-editor-row-actions summary').press('Enter')
+    expect(origin_rows.first.get_by_role('button', name='Herkunft löschen')).to_be_visible()
     for name in ('Baustein hinzufügen', 'Löschen', 'Nach oben', 'Nach unten', 'Herkunft hinzufügen', 'Herkunft löschen'):
         assert page.get_by_role('button', name=name).count() >= 1, name
 
