@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import struct
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -23,7 +24,7 @@ from test_rendered_ui import browser  # noqa: F401
 
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude' / 'evidence' / 'cookbook-mobile-fix-0913' / 'after'
+EVIDENCE = Path(os.environ.get('UI_EVIDENCE_DIR', ROOT / '.claude' / 'evidence' / 'cookbook-mobile-fix-0913')) / 'after'
 LONG_NAME = ('Sommergemüse mit Kräuterkartoffeln und hausgemachter Zitronensauce '
              'für die Gemeinschaftsküche am Sonntag')
 LONG_DESCRIPTION = ('Saisonale Rezepte für die Gemeinschaftsküche, sortiert nach Aufwand. ' * 6).strip()
@@ -176,10 +177,11 @@ def _open_archive_action(page):
     # Shared footer exposes rare actions directly; native archive target is unchanged.
     scroll_position = page.evaluate('[scrollX, scrollY]')
     details = page.locator('.admin-form-rare')
-    archive = details.get_by_role('link', name='Archivieren', exact=True, include_hidden=True)
+    archive = details.locator('a[data-semantic="actions.archive"]')
     expect(archive).to_have_count(1)
     expect(details.locator('summary')).to_have_count(0)
-    assert _icon_control(archive) == ('Archivieren', 'Archivieren')
+    name = page.locator('h1').inner_text().strip() + ' archivieren'
+    assert _icon_control(archive) == (name, name)
     expect(archive).to_be_visible()
     archive.focus()
     expect(archive).to_be_focused()
@@ -267,7 +269,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         assert 'btn-danger' in (confirm.get_attribute('class') or '').split()
         assert _symbol(confirm) == 'archive'
         assert _symbol(page.get_by_role('link', name='Abbrechen', exact=True)) == 'x'
-        assert page.get_by_role('link', name='Archivieren', exact=True).count() == 0
+        assert page.locator('a[data-semantic="actions.archive"]').count() == 0
         assert page.locator('main .btn-primary').count() == 0
         status_form = Forms(page.content()).forms['/admin/kochbuecher/book-1/status']
         assert dict(status_form) == {
@@ -282,8 +284,9 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
         assert page.locator('section[aria-labelledby="cookbook-header-title"] h3').count() == 0
         expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
-        reactivate = page.get_by_role('link', name='Reaktivieren', exact=True)
-        assert _icon_control(reactivate) == ('Reaktivieren', 'Reaktivieren')
+        reactivate_name = page.get_by_role('heading', level=1).inner_text() + ' reaktivieren'
+        reactivate = page.get_by_role('link', name=reactivate_name, exact=True)
+        assert _icon_control(reactivate) == (reactivate_name, reactivate_name)
         expect(reactivate).to_have_attribute('href', '/admin/kochbuecher/book-1/status')
         assert _symbol(reactivate) == 'circle-check'
         expect(page.get_by_role('link', name='Wiederherstellen', exact=True)).to_have_count(0)
@@ -325,10 +328,11 @@ def _assign(server, path: str, recipe_ids: list[str]) -> None:
     assert client.post(path + '/rezepte', data=form).status_code == 303
 
 
-def _context(browser, server, width: int, height: int, *, javascript: bool = True):  # noqa: F811
+def _context(browser, server, width: int, height: int, *, javascript: bool = True, has_touch: bool = False):  # noqa: F811
     context = browser.new_context(
         viewport={'width': width, 'height': height},
         java_script_enabled=javascript,
+        has_touch=has_touch,
         locale='de-CH',
         timezone_id='Europe/Zurich',
         reduced_motion='reduce',
@@ -453,7 +457,7 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
             expect(page.get_by_label('Rezept 1', exact=True)).to_have_value(cookbook_server['first'])
             expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
             expect(_open_archive_action(page)).to_have_attribute('href', path + '/status')
-            expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
+            expect(page.locator('a[data-semantic="actions.archive"]')).to_be_visible()
             _assert_page_width(page, width)
             _assert_core_controls(page)
             editor = page.evaluate(DENSITY_METRICS)
@@ -480,7 +484,8 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
 @pytest.mark.parametrize('width', [390, 1440])
 def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browser, javascript, width, tmp_path):  # noqa: F811
     path = _create_book(cookbook_server, f'Vertrag {javascript}')
-    context = _context(browser, cookbook_server, width, 900, javascript=javascript)
+    context = _context(browser, cookbook_server, width, 844 if width == 390 else 900,
+                       javascript=javascript, has_touch=width == 390)
     page = context.new_page()
     posts, failures = [], []
     page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
@@ -520,16 +525,25 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
             expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
             if page.locator('.admin-statusbar-label').filter(has_text='Status').count():
                 failures.append(f'{state}: redundant status header card')
+            expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
+            assert page.evaluate("matchMedia('(any-pointer: coarse)').matches") is (width == 390)
+            for control in page.locator('main .ui-sem-control--icon-only').all():
+                if control.is_visible():
+                    box = control.bounding_box()
+                    assert box['width'] >= (44 if width == 390 else 36)
+                    assert box['height'] >= (44 if width == 390 else 36)
+                    assert control.get_attribute('aria-label')
             page.screenshot(path=str(tmp_path / f'cookbook-{state}.png'), full_page=False)
             before_posts = len(posts)
             if state == 'active':
                 opener = _open_archive_action(page)
-                expect(opener).to_have_text('Archivieren')
+                expect(opener).to_have_text('')
             else:
                 expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
                 expect(page.locator('form[action$="/rezepte"], #cookbook-name')).to_have_count(0)
-                opener = page.get_by_role('link', name='Reaktivieren', exact=True)
-                expect(opener).to_have_attribute('data-ui-tooltip', 'Reaktivieren')
+                reactivate_name = page.get_by_role('heading', level=1).inner_text() + ' reaktivieren'
+                opener = page.get_by_role('link', name=reactivate_name, exact=True)
+                expect(opener).to_have_attribute('data-ui-tooltip', reactivate_name)
                 assert _symbol(opener) == 'circle-check'
                 if opener.inner_text().strip():
                     failures.append('reactivate GET opener contains visible text')
@@ -537,7 +551,7 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
                 expect(opener).to_be_focused()
                 _focus_ring(opener)
                 if javascript:
-                    expect(page.get_by_role('tooltip', name='Reaktivieren', exact=True)).to_be_visible()
+                    expect(page.get_by_role('tooltip', name=reactivate_name, exact=True)).to_be_visible()
             expect(opener).to_have_attribute('href', path + '/status')
             opener.press('Enter')
             expect(page).to_have_url(cookbook_server['base'] + path + '/status')
@@ -736,7 +750,7 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                     )).to_be_visible()
                     expect(page.get_by_role('link', name='Alpha öffnen', exact=True)).to_be_visible()
                     expect(_open_archive_action(page)).to_have_attribute('href', path + '/status')
-                    expect(page.get_by_role('link', name='Archivieren', exact=True)).to_be_visible()
+                    expect(page.locator('a[data-semantic="actions.archive"]')).to_be_visible()
                 captures = {'top': _native_viewport_capture(page, EVIDENCE / f'native-200-{name}.png')}
                 if name == 'list':
                     page.locator('.admin-list-name').filter(has_text=LONG_NAME).scroll_into_view_if_needed()

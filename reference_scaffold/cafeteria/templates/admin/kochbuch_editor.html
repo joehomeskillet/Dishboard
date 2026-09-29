@@ -16,7 +16,7 @@
 {{ icon_button('actions.save') }}
 {% endset %}
 {% set archive_rare %}
-{% if book and can_write %}{{ icon_button('actions.archive', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), show_text=true) }}{% endif %}
+{% if book and can_write %}{{ icon_button('actions.archive', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), object=book.name) }}{% endif %}
 {% endset %}
 {% block title %}{{ 'Neues Kochbuch' if creating else book.name }} · Kochbücher{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
@@ -73,7 +73,7 @@
     {% if book.description %}<p class="text-break mb-0">{{ book.description }}</p>{% else %}<p class="text-secondary mb-0">Keine Beschreibung</p>{% endif %}
     {% if archived %}<p class="form-hint mb-0 mt-2">{{ icon('archive') }} Schreibgeschützt · zum Ändern zuerst reaktivieren.</p>{{ hint('Archivierte Kochbücher bleiben lesbar. Rezepte und Angaben lassen sich erst nach dem Reaktivieren wieder ändern.', 'cookbook-readonly-hint') }}{% endif %}
     {% if book and can_write and not status_action %}
-    <p class="mt-2 mb-0">{% if book.active %}{{ icon_button('actions.archive', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), show_text=true) }}{% else %}{{ icon_button('actions.activate', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), text='Reaktivieren', emphasis='primary') }}{% endif %}</p>
+    <p class="mt-2 mb-0">{% if book.active %}{{ icon_button('actions.archive', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), object=book.name) }}{% else %}{{ icon_button('actions.activate', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), text='Reaktivieren', aria_label=book.name ~ ' reaktivieren', emphasis='primary') }}{% endif %}</p>
     {% endif %}
     {% endif %}
   </div>
