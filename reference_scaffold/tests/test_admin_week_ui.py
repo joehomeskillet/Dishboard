@@ -3,13 +3,14 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
 from urllib.parse import parse_qs
 
 import pytest
 from flask import Flask
 from jinja2 import ChoiceLoader, DictLoader
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Browser, Page, expect
 from sqlalchemy import Engine, text
 
 from test_admin_ux_browser import (  # noqa: F401
@@ -24,6 +25,20 @@ from cafeteria.workflow_review import get_component_review_token, review_compone
 ROOT = Path(__file__).resolve().parents[2]
 BASE_REVISION = '77422d91cf1eedbf29404db3fdeb941c9b0d4056'
 VIEWPORTS = ((390, 844), (1440, 1100))
+
+
+@pytest.fixture(params=(False, True), ids=('fine', 'coarse'))
+def week_page(
+    page_context: Page, browser: Browser, live_server: str, request: pytest.FixtureRequest,  # noqa: F811
+) -> Iterator[Page]:
+    with browser.new_context(
+        base_url=live_server, storage_state=page_context.context.storage_state(),
+        has_touch=request.param, reduced_motion='reduce',
+    ) as context:
+        page = context.new_page()
+        assert page.evaluate("matchMedia('(pointer: coarse)').matches") is request.param
+        assert page.evaluate("matchMedia('(pointer: fine)').matches") is (not request.param)
+        yield page
 
 
 def _capture(page: Page, phase: str, family: str, state: str, width: int) -> None:
@@ -69,10 +84,15 @@ def _assert_layout(page: Page, height: int) -> None:
         const target = element.type === 'checkbox' ? element.closest('label') : element;
         if (!target.getClientRects().length || getComputedStyle(target).visibility === 'hidden') return [];
         const box = target.getBoundingClientRect();
-        return box.width < 44 || box.height < 44 || box.x < 0 || box.right > innerWidth + 1
-            ? [element.outerHTML] : [];
+        // Icon-first section 7 changes icon actions only; text controls keep 44 px.
+        const coarse = matchMedia('(pointer: coarse), (any-pointer: coarse)').matches;
+        const minimum = !coarse && element.matches('.ui-sem-control--icon-only') ? 36 : 44;
+        return box.width < minimum || box.height < minimum || box.x < 0 || box.right > innerWidth + 1
+            ? [{tag: element.tagName, classes: element.className,
+                name: element.getAttribute('aria-label') || element.textContent.trim(),
+                width: box.width, height: box.height, x: box.x, right: box.right}] : [];
     })''')
-    assert not bad_targets
+    assert not bad_targets, '\n'.join(str(target) for target in bad_targets)
 
 
 @pytest.mark.parametrize(('width', 'height'), VIEWPORTS)
@@ -81,7 +101,7 @@ def _assert_layout(page: Page, height: int) -> None:
 ))
 @pytest.mark.parametrize('state', ('empty', 'incomplete', 'review_open', 'ready'))
 def test_week_status_and_native_actions_are_visible_and_remain_available(
-    page_context: Page, admin_app: Flask, admin_engine: Engine,  # noqa: F811
+    week_page: Page, admin_app: Flask, admin_engine: Engine,  # noqa: F811
     width: int, height: int, family: str, profile: str, slots: int, state: str,
 ) -> None:
     if state != 'empty':
@@ -97,11 +117,12 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
                     "UPDATE cafeteria.menu_items SET allergen_review_status='not_checked' "
                     'WHERE id=(SELECT min(id) FROM cafeteria.menu_items)'
                 ))
-    page = page_context
+    page = week_page
     page.set_viewport_size({'width': width, 'height': height})
     _capture_original(page, admin_app, family, state, width)
     page.goto(f'/admin/{family}?week={DAY}')
     expect(page.locator('main')).to_have_attribute('data-status', state)
+    _assert_layout(page, height)
     context = page.locator('.page-header-subtitle')
     expect(context).to_contain_text({
         'empty': 'Noch keine Menüs', 'incomplete': 'Angaben unvollständig',
@@ -220,9 +241,9 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
 @pytest.mark.parametrize(('width', 'height'), VIEWPORTS)
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
 def test_week_fields_preserve_native_payloads_and_usable_widths(
-    page_context: Page, family: str, width: int, height: int,  # noqa: F811
+    week_page: Page, family: str, width: int, height: int,
 ) -> None:
-    page = page_context
+    page = week_page
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}?week={DAY}')
     page.locator('details.admin-week-settings > summary').click()
@@ -268,7 +289,7 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
 
 @pytest.mark.parametrize(('family', 'profile'), (('cafeteria', 'staff_guest'), ('patienten', 'patient')))
 def test_changed_catalog_never_reports_no_open_week_checks(
-    page_context: Page, admin_app: Flask, admin_engine: Engine,  # noqa: F811
+    week_page: Page, admin_app: Flask, admin_engine: Engine,  # noqa: F811
     family: str, profile: str,
 ) -> None:
     engine = admin_app.extensions['cafeteria_db']
@@ -291,7 +312,7 @@ def test_changed_catalog_never_reports_no_open_week_checks(
         'category': 'side', 'name': 'Gemischter Salat', 'origin_country_code': 'CH',
         'label_codes': [], 'allergens': [],
     }, component['row_version'])
-    page = page_context
+    page = week_page
     page.goto(f'/admin/{family}?week={DAY}')
     expect(page.locator('main')).to_have_attribute('data-status', 'review_open')
     assert review_open(engine, scope, item.id)
