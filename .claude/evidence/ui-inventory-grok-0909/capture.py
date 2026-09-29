@@ -114,6 +114,7 @@ def capture_viewports(default=PRIMARY) -> tuple[tuple[int, int], ...]:
 
 
 def context_for(browser: Browser, live: str, cookie):
+    touch = True if os.environ.get('UI_CAPTURE_POINTER') == 'coarse' else None
     context = browser.new_context(
         base_url=live,
         locale='de-CH',
@@ -121,6 +122,8 @@ def context_for(browser: Browser, live: str, cookie):
         device_scale_factor=1,
         color_scheme='light',
         reduced_motion='reduce',
+        has_touch=touch,
+        is_mobile=touch,
     )
     if cookie is not None:
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live}])
@@ -209,6 +212,89 @@ def rendered_fonts(page) -> dict:
     return result
 
 
+def interactive_target_metrics(page) -> dict:
+    """Measure full-page DOM target boxes; findings need route/state classification."""
+    return page.evaluate(r'''() => {
+      const pointer_coarse = matchMedia('(pointer: coarse)').matches;
+      const minimum_target_size = pointer_coarse ? 44 : 36;
+      const text = el => {
+        if (el.nodeType === Node.TEXT_NODE) return el.textContent;
+        if (el.nodeType !== Node.ELEMENT_NODE || el.getAttribute('aria-hidden') === 'true'
+            || ['SCRIPT', 'STYLE'].includes(el.tagName)) return '';
+        const css = getComputedStyle(el);
+        if (css.display === 'none' || ['hidden', 'collapse'].includes(css.visibility)) return '';
+        return el.tagName === 'IMG' ? (el.getAttribute('alt') || '')
+          : [...el.childNodes].map(text).join(' ');
+      };
+      const name = el => {
+        const labelled = (el.getAttribute('aria-labelledby') || '').trim().split(/\s+/)
+          .map(id => document.getElementById(id)?.textContent || '').join(' ').trim();
+        const labels = [...(el.labels || [])].map(text).join(' ').trim();
+        const content = el.matches('input')
+          ? (['submit', 'reset', 'button'].includes(el.type) ? el.value : el.getAttribute('alt') || '')
+          : (el.matches('select') ? '' : text(el).trim());
+        return (labelled || (el.getAttribute('aria-label') || '').trim() || labels || content
+          || el.getAttribute('title') || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      };
+      const visibleRect = el => {
+        if (!el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})) return null;
+        let {left, top, right, bottom} = el.getBoundingClientRect();
+        for (let node = el; node && node !== document.body; node = node.parentElement) {
+          const css = getComputedStyle(node), box = node.getBoundingClientRect();
+          if (css.clipPath === 'inset(50%)') return null;
+          const clip = (css.clip.match(/-?[\d.]+px/g) || []).map(parseFloat);
+          if (clip.length === 4) {
+            top = Math.max(top, box.top + clip[0]);
+            right = Math.min(right, box.left + clip[1]);
+            bottom = Math.min(bottom, box.top + clip[2]);
+            left = Math.max(left, box.left + clip[3]);
+          }
+          if (node !== el) {
+            if (/^(auto|scroll|hidden|clip)$/.test(css.overflowX)) {
+              left = Math.max(left, box.left + node.clientLeft);
+              right = Math.min(right, box.left + node.clientLeft + node.clientWidth);
+            }
+            if (/^(auto|scroll|hidden|clip)$/.test(css.overflowY)) {
+              top = Math.max(top, box.top + node.clientTop);
+              bottom = Math.min(bottom, box.top + node.clientTop + node.clientHeight);
+            }
+          }
+          if (css.position === 'fixed') {
+            left = Math.max(left, 0); top = Math.max(top, 0);
+            right = Math.min(right, innerWidth); bottom = Math.min(bottom, innerHeight);
+          }
+        }
+        return right > left && bottom > top
+          ? new DOMRect(left, top, right - left, bottom - top) : null;
+      };
+      const targets = [...document.querySelectorAll(
+        'a, button, input:not([type=hidden]), select, summary, [role=button]')]
+        .map((el, index) => ({el, index, rect: visibleRect(el)})).filter(({rect}) => rect);
+      const record = ({el, index, rect}) => ({
+        index, id: el.id, tag: el.tagName.toLowerCase(), name: name(el),
+        width: rect.width, height: rect.height, x: rect.x, y: rect.y
+      });
+      const records = targets.map(record);
+      const overlapping_targets = [];
+      for (let i = 0; i < targets.length; i++) {
+        for (let j = i + 1; j < targets.length; j++) {
+          const a = targets[i], b = targets[j];
+          if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+          const width = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left);
+          const height = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top);
+          if (width > 0 && height > 0 && width * height > 1) {
+            overlapping_targets.push({first: records[i], second: records[j], intersection_area: width * height});
+          }
+        }
+      }
+      return {
+        pointer_coarse, max_touch_points: navigator.maxTouchPoints, minimum_target_size,
+        target_too_small: records.filter(r => r.width < minimum_target_size || r.height < minimum_target_size),
+        overlapping_targets
+      };
+    }''')
+
+
 def shot(page, path: str, width: int, height: int, suffix: str = '',
          out: Outputs | None = None, after_load=None) -> dict:
     out = out or Outputs()
@@ -229,11 +315,21 @@ def shot(page, path: str, width: int, height: int, suffix: str = '',
     page.on('console', on_console)
     page.on('pageerror', on_pageerror)
     page.on('requestfailed', on_requestfailed)
+    touch_session = None
     try:
+        if os.environ.get('UI_CAPTURE_POINTER') == 'coarse':
+            # Chromium can clear touch after full-page screenshots or CDP detach.
+            # Reapply real input emulation, keeping this session through the shot.
+            touch_session = page.context.new_cdp_session(page)
+            touch_session.send('Emulation.setTouchEmulationEnabled', {'enabled': True})
         response = page.goto(path, wait_until='domcontentloaded', timeout=30000)
         readiness = await_ready(page)
         if after_load is not None:
             after_load(page)
+        fonts = rendered_fonts(page)
+        if touch_session is not None:
+            touch_session.send('Emulation.setTouchEmulationEnabled', {'enabled': True})
+            page.evaluate('() => new Promise(requestAnimationFrame)')
         metrics = page.evaluate(r'''() => {
           const root = document.documentElement;
           const visible = el => [...el.getClientRects()].some(r => r.width && r.height)
@@ -259,16 +355,21 @@ def shot(page, path: str, width: int, height: int, suffix: str = '',
               .map(({el, index}) => ({index, tag: el.tagName.toLowerCase()}))
           };
         }''')
-        fonts = rendered_fonts(page)
+        metrics.update(interactive_target_metrics(page))
         out.screen_dir.mkdir(parents=True, exist_ok=True)
         target = out.screen_dir / _slug(path, width, height, suffix)
-        page.screenshot(path=str(target), full_page=True)
+        # ponytail: coarse screenshots stay viewport-only until Chromium's
+        # captureBeyondViewport preserves touch; DOM metrics cover the full page.
+        screenshot_full_page = touch_session is None
+        page.screenshot(path=str(target), full_page=screenshot_full_page)
     finally:
         # Listeners stay attached through readiness, measurement and screenshot,
         # so a failure after DOMContentLoaded is still recorded.
         page.remove_listener('console', on_console)
         page.remove_listener('pageerror', on_pageerror)
         page.remove_listener('requestfailed', on_requestfailed)
+        if touch_session is not None:
+            touch_session.detach()
     status = response.status if response is not None else None
     return {
         'path': path,
@@ -278,6 +379,7 @@ def shot(page, path: str, width: int, height: int, suffix: str = '',
         'final_url': page.url,
         'screenshot': _relative(target),
         'screenshot_sha256': _sha(target),
+        'screenshot_full_page': screenshot_full_page,
         **metrics,
         'overflow_horizontal': metrics['scrollWidth'] > metrics['clientWidth'] + 1,
         'console': console[:20],
