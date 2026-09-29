@@ -17,9 +17,9 @@
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 160,
-    "template_count": 99,
-    "html_route_count": 79,
+    "route_count": 161,
+    "template_count": 100,
+    "html_route_count": 80,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
     "usability_status": "not_run"
@@ -1450,6 +1450,50 @@
         "browser_status": "not_run",
         "usability_status": "not_run",
         "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+      }
+    },
+    {
+      "endpoint": "admin.cookbook_view",
+      "rule": "/admin/kochbuecher/<cookbook_id>/ansicht",
+      "methods": ["GET"],
+      "blueprint": "admin",
+      "classification": "html",
+      "visual": true,
+      "templates": ["admin/kochbuch_ansicht.html"],
+      "capability": "draft.read",
+      "roles": ["Cafeteria.Editor", "Cafeteria.Publisher", "Cafeteria.Admin"],
+      "method_roles": {},
+      "layout_variant": "admin_tabler",
+      "owning_mp": "MP-UI-COOKBOOKS",
+      "family_variants": [],
+      "module": "cafeteria.admin.cookbook_routes",
+      "source_discovered": true,
+      "fixture": "test_icon_cookbook_view_browser.py::reading_book",
+      "states": ["writer", "reader", "archived", "empty", "missing_recipe", "access_denied_401", "access_denied_403", "not_found"],
+      "hooks": ["admin.js", "tabler.min.js"],
+      "density": {
+        "mockups": ["M01", "M14", "M20"],
+        "rules": ["R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10"],
+        "acceptance": ["A01", "A23"],
+        "owning_mp": "MP-UI-DENSITY-COOKBOOKS",
+        "core_task": "Kochbuch und gespeicherte Rezeptreihenfolge lesen; Rezeptansichten öffnen",
+        "example_url": "/admin/kochbuecher/{cookbook_id}/ansicht",
+        "example_semantics": "Fixture-erzeugte Identität, keine Live-ID.",
+        "fixture_source": "reference_scaffold/tests/test_icon_cookbook_view_browser.py::reading_book",
+        "state_evidence": {
+          "writer": "not_run",
+          "reader": "not_run",
+          "archived": "not_run",
+          "empty": "not_run",
+          "missing_recipe": "not_run",
+          "access_denied_401": "not_run",
+          "access_denied_403": "not_run",
+          "not_found": "not_run"
+        },
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_run",
+        "usability_status": "not_run",
+        "notes": "D13b: page_header, admin-table--stack, status_badge, empty_state, empty_value und icon_button; aktuelle Muster M23/M64/M66, Regeln R43/R45/R47. Lokaler Nachweis 2026-09-29: test_icon_cookbook_view_browser.py, 23 passed in 81.96s auf worker-test-ps1. Writer/Reader/Archiv mit JS/NoJS bei 1440 fine und 390 fine/coarse; Reihenfolge, Rezeptlinks, Liste-/Editor-Einstiege, Tastatur/Tooltip, 36/44-px-Aktionen, Leerzustand, fehlendes Rezept, EN-Aktionsnamen, 401/403/404/405, Standortwechsel/DB-Fehler und unveränderter DB-Snapshot. Desktop- und Mobilaufnahmen visuell geprüft. XML: /tmp/claude-d13b-view-fixed.xml; Report D13-report.md. not_run bezieht sich auf den versionierten Gesamtcapture; dieser und historische Baselines bleiben unverändert. Kein Deploy- oder vollständiger Zoom-/Usability-Nachweis."
       }
     },
     {
@@ -11110,6 +11154,17 @@
       "current_visual_status": "not_run"
     },
     {
+      "path": "admin/kochbuch_ansicht.html",
+      "kind": "page",
+      "extends": ["admin/base_tabler.html"],
+      "includes": ["admin/_macros.html", "ui/_semantic.html"],
+      "sha256": "2e727e9dac1d2cd7f0545d3803cb0715b61b9afa065deb02a42bdbb788459e00",
+      "used_by_endpoints": ["admin.cookbook_view"],
+      "owning_mp": "MP-UI-COOKBOOKS",
+      "density_mockups": ["M01", "M14", "M20"],
+      "current_visual_status": "not_run"
+    },
+    {
       "path": "admin/kochbuch_editor.html",
       "kind": "page",
       "extends": [
@@ -11118,7 +11173,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "4cbdc5acd3d6770431726f8e9e082bef70ab2ff6d62f86f2e901d6d798c95511",
+      "sha256": "445554446633ed4407cc2701ecb70ef83b75d62e03d3bba36c6f469e9363f178",
       "used_by_endpoints": [
         "admin.cookbook_edit",
         "admin.cookbook_new",
@@ -11142,7 +11197,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "614840229063af94cc9c0493b579e14fae6cd8eec186e7d4655250864fbef2ab",
+      "sha256": "fc9a182de40f741ff21dfa5da47e65a97e37deb1858d07891f9d56813e97a04b",
       "used_by_endpoints": [
         "admin.cookbooks_list"
       ],

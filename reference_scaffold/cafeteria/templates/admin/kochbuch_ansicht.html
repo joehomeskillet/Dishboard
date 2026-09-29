@@ -1,0 +1,42 @@
+{% extends 'admin/base_tabler.html' %}
+{% from 'admin/_macros.html' import page_header, status_badge, empty_state, empty_value %}
+{% from 'ui/_semantic.html' import icon_button %}
+{% set workflow_nav = 'cookbooks' %}
+{% set count = book.recipe_public_ids|length %}
+{% block title %}{{ book.name }} · {{ t('navigation.cookbooks.label') }}{% endblock %}
+{% block page_header %}
+{% call page_header(book.name, book.description, breadcrumbs=[{'label': t('navigation.cookbooks.label'), 'url': url_for('admin.cookbooks_list')}, {'label': book.name}]) %}
+{% if not book.active %}{{ status_badge('archived') }}{% endif %}
+{% if can_write %}{{ icon_button('actions.edit', href=url_for('admin.cookbook_edit', cookbook_id=book.public_id), object=book.name, emphasis='primary') }}{% endif %}
+{% endcall %}
+{% endblock %}
+{% block content %}
+<section aria-labelledby="cookbook-recipes-title">
+  <div class="admin-compact-section-heading">
+    <h2 id="cookbook-recipes-title">{{ count }}{{ ' Rezept' if count == 1 else ' Rezepte' }}</h2>
+  </div>
+  {% if book.recipe_public_ids %}
+  <div class="card">
+    <table class="table table-vcenter card-table admin-table admin-table--stack">
+      <caption class="visually-hidden">{{ t('navigation.recipes.label') }}</caption>
+      <thead><tr><th scope="col" class="w-1">Position</th><th scope="col">{{ t('recipe.recipe.label') }}</th><th scope="col">Ausbeute</th></tr></thead>
+      <tbody>
+        {% for public_id in book.recipe_public_ids %}
+        {% set recipe = recipes.get(public_id) %}
+        <tr>
+          <td class="admin-list-meta" data-label="Position">{{ loop.index }}</td>
+          <th scope="row" data-label="{{ t('recipe.recipe.label') }}">
+            {% if recipe %}
+            <a class="admin-list-primary" href="{{ url_for('admin.recipe_view', recipe_id=public_id) }}">{{ recipe.payload.title }}</a>
+            {% if not recipe.active %}{{ status_badge('archived') }}{% endif %}
+            {% else %}<span class="admin-list-primary">Rezept nicht verfügbar</span>{% endif %}
+          </th>
+          <td class="admin-list-meta" data-label="Ausbeute">{% if recipe %}{{ recipe.payload.servings }} {{ recipe.payload.servings_unit_code }}{% else %}{{ empty_value() }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}{{ empty_state('none', 'Noch keine Rezepte zugeordnet.', '') }}{% endif %}
+</section>
+{% endblock %}

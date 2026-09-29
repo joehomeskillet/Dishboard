@@ -175,6 +175,22 @@ def cookbook_new() -> Response:
 
 
 @protected
+def cookbook_view(cookbook_id: str) -> Response:
+    public_id = parse_id(cookbook_id)
+    location = store.get_location(db())
+    book = store.get_cookbook(db(), public_id)
+    recipes = {
+        row.public_id: row for row in collect(store.list_recipes, include_archived=True)
+    } if book.recipe_public_ids else {}
+    if store.get_location(db()) != location:
+        raise LocationConflict('Der aktive Standort wurde geändert.')
+    return make_response(render_template(
+        'admin/kochbuch_ansicht.html', family='cafeteria', profile='staff_guest',
+        book=book, recipes=recipes, can_write=can_write(),
+    ))
+
+
+@protected
 def cookbook_edit(cookbook_id: str) -> Response:
     public_id = parse_id(cookbook_id)
     if request.method == 'GET':
@@ -226,6 +242,7 @@ def cookbook_status(cookbook_id: str) -> Response:
 RULES = (
     ('/kochbuecher', 'cookbooks_list', cookbooks_list, ['GET']),
     ('/kochbuecher/neu', 'cookbook_new', cookbook_new, ['GET', 'POST']),
+    ('/kochbuecher/<cookbook_id>/ansicht', 'cookbook_view', cookbook_view, ['GET']),
     ('/kochbuecher/<cookbook_id>', 'cookbook_edit', cookbook_edit, ['GET', 'POST']),
     ('/kochbuecher/<cookbook_id>/rezepte', 'cookbook_recipes', cookbook_recipes, ['POST']),
     ('/kochbuecher/<cookbook_id>/status', 'cookbook_status', cookbook_status, ['GET', 'POST']),
