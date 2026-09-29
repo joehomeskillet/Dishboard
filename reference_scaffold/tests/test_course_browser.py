@@ -472,11 +472,15 @@ def test_native_course_add_edit_preserves_neighbor_slots(
             expected = {**fields, kind + '_state': 'planned', kind + '_recipe': recipes[index]['public_id']}
             assert dict(form.evaluate('form => [...new FormData(form)]')) == expected
             expect(form).to_have_attribute('action', f'/admin/{family}/courses')
+            submit = form.get_by_role('button', name='Speichern', exact=True)
+            if not javascript_enabled:
+                # Native disclosure scrolling must not consume the navigation budget.
+                submit.click(trial=True)
             with page.expect_navigation(wait_until='domcontentloaded'), page.expect_response(
                 lambda response: response.request.method == 'POST'
                 and response.url == live_server + f'/admin/{family}/courses'
             ) as response:
-                form.get_by_role('button', name='Speichern', exact=True).click()
+                submit.click()
             assert response.value.status == 303
             assert response.value.headers['location'] == f'/admin/{family}?week={DAY}#course-{DAY}-{meal}'
             assert parse_qs(response.value.request.post_data, keep_blank_values=True) == {
@@ -535,11 +539,14 @@ def test_native_course_add_edit_preserves_neighbor_slots(
         )
         concurrent = stored()
         assert concurrent[target]['shared']['dessert']['recipe_public_id'] == recipes[2]['public_id']
+        submit = form.get_by_role('button', name='Speichern', exact=True)
+        if not javascript_enabled:
+            submit.click(trial=True)
         with page.expect_navigation(wait_until='domcontentloaded'), page.expect_response(
             lambda response: response.request.method == 'POST'
             and response.url == live_server + f'/admin/{family}/courses'
         ) as conflict:
-            form.get_by_role('button', name='Speichern', exact=True).click()
+            submit.click()
         assert conflict.value.status == 409 and len(posts) == 5
         assert parse_qs(conflict.value.request.post_data, keep_blank_values=True) == {
             key: [value] for key, value in stale_fields.items()}
