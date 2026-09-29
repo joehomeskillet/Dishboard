@@ -71,18 +71,142 @@ def _separate(page, first, second):
     return result
 
 
+def _menu_focus_hit(page):
+    return page.evaluate('''() => {
+        const e = document.activeElement;
+        const form = document.querySelector('form[data-menu-editor]');
+        if (!form.contains(e) && !e.closest('.error-region')) return null;
+        const r = e.getBoundingClientRect(), bar = form.querySelector('[data-sticky]');
+        const b = bar.getBoundingClientRect();
+        const owns = box => {
+            const hit = document.elementFromPoint(box.x+box.width/2, box.y+box.height/2);
+            return e === hit || e.contains(hit);
+        };
+        // A wrapped inline link's bounding center can fall between its lines.
+        const fragments = [...e.getClientRects()];
+        return {name:e.id || e.getAttribute('aria-label') || e.name || e.textContent.trim(),
+            tag:e.tagName, hit:fragments.length > 0 && fragments.every(owns), scroll:scrollY,
+            boundingCenterHit:owns(r), fragments:fragments.map(box => ({
+                x:box.x, y:box.y, width:box.width, height:box.height})),
+            footer:getComputedStyle(bar).position,
+            covered:!bar.contains(e) && r.left < b.right && r.right > b.left
+                && r.top < b.bottom && r.bottom > b.top};
+    }''')
+
+
+def _tab_menu_targets(page, records, state):
+    form = page.locator('form[data-menu-editor]')
+    # Start immediately before the first form target; navigate with Tab/Enter.
+    first = form.locator('input:not([type=hidden]):visible, button:visible, '
+                         'summary:visible, a[href]:visible, select:visible, textarea:visible').first
+    first.focus()
+    page.keyboard.press('Shift+Tab')
+    form.evaluate('e => { e._d23Visited = new Set(); }')
+    advance = True
+    for _ in range(250):
+        if advance:
+            page.keyboard.press('Tab')
+        _settle(page)
+        record = _menu_focus_hit(page)
+        if record is None:
+            break
+        records.append({'state': state, 'via': 'Tab' if advance else 'Enter-menu', **record})
+        assert record['hit'] and not record['covered'], records[-1]
+        form.evaluate('e => e._d23Visited.add(document.activeElement)')
+        # No centering/Playwright scroll helper: use the browser's default alignment.
+        page.locator(':focus').evaluate('e => e.scrollIntoView()')
+        _settle(page)
+        record = _menu_focus_hit(page)
+        assert record is not None
+        records.append({'state': state, 'via': 'scrollIntoView()', **record})
+        assert record['hit'] and not record['covered'], records[-1]
+        advance = True
+        if page.locator(':focus').evaluate('e => e.matches("details:not([open]) > summary")'):
+            summary = page.locator(':focus').element_handle()
+            page.keyboard.press('Enter')
+            _settle(page)
+            # The shared menu controller focuses its first item on opening.
+            # Measure that item before the next Tab can move past it.
+            advance = summary.evaluate('e => e === document.activeElement')
+    else:
+        pytest.fail('Tab traversal did not leave the menu editor')
+    coverage = form.evaluate('''form => {
+        const targets = [...form.querySelectorAll('input, select, textarea, button, a[href], summary')]
+            .filter(e => e.tabIndex >= 0 && !e.disabled && e.checkVisibility({checkVisibilityCSS:true})
+                && (e.type !== 'radio' || !form.querySelector('input[type=radio][name="'+e.name+'"]:checked')
+                    || e.checked));
+        return {count:form._d23Visited.size,
+            missing:targets.filter(e => !form._d23Visited.has(e)).map(e => e.id || e.name || e.outerHTML),
+            save:form._d23Visited.has(form.querySelector('[data-sticky] button.btn-primary'))};
+    }''')
+    assert coverage['count'] > 20 and coverage['save'] and not coverage['missing'], coverage
+
+
 @pytest.mark.parametrize('width,height', [(1440, 900), (390, 844)])
 @pytest.mark.parametrize('coarse', [False, True])
+@pytest.mark.parametrize('javascript', [False, True])
 def test_sticky_and_swagger_controls_do_not_cover_other_targets(
-    overlap_site, browser, tmp_path, width, height, coarse,  # noqa: F811
+    overlap_site, browser, tmp_path, width, height, coarse, javascript,  # noqa: F811
 ):
+    """D23b decision: R08 permits sticky long editors; R39/A18 protect focus/errors.
+
+    Free-scroll content behind the menu footer is allowed. Real Tab navigation,
+    default scrollIntoView and V10's HTTP-400 error focus must remain uncovered.
+    Short occasion forms (R08) and Swagger retain strict overlap checks.
+    """
     origin, cookie, prepared = overlap_site
-    findings = {}
+    findings, focus_records = {}, []
+    with browser.new_context(base_url=origin, viewport={'width': width, 'height': height},
+                             has_touch=coarse, is_mobile=coarse,
+                             java_script_enabled=javascript, reduced_motion='reduce') as context:
+        context.add_cookies([cookie])
+        page = context.new_page()
+        for route in [MENU, MENU.replace('cafeteria', 'patienten')]:
+            assert page.goto(route).status == 200
+            page.evaluate('document.fonts.ready')
+            assert page.evaluate("matchMedia('(pointer: coarse)').matches") == coarse
+            _tab_menu_targets(page, focus_records, route)
+        assert page.goto(MENU).status == 200
+        _invalid_action(prepared['invalid_cases'][0])(page)
+        expect(page.locator('.error-region' if javascript else '[name=internal_chf]')).to_be_focused()
+        _settle(page)
+        record = _menu_focus_hit(page)
+        focus_records.append({'state': 'V10-400',
+                              'via': 'error-summary' if javascript else 'autofocus', **record})
+        assert record['hit'] and not record['covered'], record
+        if javascript:
+            page.keyboard.press('Tab')
+            expect(page.locator('.error-region a[data-error-link]').first).to_be_focused()
+            record = _menu_focus_hit(page)
+            focus_records.append({'state': 'V10-400', 'via': 'Tab-error-link', **record})
+            assert record['hit'] and not record['covered'], record
+            page.keyboard.press('Enter')
+            expect(page.locator('[name=internal_chf]')).to_be_focused()
+            _settle(page)
+            record = _menu_focus_hit(page)
+            focus_records.append({'state': 'V10-400', 'via': 'Enter-error-link', **record})
+            assert record['hit'] and not record['covered'], record
+        error = page.locator('#err-int')
+        assert error.evaluate('e => { const r=e.getBoundingClientRect(); '
+                              'return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)); }')
+        page.screenshot(path=str(tmp_path / 'error-focus.png'))
+        _tab_menu_targets(page, focus_records, 'V10-400')
+        (tmp_path / 'menu-tab-focus.json').write_text(json.dumps(focus_records, indent=2))
+        for index, route in enumerate(['/admin/kuechenkalender/anlass',
+                                       prepared['endpoint_paths']['admin.kitchen_event_edit']]):
+            assert page.goto(route).status == 200
+            footer = page.locator('#kitchen-event-form .admin-form-footer')
+            assert footer.evaluate('e => getComputedStyle(e).position') == 'static'
+            assert footer.get_attribute('data-sticky') is None
+            assert footer.get_attribute('data-sticky-form') is None
+            footer.scroll_into_view_if_needed()
+            page.screenshot(path=str(tmp_path / f'occasion-{index}.png'))
+        # Swagger renders with JS; preserve its original strict scan in a JS context.
     with browser.new_context(base_url=origin, viewport={'width': width, 'height': height},
                              has_touch=coarse, is_mobile=coarse, reduced_motion='reduce') as context:
         context.add_cookies([cookie])
         page = context.new_page()
-        for route in [MENU, MENU.replace('cafeteria', 'patienten'), '/admin/kuechenkalender/anlass',
+        for route in ['/admin/kuechenkalender/anlass',
                       prepared['endpoint_paths']['admin.kitchen_event_edit'], '/api/v1/docs']:
             assert page.goto(route).status == 200
             page.evaluate('document.fonts.ready')
