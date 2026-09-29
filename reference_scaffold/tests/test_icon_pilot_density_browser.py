@@ -2,16 +2,20 @@
 from __future__ import annotations
 
 import base64
+import datetime as dt
 import json
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from playwright.sync_api import expect
 
+from cafeteria.auth.local_users import ActorExpectation
 from cafeteria.component_catalog_store import create_component, update_component
+from cafeteria.dish_template_store import create_template
+from cafeteria.workflow_partial_store import persist_menu_item, persist_week_header
 from prepared_food_fixtures import create_food, create_recipe, execute
 from test_admin_ux_browser import live_server
-from test_admin_workflow_routes import _login, _scope
+from test_admin_workflow_routes import WEEK, _login, _payload, _scope
 from test_rendered_ui import admin_app, admin_engine, browser
 
 __all__ = ['admin_app', 'admin_engine', 'browser', 'live_server']
@@ -20,8 +24,12 @@ PILOTS = [
     ('components-cafeteria', '/admin/cafeteria/komponenten', '.component-row'),
     ('components-patienten', '/admin/patienten/komponenten', '.component-row'),
     ('recipes', '/admin/rezepte', '.recipe-row'),
+    ('foods', '/admin/grundlagen?kind=foods', '.admin-list-row'),
+    ('menus-cafeteria', '/admin/cafeteria/menues', '.dishboard-menu-table tbody tr'),
+    ('menus-patienten', '/admin/patienten/menues', '.dishboard-menu-table tbody tr'),
+    ('dish-templates', '/admin/gerichtvorlagen', '.admin-table tbody tr'),
 ]
-MEASURE = '''({rows, component}) => {
+MEASURE = '''({rows}) => {
     const box = node => node.getBoundingClientRect().toJSON();
     const style = node => {
         const s = getComputedStyle(node);
@@ -30,8 +38,8 @@ MEASURE = '''({rows, component}) => {
     };
     const main = box(document.querySelector('main'));
     const records = [...document.querySelectorAll(rows)].map(row => {
-        const primary = row.querySelector(component ? 'a.admin-list-primary' : '.admin-list-primary');
-        const secondary = row.querySelector('th .admin-list-secondary');
+        const primary = row.querySelector('a.admin-list-primary') || row.querySelector('.admin-list-primary');
+        const secondary = row.querySelector('th .admin-list-secondary, td:first-child .admin-list-secondary, .admin-list-name .admin-list-secondary, .admin-list-secondary');
         const meta = row.querySelector('.admin-list-meta');
         const contentBoxes = [...row.children].map(box);
         const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
@@ -48,7 +56,7 @@ MEASURE = '''({rows, component}) => {
                 secondary: secondary ? {text: secondary.textContent.trim(), box: box(secondary), ...style(secondary)} : null,
                 meta: meta ? {text: meta.textContent.trim(), box: box(meta), ...style(meta)} : null};
     });
-    const regions = [...document.querySelectorAll('.page-header, .admin-statusbar, form[role=search], #component-result-count, table thead')]
+    const regions = [...document.querySelectorAll('.page-header, .admin-statusbar, form[role=search], #component-result-count, table thead, #menu-review-summary, .menu-toolbar, .profile-tabs, .grundlagen-filter')]
         .map(node => ({name: node.id || node.className || node.tagName, box: box(node),
                       marginTop: getComputedStyle(node).marginTop,
                       marginBottom: getComputedStyle(node).marginBottom}));
@@ -56,7 +64,7 @@ MEASURE = '''({rows, component}) => {
     const first = document.querySelector(rows);
     const readRules = (rules, source) => [...rules].forEach(rule => {
         if (rule instanceof CSSMediaRule && !matchMedia(rule.conditionText).matches) return;
-        if (rule instanceof CSSStyleRule && rule.style.height && first.matches(rule.selectorText)) {
+        if (rule instanceof CSSStyleRule && rule.style.height && first && first.matches(rule.selectorText)) {
             heightRules.push({source, selector: rule.selectorText, height: rule.style.height});
         }
         if (rule.cssRules) readRules(rule.cssRules, source);
@@ -76,27 +84,65 @@ MEASURE = '''({rows, component}) => {
 }'''
 
 
-def _seed_records(app, engine, component):
+def _seed_records(app, engine, slug):
+    family = 'patient' if 'patienten' in slug else 'staff_guest'
     _, actor = _login(app, engine, ['Cafeteria.Admin'])
-    scope = _scope(engine, actor, 'staff_guest')
+    scope = _scope(engine, actor, family)
     ids = {'actor': actor, 'authz': scope.expected_authz_version, 'location': scope.location_id}
     storage = execute(engine, '''SELECT cafeteria.create_storage_location_v21(
         :actor,:authz,:location,NULL,NULL,CAST(:payload AS jsonb))''', ids,
         {'code': 'DENSITY', 'name': 'Pilotlager', 'sort_order': 1})
     ids['storage'] = storage['public_id']
     names = []
-    for index in range(1, 11):
-        food = create_food(engine, ids, f'Gemüse {index:02d}')
-        name = f'Pilot {"Baustein" if component else "Rezept"} {index:02d}'
-        names.append(name)
-        if component:
+    if slug.startswith('components'):
+        for index in range(1, 11):
+            food = create_food(engine, ids, f'Gemüse {index:02d}')
+            name = f'Pilot Baustein {index:02d}'
+            names.append(name)
             row = create_component(engine, scope, 'side', name, 'CH', 'common', [], [])
             update_component(engine, scope, row['public_id'], {
                 'category': 'side', 'name': name, 'origin_country_code': 'CH',
                 'label_codes': [], 'allergens': [], 'food_public_id': food['public_id'],
             }, row['row_version'])
-        else:
+    elif slug == 'recipes':
+        for index in range(1, 11):
+            food = create_food(engine, ids, f'Gemüse {index:02d}')
+            name = f'Pilot Rezept {index:02d}'
+            names.append(name)
             create_recipe(engine, ids, [food], name=name, quantity='100')
+    elif slug == 'foods':
+        for index in range(1, 11):
+            name = f'Pilot Zutat {index:02d}'
+            names.append(name)
+            create_food(engine, ids, name)
+    elif slug.startswith('menus'):
+        w1 = WEEK
+        w2 = w1 + dt.timedelta(days=7)
+        persist_week_header(engine, scope, w1, {'title': 'Woche 1', 'shared_note': ''}, 0)
+        persist_week_header(engine, scope, w2, {'title': 'Woche 2', 'shared_note': ''}, 0)
+        for index in range(1, 11):
+            week_start = w1 if index <= 5 else w2
+            day_offset = (index - 1) % 5
+            service_date = week_start + dt.timedelta(days=day_offset)
+            name = f'Pilot Menü {index:02d}'
+            names.append(name)
+            payload = _payload(staff=family == 'staff_guest')
+            payload['title'] = name
+            payload['assignments'] = [{'component_public_id': None, 'component_text': f'Beilage {index:02d}'}]
+            persist_menu_item(engine, scope, week_start, service_date.isoformat(), 'LUNCH', 'MENU_1', payload, 0)
+    elif slug == 'dish-templates':
+        actor_exp = ActorExpectation(actor, scope.expected_authz_version)
+        for index in range(1, 11):
+            name = f'Pilot Vorlage {index:02d}'
+            names.append(name)
+            create_template(engine, actor_exp, {
+                'title': name,
+                'description': '',
+                'menu_type_code': 'MENU_1',
+                'profile_scope': 'common',
+                'recipe_public_id': None,
+                'accompaniment_default': 'none',
+            }, expected_location_id=scope.location_id)
     return names
 
 
@@ -108,8 +154,7 @@ def test_pilot_density_real_records_filtering_and_native_forms(
     admin_app, admin_engine, browser, live_server, tmp_path,
     slug, path, row_selector, role, javascript, width, zoom,
 ):
-    component = slug.startswith('components')
-    names = _seed_records(admin_app, admin_engine, component)
+    names = _seed_records(admin_app, admin_engine, slug)
     client, _ = _login(admin_app, admin_engine, [role])
     if role == 'Cafeteria.Editor':
         assert client.get('/admin/benutzer').status_code == 403
@@ -137,9 +182,13 @@ def test_pilot_density_real_records_filtering_and_native_forms(
         assert response is not None and response.status == 200
         page.evaluate('document.fonts.ready')
         expect(page.locator(row_selector)).to_have_count(10)
-        metrics = page.evaluate(MEASURE, {'rows': row_selector, 'component': component})
+        metrics = page.evaluate(MEASURE, {'rows': row_selector})
+        recipe_boundary = (
+            'boundary: actual template has single-line title and separate yield column; no secondary line rendered'
+            if slug == 'recipes' else None
+        )
         metrics.update(slug=slug, role=role, javascript=javascript, zoom=zoom,
-                       recipeTwoLineCoverage='not applicable: actual template has name and a separate yield column' if not component else None)
+                       recipeTwoLineCoverage=recipe_boundary)
         metrics['headerDensityFinding'] = metrics['firstOffset'] > 220 if width == 1440 and zoom == 1 else None
         name = f'{slug}-{role.rsplit(".", 1)[1]}-{width}-{zoom}x-js{javascript}'
         if zoom == 2:
@@ -168,32 +217,57 @@ def test_pilot_density_real_records_filtering_and_native_forms(
                 assert (row['secondary']['fontSize'], row['secondary']['fontWeight']) == ('13px', '400')
             if row['meta']:
                 assert (row['meta']['fontSize'], row['meta']['fontWeight']) == ('13px', '400')
-        if component:
+        if slug == 'recipes':
+            assert metrics['naturalTwoLineNames'] == 0, metrics
+        else:
             assert metrics['naturalTwoLineNames'] == 10, metrics
         # Exercise native GET filtering and POST form reachability before the density assertion.
-        search = page.get_by_role('search')
-        expect(search).to_have_attribute('method', 'get')
-        expect(search).to_have_attribute('action', path)
-        field = search.locator('[name="q"]' if component else '[name="text"]')
-        field.fill(names[-1])
-        search.get_by_role('button', name='Suchen', exact=True).press('Enter')
-        expect(page.locator(row_selector)).to_have_count(1)
-        expect(page.locator(row_selector)).to_contain_text(names[-1])
-        assert parse_qs(urlsplit(page.url).query)['q' if component else 'text'] == [names[-1]]
-        search.get_by_role('link', name='Zurücksetzen', exact=True).click()
-        expect(page.locator(row_selector)).to_have_count(10)
-        primary_selector = 'a.admin-list-primary' if component else '.admin-list-primary'
-        first_name = page.locator(row_selector).first.locator(primary_selector).inner_text()
-        edit = page.locator(row_selector).first.locator('[data-semantic="actions.edit"]')
-        expect(edit).to_have_count(1)
-        edit.focus()
-        expect(edit).to_be_focused()
-        edit.press('Enter')
-        form = page.locator('#component-form' if component else '#recipe-editor')
-        expect(form).to_be_visible()
-        expect(form).to_have_attribute('method', 'post')
-        expect(form.locator('input[name="_csrf"]')).to_have_count(1)
-        expect(form.locator('[name="name"]' if component else '[name="title"]')).to_have_value(first_name.strip())
+        if slug != 'dish-templates':
+            search = page.get_by_role('search')
+            expect(search).to_have_attribute('method', 'get')
+            expect(search).to_have_attribute('action', path.split('?')[0])
+            field = search.locator('[name="text"]' if slug == 'recipes' else '[name="q"]')
+            field.fill(names[-1])
+            search.get_by_role('button', name='Suchen', exact=True).press('Enter')
+            expect(page.locator(row_selector)).to_have_count(1)
+            expect(page.locator(row_selector)).to_contain_text(names[-1])
+            assert parse_qs(urlsplit(page.url).query)['text' if slug == 'recipes' else 'q'] == [names[-1]]
+            search.get_by_role('link', name='Zurücksetzen', exact=True).click()
+            expect(page.locator(row_selector)).to_have_count(10)
+        first_row = page.locator(row_selector).first
+        primary_sel = 'a.admin-list-primary' if slug.startswith('components') else '.admin-list-primary'
+        first_name = first_row.locator(primary_sel).first.inner_text()
+        if slug == 'dish-templates':
+            edit = first_row.locator('.admin-list-primary').first
+            edit.focus()
+            expect(edit).to_be_focused()
+            edit.press('Enter')
+            form = page.locator('section.card form')
+            expect(form).to_be_visible()
+            expect(form).to_have_attribute('method', 'post')
+            expect(form.locator('input[name="_csrf"]')).to_have_count(1)
+            expect(form.locator('[name="title"]')).to_have_value(first_name.strip())
+        else:
+            edit = first_row.locator('[data-semantic="actions.edit"]')
+            expect(edit).to_have_count(1)
+            edit.focus()
+            expect(edit).to_be_focused()
+            edit.press('Enter')
+            if slug.startswith('components'):
+                form = page.locator('#component-form')
+                expect(form.locator('[name="name"]')).to_have_value(first_name.strip())
+            elif slug == 'recipes':
+                form = page.locator('#recipe-editor')
+                expect(form.locator('[name="title"]')).to_have_value(first_name.strip())
+            elif slug == 'foods':
+                form = page.locator('#food-core-form')
+                expect(form.locator('[name="name"]')).to_have_value(first_name.strip())
+            elif slug.startswith('menus'):
+                form = page.locator('form[data-menu-editor]')
+                expect(form.locator('[name="title"]')).to_have_value(first_name.strip())
+            expect(form).to_be_visible()
+            expect(form).to_have_attribute('method', 'post')
+            expect(form.locator('input[name="_csrf"]')).to_have_count(1)
         assert not writes
         assert not metrics['overflowingRows'], f'Cells or visible text escape rows: {metrics["overflowingRows"]}'
         if width == 1440 and zoom == 1:
