@@ -476,6 +476,9 @@
 }
 /* The shared viewport guard takes precedence over page-specific sticky selectors. */
 .dishboard-admin [data-sticky-ready].is-static { position: static !important; }
+/* Freeze both directions until the native pointer activation has finished. */
+.dishboard-admin [data-sticky-ready][data-sticky-pointer-position="static"] { position: static !important; }
+.dishboard-admin [data-sticky-ready][data-sticky-pointer-position="sticky"] { position: sticky !important; }
 .dishboard-admin .admin-compact-row > summary { cursor: pointer; margin-bottom: 0; }
 .dishboard-admin .admin-compact-row[open] > summary > .icon { transform: rotate(90deg); }
 @media (min-width: 992px) {
