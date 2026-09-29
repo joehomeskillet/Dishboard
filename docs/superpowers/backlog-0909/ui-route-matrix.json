@@ -10842,7 +10842,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "ce57b995bbfb91bf25bfcf6c30cb7c821891a7328edd82063952009176953e50",
+      "sha256": "456fc0f940202c0aa5097ba8aaa0c6db633e236b6023c36a19ccd3a774e04087",
       "used_by_endpoints": [
         "admin.components_get"
       ],
@@ -10959,7 +10959,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "627b2c955834bfdb1824eb83bb23afe871b66e41b03f5e9e9b6d776e46d26cbc",
+      "sha256": "942b25a7b3ce782cb71ac680af4b30932ef8bad5160300433e3ac7361f9428ba",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -11319,7 +11319,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "39e0129f17491acf6bd59b7e7849622a0c55bdab203eebc1f6eadcd400573f4f",
+      "sha256": "6b199d66da10a7ae6be3857e9858fe76b33181cdc62a94d0e9fc87898e81a7e4",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],
