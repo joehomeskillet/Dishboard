@@ -38,8 +38,8 @@
 {% endblock %}
 {% block page_header %}
 {% from 'admin/_week_controls.html' import overview_header with context %}
-{% include 'admin/_week_check_summary.html' %}
 {{ overview_header('Cafeteria', week_header_description) }}
+{% include 'admin/_week_check_summary.html' %}
 {% if last_cell.day_label == 'Sonntag' %}
 <div class="container-xl"><details class="admin-compact-details" id="weekend-hint"><summary>Wochenendbetrieb</summary><p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p></details></div>
 {% endif %}

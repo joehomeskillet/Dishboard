@@ -37,6 +37,7 @@ sie begründen keine Rückkehr zu diesen ersetzten Vorgaben.
 - Gemeinsame Filter haben einen konsistenten Einstieg. Normalzustände bleiben
   bei eindeutigem Kontext ruhig; gemischte Zustände bleiben unterscheidbar.
   Gleiche Warnursachen werden gebündelt, betroffene Einträge bleiben erkennbar.
+- Im Wochenplan steht der Seitenkopf mit Titel und Kontext vor den gebündelten Prüfhinweisen; diese folgen vor weiteren Hinweisen und dem Raster (D19).
 - Mobile Stapelzeilen müssen mit ihren sichtbaren Zellen und Texten wachsen;
   reine Zeilenbox- oder Scrollbreitenmessung beweist keine überlappungsfreie
   Darstellung. Echte Tastatur-, Touch-, No-JS- und Browserzoom-Prüfungen bleiben

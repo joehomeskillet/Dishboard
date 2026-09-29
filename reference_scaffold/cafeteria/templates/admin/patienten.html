@@ -35,8 +35,8 @@
 {% endblock %}
 {% block page_header %}
 {% from 'admin/_week_controls.html' import overview_header with context %}
-{% include 'admin/_week_check_summary.html' %}
 {{ overview_header('Patienten', week_header_description) }}
+{% include 'admin/_week_check_summary.html' %}
 {% endblock %}
 {% block content %}
 {% set declarations = namespace(options=[]) %}
