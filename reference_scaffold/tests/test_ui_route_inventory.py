@@ -410,26 +410,26 @@ def _assert_meta(manifest) -> None:
     assert meta['live_requests'] is False
 
 
-def _assert_states(application, matrix, manifest) -> None:
+def _assert_states(application, matrix, manifest, primary=PRIMARY) -> None:
     resolved = _resolved_captures(application, manifest)
     selectors = {(endpoint, row['suffix']) for endpoint, row in resolved}
     missing = [(state['id'], capture) for state in matrix['states'] for capture in state['captures']
                if (capture['endpoint'], capture['suffix']) not in selectors]
     assert not missing, missing
     empty = [row for _, row in resolved if row['suffix'] == 'empty']
-    assert len(empty) == 10 and all(row['status'] == 200 for row in empty)
+    assert len(empty) == len(EMPTY_PATHS) * len(primary) and all(row['status'] == 200 for row in empty)
     assert {(row['path'], row['viewport']['width'], row['viewport']['height']) for row in empty} == {
-        (path, width, height) for path in EMPTY_PATHS for width, height in PRIMARY}
+        (path, width, height) for path in EMPTY_PATHS for width, height in primary}
     for endpoint in ('admin.menu_get', 'admin.display_settings', 'admin.recipe_edit'):
         invalid = [row for ep, row in resolved if ep == endpoint and row['suffix'] == 'invalid']
-        assert len(invalid) == 2, (endpoint, invalid)
-        assert {(row['viewport']['width'], row['viewport']['height']) for row in invalid} == PRIMARY
+        assert len(invalid) == len(primary), (endpoint, invalid)
+        assert {(row['viewport']['width'], row['viewport']['height']) for row in invalid} == primary
         assert all(row['rendered'] and row['readiness']['error'] is None for row in invalid)
     assert not [block for block in manifest['coverage_blocks'] if block['status'] == 'blocked_state_not_reached']
     roles = [row for _, row in resolved if row['suffix'].startswith('role-nav-')]
-    assert len(roles) == 6
+    assert len(roles) == len(ROLES) * len(primary)
     assert {(row['role'], row['viewport']['width'], row['viewport']['height']) for row in roles} == {
-        (role, width, height) for role in ROLES for width, height in PRIMARY}
+        (role, width, height) for role in ROLES for width, height in primary}
     admin_only = {'Benutzer & Zugriff', 'Design & Marke', 'Bereiche & Zeiten'}
     baseline = json.loads(MANIFEST_PATH.read_bytes())
     historical = manifest == baseline
@@ -532,6 +532,58 @@ def test_every_shared_state_has_owner_fixture_and_capture_selectors() -> None:
         assert all(item['endpoint'] in endpoints and 'suffix' in item for item in state['captures']), state
 
 
+@pytest.mark.parametrize('required', [False, True])
+def test_capture_viewports_and_dom_metrics(monkeypatch, tmp_path, browser, required):  # noqa: F811
+    sys.path.insert(0, str(EVIDENCE))
+    from capture import Outputs, capture_paths
+    from test_ui_inventory_capture import _serve
+
+    monkeypatch.delenv('UI_CAPTURE_VIEWPORTS', raising=False)
+    if required:
+        monkeypatch.setenv('UI_CAPTURE_VIEWPORTS', 'required')
+    body = '''<!doctype html><html><head>
+      <meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
+      <h1>Probe</h1><h1 hidden>Hidden heading still counted</h1>
+      <button aria-label="Speichern"></button>
+      <span id="label" hidden>Öffnen</span><button aria-labelledby="missing label"></button>
+      <a class="btn" href="#">Textname</a><button><span hidden>Hidden name</span></button>
+      <button aria-labelledby="missing"><span aria-hidden="true">×</span></button>
+      <a class="btn" href="#" aria-label=" "></a><span class="ui-sem-control"></span>
+      <button hidden></button><button style="visibility:hidden"></button>
+      <input type="hidden" value="synthetic-private-sentinel">
+      <style>.ui-sem-control, .btn {display:inline-block;width:30px;height:30px}</style>
+      </body></html>'''
+    server, live = _serve({'/probe': body, '/admin/cafeteria': body.replace(
+        '</body>', '<div style="width:1800px">Wide content</div></body>')})
+    try:
+        with browser.new_context(base_url=live) as context:
+            rows = capture_paths(context.new_page(), ['/probe', '/admin/cafeteria'],
+                                 out=Outputs.into(tmp_path))
+    finally:
+        server.shutdown()
+        server.server_close()
+    expected = PRIMARY | ({(1024, 768), (768, 1024)} if required else set())
+    assert len(rows) == (9 if required else 7)
+    for path in ('/probe', '/admin/cafeteria'):
+        assert {(row['viewport']['width'], row['viewport']['height'])
+                for row in rows if row['path'] == path} == (
+                    expected | ({(1024, 768), (768, 1024), (1920, 1080)}
+                                if path == '/admin/cafeteria' else set()))
+    for row in rows:
+        assert row['status'] == 200 and row['rendered']
+        assert row['innerWidth'] == row['viewport']['width']
+        assert row['clientWidth'] == row['innerWidth']
+        assert row['h1_count'] == 2
+        assert row['overflow_horizontal'] == (row['scrollWidth'] > row['clientWidth'] + 1)
+        assert row['overflow_horizontal'] == (
+            row['path'] == '/admin/cafeteria' and row['innerWidth'] < 1800)
+        assert row['unnamed_controls'] == [
+            {'index': 3, 'tag': 'button'}, {'index': 4, 'tag': 'button'},
+            {'index': 5, 'tag': 'a'}, {'index': 6, 'tag': 'span'},
+        ]
+        assert 'synthetic-private-sentinel' not in json.dumps(row)
+
+
 def test_versioned_manifest_tracks_historical_gaps_without_current_pass(monkeypatch, tmp_path):
     application = _factory(monkeypatch, tmp_path)
     manifest = json.loads(MANIFEST_PATH.read_bytes())
@@ -568,10 +620,55 @@ def _superseded_manifest(previous: bytes, wp_id: str | None) -> dict:
             'rows': rows}
 
 
+def _write_capture_audit(manifest: dict, directory: Path) -> dict:
+    """Keep measured findings separate from browser success and historical baselines."""
+    from capture import REQUIRED
+
+    rows, violations, views = [], [], {}
+    for capture in manifest['captures']:
+        row = {key: capture[key] for key in (
+            'path', 'suffix', 'viewport', 'status', 'rendered', 'innerWidth', 'scrollWidth',
+            'clientWidth', 'h1_count', 'overflow_horizontal', 'unnamed_controls',
+            'screenshot', 'screenshot_sha256')}
+        row['role'] = capture.get('role')
+        rows.append(row)
+        suffix = '' if row['suffix'] == 'reference' else row['suffix']
+        key = (row['path'], suffix, row['role'])
+        views.setdefault(key, set()).add((row['viewport']['width'], row['viewport']['height']))
+        rules = []
+        if not row['rendered'] or row['status'] is None or row['status'] >= 500:
+            rules.append('capture_failed')
+        if row['h1_count'] != 1:
+            rules.append('h1_count_not_one')
+        if row['overflow_horizontal']:
+            rules.append('horizontal_overflow')
+        if row['unnamed_controls']:
+            rules.append('unnamed_controls')
+        if rules:
+            violations.append({**row, 'rules': rules})
+    missing = [{'path': path, 'suffix': suffix, 'role': role,
+                'viewport': {'width': width, 'height': height}}
+               for (path, suffix, role), sizes in views.items()
+               for width, height in REQUIRED if (width, height) not in sizes]
+    audit = {'required_viewports': [dict(width=w, height=h) for w, h in REQUIRED],
+             'view_count': len(views), 'capture_count': len(rows), 'captures': rows,
+             'missing_viewports': missing, 'coverage_blocks': manifest.get('coverage_blocks', [])}
+    (directory / 'capture-matrix.json').write_text(
+        json.dumps(audit, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    (directory / 'violations.json').write_text(
+        json.dumps({'note': 'DOM findings require route/state review; h1 counts include hidden headings. '
+                           'Control indexes address .ui-sem-control, button, a.btn in DOM order. '
+                           'Expected 4xx states are recorded, not automatically violations.',
+                    'violations': violations, 'missing_viewports': missing,
+                    'coverage_blocks': audit['coverage_blocks']}, ensure_ascii=False, indent=2) + '\n',
+        encoding='utf-8')
+    return audit
+
+
 @DATABASE_REQUIRED
 def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
     sys.path.insert(0, str(EVIDENCE))
-    from capture import Outputs, run_capture
+    from capture import REQUIRED, Outputs, run_capture
 
     explicit = os.environ.get('UI_CAPTURE_OUT')
     promote = os.environ.get('UI_CAPTURE_PROMOTE') == '1'
@@ -606,13 +703,17 @@ def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database
         fixture_descriptor=_fixture_descriptor(), empty_paths=EMPTY_PATHS, prepare_entities=prepare_entities,
         supersedes=_superseded_manifest(manifest_before, identity.get('wp_id')) if promote else None,
     )
+    primary = set(REQUIRED) if os.environ.get('UI_CAPTURE_VIEWPORTS') == 'required' else PRIMARY
+    if primary == set(REQUIRED):
+        audit = _write_capture_audit(manifest, directory)
+        assert not audit['missing_viewports'], audit['missing_viewports']
     assert MATRIX_PATH.read_bytes() == matrix_before
     assert MANIFEST_PATH.read_bytes() == ((directory / 'ui-before-manifest.json').read_bytes()
                                          if promote else manifest_before)
     assert {path.name: (path.stat().st_mtime_ns, hashlib.sha256(path.read_bytes()).hexdigest())
             for path in (EVIDENCE / 'screenshots').glob('*.png')} == screenshots_before
     assert not _visual_gaps(application, _matrix(), manifest), _visual_gaps(application, _matrix(), manifest)
-    _assert_states(application, _matrix(), manifest)
+    _assert_states(application, _matrix(), manifest, primary)
     _assert_meta(manifest)
     revision_detail = prepared['endpoint_paths']['admin.recipe_revision']
     copy_success = prepared['endpoint_paths']['admin.copy_get']
@@ -639,14 +740,14 @@ def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database
     }
     assert all(row['status'] == 200 for row in detail_rows)
     copy_rows = [row for row in rendered if row['path'] == copy_success]
-    assert {(row['viewport']['width'], row['viewport']['height']) for row in copy_rows} == {
-        (1440, 900), (390, 844)
-    }
+    assert {(row['viewport']['width'], row['viewport']['height']) for row in copy_rows} == primary
     assert all(row['status'] == 200 for row in copy_rows)
     error_copy = [row for row in manifest['captures'] if row['suffix'] == 'missing-week-404']
     assert error_copy and all(row['status'] == 404 for row in error_copy)
     assert all('readiness' in row for row in rendered)
     assert all(row['readiness']['error'] is None for row in rendered)
+    assert all({'innerWidth', 'scrollWidth', 'clientWidth', 'h1_count', 'unnamed_controls'} <= row.keys()
+               for row in rendered)
 
     with application.test_client() as probe:
         assert probe.get('/admin/cafeteria').status_code == 401

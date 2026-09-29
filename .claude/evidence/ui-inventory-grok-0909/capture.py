@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import json
+import os
 import platform
 import re
 import threading
@@ -22,6 +23,7 @@ ROOT = EVIDENCE.parents[2]
 MANIFEST_PATH = ROOT / 'docs' / 'superpowers' / 'backlog-0909' / 'ui-before-manifest.json'
 READY_TIMEOUT_MS = 15000
 PRIMARY = ((1440, 900), (390, 844))
+REQUIRED = ((1440, 900), (1024, 768), (768, 1024), (390, 844))
 REFERENCE_EXTRA = ((1024, 768), (768, 1024), (1920, 1080))
 REFERENCE_PATHS = {
     '/admin/cafeteria/menues': 'ref-list',
@@ -102,6 +104,13 @@ def start_server(app: Flask) -> tuple[object, str]:
 def stop_server(server) -> None:
     server.shutdown()
     server.server_close()
+
+
+def capture_viewports(default=PRIMARY) -> tuple[tuple[int, int], ...]:
+    """Opt into all required sizes, retaining any existing special viewport."""
+    if os.environ.get('UI_CAPTURE_VIEWPORTS') == 'required':
+        return tuple(dict.fromkeys((*REQUIRED, *default)))
+    return default
 
 
 def context_for(browser: Browser, live: str, cookie):
@@ -225,9 +234,31 @@ def shot(page, path: str, width: int, height: int, suffix: str = '',
         readiness = await_ready(page)
         if after_load is not None:
             after_load(page)
-        overflow = page.evaluate(
-            'document.documentElement.scrollWidth > document.documentElement.clientWidth + 1'
-        )
+        metrics = page.evaluate(r'''() => {
+          const root = document.documentElement;
+          const visible = el => [...el.getClientRects()].some(r => r.width && r.height)
+            && !['hidden', 'collapse'].includes(getComputedStyle(el).visibility);
+          const text = el => {
+            if (el.nodeType === Node.TEXT_NODE) return el.textContent;
+            if (el.nodeType !== Node.ELEMENT_NODE || el.getAttribute('aria-hidden') === 'true'
+                || ['SCRIPT', 'STYLE'].includes(el.tagName)) return '';
+            const css = getComputedStyle(el);
+            if (css.display === 'none' || ['hidden', 'collapse'].includes(css.visibility)) return '';
+            return [...el.childNodes].map(text).join(' ');
+          };
+          const named = el => {
+            const labelled = (el.getAttribute('aria-labelledby') || '').trim().split(/\s+/)
+              .map(id => document.getElementById(id)?.textContent || '').join(' ').trim();
+            return labelled || (el.getAttribute('aria-label') || '').trim() || text(el).trim();
+          };
+          return {
+            innerWidth: window.innerWidth, scrollWidth: root.scrollWidth,
+            clientWidth: root.clientWidth, h1_count: document.querySelectorAll('h1').length,
+            unnamed_controls: [...document.querySelectorAll('.ui-sem-control, button, a.btn')]
+              .map((el, index) => ({el, index})).filter(({el}) => visible(el) && !named(el))
+              .map(({el, index}) => ({index, tag: el.tagName.toLowerCase()}))
+          };
+        }''')
         fonts = rendered_fonts(page)
         out.screen_dir.mkdir(parents=True, exist_ok=True)
         target = out.screen_dir / _slug(path, width, height, suffix)
@@ -247,7 +278,8 @@ def shot(page, path: str, width: int, height: int, suffix: str = '',
         'final_url': page.url,
         'screenshot': _relative(target),
         'screenshot_sha256': _sha(target),
-        'overflow_horizontal': bool(overflow),
+        **metrics,
+        'overflow_horizontal': metrics['scrollWidth'] > metrics['clientWidth'] + 1,
         'console': console[:20],
         'request_failures': failed[:20],
         'computed_fonts': fonts,
@@ -262,10 +294,12 @@ def capture_paths(page, paths: list[str], extra_for: set[str] | None = None,
     rows = []
     extra_for = extra_for or set()
     for path in paths:
-        for width, height in PRIMARY:
+        for width, height in capture_viewports():
             rows.append(shot(page, path, width, height, out=out))
         if path in extra_for or path in REFERENCE_PATHS:
             for width, height in REFERENCE_EXTRA:
+                if (width, height) in capture_viewports():
+                    continue
                 rows.append(shot(page, path, width, height, suffix='reference', out=out))
     return rows
 
@@ -290,13 +324,16 @@ def capture_publish_dialog(page, out: Outputs | None = None) -> tuple[list[dict]
             timeout=5000,
         )
 
-    try:
-        row = shot(page, '/admin/cafeteria', 1440, 900, suffix='dialog-publish',
-                   out=out, after_load=open_modal)
-    except Exception as error:  # noqa: BLE001 — blocked record, never a fake pass
-        return [], [{'id': 'publish_dialog', 'error': f'{type(error).__name__}: {error}',
-                     'status': 'blocked_modal_not_open'}]
-    return [row], []
+    rows, blocks = [], []
+    for width, height in capture_viewports(((1440, 900),)):
+        try:
+            rows.append(shot(page, '/admin/cafeteria', width, height, suffix='dialog-publish',
+                             out=out, after_load=open_modal))
+        except Exception as error:  # noqa: BLE001 — blocked record, never a fake pass
+            blocks.append({'id': 'publish_dialog', 'error': f'{type(error).__name__}: {error}',
+                           'path': '/admin/cafeteria', 'viewport': {'width': width, 'height': height},
+                           'status': 'blocked_modal_not_open'})
+    return rows, blocks
 
 
 def _json_copy(value: object, *, error: str, **dumps_kwargs) -> tuple[str, object]:
@@ -367,7 +404,7 @@ def capture_role_navigation(browser: Browser, live: str, role_cookies: Mapping[s
         with context_for(browser, live, cookie) as ctx:
             page = ctx.new_page()
             page.emulate_media(reduced_motion='reduce')
-            for width, height in PRIMARY:
+            for width, height in capture_viewports():
                 row = shot(page, ROLE_NAV_PATH, width, height, suffix=role_suffix(role), out=out)
                 row['role'] = role
                 probe = page.evaluate(f'''() => {{ const selector = {json.dumps(sidebar_selector)};
@@ -387,7 +424,7 @@ def capture_states(page, state_captures: Sequence[tuple[str, str, Callable]],
     rows: list[dict] = []
     blocks: list[dict] = []
     for path, suffix, action in state_captures:
-        for width, height in PRIMARY:
+        for width, height in capture_viewports():
             try:
                 rows.append(shot(page, path, width, height, suffix=suffix, out=out, after_load=action))
             except Exception as error:  # noqa: BLE001 — state capture failure produces block record
@@ -471,8 +508,9 @@ def run_capture(
             page = anonymous.new_page()
             page.emulate_media(reduced_motion='reduce')
             captures.extend(capture_paths(page, PUBLIC_PATHS + SIGNAGE_PATHS + ['/auth/local'], out=out))
-            captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='anonymous-401', out=out))
-            for width, height in PRIMARY:
+            for width, height in capture_viewports(((1440, 900),)):
+                captures.append(shot(page, '/admin/cafeteria', width, height, suffix='anonymous-401', out=out))
+            for width, height in capture_viewports():
                 try:
                     captures.append(shot(page, '/auth/login', width, height, suffix='auth-login', out=out))
                 except Exception as error:  # noqa: BLE001 — record, do not fake pass
@@ -483,7 +521,7 @@ def run_capture(
 
             if empty_paths:
                 for path in empty_paths:
-                    for width, height in PRIMARY:
+                    for width, height in capture_viewports():
                         captures.append(shot(page, path, width, height, suffix='empty', out=out))
 
             added_admin, added_refs, added_states = _prepared_additions(
@@ -497,8 +535,9 @@ def run_capture(
             captures.extend(capture_paths(page, admin_paths, extra_for=extra, out=out))
             menu = '/admin/cafeteria/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
             captures.extend(capture_paths(page, [menu], extra_for={menu}, out=out))
-            captures.append(shot(page, '/admin/cafeteria/copy', 1440, 900, suffix='missing-week-404', out=out))
-            captures.append(shot(page, '/admin/cafeteria/wochen/pruefung', 1440, 900, suffix='missing-week-400', out=out))
+            for width, height in capture_viewports(((1440, 900),)):
+                captures.append(shot(page, '/admin/cafeteria/copy', width, height, suffix='missing-week-404', out=out))
+                captures.append(shot(page, '/admin/cafeteria/wochen/pruefung', width, height, suffix='missing-week-400', out=out))
             dialog_rows, dialog_blocks = capture_publish_dialog(page, out=out)
             captures.extend(dialog_rows)
             blocks.extend(dialog_blocks)
@@ -510,9 +549,10 @@ def run_capture(
         with context_for(browser, live, editor_cookie) as editor:
             page = editor.new_page()
             page.emulate_media(reduced_motion='reduce')
-            captures.append(shot(page, '/admin/cafeteria', 1440, 900, suffix='editor-nav', out=out))
-            captures.append(shot(page, '/admin/benutzer', 1440, 900, suffix='editor-403', out=out))
-            captures.append(shot(page, '/admin/design/darstellung', 1440, 900, suffix='editor-settings', out=out))
+            for width, height in capture_viewports(((1440, 900),)):
+                captures.append(shot(page, '/admin/cafeteria', width, height, suffix='editor-nav', out=out))
+                captures.append(shot(page, '/admin/benutzer', width, height, suffix='editor-403', out=out))
+                captures.append(shot(page, '/admin/design/darstellung', width, height, suffix='editor-settings', out=out))
         if role_cookies:
             role_rows = capture_role_navigation(browser, live, role_cookies, out=out)
             captures.extend(role_rows)
@@ -522,8 +562,8 @@ def run_capture(
             with context_for(browser, live, None) as closed:
                 page = closed.new_page()
                 page.emulate_media(reduced_motion='reduce')
-                captures.append(shot(page, '/signage/cafeteria/tag', 1920, 1080, suffix='closed-sunday', out=out))
-                captures.append(shot(page, '/signage/cafeteria/tag', 390, 844, suffix='closed-sunday', out=out))
+                for width, height in capture_viewports(((1920, 1080), (390, 844))):
+                    captures.append(shot(page, '/signage/cafeteria/tag', width, height, suffix='closed-sunday', out=out))
         finally:
             app.config['DEMO_TODAY'] = previous_today
     finally:
@@ -568,7 +608,7 @@ def run_capture(
             'runtime': runtime_record(),
         },
         'viewports': {
-            'required_html': [{'width': 1440, 'height': 900}, {'width': 390, 'height': 844}],
+            'required_html': [{'width': width, 'height': height} for width, height in capture_viewports()],
             'reference_extra': [{'width': 1024, 'height': 768}, {'width': 768, 'height': 1024},
                                 {'width': 1920, 'height': 1080}],
         },
