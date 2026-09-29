@@ -282,6 +282,11 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                             hints: [...document.querySelectorAll('main .form-hint')].filter(el => el.checkVisibility()).length,
                             open: document.querySelectorAll('main details[open]').length,
                             overflow: document.documentElement.scrollWidth - innerWidth})''')
+                        metrics['cells'] = row.locator('td').evaluate_all('''es => es.map(el => ({
+                            label: el.dataset.label, box: el.getBoundingClientRect().toJSON()}))''')
+                        metrics['actions'] = row_actions.locator('summary').evaluate_all('''es => es.map(el => ({
+                            name: el.getAttribute('aria-label'), box: el.getBoundingClientRect().toJSON()}))''')
+                        (evidence / f'layout-{javascript}-{width}.json').write_text(json.dumps(metrics, indent=2))
                         assert metrics['overflow'] <= 1, metrics
                         assert metrics['row'] <= (96 if width >= 1024 else 280), metrics
                         targets = page.locator('main :is(.btn, summary)').evaluate_all('''es => es.filter(e => e.checkVisibility()).map(e => ({
