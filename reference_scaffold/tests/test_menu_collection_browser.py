@@ -439,23 +439,35 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
                             rows: [...document.querySelectorAll('main table tbody tr')].map(e => e.getBoundingClientRect().height)
                         })''')
                         # Compare actual successful fields and submitter contracts without recording secrets.
-                        contract = page.locator('main form').evaluate_all('''forms => forms.map(f => ({
-                            action: f.getAttribute('action'), method: f.method,
-                            loading: f.getAttribute('data-loading'),
-                            fieldAttributes: [...f.querySelectorAll('input, select, textarea')]
-                                .map(e => [e.name, e.getAttribute('maxlength'), e.getAttribute('aria-describedby')]),
-                            fields: [...new FormData(f)].filter(([k]) => k !== '_csrf').map(([k, v]) => {
+                        contract = page.locator('main form').evaluate_all('''forms => forms.map(f => {
+                            const value = (k, v) => {
+                                if (k === '_csrf') return Boolean(v);
                                 if (k === 'template_context') {
                                     const context = JSON.parse(atob(v.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
                                     delete context.expires_at; // Each GET issues a fresh expiry/signature.
-                                    return [k, context];
+                                    return context;
                                 }
-                                return [k, v];
-                            }),
-                            csrf: Boolean(f.querySelector('[name="_csrf"]')),
-                            submitters: [...f.querySelectorAll('button[type="submit"], input[type="submit"]')]
-                                .map(b => [b.name, b.value, b.getAttribute('formaction'), b.formNoValidate, b.getAttribute('form')])
-                        }))''')
+                                return v;
+                            };
+                            return {
+                            action: f.getAttribute('action'), method: f.method,
+                            loading: f.getAttribute('data-loading'),
+                            // Compare every named control, including disabled/unchecked fields
+                            // and external form owners, without pinning presentation attributes.
+                            namedFields: [...f.elements].filter(e => e.name).map(e => [
+                                e.name, e.multiple && e.tagName === 'SELECT'
+                                    ? [...e.selectedOptions].map(o => value(e.name, o.value)) : value(e.name, e.value),
+                                e.disabled, ['checkbox', 'radio'].includes(e.type) ? e.checked : null
+                            ]),
+                            fields: [...new FormData(f)].map(([k, v]) => [k, value(k, v)]),
+                            csrf: [...f.elements].some(e => e.name === '_csrf' && !e.disabled && Boolean(e.value)),
+                            submitters: [...f.elements]
+                                .filter(e => e.matches('button, input') && e.type === 'submit')
+                                // Unnamed submitter values are labels, never submitted fields.
+                                .map(b => [b.name, b.name ? b.value : '', b.getAttribute('formaction'),
+                                    b.formNoValidate, b.getAttribute('form')])
+                            };
+                        })''')
                         contracts.setdefault(key, {})[version] = contract
                         if version == 'after':
                             page.screenshot(path=str(tmp_path / f'p4-{key}.png'), full_page=True)
@@ -477,7 +489,7 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
             assert old_search['method'] == new_search['method'] == 'get'
             assert old_search['submitters'] == [['', '', None, False, None]]
             assert new_search['submitters'] == old_search['submitters'] * 2
-            new_search['submitters'] = new_search['submitters'][:1]
+            old_search['submitters'] = old_search['submitters'] * 2
         assert bool(contracts[key]['before'] == contracts[key]['after']), key
         if key.endswith('-1440'):
             assert after['height'] <= before['height'], (key, pair)
