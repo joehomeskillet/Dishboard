@@ -172,22 +172,23 @@ def test_menu_capture_dismisses_item_tooltip_before_closing_menu(width, tmp_path
                 if request.method != 'GET' or request.is_navigation_request() else None)
         form = page.locator('#draft')
         before = _values(form)
-        menu = page.locator('.ui-sem-actions')
-        summary = menu.locator(':scope > summary')
-        summary.press('Enter')
+        menu = page.get_by_role('group', name='Aktionen für Entwurf', exact=True)
+        expect(menu.locator('details, summary')).to_have_count(0)
         item = page.locator('#copy')
+        item.focus()
         expect(item).to_be_focused()
-        expect(item).to_have_text('Kopieren')
+        expect(item).to_have_text('')
+        expect(item).to_have_accessible_name('Entwurf kopieren')
         expect(page.get_by_role('tooltip', name=item.get_attribute('aria-label'), exact=True)).to_be_visible()
         page.keyboard.press('Escape')
         page.screenshot(path=str(tmp_path / 'menu-first-escape.png'), full_page=True)
         expect(page.get_by_role('tooltip')).to_have_count(0)
-        expect(menu).to_have_attribute('open', '')
+        expect(menu).to_be_visible()
         expect(item).to_be_focused()
         assert _values(form) == before and navigations == []
         page.keyboard.press('Escape')
-        expect(menu).not_to_have_attribute('open', '')
-        expect(summary).to_be_focused()
+        expect(menu).to_be_visible()
+        expect(item).to_be_focused()
         expect(page.get_by_role('tooltip')).to_have_count(0)
         expect(page.locator('#other')).to_have_attribute('open', '')
         assert _values(form) == before and navigations == []
@@ -197,9 +198,10 @@ def test_menu_capture_dismisses_item_tooltip_before_closing_menu(width, tmp_path
 
 @pytest.mark.parametrize('width', [390, 1440])
 @pytest.mark.parametrize('kind', ['native', 'tabler'])
-def test_unrelated_hover_does_not_consume_modal_escape(kind, width, tmp_path):
+@pytest.mark.parametrize('focus_direct', [False, True])
+def test_unrelated_hover_does_not_consume_modal_escape(kind, width, tmp_path, focus_direct):
     content = '''{{ field('modal-note', 'Notiz', 'Modalentwurf') }}
-        {{ icon_button('actions.copy', type='button', id='foreign') }}'''
+        {{ more_actions([{'key':'actions.copy', 'type':'button', 'id':'foreign'}]) }}'''
     if kind == 'native':
         modal = '''{{ icon_button('actions.preview', type='button', id='opener') }}
             {% call confirm_dialog('actions.delete', 'actions.delete', 'actions.delete',
@@ -237,6 +239,13 @@ def test_unrelated_hover_does_not_consume_modal_escape(kind, width, tmp_path):
         tooltip = page.get_by_role('tooltip', name=foreign.get_attribute('aria-label'), exact=True)
         expect(tooltip).to_be_visible()
         expect(field).to_be_focused()
+        if focus_direct:
+            foreign.focus()
+            expect(foreign).to_be_focused()
+            page.keyboard.press('Escape')
+            expect(tooltip).to_be_hidden()
+            expect(modal).to_be_visible()
+            expect(foreign).to_be_focused()
         page.screenshot(path=str(tmp_path / 'modal-hover-before-escape.png'), full_page=True)
         page.keyboard.press('Escape')
         expect(modal).to_be_hidden()

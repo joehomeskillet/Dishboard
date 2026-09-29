@@ -332,7 +332,7 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                 expect(page.locator('.shopping-filter .active')).to_have_attribute('aria-current', 'true')
                 expect(page.get_by_role('link', name='Mit Archivierten', exact=True)).to_be_visible()
                 expect(page.locator('.shopping-filter').get_by_role('link', name='Archivieren', exact=True)).to_have_count(0)
-                page.locator('.shopping-list details.ui-sem-actions summary').first.click()
+                expect(page.locator('.shopping-list [data-semantic="actions.more"]')).to_have_count(0)
                 expect(page.get_by_role('button', name='archivieren').first).to_be_visible()
                 expect(page.get_by_role('link', name='öffnen').first).to_be_visible()
                 page.locator('#einkaufsliste-neu-title').click()

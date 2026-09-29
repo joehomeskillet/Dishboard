@@ -185,7 +185,8 @@ def test_list_first_row_visible_without_scroll(catalog_page: Page, family: str) 
     expect(edit).to_have_accessible_name(f'{name} bearbeiten')
     expect(first_row.locator('.admin-row-actions')).to_have_count(1)
     expect(first_row.locator('[data-semantic="actions.edit"]')).to_be_visible()
-    expect(first_row.locator('[data-semantic="actions.more"]')).to_be_visible()
+    expect(first_row.locator('[data-semantic="actions.more"]')).to_have_count(0)
+    expect(first_row.locator('[data-semantic="actions.archive"]')).to_be_visible()
     box = first_row.bounding_box()
     assert box is not None
     assert box['y'] + box['height'] <= 768

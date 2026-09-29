@@ -302,11 +302,9 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
             # The creation form is closed while selecting a week; copy effects open on demand.
             expect(page.locator('.week-filter')).to_be_visible()
             expect(page.locator('#new-week-date')).to_be_hidden()
-            copy = first_row.locator('.ui-sem-actions')
+            copy = first_row.locator('.admin-row-actions')
             copy_link = copy.get_by_role('link', name='Woche ab 31.08.2026 kopieren', exact=True)
-            expect(copy_link).to_be_hidden()
-            copy.locator('summary').focus()
-            copy.locator('summary').press('Enter')
+            expect(copy.locator('[data-semantic="actions.more"]')).to_have_count(0)
             expect(copy_link).to_be_visible()
             expect(copy_link).to_have_attribute(
                 'href', f'/admin/{family}/copy?week=2026-09-07')
@@ -364,7 +362,7 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         page.on('request', lambda request: requests.append(request.method))
         with database_engine.connect() as connection:
             before_copy = connection.execute(text('SELECT id,row_version FROM cafeteria.menu_weeks ORDER BY id')).all()
-        row.locator('.ui-sem-actions summary').click()
+        expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
         row.get_by_role('link', name='Woche ab 31.08.2026 kopieren', exact=True).click()
         expect(page.locator('main')).to_have_attribute('data-source-week', '2026-08-31')
         expect(page.locator('main')).to_have_attribute('data-target-week', '2026-09-07')

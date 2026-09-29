@@ -191,10 +191,10 @@ def test_master_names_are_text_with_keyboard_action_in_all_states(
                     if readonly:
                         expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
                     else:
-                        row.locator('summary[data-semantic="actions.more"]').press('Enter')
+                        expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
                         status = row.get_by_role('link', name=f'{name} {"aktivieren" if archived else "archivieren"}', exact=True)
                         expect(status).to_have_attribute('href', target + '#master-status')
-                        row.locator('summary[data-semantic="actions.more"]').press('Enter')
+                        expect(status).to_be_visible()
                     action.focus()
                     page.keyboard.press('Shift+Tab')
                     page.keyboard.press('Tab')

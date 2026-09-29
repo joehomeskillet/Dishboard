@@ -112,7 +112,7 @@ def test_delete_manual_item_requires_submitter_confirmation(
     with browser.new_context(viewport={'width': 1440, 'height': 900}, reduced_motion='reduce') as context:
         page = _open(context, base, cookie, f'/admin/einkaufslisten/{list_id}', dirty_off)
         form = page.locator('form.shopping-item-form').filter(has=page.locator('button[value="delete"]'))
-        form.locator('.ui-sem-actions > summary').click()
+        expect(form.locator('[data-semantic="actions.more"]')).to_have_count(0)
         button = form.locator('button[value="delete"]')
         _confirm_mutation(page, button, 'Diese Position löschen?', 'delete', 'expected_row_version',
                           activate, lambda: _shopping_snapshot(owner), tmp_path)
@@ -133,7 +133,7 @@ def test_archive_dish_template_requires_submitter_confirmation(
     base, cookie = master_server
     with browser.new_context(viewport={'width': 390, 'height': 844}, reduced_motion='reduce') as context:
         page = _open(context, base, cookie, path, dirty_off)
-        page.locator('.admin-form-footer .ui-sem-actions > summary').click()
+        expect(page.locator('.admin-form-footer [data-semantic="actions.more"]')).to_have_count(0)
         button = page.locator('button[value="archive"]')
         _confirm_mutation(page, button, 'Diese Vorlage archivieren?', 'archive', 'updated_at',
                           activate, lambda: snapshot(owner), tmp_path)
@@ -209,8 +209,10 @@ def test_archive_recipe_and_cookbook_native_confirmation(
         page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
 
         def open_confirmation():
-            menu = '.admin-compact-toolbar .admin-compact-actions' if kind == 'recipe' else '.admin-form-rare'
-            page.locator(menu + ' > summary').click()
+            if kind == 'recipe':  # Handwritten WP3/WP4 menu remains until its migration.
+                page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
+            else:
+                expect(page.locator('.admin-form-rare > summary')).to_have_count(0)
             assert posts == [] and recipe_snapshot(owner) == before
             with page.expect_navigation(wait_until='load'):
                 page.get_by_role('link', name='Archivieren', exact=True).click()

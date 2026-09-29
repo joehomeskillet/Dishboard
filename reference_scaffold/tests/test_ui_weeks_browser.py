@@ -230,7 +230,7 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
             row.get_by_role('link', name='Vorschau für Woche ab 31.08.2026', exact=True).click()
             assert '/preview?week=' in page.url
             _goto(page, path)
-            row.locator('details.ui-sem-actions summary').click()
+            expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
             row.get_by_role('link', name='Woche ab 31.08.2026 kopieren', exact=True).click()
             expect(page.locator('main')).to_have_attribute('data-source-week', str(WEEK))
             expect(page.locator('main')).to_have_attribute('data-target-week', str(WEEK + timedelta(days=7)))

@@ -265,7 +265,7 @@ def test_full_views_remain_available_without_javascript(
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
         page = context.new_page()
         page.goto('/admin/screens')
-        expect(page.locator('.screen-card .ui-sem-actions[open]')).to_have_count(0)
+        expect(page.locator('.screen-card [data-semantic="actions.more"]')).to_have_count(0)
         expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
         for card in page.locator('.screen-card').all():
             expect(card.locator('.admin-row-actions a').first).to_be_visible()
@@ -273,7 +273,8 @@ def test_full_views_remain_available_without_javascript(
                 summary.focus()
                 page.keyboard.press('Enter')
                 expect(summary).to_be_focused()
-            expect(card.locator('details[open]')).to_have_count(2)
+            expect(card.locator('.screen-preview-details[open]')).to_have_count(1)
+            expect(card.locator('details')).to_have_count(1)
         screen_links = page.locator('.screens-grid a')
         for link in screen_links.all():
             expect(link).to_be_visible()
@@ -284,7 +285,7 @@ def test_full_views_remain_available_without_javascript(
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/')
         expect(page.locator('main')).to_contain_text('Patientinnen und Patienten · Wochenübersicht')
         page.goto('/admin/screens')
-        page.locator('.screen-card[aria-labelledby="patient-public-title"] .ui-sem-actions > summary').click()
+        expect(page.locator('.screen-card[aria-labelledby="patient-public-title"] .admin-row-actions')).to_be_visible()
         page.get_by_role('link', name='Patientinnen und Patienten Web Wochenplan ohne Bilder öffnen', exact=True).click()
         expect(page).to_have_url(f'{screen_server}/patienten/wochenplan/ohne-bilder/')
         expect(page.locator('.menu-photo, .card-img-top')).to_have_count(0)

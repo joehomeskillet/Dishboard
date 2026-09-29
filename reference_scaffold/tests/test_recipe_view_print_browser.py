@@ -213,7 +213,8 @@ def test_history_opens_each_of_three_archived_stands(view_print, recipe_editor, 
         expect(page.get_by_role('heading', name='Alle gespeicherten Stände', exact=True)).to_be_visible()
         expect(page.locator('#recipe-history')).to_be_visible()
         expect(page.locator('#recipe-history .admin-row-actions')).to_have_count(3)
-        expect(page.locator('#recipe-history .ui-sem-actions')).to_have_count(3)
+        expect(page.locator('#recipe-history [data-semantic="actions.more"]')).to_have_count(0)
+        expect(page.locator('#recipe-history .admin-row-actions a:visible')).to_have_count(6)
         expect(page.locator('#recipe-history time')).to_have_count(3)
         accessibility._accessible_capture(page, f'history-three-{width}', methods=['GET'])
         for number, revision in enumerate(revisions, 1):

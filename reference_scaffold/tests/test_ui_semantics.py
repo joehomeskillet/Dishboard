@@ -137,7 +137,14 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; no aliases for different business actions.
     assert len(seeds) == 187
-    assert len(registry) == 213
+    assert len(registry) == 218
+    for key, icon in {'actions.open_pdf': 'file-type-pdf',
+                      'actions.snapshot': 'file-check',
+                      'actions.create_template': 'circle-plus',
+                      'actions.open_template': 'template'}.items():
+        assert registry[key].resolved_icon == icon
+        assert registry[key].category == 'actions'
+    assert registry['actions.print'].resolved_icon == 'printer'
     for key, icon in {'recipe.original_quantities': 'scale', 'recipe.provenance': 'history'}.items():
         assert registry[key].resolved_icon == icon
         assert registry[key].icon_only_allowed
@@ -351,9 +358,8 @@ def test_footer_action_levels_keep_form_contract(semantic_app):
     assert primary[0].select_one('use')['href'].endswith('#tabler-device-floppy')
     assert document.select_one('.admin-form-main a[href="#preview"]')
     assert document.select_one('.admin-form-main a[href="/cancel"]')
-    rare = document.select_one('details.admin-form-rare')
-    assert not rare.has_attr('open')
-    assert rare.select_one('summary.btn-ghost')
+    rare = document.select_one('.admin-form-rare')
+    assert not document.select('details, [data-semantic="actions.more"]')
     assert rare.select_one('a[href="#edit"]')
     danger = document.select_one('.admin-form-danger')
     assert danger.select_one('.btn-danger svg')
@@ -451,14 +457,16 @@ def test_row_actions_keep_one_direct_action_and_native_form_fields(semantic_app)
                  'consequence_key': 'ui.request_failed'}]) }}''')
     document = BeautifulSoup(html, 'html.parser')
     assert len(document.select('.admin-row-actions > a')) == 1
-    assert not document.details.has_attr('open')
-    assert document.summary.get_text(strip=True) == ''
-    assert document.summary['aria-label'] == 'Weitere Aktionen'
-    buttons = document.select('details button')
+    assert not document.select('details, [data-semantic="actions.more"]')
+    assert document.select_one('.admin-row-actions')['role'] == 'group'
+    buttons = document.select('.admin-row-actions > button')
     assert [(b['name'], b['value'], b['form']) for b in buttons] == [
         ('intent', 'copy', 'editor'), ('intent', 'delete', 'editor')]
-    assert buttons[1].get_text(strip=True) == 'Löschen'
-    assert document.select_one('.ui-sem-consequence')
+    assert not buttons[1].get_text(strip=True)
+    description = document.find(id=buttons[1]['aria-describedby'])
+    assert 'visually-hidden' in description['class']
+    assert description.get_text(strip=True)
+    assert not document.select('p.ui-sem-consequence')
 
 
 def test_statusbar_without_href_preserves_markup(semantic_app):
@@ -528,11 +536,9 @@ def test_disclosure_project_keys_and_shared_labels(semantic_app, locale, options
     assert document.select_one('#details').has_attr('open')
     assert document.select_one('#custom summary').get_text(strip=True).startswith('Custom')
     assert document.select_one('#custom').has_attr('open')
-    overflow = document.select_one('.admin-compact-actions summary')
-    assert overflow['aria-label'] == more
-    assert overflow['data-ui-tooltip'] == more
-    assert overflow.get_text(strip=True) == ''
-    assert overflow.select_one('svg use') is not None
+    group = document.select_one('.admin-list-actions')
+    assert not group.select('details, summary')
+    assert 'Archive' in group.get_text()
 
 
 @pytest.mark.parametrize('mode', ['tooltip', 'inline', 'dialog'])
@@ -834,10 +840,54 @@ def test_p2c_wrappers_forward_context_and_native_attrs(semantic_app, macro):
         assert control['data-confirm'] == 'Weiter?'
         assert control['formaction'] == '/edit' and control['formnovalidate'] == ''
         assert (control['name'], control['value'], control['form']) == ('intent', 'edit', 'editor')
-    assert (doc.select_one('#context').span is None) == (macro == 'row_actions')
-    assert doc.select_one('#second').span.text == 'Ändern'
-    assert not doc.details.has_attr('open')
-    assert len(doc.select('.admin-row-actions > button')) == (1 if macro == 'row_actions' else 0)
+    assert doc.select_one('#context').span is None
+    assert doc.select_one('#second').span is None
+    assert not doc.select('details, summary')
+    assert len(doc.select('.admin-row-actions > button')) == 2
+
+
+@pytest.mark.parametrize('macro', ['row_actions', 'more_actions', 'action_menu'])
+@pytest.mark.parametrize('href', [None, '/must-not-open'])
+def test_direct_action_descriptions_escape_and_preserve_caller_attrs(semantic_app, macro, href):
+    from bs4 import BeautifulSoup
+
+    reason = Markup('<img src=x onerror=alert(1)> & unavailable')
+    attrs = {'aria-describedby': 'existing-help', 'data-confirm': 'Confirm?', 'disabled': False}
+    item = {'key': 'actions.delete', 'href': href, 'disabled_reason': reason,
+            'consequence_key': 'ui.request_failed', 'attrs': attrs}
+    with semantic_app.test_request_context():
+        html = render_template_string(
+            "{% from 'ui/_semantic.html' import " + macro + ' %}{{ ' + macro + '(items) }}',
+            items=[item, item])
+    doc = BeautifulSoup(html, 'html.parser')
+    descriptions = []
+    for control in doc.select('.ui-sem-control'):
+        assert control['aria-disabled'] == 'true'
+        assert 'href' not in control.attrs
+        assert control['data-confirm'] == 'Confirm?'
+        refs = control['aria-describedby'].split()
+        assert refs[0] == 'existing-help'
+        description = doc.find(id=refs[1])
+        assert str(reason) in description.get_text()
+        assert 'visually-hidden' in description['class']
+        descriptions.append(refs[1])
+        if href is None:
+            assert control.has_attr('disabled')
+            assert control.parent['tabindex'] == '0'
+            assert str(reason) in control.parent['data-ui-tooltip']
+        else:
+            assert control['tabindex'] == '0'
+            assert str(reason) in control['data-ui-tooltip']
+    assert len(set(descriptions)) == 2
+    assert not doc.select('img, script, p.ui-sem-consequence')
+    assert attrs == {'aria-describedby': 'existing-help', 'data-confirm': 'Confirm?', 'disabled': False}
+
+
+@pytest.mark.parametrize('reason', ['', ' ', 0, []])
+def test_disabled_action_rejects_invalid_reason(semantic_app, reason):
+    with semantic_app.test_request_context(), pytest.raises(SemanticError, match='disabled_reason'):
+        render_template_string("{% from 'ui/_semantic.html' import row_actions %}{{ row_actions(items) }}",
+                               items=[{'key': 'actions.copy', 'disabled_reason': reason}])
 
 
 @pytest.mark.parametrize('macro,template', [('filter_bar_sem', 'ui/_semantic.html'), ('filter_bar', 'admin/_macros.html')])
@@ -889,7 +939,7 @@ def test_wp2c_single_filter_entry_chips_and_context(semantic_app, locale):
     assert not clean.select('.admin-filter-more, .admin-filter-chips, [data-semantic="view.reset"]')
 
 
-@pytest.mark.parametrize('locale,more_name', [('de', 'Weitere Aktionen für Broccoli'), ('en', 'More actions for Broccoli')])
+@pytest.mark.parametrize('locale,more_name', [('de', 'Aktionen für Broccoli'), ('en', 'Actions for Broccoli')])
 def test_wp2c_row_budget_and_object_forwarding(semantic_app, locale, more_name):
     from bs4 import BeautifulSoup
 
@@ -902,13 +952,12 @@ def test_wp2c_row_budget_and_object_forwarding(semantic_app, locale, more_name):
         empty = render_template_string('''{% from 'ui/_semantic.html' import row_actions, more_actions %}
             {{ row_actions([]) }}{{ more_actions([]) }}''')
     doc = BeautifulSoup(html, 'html.parser')
-    assert len(doc.select('.admin-row-actions > a')) == 1
-    assert len(doc.select('.ui-sem-action-items > :is(a, button)')) == 2
-    assert doc.summary['aria-label'] == more_name
-    assert doc.summary.get_text(strip=True) == ''
-    assert doc.summary.select_one('use')['href'].endswith('#tabler-dots')
+    assert len(doc.select('.admin-row-actions > a')) == 2
+    assert len(doc.select('.admin-row-actions > button')) == 1
+    assert doc.select_one('.admin-row-actions')['aria-label'] == more_name
+    assert not doc.select('details, summary')
     assert all('Broccoli' in node['aria-label'] for node in doc.select('a, button'))
-    assert all(node.get_text(strip=True) for node in doc.select('.ui-sem-action-items > :is(a, button)'))
+    assert all(not node.get_text(strip=True) for node in doc.select('.admin-row-actions > :is(a, button)'))
     assert (doc.button['name'], doc.button['value'], doc.button['form']) == ('intent', 'copy', 'editor')
     assert not empty.strip()
 

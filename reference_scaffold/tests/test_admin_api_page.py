@@ -260,8 +260,8 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                         row_actions = table.locator('.admin-row-actions').first
                         shared = row_actions.evaluate('el => { const cs = getComputedStyle(el); return {wrap: cs.flexWrap, gap: cs.gap, display: cs.display}; }')
                         assert shared['display'] == 'flex', shared
-                        assert shared['gap'] == '8px', shared
-                        assert shared['wrap'] == ('wrap' if width < 768 else 'nowrap'), (width, shared)
+                        assert shared['gap'] == '4px', shared
+                        assert shared['wrap'] == 'wrap', (width, shared)
                         assert table.locator('tbody tr').first.evaluate(
                             'el => getComputedStyle(el).display'
                         ) == ('grid' if width < 768 else 'table-row')
