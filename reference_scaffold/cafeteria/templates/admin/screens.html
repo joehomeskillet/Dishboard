@@ -41,7 +41,7 @@
         </p>
         {% endif %}
       </th>
-      <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items) }}</td>
+      <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items, object=label ~ ' ' ~ channel_label) }}</td>
     </tr>
     <tr>
       <td colspan="2" headers="{{ screen_id }}-heading">

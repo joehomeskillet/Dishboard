@@ -78,15 +78,15 @@
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="row_version" value="{{ item.row_version }}">
     {% if include_archived %}
-      {{ list_row(primary=item.title, secondary=subtitle, state='active', actions=row_actions(row_items)) }}
+      {{ list_row(primary=item.title, secondary=subtitle, state='active', actions=row_actions(row_items, object=item.title)) }}
     {% else %}
-      {{ list_row(primary=item.title, secondary=subtitle, status=' ', actions=row_actions(row_items)) }}
+      {{ list_row(primary=item.title, secondary=subtitle, status=' ', actions=row_actions(row_items, object=item.title)) }}
     {% endif %}
   </form>
   {% elif item.archived_at %}
-    {{ list_row(primary=item.title, secondary=subtitle, state='archived', actions=row_actions(row_items)) }}
+    {{ list_row(primary=item.title, secondary=subtitle, state='archived', actions=row_actions(row_items, object=item.title)) }}
   {% else %}
-    {{ list_row(primary=item.title, secondary=subtitle, status=' ', actions=row_actions(row_items)) }}
+    {{ list_row(primary=item.title, secondary=subtitle, status=' ', actions=row_actions(row_items, object=item.title)) }}
   {% endif %}
   {% endfor %}
 </section>
