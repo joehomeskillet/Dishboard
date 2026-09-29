@@ -32,7 +32,7 @@ def test_publish_controls_follow_capability_and_preserve_post_contract(
     with browser.new_context(
         base_url=live_server, java_script_enabled=javascript, reduced_motion='reduce',
         has_touch=not javascript,
-        viewport={'width': 1440 if javascript else 390, 'height': 900},
+        viewport={'width': 1440 if javascript else 390, 'height': 900 if javascript else 844},
     ) as context:
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
         page = context.new_page()
@@ -76,8 +76,10 @@ def test_publish_controls_follow_capability_and_preserve_post_contract(
             expect(trigger).to_have_count(0)
             expect(form).to_have_count(0)
             expect(page.locator('#week-publish-modal, .admin-week-nojs-publish')).to_have_count(0)
-            page.locator('.admin-week-more > summary').click()
-            expect(page.locator('.admin-week-more [data-semantic="actions.publish"]')).to_have_count(0)
+            actions = page.get_by_role('link', name='CSV exportieren', exact=True).locator('..')
+            expect(actions).to_be_visible()
+            expect(actions.locator('[data-semantic="actions.publish"]')).to_have_count(0)
+            expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
             return
 
         expect(trigger).to_be_visible()

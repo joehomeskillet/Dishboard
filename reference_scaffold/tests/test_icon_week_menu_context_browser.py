@@ -97,7 +97,7 @@ def test_week_template_menu_context_is_localized_distinct_and_native(
                         width: visualViewport.width, height: visualViewport.height,
                         scale: visualViewport.scale
                     }, activeElement: describe(document.activeElement),
-                    summaries: [...document.querySelectorAll('.admin-week-template > summary')].map(describe),
+                    summaries: [...document.querySelectorAll('.admin-week-template')].map(describe),
                     tooltips: [...document.querySelectorAll('[role="tooltip"]')].map(tip => ({
                         id: tip.id, text: tip.textContent, visible: !!tip.getClientRects().length,
                         shown: tip.classList.contains('show'), hovered: tip.matches(':hover'),
@@ -120,7 +120,7 @@ def test_week_template_menu_context_is_localized_distinct_and_native(
         page.evaluate('document.fonts.ready')
         record('loaded-fonts-ready')
         forms_before = page.locator('main form').evaluate_all(FORM_STATE)
-        summaries = page.locator('.admin-week-template > summary')
+        summaries = page.locator('.admin-week-template')
         expect(summaries).to_have_count(len(slots))
         observations = summaries.evaluate_all('''nodes => nodes.map(node => ({
             name: node.getAttribute('aria-label'), tooltip: node.getAttribute('data-ui-tooltip'),
@@ -134,29 +134,29 @@ def test_week_template_menu_context_is_localized_distinct_and_native(
         record('after-first-scroll')
         page.screenshot(path=str(tmp_path / 'week-template-closed.png'), full_page=False)
         record('after-closed-viewport-screenshot')
-        first.locator('summary').press('Enter')
-        expect(first).to_have_attribute('open', '')
-        record('after-first-enter')
+        first.focus()
+        expect(first).to_be_focused()
+        record('after-first-focus')
         page.screenshot(path=str(tmp_path / 'week-template-open.png'), full_page=False)
         record('after-open-viewport-screenshot')
-        first.locator('summary').press('Space')
-        expect(first).not_to_have_attribute('open', '')
-        record('after-first-space')
+        expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
+        record('after-no-generic-menu-check')
 
         names = []
         for selector, identity, public_id, archived in slots:
             card = page.locator(selector)
             details = card.locator('.admin-week-template')
-            trigger = details.locator('summary')
-            name = f'Weitere Aktionen für {identity}' if locale == 'de' else f'More actions for {identity}'
-            # Expected RED: current manual summary omits slot context and has a different tooltip.
+            trigger = details
+            object_name = identity + ' · ' + TEMPLATE + (' (archiviert)' if archived else '')
+            name = f'Gerichtvorlage für {object_name} öffnen' if locale == 'de' else f'Open dish template for {object_name}'
+            # The direct link retains localized slot identity and its matching tooltip.
             expect(trigger).to_have_accessible_name(name)
             expect(trigger).to_have_attribute('data-ui-tooltip', name)
             expect(trigger).to_have_text('')
-            expect(trigger).to_have_attribute('data-semantic', 'actions.more')
+            expect(trigger).to_have_attribute('data-semantic', 'actions.open_template')
             expect(trigger.locator('svg')).to_have_attribute('aria-hidden', 'true')
             expect(trigger.locator('use')).to_have_attribute(
-                'href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-dots',
+                'href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-template',
             )
             assert trigger.get_attribute('title') is None
             assert trigger.locator('button, a, input').count() == 0
@@ -182,17 +182,17 @@ def test_week_template_menu_context_is_localized_distinct_and_native(
                 trigger.press('Escape')
                 expect(tooltip).to_be_hidden()
                 record(f'{selector}:after-escape')
-            trigger.press('Enter')
-            expect(details).to_have_attribute('open', '')
-            record(f'{selector}:after-enter')
-            link = details.locator('a')
+            link = details
             expect(link).to_be_visible()
             expect(link).to_have_attribute('href', f'/admin/gerichtvorlagen/{public_id}')
-            expect(link).to_have_text(f'Aus Vorlage «{TEMPLATE}»' + (' (archiviert)' if archived else ''))
-            trigger.press('Space')
-            expect(details).not_to_have_attribute('open', '')
-            expect(link).to_be_hidden()
-            record(f'{selector}:after-space')
+            expect(link).to_have_text('')
+            with page.expect_navigation(wait_until='networkidle') as opened:
+                trigger.press('Enter')
+            assert opened.value.status == 200
+            assert urlsplit(page.url).path == f'/admin/gerichtvorlagen/{public_id}'
+            page.go_back(wait_until='networkidle')
+            expect(link).to_be_visible()
+            record(f'{selector}:returned-from-template')
             expect(card.locator('[data-allergen-state="missing"]')).to_contain_text('nicht allergenfrei')
         assert len(set(names)) == len(slots)
         assert page.locator('main form').evaluate_all(FORM_STATE) == forms_before
@@ -204,7 +204,7 @@ def test_week_template_menu_context_is_localized_distinct_and_native(
         name_failures = []
         for index, (selector, identity, semantic) in enumerate(actions):
             card = page.locator(selector)
-            action = card.locator('.admin-week-card-action > a')
+            action = card.locator('.admin-week-card-action > a:not(.admin-week-template)')
             label = {'de': {'edit': 'bearbeiten', 'add': 'anlegen'},
                      'en': {'edit': 'Edit', 'add': 'Create'}}[locale][semantic]
             expected_name = f'{identity} {label}' if locale == 'de' else f'{label} {identity}'
@@ -280,7 +280,7 @@ def test_week_template_menu_geometry_and_open_content(
         page.evaluate('document.fonts.ready')
         card = page.locator(slots[0][0])
         details = card.locator('.admin-week-template')
-        trigger = details.locator('summary')
+        trigger = details
         title = card.locator('.admin-week-card-title')
         before_title = title.bounding_box()
         text_blocks = card.locator('.admin-week-card-title, .admin-week-components, [data-menu-metadata]')
@@ -304,13 +304,13 @@ def test_week_template_menu_geometry_and_open_content(
         }''')
         card.scroll_into_view_if_needed()
         page.screenshot(path=str(tmp_path / 'geometry-closed.png'), full_page=False)
-        trigger.press('Enter')
-        expect(details).to_have_attribute('open', '')
+        trigger.focus()
+        expect(trigger).to_be_focused()
         open_coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
         assert open_coarse is coarse
         open_summary = trigger.bounding_box()
         assert open_summary and (open_summary['width'], open_summary['height']) == (size, size), open_summary
-        link = details.locator('a')
+        link = details
         expect(link).to_be_visible()
         after_title, card_box, link_box = title.bounding_box(), card.bounding_box(), link.bounding_box()
         assert after_title and card_box and link_box

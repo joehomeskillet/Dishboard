@@ -104,8 +104,8 @@ def _label_issue(issues, control, expected_text, expected_name):
 
 
 def _capture(page, path, zoom):
-    # Keep the original full-page evidence; native zoom needs an unclipped viewport too.
-    page.screenshot(path=str(path), full_page=True)
+    # Viewport evidence preserves coarse-pointer emulation and native zoom.
+    page.screenshot(path=str(path), full_page=False)
     session = page.context.new_cdp_session(page)
     try:
         metrics = session.send('Page.getLayoutMetrics')
@@ -144,7 +144,7 @@ def test_print_editor_context_disclosures_and_native_archive(
     editor_case, browser, tmp_path, width, zoom, javascript,  # noqa: F811
 ):
     case = editor_case
-    with _page(browser, case, tmp_path, width, zoom, javascript) as page:
+    with _page(browser, case, tmp_path, width, zoom, javascript, has_touch=width == 390) as page:
         posts, errors, presentation = [], [], []
         page.on('request', lambda req: posts.append(req) if req.method == 'POST' else None)
         page.on('pageerror', lambda error: errors.append(str(error)))
@@ -168,7 +168,8 @@ def test_print_editor_context_disclosures_and_native_archive(
         page.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Mein Text bleibt erhalten')
         before = page.locator('main form').evaluate_all('forms => forms.map(f => [...new FormData(f)])')
         activation = _toggle(page, '[data-template-activation]', javascript)
-        more = _toggle(page, '[data-template-more-actions]', javascript)
+        expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
+        more = _toggle(page, '[data-template-copy]', javascript)
         expect(page.locator('[data-template-activation]')).to_contain_text('Aktive Druckvorlage')
         expect(page.locator('[data-template-versions] > summary')).to_contain_text('Versionen')
         assert page.locator('main form').evaluate_all('forms => forms.map(f => [...new FormData(f)])') == before
@@ -178,7 +179,7 @@ def test_print_editor_context_disclosures_and_native_archive(
             presentation.append('Redundant header status cards remain')
         selected_name = page.get_by_label('Vorlagenname', exact=True).get_attribute('value')
         for summary, name in ((activation, f'{selected_name} aktivieren'),
-                              (more, f'Weitere Aktionen für {selected_name}')):
+                              (more, f'{selected_name} kopieren')):
             _label_issue(presentation, summary, '', name)
             if summary.locator('svg[aria-hidden="true"]').count() != 1:
                 presentation.append(f'{name}: missing decorative icon')
@@ -210,7 +211,7 @@ def test_print_editor_context_disclosures_and_native_archive(
             assert query['yield'] == ['8']
         else:
             assert query['week'] == [DAY]
-        _toggle(page, '[data-template-more-actions]', javascript)
+        _toggle(page, '[data-template-lifecycle]', javascript)
         confirm = page.get_by_label('Ich möchte diese Vorlage archivieren.', exact=True)
         archive = page.get_by_role('button', name='Vorlage archivieren', exact=True)
         _label_issue(presentation, archive, 'Archivieren', 'Vorlage archivieren')
@@ -229,19 +230,19 @@ def test_print_editor_context_disclosures_and_native_archive(
         assert posts[-1].url == archive_url and parse_qs(posts[-1].post_data) == archive_fields
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_disabled()
         expect(page.get_by_text('Diese Vorlage ist archiviert.', exact=False)).to_be_visible()
-        _toggle(page, '[data-template-more-actions]', javascript)
+        _toggle(page, '[data-template-lifecycle]', javascript)
         restore_form = page.locator('form').filter(has=page.locator('input[name="action"][value="reactivate"]'))
         restore = restore_form.locator('button[type="submit"]')
         _label_issue(presentation, restore, 'Reaktivieren', 'Druckvorlage Kontextkopie reaktivieren')
         if case['kind'] == 'recipes' and width == 1440 and zoom == 1 and javascript:
             case['app'].config['UI_LOCALE'] = 'en'
             page.reload(wait_until='networkidle')
-            _toggle(page, '[data-template-more-actions]', javascript)
+            _toggle(page, '[data-template-lifecycle]', javascript)
             _label_issue(presentation, restore, 'Reactivate', 'Reactivate print template Kontextkopie')
             _capture(page, tmp_path / f'{prefix}-reactivate-en.png', zoom)
             case['app'].config['UI_LOCALE'] = 'de'
             page.reload(wait_until='networkidle')
-            _toggle(page, '[data-template-more-actions]', javascript)
+            _toggle(page, '[data-template-lifecycle]', javascript)
         restore_fields = _form_fields(restore_form, 'reactivate')
         restore_url = restore_form.evaluate('f => new URL(f.getAttribute("action"), f.baseURI).href')
         expect(page.get_by_text('ohne sie für den Druck zu aktivieren.', exact=False)).to_be_visible()
@@ -295,11 +296,11 @@ def test_print_editor_coarse_controls_preserve_native_forms(
             fields: [...new FormData(f)]
         }))'''
         before = forms.evaluate_all(form_state)
-        copy_form = page.locator('[data-template-more-actions] form').filter(
+        copy_form = page.locator('[data-template-copy] form').filter(
             has=page.locator('input[name="action"][value="copy"]'),
         )
         copy_before = _form_fields(copy_form, 'copy')
-        selectors = ('[data-template-activation]', '[data-template-more-actions]')
+        selectors = ('[data-template-activation]', '[data-template-copy]')
         for selector in selectors:
             expect(page.locator(selector + ' > summary.ui-sem-control--icon-only')).to_have_count(1)
             expect(page.locator(selector)).not_to_have_attribute('open', '')

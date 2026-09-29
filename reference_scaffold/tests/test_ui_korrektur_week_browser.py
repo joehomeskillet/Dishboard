@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import os
 from copy import deepcopy
 from pathlib import Path
 from urllib.parse import parse_qs
@@ -21,7 +22,7 @@ from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude' / 'evidence' / 'ui-korrektur-0912' / 'week'
+EVIDENCE = Path(os.environ.get('UI_EVIDENCE_DIR', ROOT / '.claude' / 'evidence' / 'ui-korrektur-0912')) / 'week'
 FAMILIES = ('cafeteria', 'patienten')
 PROFILE_BY_FAMILY = {'cafeteria': 'staff_guest', 'patienten': 'patient'}
 SLOT_COUNT = {'cafeteria': 10, 'patienten': 28}
@@ -41,7 +42,7 @@ def _open_week_forms(page: Page) -> None:
 
 
 def _open_more_actions(page: Page) -> None:
-    page.locator('details.admin-week-more').evaluate('el => { el.open = true }')
+    expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
 
 
 def _assert_no_overflow(page: Page) -> None:
@@ -424,8 +425,11 @@ def test_a13_tab_order_actions_then_first_card_not_covered_by_sticky(
     page.keyboard.press('Tab')
     expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_be_focused()
     page.keyboard.press('Tab')
-    more = page.locator('details.admin-week-more > summary')
-    expect(more).to_be_focused()
+    expect(page.get_by_role('link', name='CSV exportieren', exact=True)).to_be_focused()
+    page.keyboard.press('Tab')
+    expect(page.get_by_role('link', name='Vorwoche kopieren', exact=True)).to_be_focused()
+    page.keyboard.press('Tab')
+    expect(page.get_by_role('button', name='Wochenvorgaben übernehmen', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
     settings = page.locator('details.admin-week-settings > summary')
     expect(settings).to_be_focused()

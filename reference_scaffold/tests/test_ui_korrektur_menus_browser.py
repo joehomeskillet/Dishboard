@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 from datetime import timedelta
 import json
+import os
 from pathlib import Path
 import re
 from tempfile import TemporaryDirectory
@@ -23,7 +24,7 @@ from test_menu_collection import _save
 from test_rendered_ui import browser as browser
 from test_recipe_freeze_v2_browser import native_full_page_capture
 
-EVIDENCE_DIR = Path(__file__).resolve().parents[2] / '.claude' / 'evidence' / 'density-lists-0913' / 'after'
+EVIDENCE_DIR = Path(os.environ.get('UI_EVIDENCE_DIR', Path(__file__).resolve().parents[2] / '.claude' / 'evidence' / 'density-lists-0913')) / 'after'
 VIEWPORTS = [
     (1440, 900),
     (1024, 768),

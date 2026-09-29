@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 
 import pytest
 from flask import Flask
-from playwright.sync_api import Page
+from playwright.sync_api import Page, expect
 from sqlalchemy import Engine, text
 
 from cafeteria.workflow_partial_store import persist_menu_item, persist_service_state
@@ -118,7 +119,7 @@ def test_copy_link_on_empty_week_submits_exact_native_form(
     page = page_context
     page.set_viewport_size({'width': viewport[0], 'height': viewport[1]})
     page.goto(f'/admin/{family}?week={target}')
-    page.locator('details.admin-week-more').evaluate('el => { el.open = true }')
+    expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
     page.get_by_role('link', name='Vorwoche kopieren', exact=True).click()
     form = page.locator(f'form[action="/admin/{family}/copy"]')
     fields = form.evaluate('form => Object.fromEntries(new FormData(form))')
@@ -138,3 +139,61 @@ def test_copy_link_on_empty_week_submits_exact_native_form(
     ).inner_text() == 'Kartoffelgratin'
     with admin_engine.connect() as connection:
         assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_items')).scalar_one() == 2
+
+
+@pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
+@pytest.mark.parametrize('width', [1440, 390])
+@pytest.mark.parametrize('javascript', [True, False])
+def test_menu_direct_origin_action_preserves_native_form(
+    page_context, browser, live_server, tmp_path, family, width, javascript,  # noqa: F811
+):
+    with browser.new_context(
+        base_url=live_server, storage_state=page_context.context.storage_state(),
+        viewport={'width': width, 'height': 844 if width == 390 else 900},
+        has_touch=width == 390, java_script_enabled=javascript, reduced_motion='reduce',
+    ) as context:
+        page = context.new_page()
+        posts, errors = [], []
+        page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        route = f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+        assert page.goto(route).status == 200
+        page.get_by_label('Menüname', exact=True).fill('Direkte Herkunftsaktion')
+        if family == 'cafeteria':
+            page.get_by_label('Mitarbeitende CHF', exact=True).fill('9.50')
+            page.get_by_label('Preis für externe Gäste CHF', exact=True).fill('14.50')
+        field = page.locator('[name="origin_ingredient"]').first
+        field.fill('Tomate')
+        page.locator('[name="origin_country_code"]').first.select_option('CH')
+        form = page.locator('form[data-menu-editor]')
+        before = form.evaluate('f => Object.fromEntries(new FormData(f))')
+        assert before['_csrf']
+        expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
+        remove = page.locator('#origins-list [data-remove-row]').first
+        expect(remove).to_be_visible()
+        expect(remove).to_have_text('')
+        expect(remove).to_have_accessible_name('Herkunft löschen')
+        expect(remove).to_have_attribute('type', 'button')
+        remove.scroll_into_view_if_needed()
+        box = remove.bounding_box()
+        size = 44 if width == 390 else 36
+        assert (box['width'], box['height']) == (size, size)
+        assert page.evaluate("matchMedia('(any-pointer: coarse)').matches") is (width == 390)
+        page.screenshot(path=str(tmp_path / f'{family}-origin-{width}-js{javascript}.png'), full_page=False)
+        (tmp_path / 'capture.json').write_text(json.dumps({
+            'route': route, 'viewport': page.viewport_size, 'role': 'Cafeteria.Admin',
+            'javascript': javascript, 'coarse': width == 390,
+        }, indent=2))
+        if javascript:
+            page.get_by_role('button', name='Herkunft hinzufügen', exact=True).press('Enter')
+            page.locator('[name="origin_ingredient"]').last.fill('Kartoffel')
+            page.locator('[name="origin_country_code"]').last.select_option('CH')
+        remove.press('Enter')
+        expect(field).to_have_value('Kartoffel' if javascript else 'Tomate')
+        assert not posts and not errors
+        assert form.locator('[name="_csrf"]').input_value() == before['_csrf']
+        expect(page.get_by_label('Menüname', exact=True)).to_have_value('Direkte Herkunftsaktion')
+        with page.expect_response(lambda response: response.request.method == 'POST') as saved:
+            form.locator('[data-sticky]').get_by_role('button', name='Menü speichern', exact=True).click()
+        assert saved.value.status == 303 and len(posts) == 1
+        assert not errors

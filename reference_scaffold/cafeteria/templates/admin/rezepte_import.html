@@ -145,11 +145,9 @@
     <div class="admin-form-footer mt-3">
       {{ icon_button('actions.save', name='action', value='save', emphasis='primary' if not (batch.confirmation_hash_sha256 and can_import) else 'secondary') }}
       {{ icon_button('actions.confirm', name='action', value='acknowledge', emphasis='secondary' if (batch.confirmation_hash_sha256 and can_import) else none) }}
-      <details class="admin-compact-actions">{{ icon_summary('actions.more', object=batch.source_filename or none) }}
-        <details class="mt-2"><summary class="btn" aria-label="Stapel verwerfen">{{ icon('trash') }}<span>Verwerfen</span></summary>
+      <details data-import-discard>{{ icon_summary('actions.delete', object=batch.source_filename or 'Importstapel') }}
           <p id="discard-consequence">Der Importstapel wird verworfen. Ungespeicherte Änderungen gehen verloren; vorhandene Rezepte bleiben unverändert.</p>
           {{ icon_button('actions.delete', name='action', value='cancel', text='Verwerfen', aria_label='Verwerfen bestätigen', show_text=true, emphasis='danger', consequence_key='actions.delete', attrs={'aria-describedby': 'discard-consequence'}) }}
-        </details>
       </details>
     </div>
     {% endif %}

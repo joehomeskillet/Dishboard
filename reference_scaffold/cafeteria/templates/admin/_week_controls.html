@@ -1,5 +1,5 @@
 {# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, can_publish, week_row_version, schedule_defaults_csrf. #}
-{% from 'ui/_semantic.html' import icon_button, sem_icon %}
+{% from 'ui/_semantic.html' import icon_button, sem_icon, row_actions %}
 {% if status == 'live' %}
   {% set publish_label = 'Erneut veröffentlichen' %}
   {% set status_plain = 'Veröffentlicht · entspricht dem gespeicherten Stand' %}
@@ -60,21 +60,18 @@
       </ul>
     </details>
     {% endif %}
-    <details class="admin-week-more">
-      <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" data-ui-tooltip="{{ t(sem('actions.more').aria_key) }}" aria-label="{{ t(sem('actions.more').aria_key) }}">{{ sem_icon('actions.more') }}</summary>
-      <div class="admin-week-more-menu">
-        {{ icon_button('actions.export', href=url_for('admin.export_csv', profile_code=csv_profile), text='CSV exportieren', show_text=true, class='dropdown-item') }}
-        {{ icon_button('actions.copy', href='/admin/' ~ family ~ '/copy?week=' ~ week_value, text='Vorwoche kopieren', show_text=true, class='dropdown-item') }}
+    {{ row_actions([
+      {'key': 'actions.export', 'href': url_for('admin.export_csv', profile_code=csv_profile), 'aria_label': 'CSV exportieren'},
+      {'key': 'actions.copy', 'href': '/admin/' ~ family ~ '/copy?week=' ~ week_value, 'aria_label': 'Vorwoche kopieren'}
+    ], object='KW ' ~ iso_week) }}
         {% if week_row_version > 0 %}
         <form method="post" action="{{ url_for('admin.schedule_defaults', family=family) }}" id="schedule-defaults">
           <input type="hidden" name="_csrf" value="{{ schedule_defaults_csrf }}">
           <input type="hidden" name="week" value="{{ week_value }}"><input type="hidden" name="row_version" value="{{ week_row_version }}">
-          {{ icon_button('actions.apply', text='Übernehmen', aria_label='Wochenvorgaben übernehmen', show_text=true, class='dropdown-item') }}
-          <div class="dropdown-item-text">Ergänzt fehlende Services und offene Services ohne Zeiten. Vorhandene Menüs bleiben erhalten.</div>
+          {{ icon_button('actions.apply', aria_label='Wochenvorgaben übernehmen', attrs={'aria-describedby': 'schedule-defaults-hint'}) }}
+          <span id="schedule-defaults-hint" class="visually-hidden">Ergänzt fehlende Services und offene Services ohne Zeiten. Vorhandene Menüs bleiben erhalten.</span>
         </form>
         {% endif %}
-      </div>
-    </details>
     {% if publish_blocked %}
     <p id="week-publish-guidance" class="admin-week-guidance">{% if status == 'empty' %}Zuerst Gerichte erfassen, danach die Woche prüfen und publizieren.{% elif status == 'incomplete' %}Zuerst die Woche vervollständigen, danach publizieren.{% else %}Zuerst offene Prüfungen abschliessen, danach publizieren.{% endif %}</p>
     {% endif %}

@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, hint %}
-{% from 'ui/_semantic.html' import action_menu, icon_button, icon_summary, row_actions, status_badge_sem %}
+{% from 'ui/_semantic.html' import icon_button, icon_summary, row_actions, status_badge_sem %}
 {% set workflow_nav = 'vorlagen' %}
 {% set label = 'Rezepte' if recipe_editor else 'Patienten' if profile == 'patient' else 'Cafeteria' %}
 {% set output_scope = 'Rezept-PDFs' if recipe_editor else label ~ '-Wochenpläne' %}
@@ -29,11 +29,7 @@
 {% else %}
 {% set header_actions.items = header_actions.items + [{'key': 'actions.open', 'href': url_for('admin.recipes_list') if recipe_editor else url_for('admin.' ~ family, week=week), 'aria_label': 'Rezepte' if recipe_editor else 'Menüwoche'}] %}
 {% endif %}
-{% set direct_actions = header_actions.items[:2] if header_actions.items|length > 3 else header_actions.items %}
-{% for item in direct_actions %}
-{{ icon_button(item.key, href=item.href, aria_label=item.aria_label, emphasis=item.emphasis|default(none), attrs=item.attrs|default(none)) }}
-{% endfor %}
-{% if header_actions.items|length > 3 %}{{ action_menu(header_actions.items[2:]) }}{% endif %}
+{{ row_actions(header_actions.items, object=revision.name) }}
 {% endcall %}
 {% endblock %}
 {% macro hidden(action, selected_revision=revision.id) %}
@@ -212,14 +208,19 @@
         {% endfor %}
       </div>
     </details>
-    <details class="card admin-compact-details" data-template-more-actions {% if error and error_action in ['copy', 'archive', 'reactivate'] %}open{% endif %}>
-      {{ icon_summary('actions.more', object=revision.name, class='m-3 align-self-start') }}
+    <div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=revision.name) }}">
+    <details class="admin-compact-details" data-template-copy {% if error and error_action == 'copy' %}open{% endif %}>
+      {{ icon_summary('actions.copy', object=revision.name) }}
       <div class="card-body">
         <section aria-labelledby="copy-heading">
           <h2 class="h4" id="copy-heading">Vorlage kopieren</h2>
           <form method="post" action="{{ editor_url }}">{{ hidden('copy') }}<div><label class="form-label" for="template-copy-name">Name der Kopie</label><input class="form-control" id="template-copy-name" name="name" maxlength="60" required value="{{ copy_name }}" {% if error_field == 'name' and error_action == 'copy' %}aria-invalid="true" aria-describedby="template-error"{% endif %}><p class="form-hint">Übernimmt {{ 'Revision' if recipe_editor else 'Version' }} {{ revision.id }} als eigenständigen Entwurf.</p>{{ icon_button('actions.copy', type='submit', aria_label='Kopie erstellen') }}</div></form>
         </section>
-        <hr class="my-4">
+      </div>
+    </details>
+    <details class="admin-compact-details" data-template-lifecycle {% if error and error_action in ['archive', 'reactivate'] %}open{% endif %}>
+      {{ icon_summary('actions.restore' if template.archived else 'actions.archive', object=revision.name, aria_label=t('print_template.reactivate.aria', name=revision.name) if template.archived else none) }}
+      <div class="card-body">
         <section aria-labelledby="archive-heading">
           <h2 class="h4" id="archive-heading">Vorlagenstatus</h2>
           {% if template.archived %}
@@ -242,6 +243,7 @@
         </section>
       </div>
     </details>
+    </div>
   </div>
 </div>
 {% endblock %}

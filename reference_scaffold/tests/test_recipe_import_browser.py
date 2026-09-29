@@ -1,6 +1,7 @@
 """Native Rezepte-importieren pages at the UI-master viewports."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
@@ -19,7 +20,7 @@ from test_recipe_import_routes import create
 from test_rendered_ui import browser  # noqa: F401
 from test_ui_korrektur_cookbooks_browser import _native_viewport_capture
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/density-imports-0913/after'
+EVIDENCE = Path(os.environ.get('UI_EVIDENCE_DIR', Path(__file__).resolve().parents[2] / '.claude/evidence/density-imports-0913/after'))
 
 ROUTE_VIEWPORTS = ((360, 844), (1440, 900))
 COMMIT_VIEWPORTS = (*ROUTE_VIEWPORTS, (720, 450))
@@ -340,7 +341,7 @@ def test_recipe_import_density_missing_viewports(
     _, _, client, _ = b3
     path = create(client)
     base, cookie = master_server
-    evidence = Path(__file__).resolve().parents[2] / '.claude/evidence/imports-coverage-fix-0913/after'
+    evidence = Path(os.environ.get('UI_EVIDENCE_DIR', Path(__file__).resolve().parents[2] / '.claude/evidence/imports-coverage-fix-0913/after'))
     evidence.mkdir(parents=True, exist_ok=True)
     with browser.new_context(viewport={'width': width, 'height': height},
                              java_script_enabled=javascript, reduced_motion='reduce') as context:
@@ -401,11 +402,11 @@ def test_discard_requires_explicit_native_confirmation(b3, master_server, browse
         original = form.evaluate('f => [...new FormData(f)]')
         confirm = page.get_by_role('button', name='Verwerfen bestätigen', exact=True)
         expect(confirm).not_to_be_visible()
-        page.locator('.admin-compact-actions > summary').focus()
-        page.keyboard.press('Enter')
-        discard = page.locator('summary[aria-label="Stapel verwerfen"]')
+        expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
+        discard = page.locator('[data-import-discard] > summary')
         expect(discard).to_be_visible()
-        expect(discard).to_contain_text('Verwerfen')
+        expect(discard).to_have_text('')
+        assert discard.get_attribute('aria-label')
         discard.focus()
         page.keyboard.press('Enter')
         expect(confirm).to_be_visible()
@@ -576,8 +577,8 @@ def test_batch_status_and_confirmation_remain_independent(
         assert len(recipes_imported) == len(recipes_before) + 1
         cancelled_path = create(client, annotation='unreviewed')
         _open(page, base, cancelled_path)
-        page.locator('.admin-compact-actions > summary').press('Enter')
-        page.locator('summary[aria-label="Stapel verwerfen"]').press('Enter')
+        expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
+        page.locator('[data-import-discard] > summary').press('Enter')
         expect(page.locator('#discard-consequence')).to_contain_text('vorhandene Rezepte bleiben unverändert')
         submit(page.get_by_role('button', name='Verwerfen bestätigen', exact=True), cancelled_path)
         observe('cancelled', 'Verworfen', pending)

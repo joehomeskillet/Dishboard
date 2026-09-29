@@ -69,7 +69,7 @@ def _disclosure(page, summary, name, javascript, failures, tmp_path):
             (tmp_path / 'tooltip-dismissal.json').write_text(json.dumps({
                 'before': before_escape, 'after': summary.evaluate(tooltip_state),
             }, indent=2), encoding='utf-8')
-            page.screenshot(path=str(tmp_path / 'tooltip-dismissal.png'), full_page=True)
+            page.screenshot(path=str(tmp_path / 'tooltip-dismissal.png'), full_page=False)
             raise
         page.mouse.move(0, 0)
     summary.focus()
@@ -103,13 +103,13 @@ def test_native_import_image_disclosures(
     base, cookie = recipe_server
     failures, posts = [], []
     names = {
-        'de': ('Hochladen', 'Details für Zeile {}', f'Weitere Aktionen für {FILENAME}',
+        'de': ('Hochladen', 'Details für Zeile {}', f'{FILENAME} löschen',
                f'{TITLE}: Weitere Optionen ein- oder ausklappen'),
-        'en': ('Upload', 'Details for row {}', f'More actions for {FILENAME}',
+        'en': ('Upload', 'Details for row {}', f'Delete {FILENAME}',
                f'Expand or collapse more options: {TITLE}'),
     }[locale]
     with browser.new_context(viewport={'width': width, 'height': 900 if width == 1440 else 844},
-                             java_script_enabled=javascript, reduced_motion='reduce',
+                             java_script_enabled=javascript, reduced_motion='reduce', has_touch=width == 390,
                              service_workers='block') as context:
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
@@ -145,17 +145,22 @@ def test_native_import_image_disclosures(
         for row in (1, 2):
             _disclosure(page, page.locator(f'#row-{row}-details > summary'),
                         names[1].format(row), javascript, failures, tmp_path)
-        more = form.locator('.admin-form-footer > .admin-compact-actions > summary')
+        expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
+        more = form.locator('[data-import-discard] > summary')
         _disclosure(page, more, names[2], javascript, failures, tmp_path)
         assert _values(form) == original
         assert import_snapshot(owner) == before and len(posts) == 1
         expect(page.locator('[data-hostile]')).to_have_count(0)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        page.evaluate('scrollTo(0, 0)')
-        page.screenshot(path=str(tmp_path / 'import-closed.png'), full_page=True)
-        more.press('Enter')
-        discard = form.locator('summary[aria-label="Stapel verwerfen"]')
-        expect(discard).to_have_text('Verwerfen')
+        more.scroll_into_view_if_needed()
+        expect(more).to_be_in_viewport(ratio=1)
+        (tmp_path / 'import-capture.json').write_text(json.dumps({
+            'route': batch_path, 'viewport': page.viewport_size, 'role': 'Cafeteria.Publisher',
+            'locale': locale, 'javascript': javascript, 'coarse': width == 390,
+        }, indent=2))
+        page.screenshot(path=str(tmp_path / 'import-closed.png'), full_page=False)
+        discard = more
+        expect(discard).to_have_text('')
         discard.press('Enter')
         confirm = form.locator('button[name="action"][value="cancel"]')
         expect(confirm).to_be_visible()
@@ -165,7 +170,9 @@ def test_native_import_image_disclosures(
         expect(confirm).to_have_attribute('aria-describedby', 'discard-consequence')
         expect(form.locator('#discard-consequence')).to_contain_text('vorhandene Rezepte bleiben unverändert')
         assert _values(form) == original and len(posts) == 1
-        page.screenshot(path=str(tmp_path / 'import-confirmation.png'), full_page=True)
+        confirm.scroll_into_view_if_needed()
+        expect(confirm).to_be_in_viewport(ratio=1)
+        page.screenshot(path=str(tmp_path / 'import-confirmation.png'), full_page=False)
         with page.expect_response(lambda response: response.request.method == 'POST') as response:
             confirm.click()
         assert response.value.status == 303 and len(posts) == 2
@@ -195,7 +202,7 @@ def test_native_import_image_disclosures(
         upload_text = image_upload.inner_text().strip()
         if upload_text:
             failures.append(('image upload visible text', upload_text))
-        page.screenshot(path=str(tmp_path / 'image-before-upload.png'), full_page=True)
+        page.screenshot(path=str(tmp_path / 'image-before-upload.png'), full_page=False)
         page.locator('#image-file').set_input_files(
             {'name': 'recipe.png', 'mimeType': 'image/png', 'buffer': png()})
         image_form.locator('[name="caption"]').fill(TITLE)
@@ -215,10 +222,10 @@ def test_native_import_image_disclosures(
         assert recipe_snapshot(owner) == before_image and len(posts) == 2
         expect(page.locator('[data-hostile]')).to_have_count(0)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        page.screenshot(path=str(tmp_path / 'image-options-open.png'), full_page=True)
+        page.screenshot(path=str(tmp_path / 'image-options-open.png'), full_page=False)
         options.press('Enter')
         assert _values(image_form) == image_values
-        page.screenshot(path=str(tmp_path / 'image-options-closed.png'), full_page=True)
+        page.screenshot(path=str(tmp_path / 'image-options-closed.png'), full_page=False)
         with page.expect_response(lambda response: response.request.method == 'POST') as response:
             image_form.locator('button[data-semantic="actions.upload"]').click()
         assert response.value.status == 303 and len(posts) == 3
@@ -227,7 +234,7 @@ def test_native_import_image_disclosures(
         expect(page.locator('td[data-label="Herkunft"]')).to_contain_text('CC0')
         expect(page.locator('main img')).to_have_count(1)
         expect(page.locator('[data-hostile]')).to_have_count(0)
-        page.screenshot(path=str(tmp_path / 'image-saved.png'), full_page=True)
+        page.screenshot(path=str(tmp_path / 'image-saved.png'), full_page=False)
         publisher_capabilities = roles.ROLE_CAPABILITIES['Cafeteria.Publisher']
         monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
         before_readonly = recipe_snapshot(owner)
@@ -257,5 +264,5 @@ def test_native_import_image_disclosures(
         expect(page.locator('[data-hostile]')).to_have_count(0)
         assert recipe_snapshot(owner) == before_archived and len(posts) == 3
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        page.screenshot(path=str(tmp_path / 'image-archived.png'), full_page=True)
+        page.screenshot(path=str(tmp_path / 'image-archived.png'), full_page=False)
     assert not failures, failures
