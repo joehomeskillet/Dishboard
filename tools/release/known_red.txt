@@ -71,5 +71,3 @@ tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromi
 tests/test_admin_tabler_browser.py::test_tabler_lists_preserve_navigation_and_tablet_layout[cafeteria]
 # 2026-09-27 R18-R1 Zusatzgate, T: Grund: gleicher veralteter details-Selektor (entfernt in 62888f0c, Collapse-Wrapper in a191cea9); betrifft Patientenprofil. Keine Produktregression, unveränderte R1-Basis efb20258.
 tests/test_admin_tabler_browser.py::test_tabler_lists_preserve_navigation_and_tablet_layout[patienten]
-# 2026-09-29 R18, sporadischer Testfehler (Ursache offen, Paket R11): nur NoJS-390-Patienten-Mittag; rot in Zug 14:07 (Timeout 31ms) und 15:07 (Klick-Timeout auf #course-2026-08-31-LUNCH form), grün in Zügen 11:07/13:07 und im identischen Einzel-Retry 14:30 (1 passed). Test/Kursvorlage seit 60049ae unverändert.
-tests/test_course_browser.py::test_native_course_add_edit_preserves_neighbor_slots[False-390-844-patienten-patient-LUNCH]
