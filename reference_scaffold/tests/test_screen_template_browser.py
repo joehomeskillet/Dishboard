@@ -258,7 +258,7 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                     assert metrics['cardHeight'] < baseline[width][1]
                     assert metrics['scrollWidth'] <= width
                     assert metrics['primary'] == metrics['openDetails'] == 0
-                    expect(page.locator('.admin-statusbar-item')).to_have_count(2)
+                    expect(page.locator('.admin-statusbar-item')).to_have_count(0)
                     expect(page.locator('.screen-card')).to_have_count(4)
                     expect(page.locator('.screen-card .btn:visible')).to_have_count(8)
                     page.screenshot(path=str(tmp_path / f'wp23-{width}-{javascript}.png'), full_page=True)

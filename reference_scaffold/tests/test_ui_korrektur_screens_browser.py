@@ -58,9 +58,15 @@ def _assert_rendered_icons_and_targets(page: Page) -> None:
         const box = icon.getBBox();
         return box.width > 0 && box.height > 0;
     })''')
+    semantic_min = 44 if page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") else 36
     for target in page.locator('main .btn:visible, main summary:visible').all():
         box = target.bounding_box()
-        assert box is not None and box['height'] >= 44 and box['width'] >= 44
+        assert box is not None
+        if target.evaluate("el => el.classList.contains('ui-sem-control--icon-only')"):
+            assert box['height'] == box['width'] == semantic_min
+        else:
+            minimum = semantic_min if target.evaluate("el => el.classList.contains('ui-sem-control')") else 44
+            assert box['height'] >= minimum and box['width'] >= minimum
 
 
 @pytest.mark.parametrize(
@@ -89,7 +95,7 @@ def test_lists_and_settings_come_first_at_required_viewports(
         assert page.goto("/admin/screens").status == 200
         expect(page.get_by_role("heading", level=1)).to_have_text("Bildschirme")
         expect(page.locator('nav[aria-label="Bereich"]')).to_have_count(0)
-        expect(page.locator('.admin-statusbar-item')).to_have_count(2)
+        expect(page.locator('.admin-statusbar-item')).to_have_count(0)
         expect(page.locator('main .btn-primary')).to_have_count(0)
         first_screen = page.locator(".screen-card").first.bounding_box()
         assert first_screen is not None and first_screen["y"] < height
@@ -100,6 +106,7 @@ def test_lists_and_settings_come_first_at_required_viewports(
         expect(page.locator('.screen-preview-details .screen-preview-signage')).to_have_count(4)
         first_action = page.locator('.screen-card .btn').first.bounding_box()
         assert first_action is not None and first_action['y'] < height
+        _screenshot(page, f"bildschirme-reihenfolge-{width}x{height}-{javascript}.png")
         assert first_action['y'] < page.locator('.screen-preview-details > summary').first.bounding_box()['y']
         expect(page.locator('.screen-status .badge')).to_have_text(['Vorgabe', 'Vorgabe'])
         _assert_no_horizontal_scroll(page)
@@ -110,25 +117,35 @@ def test_lists_and_settings_come_first_at_required_viewports(
         expect(page.locator('.admin-statusbar')).to_contain_text('Vorgabe')
         expect(page.locator('.admin-statusbar')).to_contain_text('Wochenplan mit Bildern')
         expect(page.locator('#screen-assignment-version')).not_to_have_attribute('open', '')
-        assignment = page.locator("#screen-assignment-details")
-        expect(assignment).not_to_have_attribute("open", "")
-        assert assignment.locator(":scope > summary").bounding_box()["y"] < height
+        assignment = page.locator("section#screen-assignment-details")
+        expect(assignment).to_be_visible()
+        expect(assignment.locator(":scope > summary")).to_have_count(0)
+        expect(assignment.locator("form")).to_be_visible()
+        assert assignment.locator('input[name="template_id"]').first.bounding_box()["y"] < height
         _assert_no_horizontal_scroll(page)
         _assert_rendered_icons_and_targets(page)
-        _screenshot(page, f"vorlage-zuweisen-geschlossen-{width}x{height}-{javascript}.png")
-        assignment.locator(':scope > summary').click()
+        _screenshot(page, f"vorlage-zuweisen-formular-{width}x{height}-{javascript}.png")
+        hint = assignment.locator('.admin-hint').first
+        hint.locator(':scope > summary').click()
+        expect(hint).to_have_attribute('open', '')
         _assert_no_horizontal_scroll(page)
         _assert_rendered_icons_and_targets(page)
-        for preview in assignment.locator('a[data-admin-icon-action]').all():
-            tooltip_attribute = 'data-bs-original-title' if javascript else 'title'
-            assert preview.get_attribute(tooltip_attribute) == preview.get_attribute('aria-label')
-            assert preview.inner_text() == ''
-        _screenshot(page, f"vorlage-zuweisen-offen-{width}x{height}-{javascript}.png")
+        previews = assignment.locator('a[data-semantic="actions.preview"]')
+        expect(previews).to_have_count(2)
+        for preview, name in zip(previews.all(), (
+            'Wochenplan mit Bildern prüfen', 'Wochenplan ohne Bilder prüfen',
+        ), strict=True):
+            expect(preview).to_have_accessible_name(name)
+            expect(preview).to_have_attribute('aria-label', name)
+            expect(preview).to_have_attribute('data-ui-tooltip', name)
+            expect(preview).to_have_text('')
+            assert preview.get_attribute('title') is None
+        _screenshot(page, f"vorlage-zuweisen-hinweis-{width}x{height}-{javascript}.png")
 
         assert page.goto("/admin/design/darstellung").status == 200
-        expect(page.locator("#display-settings-form .card-title")).to_have_text(
-            "Anzeige einstellen"
-        )
+        expect(page.get_by_role("heading", name="Darstellung", exact=True)).to_be_visible()
+        expect(page.locator("#display-settings-form")).to_be_visible()
+        expect(page.locator("#display-settings-form .card-title")).to_have_count(0)
         first_setting = page.get_by_label("Abstände", exact=True).bounding_box()
         assert first_setting is not None and first_setting["y"] < height
         expect(page.locator("#display-settings-form .btn-primary")).to_have_count(1)
@@ -160,15 +177,18 @@ def test_native_form_targets_and_payloads_stay_complete(
     )
     try:
         page.goto("/admin/screens/cafeteria/wochenvorlage")
-        page.locator("#screen-assignment-details > summary").click()
+        expect(page.locator("section#screen-assignment-details form")).to_be_visible()
         selected = page.locator('input[name="template_id"]:not(:checked)').first
         template_id = selected.get_attribute("value")
         selected.check()
         posts = []
         page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
-        summary = page.locator('#screen-assignment-details > summary')
+        hint = page.locator('.screen-choice-card').filter(has=page.locator('input[name="template_id"]:checked')).locator('.admin-hint')
+        summary = hint.locator(':scope > summary')
         summary.click()
+        expect(hint).to_have_attribute('open', '')
         summary.click()
+        expect(hint).not_to_have_attribute('open', '')
         expect(page.locator(f'input[name="template_id"][value="{template_id}"]')).to_be_checked()
         assert posts == []
         with page.expect_request(
@@ -204,7 +224,7 @@ def test_native_form_targets_and_payloads_stay_complete(
         ) as submitted, page.expect_response(
             lambda response: response.request.method == "POST"
         ) as response:
-            page.get_by_role("button", name="Vorschau aktualisieren", exact=True).click()
+            page.locator("#display-settings-form").get_by_role("button", name="Vorschau", exact=True).click()
         assert response.value.status == 200
         request = submitted.value
         payload = parse_qs(request.post_data or "", keep_blank_values=True)
@@ -247,7 +267,7 @@ def test_assignment_conflict_opens_details_preserves_values_and_focuses_error(
         current.goto(route)
         stale.goto(route)
         for page in (current, stale):
-            page.locator("#screen-assignment-details > summary").click()
+            expect(page.locator("section#screen-assignment-details form")).to_be_visible()
             page.locator('input[name="template_id"]:not(:checked)').first.check()
         assignment_form = stale.locator("#screen-assignment-details form")
         original = {
@@ -263,8 +283,8 @@ def test_assignment_conflict_opens_details_preserves_values_and_focuses_error(
             stale.get_by_role("button", name="Speichern", exact=True).click()
         assert conflict.value.status == 409
 
-        details = stale.locator("#screen-assignment-details")
-        expect(details).to_have_attribute("open", "")
+        expect(stale.locator("section#screen-assignment-details")).to_be_visible()
+        expect(assignment_form).to_be_visible()
         error = stale.locator(".error-region")
         expect(error).to_be_focused()
         for name, value in original.items():
@@ -315,7 +335,7 @@ def test_empty_and_unavailable_states_have_scoped_messages_and_evidence(
         javascript=javascript,
     )
     unavailable.goto('/admin/screens/cafeteria/wochenvorlage')
-    unavailable.locator('#screen-assignment-details > summary').click()
+    expect(unavailable.locator('section#screen-assignment-details form')).to_be_visible()
     setting_key = key("staff_guest")
     with database_engine.begin() as connection:
         original = connection.execute(
@@ -409,7 +429,7 @@ def test_required_pages_have_no_overflow_at_200_percent_zoom(
             assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
             proof[name] = metrics
             if name == 'vorlage-zuweisen':
-                page.locator('#screen-assignment-details > summary').click()
+                expect(page.locator('section#screen-assignment-details form')).to_be_visible()
             if name == 'cafeteria':
                 photo = page.locator('[data-menu-image] img').first
                 expect(photo).to_be_visible()
@@ -457,10 +477,16 @@ def test_native_disclosure_and_assignment_preview_are_keyboard_reachable(
         assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         _screenshot(page, f'bildschirme-tastatur-{javascript}.png')
         page.goto('/admin/screens/cafeteria/wochenvorlage')
-        page.locator('#screen-assignment-details > summary').focus()
-        page.keyboard.press('Enter')
+        expect(page.locator('section#screen-assignment-details form')).to_be_visible()
         selected = page.locator('input[name=template_id]:checked')
         selected.focus()
+        page.keyboard.press('Tab')
+        hint = page.locator('.screen-choice-card').filter(has=selected).locator('.admin-hint')
+        expect(hint.locator(':scope > summary')).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(hint).to_have_attribute('open', '')
+        page.keyboard.press('Enter')
+        expect(hint).not_to_have_attribute('open', '')
         page.keyboard.press('Tab')
         preview = page.get_by_role('link', name='Wochenplan mit Bildern prüfen', exact=True)
         expect(preview).to_be_focused()

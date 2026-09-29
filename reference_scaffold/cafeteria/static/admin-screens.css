@@ -12,16 +12,24 @@
 }
 
 .screen-card { min-width: 0; }
-/* The shared two-line row height clips the in-row preview summary (scrollHeight
-   and an unclickable disclosure below 768px). These rows grow with that content. */
-.dishboard-admin .screens-overview table.admin-table--stack tbody tr.screen-card {
+/* One logical screen group: title/actions first, full-width native preview next. */
+.dishboard-admin .screens-overview table.admin-table--stack tbody.screen-card > tr {
   height: auto;
-  min-height: var(--app-list-row-min-height);
+  min-height: 0;
+  border-bottom: 0;
 }
-.dishboard-admin .screens-overview table.admin-table--stack tbody tr.screen-card > :is(th, td) {
+.dishboard-admin .screens-overview table.admin-table--stack tbody.screen-card > tr > :is(th, td) {
   height: auto;
   min-width: 0;
   overflow: visible;
+  border-bottom: 0;
+}
+.dishboard-admin .screens-overview table.admin-table--stack tbody.screen-card > tr:last-child {
+  padding-top: 0;
+  border-bottom: var(--app-list-line-width) solid var(--app-border);
+}
+.dishboard-admin .screens-overview table.admin-table--stack tbody.screen-card > tr:last-child > td {
+  padding-top: 0;
 }
 .screen-choice-card { min-width: 0; }
 .screen-choice-control { min-height: 3rem; }
