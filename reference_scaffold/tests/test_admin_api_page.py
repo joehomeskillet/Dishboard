@@ -185,13 +185,13 @@ def test_page_render_contract(admin_client) -> None:
 
 
 @pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
-def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
+def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, tmp_path):
     application = admin_client.application
     server = make_server('127.0.0.1', 0, application, threaded=True)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     origin = f'http://127.0.0.1:{server.server_port}'
-    evidence = ROOT / '.claude/state/wp18-evidence'
+    evidence = tmp_path
     evidence.mkdir(parents=True, exist_ok=True)
     measurements = []
     try:
@@ -317,18 +317,17 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                     expect(fhir).to_have_accessible_name('FHIR')
                     expect(fhir).to_have_attribute('data-ui-tooltip', 'FHIR öffnen')
                     technical.press('Enter')
-                    # Icon-only revoke and overflow; the native safety step stays readable.
+                    # Direct details and revoke; the native safety step stays readable.
                     revoke = page.locator('form[action$="/revoke"]')
                     expect(revoke.locator('summary')).to_have_text('')
                     expect(revoke.locator('summary')).to_have_attribute('aria-label', re.compile(r'widerrufen$'))
                     expect(revoke.locator('summary')).to_have_attribute('data-ui-tooltip', re.compile(r'widerrufen$'))
                     expect(revoke.locator('button')).not_to_be_visible()
-                    more = page.locator('.ui-sem-actions > summary')
-                    more.focus()
-                    more.press('Enter')
+                    expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
                     details = page.locator('.admin-api-key-details > summary')
                     expect(details).to_have_attribute('data-ui-tooltip', 'Küchenintegration: Details ein- oder ausklappen')
-                    expect(details).to_contain_text('Details')
+                    expect(details).to_have_text('')
+                    details.focus()
                     details.press('Enter')
                     expect(page.locator('[data-label="Präfix"]')).to_be_visible()
                     revoke.locator('summary').press('Enter')
