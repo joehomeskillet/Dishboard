@@ -78,5 +78,3 @@ tests/test_ui_list_typography_browser.py::test_list_typography_across_modules
 tests/test_admin_tabler_browser.py::test_tabler_lists_preserve_navigation_and_tablet_layout[cafeteria]
 # 2026-09-27 R18-R1 Zusatzgate, T: Grund: gleicher veralteter details-Selektor (entfernt in 62888f0c, Collapse-Wrapper in a191cea9); betrifft Patientenprofil. Keine Produktregression, unveränderte R1-Basis efb20258.
 tests/test_admin_tabler_browser.py::test_tabler_lists_preserve_navigation_and_tablet_layout[patienten]
-# 2026-09-29 R18 D3, veralteter Test: vergleicht den Menüeditor-Formularvertrag (menu_editor-360) mit Altstand d2e66fed; seither ersetzt der gemeinsame Icon-Button einen Submit-Input. Auf D3-Basis 3288463 ohne D3-Templates zweimal gleich rot (Report reports/D3-report.md), erst durch D3-Teständerung Teil des Gates. Testkorrektur als eigenes Paket R9.
-tests/test_menu_collection_browser.py::test_p4_density_and_form_contract_against_base
