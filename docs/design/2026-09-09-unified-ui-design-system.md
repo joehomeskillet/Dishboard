@@ -23,27 +23,24 @@ diesem Manifest, insbesondere die generelle sichtbare Aktionsbeschriftung,
 Messwerte und Release-Nachweise weiter unten beschreiben ihren damaligen Stand;
 sie begründen keine Rückkehr zu diesen ersetzten Vorgaben.
 
-- Normale Toolbar- und Zeilenaktionen nutzen die gemeinsame semantische
-  Komponente, lokalisierte zugängliche Namen und denselben Tooltip. Sichtbarer
-  Text bleibt gemäss §5.4 bei Navigation/Profilauswahl, Fachinhalten, Formularlabels,
-  verständlichen Inhaltsabschnitten, geöffneten Menüs, Sicherheitsbestätigungen
-  sowie notwendigen Warn-/Zustandserklärungen.
-- M45/M64 regeln Aktionsflächen: 36 × 36 CSS-px bei feinem Zeiger, mindestens
-  44 × 44 bei grobem Zeiger, 20-px-Icon. Eingabefelder und Navigation behalten
-  ihre eigenen Komponentenverträge; keine pauschale Verkleinerung aller Controls.
-- Listen verwenden eine gemeinsame Anatomie und Typografie, 1-px-Trenner und
-  rechts höchstens Hauptaktion plus Überlauf. Keine Karte je Datensatz, keine
-  dekorativen Statusdoppelungen. Details werden bei Bedarf geöffnet.
-- Gemeinsame Filter haben einen konsistenten Einstieg. Normalzustände bleiben
-  bei eindeutigem Kontext ruhig; gemischte Zustände bleiben unterscheidbar.
-  Gleiche Warnursachen werden gebündelt, betroffene Einträge bleiben erkennbar.
-- Im Wochenplan steht der Seitenkopf mit Titel und Kontext vor den gebündelten Prüfhinweisen; diese folgen vor weiteren Hinweisen und dem Raster (D19).
-- Mobile Stapelzeilen müssen mit ihren sichtbaren Zellen und Texten wachsen;
-  reine Zeilenbox- oder Scrollbreitenmessung beweist keine überlappungsfreie
-  Darstellung. Echte Tastatur-, Touch-, No-JS- und Browserzoom-Prüfungen bleiben
-  erforderlich. UI-23/24 beschreiben die Richtziele für Listenkopf und Dichte.
+- Normale Toolbar- und Zeilenaktionen nutzen den Symbolstandard, lokalisierte zugängliche
+  Namen und denselben Tooltip. Sichtbarer Text bleibt gemäss §5.4 bei Navigation/Profilauswahl,
+  Fachinhalten, Formularlabels, verständlichen Inhaltsabschnitten, geöffneten Menüs,
+  Sicherheitsbestätigungen sowie notwendigen Warn-/Zustandserklärungen.
+- M45/M64 regeln Aktionsflächen: 36 × 36 CSS-px bei feinem Zeiger, mindestens 44 × 44
+  bei grobem Zeiger, 20-px-Icon.
+- Listen verwenden eine gemeinsame Anatomie, 1-px-Trenner und rechts höchstens
+  Hauptaktion plus Überlauf mit datensatzbezogenem Namen („Weitere Aktionen für …“, D17).
+  Der Name als Text plus Bearbeiten-Icon bildet den einzigen Editor-Einstieg (DEC-2/D3).
+  Leere gestapelte Zellen bleiben ohne Label (D14).
+- Wirksame gemeinsame Filter und Suche haben einen konsistenten Einstieg (D4). Normalzustände
+  bleiben ruhig; Status wird nur bei Abweichung gezeigt, gemischte Bestände bleiben
+  unterscheidbar (D5). Gleiche Warnursachen werden gebündelt.
+- Im Wochenplan steht der Seitenkopf vor den gebündelten Prüfhinweisen (D19).
+- Publish-Controls erscheinen nur mit entsprechendem Recht (D7).
+- Abbrechen kehrt in den Herkunftskontext zurück (D16).
 - Fachliche Bedeutungen, Rollen, serverseitige Freigabesperren, CSRF und native
-  Formularverträge werden durch Gestaltungsänderungen nicht verändert.
+  Formularverträge bleiben unangetastet. Fehlend ist ungleich 0 oder allergenfrei.
 
 ## Auftraggeber-Entscheid 2026-09-20
 

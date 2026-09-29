@@ -1,5 +1,27 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Abschlussstand Icon-first-Migration (H18)
+
+### Migrierte Ansichten (Route, Muster, tatsächliche Tests)
+- **Wochenplan / Cafeteria / Patienten (`/admin/cafeteria`, `/admin/patienten`)**: M45/M64 (36/44px Aktionen), D19 (gebündelte Prüfhinweise). Tests: Wochenprüfung, Layout- und Bindungs-Tests.
+- **Menüeditor (`/admin/menus/*`)**: DEC-2/D3 (Text + Bearbeiten-Icon als Einstieg), D4/D5 (Filter/Status). Tests: Editor-, SaveBack- und NoJS-Konflikt-Tests.
+- **Rezept- und Kochbuchverwaltung (`/admin/rezepte`, `/admin/kochbuecher`)**: Listen mit gemeinsamer Anatomie (1px Trenner, Hauptaktion + Überlauf mit datensatzbezogenem Namen D17), D14 (leere Zellen ohne Label). Tests: Browser-, Semantik- und Routenfälle.
+- **Operations / API / Import / Druck (`/admin/import`, `/admin/api`, `/admin/print`)**: D16 (Abbrechen kehrt in Kontext zurück), D7 (Publish-Controls mit Recht). Tests: API-Image-Semantics, Import-Preview, Print-Routes.
+
+### Bekannte Ausnahmen (§5.4)
+- **Kalender**: Gilt als Planungsansicht, behält eigene Inhaltsdichte.
+- **Swagger UI (`/api/v1/docs`)**: Fremdkomponente, wird nicht durch das UI-Designsystem überschrieben.
+- **Fragmentrouten (`/admin/header`, `/admin/service`)**: Werden ohne `h1` geliefert.
+
+### Offene Punkte
+- UI-13, UI-20 und UI-26 bleiben formal offen (fehlende vollständige 41-Seiten-/82-Bilder-Abnahme).
+- Der echte Lade-Test blockiert teils noch beim Anhalten der Navigation (UI-20); die globale Ladefunktion ist noch nicht final repariert.
+- Deutsche API-Aktionsnamen im englischen Kontext tauchen in Sonderfällen noch auf.
+
+---
+
+## Historische Reports (vor H18-Abschluss)
+
 ## Kalender: Heute, Fokus und nativer Überlauf — 2026-09-28, 15:02 CEST
 
 Zwei ergänzte UI19-Fälle prüfen JS mit Fine-Pointer bei1440/390px. Sechs echte
