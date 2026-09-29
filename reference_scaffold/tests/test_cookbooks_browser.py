@@ -207,3 +207,63 @@ def test_stale_header_is_copyable_with_original_context(cookbook_server, browser
         assert page.locator('[name="row_version"]').input_value() == version
         assert page.locator('button[type="submit"]').count() == 0
         targets(page)
+
+
+def test_cookbook_list_status_in_mixed_and_default_view(cookbook_server, browser):  # noqa: F811
+    base = cookbook_server['base']
+    cookie = cookbook_server['cookie']
+    engine = cookbook_server['engine']
+    actor = cookbook_server['actor']
+
+    with signed_in(engine, actor):
+        location = store.get_location(engine)
+        store.create_cookbook(
+            engine, actor, name='Aktives Kochbuch', description='Aktiv', expected_location_id=location
+        )
+        archived_book = store.create_cookbook(
+            engine, actor, name='Archiviertes Kochbuch', description='Archiviert', expected_location_id=location
+        )
+        archived_target = store.ObjectExpectation(archived_book.public_id, archived_book.row_version)
+        store.set_cookbook_active(engine, actor, archived_target, active=False, expected_location_id=location)
+
+    with browser.new_context(viewport={'width': 1440, 'height': 900}) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+
+        # 1. Standard view without archive filter (Normalzustand unbeschriftet, kein Strich-Artefakt)
+        page.goto(base + '/admin/kochbuecher')
+        expect(page.get_by_role('heading', level=1)).to_have_text('Kochbücher')
+
+        cards = page.locator('section[aria-label="Kochbücher"] .admin-list-row')
+        expect(cards).to_have_count(1)
+        active_row = cards.filter(has=page.get_by_text('Aktives Kochbuch', exact=True))
+        expect(active_row).to_be_visible()
+        expect(page.get_by_text('Archiviertes Kochbuch')).to_have_count(0)
+
+        status_el = active_row.locator('.admin-list-status')
+        expect(status_el.locator('.admin-label')).to_have_count(0)
+        expect(status_el.locator('.admin-empty-value')).to_have_count(0)
+        assert '—' not in status_el.inner_text()
+        assert not status_el.inner_text().strip()
+
+        # 2. Mixed view with include_archived=1 (Spec §8.2: Status unterscheidbar, kein leerer Strich)
+        page.goto(base + '/admin/kochbuecher?archived=1')
+        expect(cards).to_have_count(2)
+
+        active_row = cards.filter(has=page.get_by_text('Aktives Kochbuch', exact=True))
+        archived_row = cards.filter(has=page.get_by_text('Archiviertes Kochbuch', exact=True))
+        expect(active_row).to_be_visible()
+        expect(archived_row).to_be_visible()
+
+        active_status = active_row.locator('.admin-list-status')
+        expect(active_status.locator('.admin-label')).to_have_text('Aktiv')
+        expect(active_status.locator('[data-status="active"]')).to_have_count(1)
+        expect(active_status.locator('.admin-empty-value')).to_have_count(0)
+        assert '—' not in active_status.inner_text()
+
+        archived_status = archived_row.locator('.admin-list-status')
+        expect(archived_status.locator('.admin-label')).to_have_text('Archiviert')
+        expect(archived_status.locator('[data-status="archived"]')).to_have_count(1)
+        expect(archived_status.locator('.admin-empty-value')).to_have_count(0)
+        assert '—' not in archived_status.inner_text()
+

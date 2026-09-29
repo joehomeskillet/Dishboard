@@ -25,7 +25,8 @@
   {% set actions %}
   {{ icon_button('actions.edit' if editable else 'actions.open', href=url_for('admin.cookbook_edit', cookbook_id=book.public_id), object=book.name, class='cookbook-row-action') }}
   {% endset %}
-  {{ list_row(primary=book.name, secondary=book.description|truncate(160) if book.description else none, meta=(count ~ (' Rezept' if count == 1 else ' Rezepte')), status=status_badge('archived') if not book.active else none, actions=actions) }}
+  {% set book_status = status_badge('archived') if not book.active else (status_badge('active') if include_archived else ' ') %}
+  {{ list_row(primary=book.name, secondary=book.description|truncate(160) if book.description else none, meta=(count ~ (' Rezept' if count == 1 else ' Rezepte')), status=book_status, actions=actions) }}
   {% endfor %}
 </section>
 {{ pagination(page, has_next, prev_url, next_url, 'Kochbuchseiten') }}
