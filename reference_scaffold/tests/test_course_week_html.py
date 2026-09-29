@@ -252,8 +252,8 @@ def test_week_card_renders_long_archived_template_without_primary_course_links(
     page = client.get(f'/admin/cafeteria?week={DAY}')
     html = page.get_data(as_text=True)
     assert page.status_code == 200
-    marker = f'Aus Vorlage «{title}» (archiviert)'
-    card = html.split('admin-week-template', 1)[1].split('</details>', 1)[0]
+    marker = f'{title} (archiviert)'
+    card = html.split('admin-week-template', 1)[1].split('</a>', 1)[0]
     assert marker in card
     assert 'data-semantic="actions.copy"' not in card
     assert 'class="btn text-wrap text-start"' not in card

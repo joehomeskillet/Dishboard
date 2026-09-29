@@ -205,8 +205,9 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     else:
         expect(toggle).to_be_hidden()
         expect(nav).to_be_visible()
-    page.locator('details.admin-week-more > summary').click()
-    expect(page.locator('.admin-week-more-menu')).to_be_visible()
+    expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
+    expect(page.get_by_role('link', name='CSV exportieren', exact=True)).to_be_visible()
+    expect(page.get_by_role('link', name='Vorwoche kopieren', exact=True)).to_be_visible()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), width
     coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
     action_size = 44 if coarse else 36
