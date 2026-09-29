@@ -17,6 +17,7 @@ from ..menu_recipe_choices import (
 )
 from ..operations_settings import get_area_names, get_schedule, slot_defaults
 from ..recipe_types import RecipeNotFoundError, RecipeUnavailableError, RecipeValidationError
+from ..roles import capabilities
 from ..workflow import MENU_TYPES, PROFILE_DAYS, PROFILE_MEALS
 
 DAY_NAMES = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
@@ -272,6 +273,7 @@ def render_admin_week(
         cells=_cells(profile, family, week, draft, versions, services, week_courses),
         recipe_page=recipe_page,
         course_issues=course_issues,
+        can_publish=bool(capabilities() & {'*', 'publication.publish'}),
         schedule_defaults_csrf=_scoped_csrf(profile, 'schedule_defaults', scope),
         **_template_context(),
     )

@@ -1,4 +1,4 @@
-{# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, week_row_version, schedule_defaults_csrf. #}
+{# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, can_publish, week_row_version, schedule_defaults_csrf. #}
 {% from 'ui/_semantic.html' import icon_button, sem_icon %}
 {% if status == 'live' %}
   {% set publish_label = 'Erneut veröffentlichen' %}
@@ -35,7 +35,7 @@
   {% call page_header(heading, date_range ~ ' · KW ' ~ iso_week ~ ' · ' ~ status_short) %}
     {% if publish_blocked and status == 'review_open' %}
     {{ icon_button('actions.check', href='/admin/' ~ family ~ '/wochen/pruefung?week=' ~ week_value ~ '#week-review-form', aria_label='Offene Punkte prüfen', emphasis='primary') }}
-    {% else %}
+    {% elif can_publish %}
     {{ icon_button('actions.publish', type='button', aria_label=publish_label, emphasis='primary', attrs={'data-bs-toggle': 'modal', 'data-bs-target': '#week-publish-modal', 'disabled': publish_blocked, 'aria-describedby': 'week-publish-guidance' if publish_blocked else none}) }}
     {% endif %}
   {% endcall %}
@@ -43,7 +43,7 @@
 
 <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
   <div class="admin-actions btn-list" data-sticky>
-    {% if publish_blocked and status == 'review_open' %}
+    {% if can_publish and publish_blocked and status == 'review_open' %}
     {{ icon_button('actions.publish', type='button', aria_label=publish_label, emphasis='secondary', attrs={'data-bs-toggle': 'modal', 'data-bs-target': '#week-publish-modal', 'disabled': true, 'aria-describedby': 'week-publish-guidance'}) }}
     {% endif %}
     {{ icon_button('actions.preview', href='/admin/' ~ family ~ '/preview?week=' ~ week_value, attrs={'target': '_blank', 'rel': 'noopener'}) }}
@@ -81,6 +81,7 @@
   </div>
 </section>
 
+{% if can_publish %}
 <noscript>
   <details class="admin-week-nojs-publish">
     <summary>Veröffentlichung bestätigen</summary>
@@ -117,3 +118,4 @@
     </form>
   </div>
 </div>
+{% endif %}
