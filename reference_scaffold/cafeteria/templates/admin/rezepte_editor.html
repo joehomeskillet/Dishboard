@@ -38,7 +38,7 @@
 {% set row_kind = request.args.get('row_kind') if request.method == 'POST' and request.endpoint == 'admin.recipe_form_rows' else none %}
 {% set row_operation = request.args.get('row_action') %}
 {% set row_index = request.args.get('row_index', '0')|int + (-1 if row_operation == 'up' else 1 if row_operation == 'down' else 0) %}
-<form id="recipe-editor" class="admin-compact-form" data-recipe-unsaved="{{ 'true' if row_kind else 'false' }}" method="post" action="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) if recipe_id else url_for('admin.recipe_new') }}">
+<form id="recipe-editor" class="admin-compact-form" data-recipe-unsaved="{{ 'true' if row_kind else 'false' }}" method="post" action="{{ url_for('admin.recipe_edit', recipe_id=recipe_id) if recipe_id else url_for('admin.recipe_new') }}" data-loading>
 {{ hidden('_csrf') }}{{ hidden('_form_context') }}{% if recipe_id %}{{ hidden('row_version') }}{% endif %}
 <fieldset{% if not active or not can_write %} disabled{% endif %}>
 <legend class="visually-hidden">Rezeptinhalt</legend>
