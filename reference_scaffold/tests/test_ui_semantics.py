@@ -190,7 +190,8 @@ def test_locale_symmetry_orphans_missing_and_pseudo():
                                 'print_template.reactivate.label', 'print_template.reactivate.aria',
                                 'api_key.revoke.label', 'api_key.revoke.aria',
                                 'api_key.revoke.confirm', 'api_key.revoke.consequence',
-                                'menu.save_return.aria'])
+                                'menu.save_return.aria',
+                                'recipe.pdf_open.label', 'recipe.pdf_open.aria'])
 @pytest.mark.parametrize('mutation', ['missing', 'empty', 'unknown'])
 def test_context_message_allowlist_stays_strict(locale, key, mutation):
     locales = load_locales()
@@ -1013,7 +1014,7 @@ def test_p4_recipe_context_labels_survive_en_and_keep_name(semantic_app, locale,
     ('rezepte_images.html', 'actions.back', 'Zum Rezept', 'Zum Rezept', 'arrow-left'),
     ('rezepte_import.html', 'actions.back', 'Zu Rezepten', 'Zu Rezepten', 'arrow-left'),
     ('rezepte.html', 'actions.print', 'PDF öffnen', 'PDF öffnen · Stand 1 · Suppe', 'printer'),
-    ('rezepte.html', 'actions.history', 'Verlauf', 'Verlauf · Suppe', 'history'),
+    ('rezepte.html', 'actions.history', 'Verlauf', 'Verlauf für Suppe', 'history'),
     ('rezepte_editor.html', 'actions.activate', 'Aktivieren', 'Rezept aktivieren', 'circle-check'),
 ])
 def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key, text, aria, icon):
@@ -1024,8 +1025,15 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
 
     source = (ROOT.parent / 'templates/admin' / template).read_text(encoding='utf-8')
     calls = re.findall(r'\{\{\s*(icon_button\(.*?)\s*\}\}', source, re.S)
-    matching = [call for call in calls if call.startswith(f"icon_button('{key}',")
-                and f"text='{text}'" in call]
+    if (template, key) == ('rezepte.html', 'actions.print'):
+        matching = [call for call in calls if call.startswith("icon_button('actions.print',")
+                    and "t('recipe.pdf_open.label')" in call]
+    elif (template, key) == ('rezepte.html', 'actions.history'):
+        matching = [call for call in calls if call.startswith("icon_button('actions.history',")
+                    and "_anchor='recipe-freeze'" in call]
+    else:
+        matching = [call for call in calls if call.startswith(f"icon_button('{key}',")
+                    and f"text='{text}'" in call]
     assert len(matching) == 1
     recipe = SimpleNamespace(public_id='r1', active=False, payload=SimpleNamespace(title='Suppe'))
     semantic_app.jinja_env.globals['url_for'] = lambda endpoint, **kwargs: '/target'

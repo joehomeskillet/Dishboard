@@ -167,12 +167,19 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
             expect(summary).to_have_text('')
             summary.press('Enter')
             entries = row.locator('.ui-sem-action-items > a[data-semantic]')
-            expect(entries).to_have_text(['Ansehen', 'PDF öffnen' if saved else 'Verlauf', 'Rezept-History'])
-            names = [f'{title} ansehen', f'PDF öffnen · Stand 1 · {title}' if saved else f'Verlauf · {title}',
-                     f'Rezept-History · {title}']
+            expect(entries).to_have_text(['Öffnen', 'PDF öffnen' if saved else 'Verlauf', 'Verlauf'])
+            names = [f'{title} öffnen', f'PDF öffnen · Stand 1 · {title}' if saved else f'Verlauf für {title}',
+                     f'Verlauf für {title}']
             for entry, name in zip(entries.all(), names):
                 expect(entry).to_be_visible()
                 expect(entry).to_have_accessible_name(name)
+            if not saved:
+                expect(row.locator('.ui-sem-action-items > a[href$="#recipe-freeze"]')).to_have_accessible_name(
+                    f'Verlauf für {title}',
+                )
+                expect(row.locator('.ui-sem-action-items > a[href$="/revisionen"]')).to_have_accessible_name(
+                    f'Verlauf für {title}',
+                )
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             if index == 0 or saved:
                 page.evaluate('window.scrollTo(0, 0)')

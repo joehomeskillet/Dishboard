@@ -117,7 +117,7 @@ def validate_locales(registry: Mapping[str, Semantic], locales: Mapping[str, Map
                      'print_template.reactivate.label', 'print_template.reactivate.aria',
                      'api_key.revoke.label', 'api_key.revoke.aria',
                      'api_key.revoke.confirm', 'api_key.revoke.consequence',
-                     'menu.save_return.aria'})
+                     'menu.save_return.aria', 'recipe.pdf_open.label', 'recipe.pdf_open.aria'})
     if 'de' not in locales:
         raise SemanticError('de: required primary locale missing')
     for locale, messages in locales.items():
