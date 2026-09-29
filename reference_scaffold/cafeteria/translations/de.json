@@ -677,5 +677,7 @@
   "api_key.revoke.aria": "Schlüssel {name} widerrufen",
   "api_key.revoke.confirm": "Schlüssel wirklich widerrufen?",
   "api_key.revoke.consequence": "Anwendungen verlieren damit den Vorschauzugriff.",
-  "menu.save_return.aria": "Speichern und zum Wochenplan"
+  "menu.save_return.aria": "Speichern und zum Wochenplan",
+  "recipe.pdf_open.label": "PDF öffnen",
+  "recipe.pdf_open.aria": "PDF öffnen · Stand {revision} · {name}"
 }

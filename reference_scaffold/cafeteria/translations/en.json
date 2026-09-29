@@ -677,5 +677,7 @@
   "api_key.revoke.aria": "Revoke key {name}",
   "api_key.revoke.confirm": "Really revoke this key?",
   "api_key.revoke.consequence": "Applications will lose preview access.",
-  "menu.save_return.aria": "Save and return to week"
+  "menu.save_return.aria": "Save and return to week",
+  "recipe.pdf_open.label": "Open PDF",
+  "recipe.pdf_open.aria": "Open PDF · Revision {revision} · {name}"
 }
