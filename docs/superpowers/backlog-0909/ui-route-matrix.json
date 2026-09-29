@@ -11729,7 +11729,7 @@
         "admin/_macros.html",
         "admin/rezepte_ansicht.html"
       ],
-      "sha256": "37c2d0ad08cffc044da29f5af4f207c468a98fb51d8bcd5c8f2013899a2432f1",
+      "sha256": "5a25a65d6f832d2a7178e1d805bd3d965e413b191b99986ffd8e5f0aa8e02c5f",
       "used_by_endpoints": [
         "admin.recipe_revisions"
       ],
@@ -11820,7 +11820,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "4e163a35a7bce012ca4a1f7c2f0d34270b1028995a81df976d59c4f99b40e582",
+      "sha256": "5b1d3587fb8c3d9770aa477670df034db3394c91c18ef8154d8109635f2b017a",
       "used_by_endpoints": [
         "admin.screens"
       ],
@@ -11842,7 +11842,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "1e6821e0a96acd5f874774135c69e3e0ef70c721e00f4a667148033003abba69",
+      "sha256": "046616f07f27ad41c28e56d48d8f5893482b16449ae0852fa9bee1415489d822",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],
@@ -11863,7 +11863,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "00dfa1667809e5ec227f2cc98696eb9624a649a492cb97df9242d67b3f6c3547",
+      "sha256": "ac32bba32d7706edf42276808a0a5b2a3f0b8b82ed155ec186325393d30be25a",
       "used_by_endpoints": [
         "admin.week_management"
       ],
@@ -12365,7 +12365,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "177609b18125516415c2103567195300eb235ffc5c86b912ed12b00dcdee8407",
+      "sha256": "3eb9356e1e0e0fa14bbac68e4549494ebf21d7ff73af4413647fc9f2daa5ed8c",
       "used_by_endpoints": [
         "admin.shopping_list_archive",
         "admin.shopping_lists_create",
