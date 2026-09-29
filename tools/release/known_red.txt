@@ -8,13 +8,7 @@
 # (git log -S '<assertierter Text>'). Meldet das Gate «BEKANNT ROT, JETZT GRÜN», die Zeile löschen.
 # Gesperrte Abnahmetests (*_accept.py) stehen nie hier: Wenn sie rot sind, ist das Produkt falsch.
 
-# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
-tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport0-cafeteria-staff_guest-Mitarbeitende
-tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport0-patienten-patient-Patientinnen
-tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport1-cafeteria-staff_guest-Mitarbeitende
-tests/test_admin_copy_ui.py::test_copy_confirmation_is_readable_and_submits_without_javascript[viewport1-patienten-patient-Patientinnen
-# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
-# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
+# 2026-09-29 V3-4 klassifiziert (audit/V3-4-known-red-classification.md): VERALTETER TEST, kein Produktfehler. Quelle/Ziel ins Statusband seit 561bdd58, Copy-Button im Seitenkopf seit 815d7bd7, Importbereich im Statusband seit 14a24e86, API-Icon-Submit/Zeilenmenü seit 03e3ed5b/12f9c5d3/45d12e76. Testnachzug offen (Paket V3-4 P2).
 tests/test_ui_korrektur_tools_browser.py::test_tool_pages_put_primary_content_before_administration
 tests/test_ui_korrektur_tools_browser.py::test_api_density_viewports_and_publication_truth
 tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[True-1440]
@@ -28,32 +22,7 @@ tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[
 tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[False-2560-1440]
 tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[True-320-844]
 tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[True-2560-1440]
-# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Ursache noch nicht klassifiziert - Klassifizierungspaket offen.
-tests/test_ui_reference_workspace_browser.py::test_workspace_page_header_and_layout_variant[cafeteria]
-tests/test_ui_reference_workspace_browser.py::test_workspace_page_header_and_layout_variant[patienten]
-# 2026-09-25 rot auf Produktion R11 d2e66fe und R12 d9a3961 (Baseline-Lauf); Veraltet seit df4ca2f3 (2026-09-23, Darstellung im Seitenrahmen) und de89404c (2026-09-21); Nachzug im P4-Paket vorlagen.
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1366-768-True]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1920-1080-True]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[768-1024-True]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[390-844-True]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1440-900-True]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1024-768-True]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[2560-1440-True]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[320-844-True]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[1440-900-False]
-tests/test_ui_korrektur_screens_browser.py::test_lists_and_settings_come_first_at_required_viewports[390-844-False]
-tests/test_ui_korrektur_screens_browser.py::test_native_form_targets_and_payloads_stay_complete[js]
-tests/test_ui_korrektur_screens_browser.py::test_native_form_targets_and_payloads_stay_complete[nojs]
-tests/test_ui_korrektur_screens_browser.py::test_assignment_conflict_opens_details_preserves_values_and_focuses_error[js]
-tests/test_ui_korrektur_screens_browser.py::test_assignment_conflict_opens_details_preserves_values_and_focuses_error[nojs]
-tests/test_ui_korrektur_screens_browser.py::test_empty_and_unavailable_states_have_scoped_messages_and_evidence[1440-900-js]
-tests/test_ui_korrektur_screens_browser.py::test_empty_and_unavailable_states_have_scoped_messages_and_evidence[1440-900-nojs]
-tests/test_ui_korrektur_screens_browser.py::test_empty_and_unavailable_states_have_scoped_messages_and_evidence[390-844-js]
-tests/test_ui_korrektur_screens_browser.py::test_empty_and_unavailable_states_have_scoped_messages_and_evidence[390-844-nojs]
-tests/test_ui_korrektur_screens_browser.py::test_required_pages_have_no_overflow_at_200_percent_zoom
-tests/test_ui_korrektur_screens_browser.py::test_native_disclosure_and_assignment_preview_are_keyboard_reachable[js]
-tests/test_ui_korrektur_screens_browser.py::test_native_disclosure_and_assignment_preview_are_keyboard_reachable[nojs]
-# 2026-09-25 rot auf Produktion R11 d2e66fe (Baseline-Lauf, identisch auf R13-Kandidat); erwartet «Zutat anlegen» - Ursache noch nicht klassifiziert.
+# 2026-09-29 V3-4 klassifiziert: VERALTETER TEST. h1 «Zutaten» und Aktionstexte im Untertitel seit 5d452529 (2026-09-23), Speichern-Beschriftung. Testnachzug offen (Paket V3-4 P3).
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[1440-1100-True]
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[1440-900-True]
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[390-1100-False]
@@ -61,13 +30,5 @@ tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[390-844-True]
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[1440-True]
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[390-False]
-# 2026-09-26 rot auf Produktion R11 d2e66fe (Baseline-Lauf): PDF-Paint bei 1440/JS und 390/noJS - Ursache noch nicht klassifiziert.
-tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[1440-True]
-tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[390-False]
-# 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 Browsertests - Ursache noch nicht klassifiziert.
+# 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 200-%-Zoom. V3-4: seither nur ein grüner Lauf (r18b-0927 d-8) - bleibt bis zur zweiten Bestätigung.
 tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromium_200_percent_zoom
-
-# 2026-09-27 R18-R1 Zusatzgate, T: Grund: erwartet details:has(#new-week-date); 62888f0c ersetzte details durch Collapse, a191cea9 setzt div#new-week-form.collapse. Wochen-Selektormigration ausserhalb der drei R1-Dateien offen; Template/Test seit R1-Basis efb20258 unverändert.
-tests/test_admin_tabler_browser.py::test_tabler_lists_preserve_navigation_and_tablet_layout[cafeteria]
-# 2026-09-27 R18-R1 Zusatzgate, T: Grund: gleicher veralteter details-Selektor (entfernt in 62888f0c, Collapse-Wrapper in a191cea9); betrifft Patientenprofil. Keine Produktregression, unveränderte R1-Basis efb20258.
-tests/test_admin_tabler_browser.py::test_tabler_lists_preserve_navigation_and_tablet_layout[patienten]
