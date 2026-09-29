@@ -213,7 +213,7 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         images.click()
         active(page, 'Rezepte')
         expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte')
-        expect(page.locator('.page-header-subtitle')).to_have_text('Suppe')
+        expect(page.locator('.page-header-subtitle')).to_have_text('Suppe · Entwurf')
         expect(page.get_by_role('heading', name='Gespeicherte Bilder', exact=True)).to_be_visible()
         assert not errors and not console_errors
         image = page.get_by_role('link', name='Bild 1 in voller Grösse öffnen', exact=True)

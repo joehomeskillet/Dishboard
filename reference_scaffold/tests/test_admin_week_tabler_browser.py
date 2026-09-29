@@ -520,7 +520,7 @@ def test_publish_guidance_correction_review_and_publish(
         slot = page.locator(f'#{slot_id}')
         edit = slot.locator(f'a[href="{editor}"]')
         expect(edit).to_have_count(1)
-        expect(edit).to_have_attribute('aria-label', re.compile('Bearbeiten:.*' + re.escape(target_title)))
+        expect(edit).to_have_attribute('aria-label', re.compile(r'.* – ' + re.escape(target_title) + r' bearbeiten$'))
         edit.click()
         page.wait_for_url(live_server + editor)
         assert len(posts) == before_navigation and state() == blocked
