@@ -33,6 +33,10 @@ PILOTS = [
 ]
 MEASURE = '''({rows}) => {
     const box = node => node.getBoundingClientRect().toJSON();
+    const visible = node => {
+        const s = getComputedStyle(node);
+        return node.getClientRects().length > 0 && s.display !== 'none' && s.visibility !== 'hidden';
+    };
     const style = node => {
         const s = getComputedStyle(node);
         return {fontSize: s.fontSize, fontWeight: s.fontWeight, lineHeight: s.lineHeight,
@@ -43,11 +47,12 @@ MEASURE = '''({rows}) => {
         const primary = row.querySelector('span.admin-list-primary') || row.querySelector('.admin-list-primary');
         const secondary = row.querySelector('th .admin-list-secondary, td:first-child .admin-list-secondary, .admin-list-name .admin-list-secondary, .admin-list-secondary');
         const meta = row.querySelector('.admin-list-meta');
-        const contentBoxes = [...row.children].map(box);
+        const contentBoxes = [...row.children].filter(visible).map(box);
         const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
         while (walker.nextNode()) {
             const node = walker.currentNode;
             if (!node.textContent.trim() || node.parentElement.closest('.visually-hidden, [hidden]')) continue;
+            if (getComputedStyle(node.parentElement).visibility === 'hidden') continue;
             const range = document.createRange();
             range.selectNodeContents(node);
             contentBoxes.push(...[...range.getClientRects()].filter(r => r.width && r.height).map(r => r.toJSON()));
