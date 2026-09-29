@@ -496,9 +496,9 @@
   {% if meta is not none %}<div class="admin-list-meta">{{ empty_value() if meta == '' else meta }}</div>{% endif %}
   {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}{{ label('+' ~ overflow, detail=overflow ~ ' weitere Kennzeichnungen') }}{% endif %}</div>{% endif %}
   <div class="admin-list-status">{{ status if status is not none and status != '' else status_badge(state) if state is not none and state != '' else empty_value() }}</div>
-  <div class="admin-list-actions">
+  <div class="admin-list-actions{% if more_actions and more_actions|trim %} admin-row-actions{% endif %}" role="group" aria-label="{{ t('ui.action_group.object', object=primary_content|striptags) if primary_content else t('ui.action_group.aria') }}">
     {% if actions is not none %}{{ actions }}{% elif action %}{{ render_actions(secondary=[action]) }}{% endif %}
-    {% if more_actions and more_actions|trim %}<details class="admin-compact-actions"><summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" aria-label="{{ t(sem('actions.more').aria_key) }}" data-ui-tooltip="{{ t(sem('actions.more').aria_key) }}">{{ icon(sem('actions.more').resolved_icon) }}</summary>{{ more_actions }}</details>{% endif %}
+    {% if more_actions and more_actions|trim %}{{ more_actions }}{% endif %}
   </div>
 </div>
 {%- endmacro %}
@@ -507,7 +507,7 @@
 {% from 'ui/_semantic.html' import icon_button %}
 <div class="admin-form-footer"{% if sticky %} data-sticky{% if form_id %} data-sticky-form="{{ form_id }}"{% endif %}{% endif %}>
   {% if danger %}<div class="admin-form-danger">{{ danger }}</div>{% endif %}
-  {% if rare and rare|trim %}<details class="admin-form-rare admin-compact-actions"><summary class="btn btn-ghost ui-sem-control ui-sem-control--icon-only" aria-label="{{ t(sem('actions.more').aria_key) }}" data-ui-tooltip="{{ t(sem('actions.more').aria_key) }}">{{ icon(sem('actions.more').resolved_icon) }}</summary><div class="admin-form-tertiary">{{ rare }}</div></details>{% endif %}
+  {% if rare and rare|trim %}<div class="admin-form-rare admin-row-actions" role="group" aria-label="{{ t('ui.action_group.aria') }}">{{ rare }}</div>{% endif %}
   <div class="admin-form-main">
     {% if secondary %}{{ actions(secondary=secondary) }}{% endif %}
     {{ icon_button('actions.cancel', href=cancel_url) }}

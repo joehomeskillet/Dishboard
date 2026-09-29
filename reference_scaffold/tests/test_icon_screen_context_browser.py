@@ -145,7 +145,7 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
             expect(row.locator(':scope > tr')).to_have_count(2)
             expect(row.locator('td[colspan="2"]')).to_have_attribute('headers', heading_id)
             assert row.evaluate('''row => {
-                const nodes = ['.admin-list-primary', 'a[href]', '.ui-sem-actions > summary', '.screen-preview-details > summary']
+                const nodes = ['.admin-list-primary', '.admin-row-actions a:first-child', '.admin-row-actions a:nth-child(2)', '.screen-preview-details > summary']
                     .map(selector => row.querySelector(selector));
                 return nodes.every((node, i) => node && (!i || (nodes[i - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)));
             }''')
@@ -174,19 +174,18 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
                 assert form.select_one('[name="template_id"][checked]')['value'] == assignment.template.id
                 assert bool(form.select('[data-semantic="actions.save"]')) == (role == 'Cafeteria.Admin')
 
-            summary = row.locator('.ui-sem-actions > summary')
             preview = row.locator('.screen-preview-details > summary')
-            row.locator('a[href]').first.focus()
-            page.keyboard.press('Tab')
-            expect(summary).to_be_focused()
-            page.keyboard.press('Tab')
+            actions = row.locator('.admin-row-actions a[href]')
+            expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
+            actions.first.focus()
+            for action in actions.all():
+                expect(action).to_be_visible()
+                expect(action).to_be_focused()
+                assert action.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
+                page.keyboard.press('Tab')
             expect(preview).to_be_focused()
-            summary.focus()
-            expect(summary).to_be_focused()
-            assert summary.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
-            summary.press('Enter')
-            expect(row.locator('.ui-sem-actions')).to_have_attribute('open', '')
-            first_item = row.locator('.ui-sem-action-items a[href]').first
+            first_item = actions.nth(1)
+            first_item.focus()
             expect(first_item).to_be_visible()
             if javascript:
                 expect(first_item).to_be_focused()
@@ -194,13 +193,9 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
                 expect(tooltip).to_be_visible()
                 page.keyboard.press('Escape')
                 expect(page.get_by_role('tooltip')).to_have_count(0)
-                expect(row.locator('.ui-sem-actions')).to_have_attribute('open', '')
                 expect(first_item).to_be_focused()
                 page.keyboard.press('Escape')
-            else:
-                summary.press('Enter')
-            expect(row.locator('.ui-sem-actions')).not_to_have_attribute('open', '')
-            expect(summary).to_be_focused()
+            expect(first_item).to_be_focused()
             if javascript:
                 expect(page.get_by_role('tooltip')).to_have_count(0)
             preview.press('Enter')
@@ -261,19 +256,15 @@ def test_screen_actions_keep_real_coarse_pointer_geometry(
         assert page.goto('/admin/screens', wait_until='networkidle').status == 200
         assert page.evaluate("matchMedia('(pointer: coarse)').matches && matchMedia('(any-pointer: coarse)').matches")
         controls = page.locator('.screen-card .ui-sem-control--icon-only:visible')
-        expect(controls).to_have_count(8)
+        expect(controls).to_have_count(12)
         geometry = controls.evaluate_all('elements => elements.map(el => ({name: el.getAttribute("aria-label"), width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height}))')
         assert all(item['width'] == item['height'] == 44 for item in geometry)
-        for menu in page.locator('.screen-card .ui-sem-actions').all():
-            summary = menu.locator(':scope > summary')
-            summary.press('Enter')
-            expect(menu).to_have_attribute('open', '')
-            for action in menu.locator('.ui-sem-action-items a').all():
+        for menu in page.locator('.screen-card .admin-row-actions').all():
+            expect(menu.locator('details, summary')).to_have_count(0)
+            for action in menu.locator('a').all():
                 expect(action).to_be_visible()
                 box = action.bounding_box()
                 assert box['width'] >= 44 and box['height'] >= 44
-            summary.press('Enter')
-            expect(menu).not_to_have_attribute('open', '')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         (tmp_path / f'screens-coarse-{width}-js{javascript}.json').write_text(json.dumps(geometry, indent=2))
         page.evaluate('scrollTo(0, 0)')

@@ -173,19 +173,15 @@ def _symbol(control) -> str:
 
 
 def _open_archive_action(page):
-    # P2 keeps rare actions behind a native, keyboard-operable disclosure.
+    # Shared footer exposes rare actions directly; native archive target is unchanged.
     scroll_position = page.evaluate('[scrollX, scrollY]')
-    details = page.locator('details.admin-form-rare')
+    details = page.locator('.admin-form-rare')
     archive = details.get_by_role('link', name='Archivieren', exact=True, include_hidden=True)
     expect(archive).to_have_count(1)
-    expect(archive).to_be_hidden()
-    summary = details.locator('summary')
-    expect(summary).to_have_accessible_name('Weitere Aktionen')
-    assert _icon_control(summary) == ('Weitere Aktionen', 'Weitere Aktionen')
-    summary.focus()
-    page.keyboard.press('Enter')
+    expect(details.locator('summary')).to_have_count(0)
+    assert _icon_control(archive) == ('Archivieren', 'Archivieren')
     expect(archive).to_be_visible()
-    page.keyboard.press('Tab')
+    archive.focus()
     expect(archive).to_be_focused()
     assert _symbol(archive) == 'archive'
     # Keyboard focus must not move the origin of density metrics/top captures.

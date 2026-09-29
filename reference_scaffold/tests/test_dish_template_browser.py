@@ -190,7 +190,7 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
         _open(page, base, path)
         expect(page.locator('.admin-statusbar')).to_contain_text('Archiviert')
         measurements['archived-editor'] = _rework_measure(page, 'archived-editor', width)
-        page.locator('.admin-form-footer .ui-sem-actions > summary').click()
+        expect(page.locator('.admin-form-footer [data-semantic="actions.more"]')).to_have_count(0)
         expect(page.get_by_role('button', name='Messvorlage aktivieren', exact=True)).to_have_attribute('value', 'reactivate')
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         EVIDENCE.mkdir(parents=True, exist_ok=True)

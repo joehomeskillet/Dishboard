@@ -288,10 +288,10 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
                 expect(page.get_by_role('heading', level=1)).to_have_text(title)
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                 if path == '/admin/screens':
-                    expect(page.locator('.screen-card .ui-sem-actions[open]')).to_have_count(0)
-                    for summary in page.locator('.screen-card .ui-sem-actions > summary').all():
-                        summary.click()
-                    expect(page.locator('.screen-card .ui-sem-actions[open]')).to_have_count(4)
+                    expect(page.locator('.screen-card [data-semantic="actions.more"]')).to_have_count(0)
+                    expect(page.locator('.screen-card .admin-row-actions')).to_have_count(4)
+                    for action in page.locator('.screen-card .admin-row-actions .ui-sem-control').all():
+                        expect(action).to_be_visible()
                     controls = page.locator('main .screen-card .btn').all()
                 else:
                     controls = []

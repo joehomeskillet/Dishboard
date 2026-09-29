@@ -1,5 +1,60 @@
 [
   {
+    "key": "actions.open_pdf",
+    "category": "actions",
+    "ascii": "[ACTION]",
+    "icon": "file-type-pdf",
+    "label_key": "actions.open_pdf.label",
+    "tooltip_key": "actions.open_pdf.tooltip",
+    "aria_key": "actions.open_pdf.aria",
+    "icon_only_allowed": true,
+    "role": "secondary"
+  },
+  {
+    "key": "actions.snapshot",
+    "category": "actions",
+    "ascii": "[ACTION]",
+    "icon": "file-check",
+    "label_key": "actions.snapshot.label",
+    "tooltip_key": "actions.snapshot.tooltip",
+    "aria_key": "actions.snapshot.aria",
+    "icon_only_allowed": true,
+    "role": "secondary"
+  },
+  {
+    "key": "actions.create_template",
+    "category": "actions",
+    "ascii": "[ACTION]",
+    "icon": "circle-plus",
+    "label_key": "actions.create_template.label",
+    "tooltip_key": "actions.create_template.tooltip",
+    "aria_key": "actions.create_template.aria",
+    "icon_only_allowed": true,
+    "role": "secondary"
+  },
+  {
+    "key": "actions.open_template",
+    "category": "actions",
+    "ascii": "[ACTION]",
+    "icon": "template",
+    "label_key": "actions.open_template.label",
+    "tooltip_key": "actions.open_template.tooltip",
+    "aria_key": "actions.open_template.aria",
+    "icon_only_allowed": true,
+    "role": "secondary"
+  },
+  {
+    "key": "ui.action_group",
+    "category": "actions",
+    "ascii": "[ACTION]",
+    "icon": "list",
+    "label_key": "ui.action_group.label",
+    "tooltip_key": "ui.action_group.tooltip",
+    "aria_key": "ui.action_group.aria",
+    "icon_only_allowed": false,
+    "role": "secondary"
+  },
+  {
     "key": "navigation.categories",
     "category": "navigation",
     "ascii": "[CAT]",

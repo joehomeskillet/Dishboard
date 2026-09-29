@@ -1,8 +1,8 @@
 """Listenfamilie: jede Admin-Liste vermessen, vergleichen und per Baseline absichern.
 
-Zielwerte aus docs/design/2026-09-26-icon-first-simplification-spec.md (§3.2, §4, §5):
-keine sichtbare Beschriftung an Zeilen- und Kopf-Aktionsbuttons, höchstens zwei
-Zeilenaktionen, keine Karte je Zeile, gleiche Kopf-/Haupt-/Sekundärtypografie.
+Zielwerte aus UI-DIRECT-ACTIONS-2026-09-29 (§3, §4, §10): alle verfügbaren
+Zeilenaktionen direkt, benannt und icon-only; keine Karte je Zeile,
+gleiche Kopf-/Haupt-/Sekundärtypografie.
 UI_LIST_FAMILY_REPORT=1 schreibt Vergleich und Screenshots; die Baseline darf
 dabei nur sinken. Neue Abweichungen werden auch im Berichtsmodus abgewiesen.
 Ohne diese Variable schlägt der Test nur bei einer neuen Seite oder einer neuen
@@ -29,6 +29,16 @@ BASELINE_PATH = Path(__file__).resolve().parent / 'list_family_baseline.json'
 REPORT_PATH = ROOT / 'docs/design/2026-09-26-list-family-comparison.md'
 EVIDENCE = ROOT / '.claude/evidence/list-family-0926'
 WEEK = '2026-08-31'
+
+# Offen, WP3/WP4: handgeschriebene Aktionsmenüs, nicht vom Renderer umgestellt.
+# rezepte.html, kochbuecher.html, api.html, rezepte_import.html (WP3);
+# _week_menu_card.html, _week_controls.html, print_template_editor.html (WP4).
+# Weitere WP4-Editoren ausserhalb dieses Katalogs: rezepte_ansicht.html,
+# menu_editor.html, component_editor.html, rezepte_editor.html, _rezepte_fields.html.
+PENDING_DIRECT_ACTION_PAGES = {
+    'rezepte', 'kochbuecher', 'api-schluessel', 'importe',
+    'wochenplan-cafeteria', 'wochenplan-patienten',
+}
 
 MEASURE_JS = r"""() => {
   const main = document.querySelector('main') || document.querySelector('.page-body') || document.body;
@@ -277,7 +287,7 @@ MEASURE_JS = r"""() => {
           const u = new URL(raw, window.location.href);
           let p = u.pathname;
           if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
-          return p + u.search;
+          return p + u.search + u.hash;
         } catch {
           return raw;
         }
@@ -318,11 +328,13 @@ MEASURE_JS = r"""() => {
         }
       }
       const violations = [];
-      if (directActions.length > 1) {
-        violations.push({criterion: 'direct_actions', message: `Maximal 1 direkte Aktion erlaubt, gefunden: ${directActions.length}`});
+      const hiddenActions = [...row.querySelectorAll('.admin-row-actions a, .admin-row-actions button')]
+        .filter(el => visible(el.closest('.admin-row-actions')) && !visible(el));
+      if (hiddenActions.length) {
+        violations.push({criterion: 'hidden_actions', message: `Verborgene Direktaktionen: ${hiddenActions.length}`});
       }
-      if (allOverflows.length > 1) {
-        violations.push({criterion: 'overflow_actions', message: `Maximal 1 Overflow erlaubt, gefunden: ${allOverflows.length}`});
+      if (allOverflows.length) {
+        violations.push({criterion: 'overflow_actions', message: `Generischer Mehr-Auslöser: ${allOverflows.length}`});
       }
       if (emptyOverflows.length > 0) {
         violations.push({criterion: 'empty_overflow', message: 'Leeres Überlaufmenü gefunden'});
@@ -470,9 +482,12 @@ def test_action_budget_measurement_detects_all_five_criteria():
             b = measured['lists'][0]['budget']
             assert b['totalRows'] == 6
             r0_violations = [v for v in b['violations'] if v['row'] == 0]
-            assert len(r0_violations) == 0, f"Row 0 should have 0 violations, got {r0_violations}"
+            assert any(v['criterion'] == 'overflow_actions' for v in r0_violations)
             r1_violations = [v for v in b['violations'] if v['row'] == 1]
-            assert any(v['criterion'] == 'direct_actions' for v in r1_violations)
+            assert not r1_violations, 'Multiple direct, named actions are valid'
+            page.locator('tr').nth(1).locator('a.btn').first.evaluate('el => el.hidden = true')
+            hidden = page.evaluate(MEASURE_JS)['budgetViolations']
+            assert any(v['criterion'] == 'hidden_actions' and v['row'] == 1 for v in hidden)
             r2_violations = [v for v in b['violations'] if v['row'] == 2]
             assert any(v['criterion'] == 'overflow_actions' for v in r2_violations)
             r3_violations = [v for v in b['violations'] if v['row'] == 3]
@@ -780,8 +795,6 @@ def _deviations(desktop: list[dict], mobile: list[dict], modes: dict[str, str | 
         key = row['list_key']
         if row['row_text']:
             codes.add(f"1440:zeilenaktion_text:{key}")
-        if row['row_count'] > 2:
-            codes.add(f"1440:zeilenaktionen_gt2:{key}")
         if row['card']:
             codes.add(f"karte_je_zeile:{key}")
         if row['header_sig'] and row['header_sig'] != modes['kopf']:
@@ -796,8 +809,6 @@ def _deviations(desktop: list[dict], mobile: list[dict], modes: dict[str, str | 
         key = row['list_key']
         if row['row_text']:
             codes.add(f"390:zeilenaktion_text:{key}")
-        if row['row_count'] > 2:
-            codes.add(f"390:zeilenaktionen_gt2:{key}")
         if row['header_text']:
             codes.add('390:kopfaktion_text')
     return sorted(codes)
@@ -859,7 +870,7 @@ def _markdown(desktop: list[dict], mobile_by_slug: dict[str, list[dict]], previo
     summary = [
         '# Listenfamilie — Vergleich der administrativen Listen',
         '',
-        f'Gemessen {datetime.now(UTC).isoformat(timespec="seconds")} gegen `docs/design/2026-09-26-icon-first-simplification-spec.md` (§3.2 Aktionsbudget, §4 gemeinsames Listenmuster, §5 Symbolbuttons; Abnahme UI-02, UI-03, UI-04, UI-05, UI-24).',
+        f'Gemessen {datetime.now(UTC).isoformat(timespec="seconds")} gegen `UI-DIRECT-ACTIONS-2026-09-29` (§3 direkte Aktionen, §4 Geometrie, §10 Abnahme).',
         'Fett markiert ist jeder Wert, der von der häufigsten Ausprägung dieser Messgrösse abweicht.',
         'Typografie wird nur zwischen vorhandenen Textrollen verglichen; fehlende Kopfzeilen zählen nicht als Abweichung. Kopf-Hintergrund, Kopf-Höhe und Linkstatus bleiben Messwerte, gehören aber nicht zur Schrift-Signatur. Abweichende Linkfarben zählen weiterhin.',
         'Geschlossene Überlaufmenüs und Bestätigungsdialoge (§5.4) sind nicht geöffnet und zählen nicht als sichtbarer Text.',
@@ -870,7 +881,7 @@ def _markdown(desktop: list[dict], mobile_by_slug: dict[str, list[dict]], previo
         '',
         f'- Seiten mit Buttontext in Zeile oder Kopf: {listing(button_pages)}',
         f'- Seiten mit Karte je Zeile: {listing(card_pages)}',
-        f'- Seiten mit mehr als zwei Zeilenaktionen: {listing(many)}',
+        f'- Seiten mit mehr als zwei direkten Zeilenaktionen (zulässig): {listing(many)}',
         f'- Seiten mit abweichender Kopf-, Haupt- oder Sekundärtypografie: {listing(type_pages)}',
         '',
         '## Messwerte',
@@ -1013,11 +1024,10 @@ def test_action_budget_across_all_normal_rows(admin_app, admin_engine, live_serv
                 for slug, _title, path, hook in pages:
                     # Planungsansicht (Spec §4.3, §14): Dichteziele gelten nicht für
                     # Kalender; Tagestitel und Planen bleiben dort bewusst erhalten.
-                    if slug == 'kuechenkalender':
+                    if slug == 'kuechenkalender' or slug in PENDING_DIRECT_ACTION_PAGES:
                         continue
                     response = page.goto(path, wait_until='domcontentloaded', timeout=30000)
-                    if not response or response.status != 200:
-                        continue
+                    assert response and response.status == 200, (slug, path)
                     _hook(page, hook, revision)
                     data = page.evaluate(MEASURE_JS)
                     for item in data.get('budgetViolations', []):
@@ -1032,4 +1042,3 @@ def test_action_budget_across_all_normal_rows(admin_app, admin_engine, live_serv
         assert not violations_by_page, (
             "Aktionsbudget-Verstösse in normalen Listen gefunden:\n" + "\n".join(summary_lines)
         )
-

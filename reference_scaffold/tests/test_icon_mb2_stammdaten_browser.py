@@ -38,9 +38,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     page.screenshot(path=str(evidence / f'{family}-{width}-{javascript}.png'), full_page=True)
                     row = page.locator('.component-row').first
                     expect(row.locator('[data-semantic="actions.edit"]')).to_be_visible()
-                    more = row.locator('[data-semantic="actions.more"]')
-                    more.focus()
-                    more.press('Enter')
+                    expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
                     archive = row.locator('[data-semantic="actions.archive"]')
                     expect(archive).to_be_visible()
                     archive.click()
@@ -86,10 +84,10 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                         expect(row.locator('[data-semantic="actions.edit"]')).to_be_visible()
                         expect(row.locator('[data-semantic="actions.open"]')).to_have_count(0)
                     page.screenshot(path=str(evidence / f'{kind}-{width}-{javascript}.png'), full_page=True)
-                    more = rows.locator('[data-semantic="actions.more"]').first
-                    if more.count():
-                        more.click()
-                        archive = rows.locator('[data-semantic="actions.archive"]:visible').first
+                    expect(rows.locator('[data-semantic="actions.more"]')).to_have_count(0)
+                    archive = rows.locator('[data-semantic="actions.archive"]').first
+                    if archive.count():
+                        expect(archive).to_be_visible()
                         archive.click()
                         expect(page.locator('#master-status')).to_be_visible()
                         expect(page.locator('#master-status')).to_have_attribute('method', 'post')

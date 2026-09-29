@@ -118,8 +118,8 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     assert response.text.count('<h3 class="admin-list-primary text-break mb-0">Aktiver Herbst</h3>') == 2
     assert response.text.count('<p class="admin-list-secondary print-tpl-meta mb-0">Version 2</p>') == 2
     assert response.text.count('Neuer Entwurf: Winter &amp; Festtage · Version 3') == 2
-    # Heading plus edit/overflow name and tooltip in both weekly catalogs.
-    assert response.text.count('Festliche Kopie') == 10
+    # Heading, named action group and edit name/tooltip in both weekly catalogs.
+    assert response.text.count('Festliche Kopie') == 8
     links = MainLinks(response.text).links
     assert '/admin/gerichtvorlagen' in links
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
@@ -271,38 +271,29 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             for link in page.locator('main form .btn:visible, main .print-related-grid .btn:visible, main .screens-grid .btn:visible').all():
                 check_keyboard_link(link)
             page.keyboard.press('Escape')
-            for menu in page.locator('main .screens-grid .ui-sem-actions').all():
-                summary = menu.locator('summary')
-                summary.focus()
-                page.keyboard.press('Enter')
-                expect(menu).to_have_attribute('open', '')
+            for menu in page.locator('main .screens-grid .admin-row-actions').all():
+                expect(menu.locator('details, summary')).to_have_count(0)
                 for link in menu.locator('a.btn').all():
+                    expect(link).to_be_visible()
                     check_keyboard_link(link)
                 page.keyboard.press('Escape')
-                summary.focus()
-                page.keyboard.press('Enter')
             for section in weekly_sections.all():
                 pane_id = section.evaluate('el => el.closest(".tab-pane").id')
                 page.locator(f'[aria-controls="{pane_id}"]').click()
                 pane = page.locator(f'#{pane_id}')
                 for link in pane.locator('a.btn:visible').all():
                     check_keyboard_link(link)
-                menus = section.locator('.admin-list-actions .admin-row-actions > .ui-sem-actions')
+                menus = section.locator('.admin-list-actions .admin-row-actions')
                 expect(menus).to_have_count(2)
                 for menu, template_name in zip(
                     menus.all(), ('Winter & Festtage', 'Festliche Kopie'), strict=True,
                 ):
-                    summary = menu.locator(':scope > summary')
-                    expect(summary).to_have_accessible_name(f'Weitere Aktionen für {template_name}')
-                    expect(summary).to_have_text('')
-                    summary.focus()
-                    summary.press('Enter')
-                    expect(menu).to_have_attribute('open', '')
+                    expect(menu).to_have_accessible_name(f'Aktionen für {template_name}')
+                    expect(menu.locator('details, summary')).to_have_count(0)
                     for link in menu.locator('a.btn').all():
+                        expect(link).to_be_visible()
+                        expect(link).to_have_text('')
                         check_keyboard_link(link)
-                    summary.focus()
-                    summary.press('Enter')
-                    expect(menu).not_to_have_attribute('open', '')
             for link in recipe_card.locator('.btn').all():
                 check_keyboard_link(link)
             EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)

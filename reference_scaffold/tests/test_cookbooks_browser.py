@@ -102,7 +102,7 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         expect(page.get_by_role('heading', level=1)).to_have_text('Browserbuch')
         saved = Forms(page.content()).forms[path + '/rezepte']
         assert saved.getlist('recipe_public_ids')[:2] == [cookbook_server['first'], cookbook_server['second']]
-        page.locator('.admin-form-rare > summary').click()
+        expect(page.locator('.admin-form-rare > summary')).to_have_count(0)
         page.get_by_role('link', name='Archivieren', exact=True).click()
         expect(page.get_by_role('heading', level=2, name='Kochbuch archivieren')).to_be_visible()
         before = client.get(path).text
@@ -266,4 +266,3 @@ def test_cookbook_list_status_in_mixed_and_default_view(cookbook_server, browser
         expect(archived_status.locator('[data-status="archived"]')).to_have_count(1)
         expect(archived_status.locator('.admin-empty-value')).to_have_count(0)
         assert '—' not in archived_status.inner_text()
-

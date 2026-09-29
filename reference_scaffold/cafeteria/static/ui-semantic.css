@@ -49,9 +49,24 @@
   justify-content: flex-start;
   text-align: start;
 }
-.admin-row-actions {
-  display: flex; flex-wrap: wrap; align-items: start; justify-content: flex-end;
-  gap: var(--app-space-2); min-width: 0;
+.dishboard-admin .admin-row-actions {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end;
+  gap: var(--app-space-1); min-width: 0; max-width: 100%;
+  width: max-content; flex: 0 1 auto; margin-inline-start: auto;
+}
+/* Legacy dropdown classes retain their contract outside direct groups. */
+.dishboard-admin .admin-row-actions .ui-sem-control--icon-only.dropdown-item {
+  width: var(--ui-control-size); justify-content: center; text-align: center;
+}
+.ui-sem-disabled {
+  display: inline-flex; flex: 0 0 auto; border-radius: var(--app-radius-control);
+}
+.ui-sem-disabled > :disabled { pointer-events: none; }
+.ui-sem-disabled:focus-visible {
+  outline: 3px solid var(--app-focus); outline-offset: 3px;
+}
+@media (any-pointer: coarse) {
+  .dishboard-admin .admin-row-actions { gap: calc(var(--app-space-3) / 2); }
 }
 .ui-sem-control:focus-visible {
   outline: 3px solid var(--app-focus);

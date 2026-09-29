@@ -260,34 +260,33 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                     assert metrics['primary'] == metrics['openDetails'] == 0
                     expect(page.locator('.admin-statusbar-item')).to_have_count(0)
                     expect(page.locator('.screen-card')).to_have_count(4)
-                    expect(page.locator('.screen-card .btn:visible')).to_have_count(8)
+                    expect(page.locator('.screen-card .btn:visible')).to_have_count(12)
                     page.screenshot(path=str(tmp_path / f'wp23-{width}-{javascript}.png'), full_page=True)
-                    for selector in ('.ui-sem-actions', '.screen-preview-details'):
+                    expect(page.locator('.screen-card [data-semantic="actions.more"]')).to_have_count(0)
+                    for action in page.locator('.screen-card .admin-row-actions a').all():
+                        expect(action).to_be_visible()
+                        action.focus()
+                        expect(action).to_be_focused()
+                        assert action.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+                        if javascript:
+                            tooltip = page.get_by_role('tooltip', name=action.get_attribute('data-ui-tooltip'), exact=True)
+                            expect(tooltip).to_be_visible()
+                            page.keyboard.press('Escape')
+                            expect(page.get_by_role('tooltip')).to_have_count(0)
+                            expect(action).to_be_focused()
+                    for selector in ('.screen-preview-details',):
                         details = page.locator(selector).first
                         summary = details.locator(':scope > summary')
                         summary.focus()
                         page.keyboard.press('Enter')
                         expect(details).to_have_attribute('open', '')
-                        if javascript and selector == '.ui-sem-actions':
-                            # Opening the action menu moves focus to the first item.
-                            focused = details.locator('.ui-sem-action-items :is(a, button)').first
-                            expect(focused).to_be_focused()
-                            # Escape dismisses the focused item's tooltip before its menu.
-                            tooltip = page.get_by_role('tooltip', name=focused.get_attribute('data-ui-tooltip'), exact=True)
-                            expect(tooltip).to_have_text(focused.get_attribute('data-ui-tooltip'))
-                            expect(tooltip).to_be_visible()
-                            page.keyboard.press('Escape')
-                            expect(page.get_by_role('tooltip')).to_have_count(0)
-                            expect(details).to_have_attribute('open', '')
-                            expect(focused).to_be_focused()
-                        else:
-                            focused = summary
-                            expect(summary).to_be_focused()
+                        focused = summary
+                        expect(summary).to_be_focused()
                         summary_class = summary.get_attribute('class') or ''
                         summary_min = 36 if 'ui-sem-control' in summary_class else 44
                         assert summary.bounding_box()['height'] >= summary_min
                         assert focused.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-                        page.keyboard.press('Escape' if javascript and selector == '.ui-sem-actions' else 'Enter')
+                        page.keyboard.press('Enter')
                         expect(details).not_to_have_attribute('open', '')
                         expect(summary).to_be_focused()
                     assert page.goto('/admin/screens/cafeteria/wochenvorlage').status == 200
