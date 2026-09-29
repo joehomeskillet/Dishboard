@@ -138,12 +138,14 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         expect(page.locator('#week-publish-modal')).to_contain_text('Noch keine Menüs erfasst')
     elif state == 'ready':
         expect(context).to_contain_text('Noch nicht veröffentlicht · bereit')
+        # Fixtures omit serving times; this warning is separate from card review.
+        expect(checks).to_contain_text('Zeiten nicht eingetragen')
+        expect(checks).not_to_contain_text('Kartenprüfung')
         review_page = page.context.new_page()
         try:
             review_page.goto(f'/admin/{family}/wochen/pruefung?week={DAY}')
-            expect(review_page.locator('dl.admin-statusbar .admin-statusbar-item').filter(
-                has=review_page.get_by_text('Prüfstatus', exact=True)
-            ).locator('dd')).to_have_text('Geprüft')
+            expect(review_page.locator('dl.admin-statusbar')).to_have_count(0)
+            expect(review_page.get_by_role('status').get_by_text('Geprüft', exact=True)).to_be_visible()
             expect(review_page.get_by_role('status')).to_contain_text('Dieser Stand wurde von')
         finally:
             review_page.close()
