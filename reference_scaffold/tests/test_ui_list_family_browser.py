@@ -141,7 +141,7 @@ MEASURE_JS = r"""() => {
     const fresh = rows.filter((row) => row && !used.has(row) && visible(row) && !row.closest('nav, .navbar, .pagination, .breadcrumb, aside'));
     if (!fresh.length) return;
     fresh.forEach((row) => used.add(row));
-    groups.push({root, rows: fresh.slice(0, 3), total: fresh.length, kind});
+    groups.push({root, rows: fresh, total: fresh.length, kind});
   };
   const cluster = (selector, kind, rootOf) => {
     const map = new Map();
@@ -227,8 +227,8 @@ MEASURE_JS = r"""() => {
   const kindCount = {};
   const lists = groups.map((group) => {
     kindCount[group.kind] = (kindCount[group.kind] || 0) + 1;
-    const sample = group.rows;
-    const rowPacks = sample.map((row) => packActions(controls(row)));
+    const sample = group.rows.slice(0, 3);
+    const rowPacks = group.rows.map((row) => packActions(controls(row)));
     const worst = rowPacks.reduce((best, pack) => (pack.count > best.count ? pack : best), {count: 0, withText: 0, texts: [], icons: [], family: 'keins', hits: [], filled: 0});
     const texts = [...new Set(rowPacks.flatMap((pack) => pack.texts))];
     const icons = [...new Set(rowPacks.flatMap((pack) => pack.icons))];
@@ -247,6 +247,106 @@ MEASURE_JS = r"""() => {
     const rowBody = first.matches('.admin-list-row') ? first : (first.querySelector('.admin-list-row') || first);
     const rowStyle = getComputedStyle(rowBody);
     const dividerStyle = first.matches('tbody.screen-card') ? getComputedStyle(first.querySelector(':scope > tr:last-child')) : rowStyle;
+    const checkRowBudget = (row) => {
+      const overflows = [...row.querySelectorAll('details.ui-sem-actions, .ui-sem-actions')].filter(visible);
+      const otherOverflows = [...row.querySelectorAll('details')].filter((d) =>
+        visible(d) && !overflows.includes(d) &&
+        [...d.querySelectorAll(':scope > summary use')].some((u) => (u.getAttribute('href') || u.getAttribute('xlink:href') || '').includes('tabler-dots'))
+      );
+      const allOverflows = [...overflows, ...otherOverflows];
+      const emptyOverflows = allOverflows.filter((menu) => {
+        const trigger = menu.querySelector(':scope > summary');
+        const items = [...menu.querySelectorAll('a[href], button, input[type=submit], summary')].filter((el) =>
+          (!trigger || !trigger.contains(el)) && !el.hidden && !el.closest('[hidden], [inert]')
+        );
+        return items.length === 0;
+      });
+      const rowControls = controls(row);
+      const directActions = rowControls.filter((ctrl) => {
+        if (allOverflows.some((o) => o.contains(ctrl))) return false;
+        if (ctrl.matches('summary') && ctrl.parentElement?.matches('details.ui-sem-actions, .ui-sem-actions')) return false;
+        return true;
+      });
+      const visibleLinks = [...row.querySelectorAll('a[href]')].filter((a) =>
+        visible(a) && !allOverflows.some((o) => !o.open && o.contains(a))
+      );
+      const normHref = (el) => {
+        const raw = el.getAttribute('href') || '';
+        if (!raw || raw.startsWith('#') || raw.startsWith('javascript:')) return null;
+        try {
+          const u = new URL(raw, window.location.href);
+          let p = u.pathname;
+          if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
+          return p + u.search;
+        } catch {
+          return raw;
+        }
+      };
+      const hrefMap = new Map();
+      const duplicateTargets = [];
+      for (const a of visibleLinks) {
+        const target = normHref(a);
+        if (!target) continue;
+        if (hrefMap.has(target)) {
+          duplicateTargets.push({href: target, firstText: visibleText(hrefMap.get(target)) || hrefMap.get(target).getAttribute('aria-label') || '', secondText: visibleText(a) || a.getAttribute('aria-label') || ''});
+        } else {
+          hrefMap.set(target, a);
+        }
+      }
+      const actionsToCheck = [];
+      directActions.forEach((a) => actionsToCheck.push({el: a, role: 'direct'}));
+      allOverflows.forEach((o) => {
+        const sum = o.querySelector(':scope > summary');
+        if (sum) actionsToCheck.push({el: sum, role: 'overflow-summary'});
+        const items = [...o.querySelectorAll('a[href], button, input[type=submit]')].filter((el) =>
+          (!sum || !sum.contains(el)) && !el.hidden && !el.closest('[hidden], [inert]')
+        );
+        items.forEach((it) => actionsToCheck.push({el: it, role: 'overflow-item'}));
+      });
+      const genericPattern = /^(bearbeiten|löschen|drucken|kopieren|archivieren|öffnen|anlegen|hinzufügen|aktivieren|übernehmen|verlauf|schliessen|abbrechen|wiederherstellen|verschieben|weitere aktionen|zurück|weiter|aktualisieren|vorschau|herunterladen|hochladen|importieren|exportieren|prüfen|veröffentlichen|speichern|bestätigen|details|optionen|aktionen|mehr|neu|auswählen|entfernen|filter|filtern|weitere optionen|rezeptverlauf|rezeptskalierung|rezeptbilder|planen|edit|delete|print|copy|archive|open|add|close|cancel|save|preview|download|upload|import|export|more|more actions|actions)$/i;
+      const missingRecordContext = [];
+      for (const {el, role} of actionsToCheck) {
+        const aria = (el.getAttribute('aria-label') || '').trim();
+        const tooltip = (el.getAttribute('data-ui-tooltip') || '').trim();
+        const title = (el.getAttribute('title') || '').trim();
+        const vis = visibleText(el) || (el.textContent || '').replace(/\s+/g, ' ').trim();
+        const accessible = aria || tooltip || title || vis;
+        if (!accessible) {
+          missingRecordContext.push({role, label: '', reason: 'missing_label'});
+        } else if (genericPattern.test(accessible)) {
+          missingRecordContext.push({role, label: accessible, reason: 'generic_label'});
+        }
+      }
+      const violations = [];
+      if (directActions.length > 1) {
+        violations.push({criterion: 'direct_actions', message: `Maximal 1 direkte Aktion erlaubt, gefunden: ${directActions.length}`});
+      }
+      if (allOverflows.length > 1) {
+        violations.push({criterion: 'overflow_actions', message: `Maximal 1 Overflow erlaubt, gefunden: ${allOverflows.length}`});
+      }
+      if (emptyOverflows.length > 0) {
+        violations.push({criterion: 'empty_overflow', message: 'Leeres Überlaufmenü gefunden'});
+      }
+      if (duplicateTargets.length > 0) {
+        violations.push({criterion: 'duplicate_targets', message: `Identisches Linkziel mehrfach vorhanden: ${duplicateTargets.map((d) => d.href).join(', ')}`});
+      }
+      if (missingRecordContext.length > 0) {
+        violations.push({criterion: 'missing_record_context', message: `Aktion ohne Datensatzbezug: ${missingRecordContext.map((m) => m.label || '<leer>').join(', ')}`});
+      }
+      return {
+        directActions: directActions.length,
+        overflowActions: allOverflows.length,
+        emptyOverflow: emptyOverflows.length,
+        duplicateTargets: duplicateTargets.length,
+        missingRecordContext: missingRecordContext.length,
+        violations,
+      };
+    };
+    const rowBudgets = group.rows.map((row, index) => {
+      const b = checkRowBudget(row);
+      return {...b, index};
+    });
+    const groupViolations = rowBudgets.flatMap((b) => b.violations.map((v) => ({row: b.index, ...v})));
     return {
       key: group.kind + '-' + kindCount[group.kind],
       label: labelOf(group.root),
@@ -258,9 +358,19 @@ MEASURE_JS = r"""() => {
       primary, secondary,
       status: statusEl ? [...statusEl.classList].sort().join('.') : 'keine',
       rowActions: {count: worst.count, withText: Math.max(0, ...rowPacks.map((pack) => pack.withText), 0), texts, icons, family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins', hits: worst.hits},
+      budget: {
+        totalRows: group.rows.length,
+        directActionsMax: Math.max(0, ...rowBudgets.map((b) => b.directActions)),
+        overflowActionsMax: Math.max(0, ...rowBudgets.map((b) => b.overflowActions)),
+        emptyOverflowTotal: rowBudgets.reduce((sum, b) => sum + b.emptyOverflow, 0),
+        duplicateTargetsTotal: rowBudgets.reduce((sum, b) => sum + b.duplicateTargets, 0),
+        missingRecordContextTotal: rowBudgets.reduce((sum, b) => sum + b.missingRecordContext, 0),
+        violations: groupViolations,
+      },
     };
   });
-  return {header, filters: filterEntries.length, filtersWithText, emptyOverflow, doubleMarkers, emptyInfo, actionTexts, lists};
+  const allViolations = lists.flatMap((l) => l.budget.violations.map((v) => ({listKey: l.key, listLabel: l.label, ...v})));
+  return {header, filters: filterEntries.length, filtersWithText, emptyOverflow, doubleMarkers, emptyInfo, actionTexts, lists, budgetViolations: allViolations};
 }"""
 
 
@@ -281,6 +391,96 @@ def test_filter_and_empty_overflow_measurement():
             assert measured['filters'] == 2
             assert measured['filtersWithText'] == 1
             assert measured['emptyOverflow'] == 1
+        finally:
+            browser.close()
+
+
+def test_action_budget_measurement_detects_all_five_criteria():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox'])
+        try:
+            page = browser.new_page()
+            page.set_content('''<main>
+                <table class="admin-table">
+                  <tbody>
+                    <tr class="admin-list-row">
+                      <td class="admin-list-primary"><a href="/item/1">Suppe 1</a></td>
+                      <td class="admin-row-actions">
+                        <a class="btn ui-sem-control" data-semantic="actions.edit" aria-label="Suppe 1 bearbeiten" href="/item/1/edit"><svg><use href="#tabler-pencil"></use></svg></a>
+                        <details class="ui-sem-actions">
+                          <summary class="btn ui-sem-control" data-semantic="actions.more" aria-label="Weitere Aktionen für Suppe 1"><svg><use href="#tabler-dots"></use></svg></summary>
+                          <div class="ui-sem-action-items">
+                            <a class="btn ui-sem-control" data-semantic="actions.delete" aria-label="Suppe 1 löschen" href="/item/1/delete">Löschen</a>
+                          </div>
+                        </details>
+                      </td>
+                    </tr>
+                    <tr class="admin-list-row">
+                      <td class="admin-list-primary"><a href="/item/2">Suppe 2</a></td>
+                      <td class="admin-row-actions">
+                        <a class="btn ui-sem-control" data-semantic="actions.edit" aria-label="Suppe 2 bearbeiten" href="/item/2/edit"><svg><use href="#tabler-pencil"></use></svg></a>
+                        <a class="btn ui-sem-control" data-semantic="actions.delete" aria-label="Suppe 2 löschen" href="/item/2/delete"><svg><use href="#tabler-trash"></use></svg></a>
+                      </td>
+                    </tr>
+                    <tr class="admin-list-row">
+                      <td class="admin-list-primary"><a href="/item/3">Suppe 3</a></td>
+                      <td class="admin-row-actions">
+                        <details class="ui-sem-actions">
+                          <summary class="btn ui-sem-control" data-semantic="actions.more" aria-label="Weitere Aktionen 1 für Suppe 3"><svg><use href="#tabler-dots"></use></svg></summary>
+                          <div class="ui-sem-action-items"><a class="btn ui-sem-control" href="/item/3/a">A</a></div>
+                        </details>
+                        <details class="ui-sem-actions">
+                          <summary class="btn ui-sem-control" data-semantic="actions.more" aria-label="Weitere Aktionen 2 für Suppe 3"><svg><use href="#tabler-dots"></use></svg></summary>
+                          <div class="ui-sem-action-items"><a class="btn ui-sem-control" href="/item/3/b">B</a></div>
+                        </details>
+                      </td>
+                    </tr>
+                    <tr class="admin-list-row">
+                      <td class="admin-list-primary"><a href="/item/4">Suppe 4</a></td>
+                      <td class="admin-row-actions">
+                        <details class="ui-sem-actions">
+                          <summary class="btn ui-sem-control" data-semantic="actions.more" aria-label="Weitere Aktionen für Suppe 4"><svg><use href="#tabler-dots"></use></svg></summary>
+                          <div class="ui-sem-action-items"></div>
+                        </details>
+                      </td>
+                    </tr>
+                    <tr class="admin-list-row">
+                      <td class="admin-list-primary"><a href="/item/5">Suppe 5</a></td>
+                      <td class="admin-row-actions">
+                        <a class="btn ui-sem-control" data-semantic="actions.open" aria-label="Suppe 5 öffnen" href="/item/5"><svg><use href="#tabler-arrow-right"></use></svg></a>
+                      </td>
+                    </tr>
+                    <tr class="admin-list-row">
+                      <td class="admin-list-primary"><a href="/item/6">Suppe 6</a></td>
+                      <td class="admin-row-actions">
+                        <a class="btn ui-sem-control" data-semantic="actions.edit" aria-label="Bearbeiten" href="/item/6/edit"><svg><use href="#tabler-pencil"></use></svg></a>
+                        <details class="ui-sem-actions">
+                          <summary class="btn ui-sem-control" data-semantic="actions.more" aria-label="Weitere Aktionen"><svg><use href="#tabler-dots"></use></svg></summary>
+                          <div class="ui-sem-action-items">
+                            <a class="btn ui-sem-control" data-semantic="actions.delete" aria-label="Löschen" href="/item/6/delete">Löschen</a>
+                          </div>
+                        </details>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                </main>''')
+            measured = page.evaluate(MEASURE_JS)
+            assert len(measured['lists']) == 1
+            b = measured['lists'][0]['budget']
+            assert b['totalRows'] == 6
+            r0_violations = [v for v in b['violations'] if v['row'] == 0]
+            assert len(r0_violations) == 0, f"Row 0 should have 0 violations, got {r0_violations}"
+            r1_violations = [v for v in b['violations'] if v['row'] == 1]
+            assert any(v['criterion'] == 'direct_actions' for v in r1_violations)
+            r2_violations = [v for v in b['violations'] if v['row'] == 2]
+            assert any(v['criterion'] == 'overflow_actions' for v in r2_violations)
+            r3_violations = [v for v in b['violations'] if v['row'] == 3]
+            assert any(v['criterion'] == 'empty_overflow' for v in r3_violations)
+            r4_violations = [v for v in b['violations'] if v['row'] == 4]
+            assert any(v['criterion'] == 'duplicate_targets' for v in r4_violations)
+            r5_violations = [v for v in b['violations'] if v['row'] == 5]
+            assert any(v['criterion'] == 'missing_record_context' for v in r5_violations)
         finally:
             browser.close()
 
@@ -790,3 +990,42 @@ def test_list_family_across_admin_pages(admin_app, admin_engine, live_server, tm
         print(f'LIST_FAMILY_REPORT={REPORT_PATH}')
         print(f'LIST_FAMILY_BASELINE={BASELINE_PATH}')
         print(f'LIST_FAMILY_CONTACT={EVIDENCE / "contact-sheet.png"}')
+
+
+def test_action_budget_across_all_normal_rows(admin_app, admin_engine, live_server):  # noqa: F811
+    _mount_public_targets(admin_app)
+    client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    entities = _prepare_inventory_entities(admin_app, admin_engine, actor)
+    create_api_key(admin_engine, actor_id=actor, label='Listenfamilie', scopes=('preview.read',),
+                   channels=('cafeteria',), expires_at=datetime.now(UTC) + timedelta(days=10))
+    revision = entities['endpoint_paths']['admin.recipe_revision'].rsplit('/', 1)[-1]
+    pages = _catalog(entities['endpoint_paths'])
+    cookie = client.get_cookie('session')
+    assert cookie is not None
+    violations_by_page: dict[str, list[tuple[str, dict]]] = {}
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox', '--disable-dev-shm-usage'])
+        try:
+            with browser.new_context(base_url=live_server, viewport={'width': 1440, 'height': 900},
+                                     device_scale_factor=1) as context:
+                context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
+                page = context.new_page()
+                for slug, _title, path, hook in pages:
+                    response = page.goto(path, wait_until='domcontentloaded', timeout=30000)
+                    if not response or response.status != 200:
+                        continue
+                    _hook(page, hook, revision)
+                    data = page.evaluate(MEASURE_JS)
+                    for item in data.get('budgetViolations', []):
+                        violations_by_page.setdefault(slug, []).append((path, item))
+        finally:
+            browser.close()
+    if violations_by_page:
+        summary_lines = []
+        for slug, items in sorted(violations_by_page.items()):
+            for path, v in items:
+                summary_lines.append(f"- {slug} ({path}) [{v['listLabel']} Zeile {v['row']}]: {v['criterion']} — {v['message']}")
+        assert not violations_by_page, (
+            "Aktionsbudget-Verstösse in normalen Listen gefunden:\n" + "\n".join(summary_lines)
+        )
+
