@@ -35,14 +35,16 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
         page.get_by_label('Ausbeute/Menge', exact=True).fill('4')
         page.get_by_label('Ausbeuteeinheit', exact=True).select_option('PORTION')
         before = snapshot(owner)
-        page.get_by_role('button', name='Zutat hinzufügen', exact=True).click()
+        with page.expect_navigation():
+            page.get_by_role('button', name='Zutat hinzufügen', exact=True).click()
         expect(page.get_by_label('Beschreibung', exact=True)).to_have_value('\nUngespeichert\nZweite Zeile')
         assert page.locator('[name="_form_context"]').input_value() == token
         assert snapshot(owner) == before
         page.get_by_label('Zutatenbezeichnung', exact=True).fill('Karotte')
         page.get_by_label('Menge', exact=True).fill('1')
         page.get_by_label('Einheit', exact=True).select_option('G')
-        page.get_by_role('button', name='Schritt hinzufügen', exact=True).click()
+        with page.expect_navigation():
+            page.get_by_role('button', name='Schritt hinzufügen', exact=True).click()
         page.get_by_label('Anleitung', exact=True).fill('Waschen\nKochen')
         assert snapshot(owner) == before
         page.get_by_role('button', name='Anlegen', exact=True).click()
