@@ -17,8 +17,8 @@ from test_rendered_ui import browser  # noqa: F401
 
 
 @pytest.mark.parametrize('width,height,javascript', [
-    (1440, 1100, True), (390, 1100, False),
-    (1440, 900, True), (390, 844, True), (390, 844, False),
+    (1440, 1100, True), (390, 1100, True), (390, 1100, False),
+    (1440, 900, True), (390, 844, True), (390, 844, False), (390, 700, True),
 ])
 def test_native_storage_and_preparation_selection_survives_save_and_reload(
         prepared, master_server, browser, width, height, javascript, tmp_path):  # noqa: F811
@@ -35,6 +35,7 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         expect(page.get_by_role('heading', level=1)).to_have_text('Zutaten')
         expect(page.locator('.page-header-subtitle')).to_have_text('Zutat anlegen')
         core = page.locator('#food-core-form')
+        footer = core.locator('[data-sticky-form], .admin-form-footer')
         primary = core.get_by_role('button', name='Speichern', exact=True)
         expect(primary).to_have_count(1)
         assert primary.evaluate('button => button.form.id') == 'food-core-form'
@@ -42,12 +43,25 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         page.on('request', lambda request: posts.append(request.method) if request.method == 'POST' else None)
         primary.click()
         expect(page.get_by_label('Name', exact=True)).to_be_focused()
+        expect(footer).to_have_css('position', 'static')
         assert page.get_by_label('Name', exact=True).evaluate('input => input.validity.valueMissing')
         assert not posts
         page.get_by_label('Name', exact=True).fill('Hummus vorbereitet Browser')
         page.get_by_label('Testlager', exact=True).check()
         core.locator('details').filter(has=page.locator('#prepared_recipe_choice')).locator('summary').click()
         page.get_by_label('Zubereitung aus einem Rezept', exact=False).select_option(preparation_choice(frozen))
+        page.get_by_label('Zubereitung aus einem Rezept', exact=False).focus()
+        expect(footer).to_have_css('position', 'static')
+        # R39: finish input focus before testing R08's normal sticky state.
+        core.locator('details').filter(has=page.locator('#prepared_recipe_choice')).locator('summary').focus()
+        if javascript:
+            expect(footer).to_have_attribute('data-sticky-ready', 'true')
+            expect(footer).to_have_css('position', 'sticky')
+            expect(primary).to_be_in_viewport(ratio=1)
+        else:
+            # M24, technical contract (2026-09-20): "Ohne JS bleibt er statisch."
+            # The full native Tab/submit sequence below proves reachability in flow.
+            expect(footer).to_have_css('position', 'static')
         box = primary.bounding_box()
         output = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(tmp_path)))
         output.mkdir(parents=True, exist_ok=True)
@@ -55,14 +69,16 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         viewport = output / f'prepared-before-save-{width}x{height}-js-{javascript}.png'
         page.screenshot(path=str(viewport))
         viewport.chmod(0o600)
-        assert box is not None and 0 <= box['y'] and box['y'] + box['height'] <= 1100
-        expect(primary).to_be_in_viewport(ratio=1)
+        if javascript:
+            assert box is not None and 0 <= box['y'] and box['y'] + box['height'] <= height
         core.locator('details').filter(has=page.get_by_label('Notiz', exact=True)).locator('summary').click()
         controls = core.locator('input:not([type="hidden"]), select, textarea, a[href], button, summary')
         controls.first.focus()
         for index in range(controls.count()):
             field = controls.nth(index)
             expect(field).to_be_focused()
+            if field.evaluate('element => element.matches("input, select, textarea")'):
+                expect(footer).to_have_css('position', 'static')
             expect(field).to_be_in_viewport()
             # Native textarea focus reveals its first line, including after resizing.
             # Check that this focused part receives hits rather than the save bar.
@@ -72,15 +88,17 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
                     box.x + box.width / 2, box.y + Math.min(16, box.height / 2)));
             }''')
             if index < controls.count() - 1:
-                field_box = field.bounding_box()
-                bar_box = page.locator('.grundlagen-core-actions').bounding_box()
-                assert field_box['y'] + field_box['height'] <= bar_box['y']
+                if not field.evaluate('element => Boolean(element.closest(".admin-form-footer"))'):
+                    field_box = field.bounding_box()
+                    bar_box = footer.bounding_box()
+                    assert field_box['y'] + field_box['height'] <= bar_box['y']
                 page.keyboard.press('Tab')
+        expect(primary).to_be_focused()
+        expect(primary).to_be_in_viewport(ratio=1)
         page.set_viewport_size({'width': width, 'height': 600})
-        assert page.locator('.grundlagen-core-actions').evaluate(
-            'element => getComputedStyle(element).position') == 'static'
+        expect(footer).to_have_css('position', 'static')
         page.set_viewport_size({'width': width, 'height': height})
-        primary.click()
+        primary.press('Enter')
         expect(page.get_by_role('heading', level=1)).to_have_text('Zutaten')
         expect(page.locator('.page-header-subtitle')).to_have_text('Zutat bearbeiten')
         path = urlsplit(page.url).path
@@ -170,3 +188,36 @@ def test_original_storage_and_prepared_pin_are_visible_after_location_change(
         viewport = output / f'prepared-location-conflict-{width}-js-{javascript}-viewport.png'
         page.screenshot(path=str(viewport))
         viewport.chmod(0o600)
+
+
+@pytest.mark.parametrize('width,javascript', [(1440, True), (390, True), (1440, False), (390, False)])
+def test_ingredient_save_footer_leaves_server_errors_uncovered(
+        b3, master_server, browser, width, javascript, tmp_path):  # noqa: F811
+    _, owner, _, _ = b3
+    base, cookie = master_server
+    before = snapshot(owner)
+    with browser.new_context(viewport={'width': width, 'height': 844}, java_script_enabled=javascript,
+                             reduced_motion='reduce', service_workers='block') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        page.goto(base + '/admin/grundlagen/zutaten/neu')
+        page.get_by_label('Name', exact=True).fill('Zutat ohne Lagerort D21')
+        core = page.locator('#food-core-form')
+        with page.expect_response(lambda response: response.request.method == 'POST') as outcome:
+            core.get_by_role('button', name='Speichern', exact=True).click()
+        assert outcome.value.status == 400
+        expect(page.get_by_label('Name', exact=True)).to_have_value('Zutat ohne Lagerort D21')
+        expect(page.locator('#storage_location_public_ids')).to_have_attribute('aria-invalid', 'true')
+        error = page.locator('#master-error')
+        expect(error).to_contain_text('Mindestens einen Lagerort')
+        error.focus()
+        expect(error).to_be_focused()
+        expect(error).to_be_in_viewport(ratio=1)
+        assert error.evaluate('''element => {
+            const box = element.getBoundingClientRect();
+            return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + 16));
+        }''')
+        # M24: errors keep the footer in document flow, including after input focus leaves.
+        expect(core.locator('[data-sticky-form], .admin-form-footer')).to_have_css('position', 'static')
+        page.screenshot(path=str(tmp_path / f'ingredient-error-{width}-js-{javascript}.png'))
+        assert snapshot(owner) == before
