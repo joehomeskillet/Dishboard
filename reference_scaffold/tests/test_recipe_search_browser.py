@@ -1,6 +1,7 @@
 """Real native full-text search field on `/admin/rezepte` at mobile/desktop sizes,
 without JavaScript (NoJS GET submit)."""
 import json
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -17,7 +18,7 @@ from test_recipe_search_db import (  # noqa: F401
 )
 from test_rendered_ui import browser  # noqa: F401
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/fts-ui-0915'
+EVIDENCE = Path(os.environ.get('UI_EVIDENCE_DIR', Path(__file__).resolve().parents[2] / '.claude/evidence/fts-ui-0915'))
 
 
 @pytest.mark.parametrize('width,height', [(1440, 900), (390, 844)])
@@ -159,9 +160,7 @@ def test_editor_disclosures_preserve_complete_native_post(
                         expect(page.locator('.admin-statusbar')).to_contain_text('Entwurf')
                         assert sorted(map(tuple, form.evaluate('f => [...new FormData(f)]'))) == expected
                         page.screenshot(path=str(tmp_path / f'editor-{width}-js-{javascript}.png'), full_page=True)
-                    menu = page.get_by_label('Mehr: Weitere Aktionen Zutat 1', exact=True)
-                    expect(menu).to_have_accessible_name('Mehr: Weitere Aktionen Zutat 1')
-                    menu.click()
+                    expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
                     insert = page.get_by_role('button', name='Zutat 1 davor einfügen', exact=True)
                     expect(insert).to_have_accessible_name('Zutat 1 davor einfügen')
                     assert 'Anlegen' not in (insert.get_attribute('aria-label') or insert.inner_text() or '')
@@ -170,16 +169,19 @@ def test_editor_disclosures_preserve_complete_native_post(
                     expect(remove).to_have_accessible_name('Zutat 1 entfernen')
                     assert remove.get_attribute('formnovalidate') is not None
                     assert '/admin/rezepte/formular?' in (remove.get_attribute('formaction') or '')
-                    expect(page.locator('.ui-sem-consequence').first).to_be_visible()
+                    description = remove.get_attribute('aria-describedby')
+                    assert description
+                    expect(page.locator('#' + description)).to_have_text('Löschen')
                     back = page.get_by_role('link', name='Zur Liste der Rezepte', exact=True)
                     expect(back).to_have_accessible_name('Zur Liste der Rezepte')
                     assert 'Zur Liste' in (back.get_attribute('aria-label') or '')
-                    page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
-                    history = page.get_by_role('link', name='Rezept-History', exact=True)
-                    expect(history).to_have_accessible_name('Rezept-History')
-                    quantity = page.get_by_role('link', name='Mengen berechnen', exact=True)
-                    expect(quantity).to_have_accessible_name('Mengen berechnen')
-                    assert 'berechnen' in (quantity.get_attribute('aria-label') or '').lower()
+                    history = page.locator('.admin-compact-toolbar [data-semantic="actions.history"]')
+                    expect(history).to_be_visible()
+                    expect(history).to_have_accessible_name('Verlauf für ' + recipe.payload.title)
+                    quantity = page.locator('.admin-compact-toolbar [data-semantic="recipe.quantity"]')
+                    expect(quantity).to_be_visible()
+                    expect(quantity).to_have_accessible_name('Mengen für ' + recipe.payload.title + ' berechnen')
+                    assert 'berechnen' in quantity.get_attribute('aria-label').lower()
                     source = page.locator('#recipe-source > summary')
                     source.focus()
                     page.keyboard.press('Enter')

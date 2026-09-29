@@ -5,13 +5,40 @@ from xml.etree import ElementTree
 import pytest
 from playwright.sync_api import expect
 
-from test_master_data_browser import master_server, targets  # noqa: F401
+from test_master_data_browser import master_server  # noqa: F401
 from test_recipe_routes import (  # noqa: F401
     app_engine, b3, create, fields, installed_pg16, pg16, seeded_pg16,
 )
 from test_recipe_store_db import line, payload, snapshot
 from test_recipe_forms import form_values
 from test_rendered_ui import browser  # noqa: F401
+
+
+def targets(page):
+    page.wait_for_load_state('load')
+    page.evaluate('document.fonts && document.fonts.ready')
+    expect(page.locator('body')).to_have_css('margin', '0px')
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    assert page.locator('main style, main [style]').count() == 0
+    coarse = page.evaluate("matchMedia('(any-pointer: coarse)').matches")
+    for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
+        if not control.is_visible():
+            continue
+        semantic = control.evaluate("el => el.classList.contains('ui-sem-control')")
+        minimum = (44 if coarse else 36) if semantic else 48
+        box = control.bounding_box()
+        assert box is not None and box['height'] >= minimum
+        if control.is_disabled():
+            expect(control).to_have_attribute('aria-disabled', 'true')
+            wrapper = control.locator('..')
+            expect(wrapper).to_have_class('ui-sem-disabled')
+            description = page.locator('#' + wrapper.get_attribute('aria-describedby'))
+            assert description.inner_text().strip()
+            wrapper.focus()
+            expect(wrapper).to_be_focused()
+        else:
+            control.focus()
+            expect(control).to_be_focused()
 
 
 @pytest.mark.parametrize('width', [390, 820, 1440])
@@ -57,7 +84,7 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
         assert not errors
         assert page.locator('link[href*="tabler.min.css"]').count() == 1
         assert page.locator('main [style], main style').count() == 0
-        actions = page.locator('#recipe-editor .admin-compact-actions > summary')
+        expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
         sprite_url = '/static/vendor/tabler-icons/tabler-icons.svg'
         sprite = context.request.get(base + sprite_url)
         assert sprite.status == 200
@@ -66,27 +93,20 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
             symbol = symbols.find(f"{{http://www.w3.org/2000/svg}}symbol[@id='tabler-{name}']")
             assert symbol is not None and len(symbol)
         expect(page.get_by_role('link', name='Zur Liste der Rezepte', exact=True).locator('use')).to_have_attribute('href', sprite_url + '#tabler-arrow-left')
-        expect(page.locator('.admin-compact-toolbar summary use')).to_have_attribute('href', sprite_url + '#tabler-dots')
-        for summary in actions.all():
-            expect(summary.locator('use')).to_have_attribute('href', sprite_url + '#tabler-dots')
-            summary.click()
         for control in page.locator('#recipe-editor button[formaction]').all():
             expect(control).to_be_visible()
             # Icon-first: row actions keep an accessible name; visible text is not required.
             assert (control.get_attribute('aria-label') or control.inner_text() or '').strip()
             operation = parse_qs(urlsplit(control.get_attribute('formaction')).query)['row_action'][0]
-            symbol = {'add': 'plus', 'remove': 'trash', 'up': 'arrow-up', 'down': 'arrow-down'}[operation]
+            symbol = {'add': 'plus', 'remove': 'trash', 'up': 'arrows-move', 'down': 'arrows-move'}[operation]
             expect(control.locator('use')).to_have_attribute('href', sprite_url + '#tabler-' + symbol)
-        for summary in actions.all():
-            summary.click()
         page.get_by_role('heading', level=1).click()
         page.screenshot(path=str(tmp_path / f'recipe-editor-{width}-js{javascript}.png'), full_page=True)
         before = snapshot(owner)
-        more = page.locator('.admin-compact-toolbar .admin-compact-actions > summary')
-        expect(more).to_have_text('')
-        expect(more).to_have_accessible_name('Weitere Aktionen')
-        more.click()
-        page.get_by_role('link', name='Archivieren', exact=True).click()
+        archive = page.locator('.admin-compact-toolbar [data-semantic="actions.archive"]')
+        expect(archive).to_have_text('')
+        expect(archive).to_have_accessible_name('Browser Suppe archivieren')
+        archive.click()
         expect(page.get_by_text('Archivieren erhält Zutaten, Bilder und gespeicherte Stände.', exact=False)).to_be_visible()
         expect(page.get_by_role('button', name='Archivieren', exact=True)).to_have_text('Archivieren')
         post_count = len(posts)
