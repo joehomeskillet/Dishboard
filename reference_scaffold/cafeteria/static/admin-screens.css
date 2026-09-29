@@ -164,10 +164,6 @@ summary.card-header:focus-visible {
   .screens-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 1023px) {
-  .screens-overview,
-  #screen-assignment-details .screens-grid { grid-template-columns: minmax(0, 1fr); }
-}
 
 .screens-overview,
 .print-screens-grid,
