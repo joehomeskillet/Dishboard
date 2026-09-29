@@ -7,7 +7,7 @@ from html import escape
 from typing import Literal, cast
 
 from flask import (
-    abort, current_app, flash, get_flashed_messages, make_response, redirect,
+    abort, current_app, flash, g, get_flashed_messages, make_response, redirect,
     render_template, request, url_for,
 )
 from sqlalchemy import text
@@ -636,6 +636,17 @@ def menu_get(family: str):
     if day is None or meal is None or option is None:
         abort(400, description='Menüslot ist unvollständig.')
     _raster(profile, week, day, meal, option)
+    query = request.args.get('q', '')
+    raw_page = request.args.get('page', '1')
+    g.menu_collection_return = None
+    if (request.args.getlist('from') == ['menus']
+            and all(len(request.args.getlist(key)) <= 1 for key in ('q', 'page'))
+            and len(query) <= 200
+            and re.fullmatch(r'[1-9][0-9]{0,4}', raw_page) is not None
+            and int(raw_page) <= 10000):
+        g.menu_collection_return = url_for(
+            'admin.menu_collection', family=family, q=query, page=int(raw_page),
+        )
     return _render_menu_page(profile, family, scope, week, day, meal, option)
 
 @bp.post('/<any(cafeteria, patienten):family>/menu')

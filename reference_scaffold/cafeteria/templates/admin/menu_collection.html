@@ -95,7 +95,7 @@
                     </details>
                     {% endif %}
                   </td>
-                  <td class="admin-table-actions" data-label="Bearbeiten">{{ icon_button('actions.edit' if row.workflow_state != 'archived' else 'actions.open', object=row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y'), href=url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code)) }}</td>
+                  <td class="admin-table-actions" data-label="Bearbeiten">{{ icon_button('actions.edit' if row.workflow_state != 'archived' else 'actions.open', object=row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y'), href=url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code, **{'from': 'menus', 'q': query, 'page': page})) }}</td>
                 </tr>
                 {% else %}
                 <tr><td colspan="5">{% call empty_state('no_match' if query else 'none', empty_title, empty_text) %}{{ icon_button('view.reset' if query else 'navigation.weekplan', href=url_for('admin.menu_collection', family=family) if query else url_for('admin.' ~ family)) }}{% endcall %}</td></tr>
@@ -130,7 +130,7 @@
                 {% endif %}
               </div>
               <div class="card-footer">
-                <div class="admin-row-actions">{{ icon_button('actions.edit' if row.workflow_state != 'archived' else 'actions.open', object=row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y'), href=url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code)) }}</div>
+                <div class="admin-row-actions">{{ icon_button('actions.edit' if row.workflow_state != 'archived' else 'actions.open', object=row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y'), href=url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code, **{'from': 'menus', 'q': query, 'page': page})) }}</div>
               </div>
             </article>
           </div>

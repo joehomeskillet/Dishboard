@@ -1,4 +1,4 @@
-"""D8 / UI-18: real unsaved-change dialogs, native saves and return context."""
+"""D8 / D16 / UI-18: real unsaved-change dialogs, native saves and return context."""
 from __future__ import annotations
 
 import json
@@ -75,8 +75,12 @@ def _navigate(page, navigation):
         page.get_by_role('link', name='Wochenplan', exact=True).last.click()
 
 
-def _expect_destination(page, family, navigation, evidence):
-    target = evidence['collection'] if navigation == 'history-back' else f'/admin/{family}?week={DAY}'
+def _expect_destination(page, family, navigation, evidence, *, from_collection=True):
+    target = f'/admin/{family}?week={DAY}'
+    if navigation == 'history-back':
+        target = evidence['collection']
+    elif navigation == 'cancel' and from_collection:
+        target = evidence['collection'] + '&page=1'
     expect(page).to_have_url(urljoin(evidence['editor'], target))
     page.wait_for_load_state('networkidle')
 
@@ -159,7 +163,7 @@ def test_successful_save_clears_navigation_guard(menu_session, admin_engine, nav
     assert evidence['writes'] == [{'method': 'POST', 'url': evidence['editor'].split('?')[0]}]
     after_save = stored_state(admin_engine)
     _navigate(page, navigation)
-    _expect_destination(page, family, navigation, evidence)
+    _expect_destination(page, family, navigation, evidence, from_collection=False)
     assert evidence['dialogs'] == []
     assert len(evidence['writes']) == 1
     assert stored_state(admin_engine) == after_save
@@ -170,23 +174,120 @@ def test_successful_save_clears_navigation_guard(menu_session, admin_engine, nav
 def test_collection_return_context_expected_current_behavior(
     menu_session, admin_engine, navigation,
 ):
-    """Characterize D8 delta: links lose q; browser Back preserves q and profile."""
+    """Cancel and browser Back retain the collection; week navigation stays explicit."""
     page, family, _, evidence = menu_session
     before = stored_state(admin_engine)
+    week_url = f'/admin/{family}?week={DAY}'
+    expect(page.locator('[data-semantic="navigation.weekplan"]')).to_have_attribute('href', week_url)
+    expect(page.get_by_role('navigation', name='Breadcrumb').get_by_role(
+        'link', name='Wochenplan', exact=True)).to_have_attribute('href', week_url)
     _navigate(page, navigation)
     _expect_destination(page, family, navigation, evidence)
     returned = urlsplit(page.url)
-    if navigation == 'history-back':
+    if navigation in ('cancel', 'history-back'):
         assert returned.path == f'/admin/{family}/menues'
-        assert parse_qs(returned.query) == {'q': [TITLE]}
+        expected_query = {'q': [TITLE]}
+        if navigation == 'cancel':
+            expected_query['page'] = ['1']
+        assert parse_qs(returned.query) == expected_query
         expect(page.locator('[name="q"]')).to_have_value(TITLE)
         expect(page.locator('.profile-tabs [aria-current="true"]')).to_have_attribute(
             'href', evidence['collection'])
-        evidence['filter_return'] = 'q and profile retained by browser history'
+        evidence['filter_return'] = 'q and profile retained by cancel or browser history'
     else:
-        # Expected current behavior, NOT acceptance of filter-context preservation.
         assert returned.path == f'/admin/{family}'
         assert parse_qs(returned.query) == {'week': [DAY]}
-        evidence['filter_return'] = 'DELTA: links return to week; q/collection context lost'
+        evidence['filter_return'] = 'explicit week link retains week destination'
     assert evidence['writes'] == []
+    assert stored_state(admin_engine) == before
+
+
+def test_collection_return_context_rejects_invalid_or_foreign_values(menu_session, admin_engine):
+    page, family, _, evidence = menu_session
+    before = stored_state(admin_engine)
+    editor = f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+    contexts = [
+        '', 'q=ignored&page=2', 'from=week&q=ignored&page=2',
+        'from=https%3A%2F%2Fexample.invalid', 'from=%2F%2Fexample.invalid',
+        'from=menus&from=week', 'from=menus&page=1&page=2',
+        'from=menus&q=first&q=second', 'from=menus&q=' + 'x' * 201,
+        'return_url=https%3A%2F%2Fexample.invalid',
+    ]
+    contexts.extend('from=menus&' + urlencode({'page': value}) for value in (
+        '', '0', '-1', '1.5', '1e2', 'abc', '01', '+1', ' 1', '١', '10001', '9' * 5000,
+    ))
+    for query in contexts:
+        response = page.goto(editor + ('&' + query if query else ''), wait_until='networkidle')
+        assert response is not None and response.status == 200
+        expect(page.get_by_role('link', name='Abbrechen', exact=True)).to_have_attribute(
+            'href', f'/admin/{family}?week={DAY}')
+        _navigate(page, 'cancel')
+        expect(page).to_have_url(urljoin(evidence['editor'], f'/admin/{family}?week={DAY}'))
+    assert evidence['writes'] == []
+    assert stored_state(admin_engine) == before
+
+
+def test_collection_return_context_preserves_page_and_encodes_search(menu_session, admin_engine):
+    page, family, _, evidence = menu_session
+    before = stored_state(admin_engine)
+    editor = f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+    query = 'D16 & <tag> + /? # Kräuter'
+    for page_number in (None, '2', '10000'):
+        context = {'from': 'menus', 'q': query, 'return_url': 'https://example.invalid'}
+        if page_number is not None:
+            context['page'] = page_number
+        response = page.goto(editor + '&' + urlencode(context), wait_until='networkidle')
+        assert response is not None and response.status == 200
+        target = page.get_by_role('link', name='Abbrechen', exact=True).get_attribute('href')
+        destination = urlsplit(target)
+        assert destination.scheme == destination.netloc == ''
+        assert destination.path == f'/admin/{family}/menues'
+        assert parse_qs(destination.query) == {'q': [query], 'page': [page_number or '1']}
+        _navigate(page, 'cancel')
+        expect(page).to_have_url(urljoin(evidence['editor'], target))
+        expect(page.locator('[name="q"]')).to_have_value(query)
+    assert evidence['writes'] == []
+    assert stored_state(admin_engine) == before
+
+
+def test_collection_save_and_back_still_returns_to_week(menu_session, admin_engine):
+    page, family, _, evidence = menu_session
+    page.get_by_label('Menüname', exact=True).fill('D16 gespeichert zur Woche')
+    with page.expect_response(lambda response: response.request.method == 'POST') as saved:
+        page.get_by_role('button', name='Speichern und zum Wochenplan', exact=True).click()
+    assert saved.value.status == 303
+    expect(page).to_have_url(urljoin(evidence['editor'], f'/admin/{family}?week={DAY}'))
+    assert evidence['writes'] == [{
+        'method': 'POST', 'url': urljoin(evidence['editor'], f'/admin/{family}/menu?return_to=week'),
+    }]
+    with admin_engine.connect() as connection:
+        assert tuple(connection.execute(text(
+            'SELECT title, row_version FROM cafeteria.menu_items'
+        )).one()) == ('D16 gespeichert zur Woche', 2)
+
+
+@pytest.mark.parametrize('status', [400, 409])
+def test_collection_return_error_rerender_keeps_native_week_fallback(menu_session, admin_engine, status):
+    page, family, _, evidence = menu_session
+    if status == 409:
+        with admin_engine.begin() as connection:
+            connection.execute(text('UPDATE cafeteria.menu_items SET row_version=row_version+1'))
+    before = stored_state(admin_engine)
+    page.get_by_label('Menüname', exact=True).fill('D16 nicht gespeichert')
+    if status == 400:
+        for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
+            summary.click()
+        page.locator('[name="origin_mode"][value="manual"]').check()
+        page.locator('[name="origin_ingredient"]').fill('Rind')
+        page.locator('[name="origin_country_code"]').select_option('')
+    with page.expect_response(lambda response: response.request.method == 'POST') as saved:
+        page.get_by_role('button', name='Menü speichern', exact=True).click()
+    assert saved.value.status == status
+    page.wait_for_load_state('networkidle')
+    expect(page.get_by_label('Menüname', exact=True)).to_have_value('D16 nicht gespeichert')
+    expect(page.locator('form[data-menu-editor]')).to_have_attribute('action', f'/admin/{family}/menu')
+    expect(page.locator('form[data-menu-editor] [name="row_version"]')).to_have_value('1')
+    expect(page.get_by_role('link', name='Abbrechen', exact=True)).to_have_attribute(
+        'href', f'/admin/{family}?week={DAY}')
+    assert evidence['writes'] == [{'method': 'POST', 'url': evidence['editor'].split('?')[0]}]
     assert stored_state(admin_engine) == before
