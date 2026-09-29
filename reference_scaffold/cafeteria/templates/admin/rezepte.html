@@ -1,7 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, pagination, empty_state, hint, label %}
-{% from 'ui/_semantic.html' import icon_button, icon_summary, filter_bar_sem %}
-{% from 'admin/rezepte_ansicht.html' import template_links %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem %}
 {% set workflow_nav = 'recipes' %}
 {% set extra_open = query or ingredient or tag or archived %}
 {% set has_filters = query or ingredient or tag or archived or text %}
@@ -23,10 +22,10 @@
 {{ filter_bar_sem(url_for('admin.recipes_list'), search_name='text', search_value=text, filters=recipe_filters, active=has_filters, reset_url=url_for('admin.recipes_list'), id='recipe', maxlength=200, describedby='text-hint', loading='Rezepte suchen', open=extra_open, search_id='text', search_emphasis='primary' if not can_write else none) }}
 {% if text %}<p class="text-secondary">Sortiert nach Relevanz.</p>{% endif %}
 {% if rows %}
-<div class="card">
+<div class="card recipe-list-card">
 <table class="table table-vcenter card-table admin-table admin-table--stack recipe-list">
 <caption class="visually-hidden">Rezepte</caption>
-<thead><tr><th scope="col">Name</th><th scope="col">Ausbeute</th><th scope="col">Zustand</th><th scope="col">Aktionen</th></tr></thead>
+<thead><tr><th scope="col">Name</th><th scope="col">Ausbeute</th><th scope="col">Zustand</th><th scope="col" class="text-end">Aktionen</th></tr></thead>
 <tbody>
 {% for item in rows %}{% set links = recipe_links[item.public_id] %}
 {% set draft = namespace(incomplete=not item.payload.ingredients) %}{% for ingredient in item.payload.ingredients %}{% if not ingredient.food_public_id or ingredient.quantity is none or not ingredient.unit_code %}{% set draft.incomplete = true %}{% endif %}{% endfor %}
@@ -34,18 +33,19 @@
 <th scope="row" data-label="Name"><span class="admin-list-primary">{{ item.payload.title }}</span></th>
 <td class="admin-list-meta" data-label="Ausbeute">{{ item.payload.servings }} {{ item.payload.servings_unit_code }}</td>
 <td class="admin-table-status" data-label="Zustand">{% if not item.active %}{{ label('Archiviert', 'neutral') }}{% elif archived %}{{ label('Entwurf', 'info') }}{% endif %}{% if item.active and draft.incomplete %}{{ label('Angaben fehlen', 'warning', icon='alert-triangle', detail='Zutaten, Mengen oder Einheiten fehlen') }}{% endif %}</td>
-<td class="admin-table-actions" data-label="Aktionen"><div class="admin-row-actions">
-{% if can_write and item.active %}{{ icon_button('actions.edit', href=url_for('admin.recipe_edit', recipe_id=item.public_id, **({'from': 'recipes', 'q': query, 'archived': '1' if archived else '0', 'page': page} if query or archived or page > 1 else {})), icon_only=true, object=item.payload.title) }}{% else %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, object=item.payload.title) }}{% endif %}
-<details class="ui-sem-actions">{{ icon_summary('actions.more', object=item.payload.title) }}<div class="ui-sem-action-items">
-{% if can_write and item.active %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, object=item.payload.title, show_text=true) }}{% endif %}
+<td class="admin-table-actions" data-label="Aktionen">
+{% set actions = [{'key': 'actions.open', 'href': url_for('admin.recipe_view', recipe_id=item.public_id)}] %}
+{% if can_write and item.active %}{% set _ = actions.append({'key': 'actions.edit', 'href': url_for('admin.recipe_edit', recipe_id=item.public_id, **({'from': 'recipes', 'q': query, 'archived': '1' if archived else '0', 'page': page} if query or archived or page > 1 else {}))}) %}{% endif %}
 {% if links.latest_revision %}
-{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=item.public_id, revision_id=links.latest_revision.public_id), text=t('recipe.pdf_open.label'), aria_label=t('recipe.pdf_open.aria', revision=links.latest_revision.revision_number, name=item.payload.title), show_text=true) }}
-{% else %}{{ icon_button('actions.history', href=url_for('admin.recipe_revisions', recipe_id=item.public_id, _anchor='recipe-freeze'), object=item.payload.title, attrs={'aria-describedby': 'print-hint-' ~ item.public_id}, show_text=true) }}{% endif %}
-{{ icon_button('actions.history', href=url_for('admin.recipe_revisions', recipe_id=item.public_id), icon_only=true, object=item.payload.title, show_text=true) }}
-{% if not links.latest_revision %}<p class="text-secondary mt-2 mb-0" id="print-hint-{{ item.public_id }}">Zum Drucken zuerst einen Stand festhalten.</p>{% endif %}
-{{ template_links(links, item.public_id, can_create_template) }}
-</div></details>
-</div></td>
+{% set _ = actions.append({'key': 'actions.open_pdf', 'href': url_for('admin.recipe_revision_pdf', recipe_id=item.public_id, revision_id=links.latest_revision.public_id), 'aria_label': t('recipe.pdf_open.aria', revision=links.latest_revision.revision_number, name=item.payload.title)}) %}
+{% else %}{% set _ = actions.append({'key': 'actions.open_pdf', 'type': 'button', 'disabled_reason': 'Noch kein gespeicherter Stand vorhanden'}) %}{% endif %}
+{% set _ = actions.append({'key': 'actions.history', 'href': url_for('admin.recipe_revisions', recipe_id=item.public_id)}) %}
+{% if not links.latest_revision and can_write and item.active %}{% set _ = actions.append({'key': 'actions.snapshot', 'href': url_for('admin.recipe_revisions', recipe_id=item.public_id, _anchor='recipe-freeze')}) %}{% endif %}
+{% for template in links.templates %}
+{% set _ = actions.append({'key': 'actions.open_template', 'href': url_for('admin.dish_template_edit', public_id=template.public_id), 'object': template.title ~ (' · archiviert' if not template.active else '')}) %}
+{% else %}{% if can_create_template %}{% set _ = actions.append({'key': 'actions.create_template', 'href': url_for('admin.dish_template_new', recipe=item.public_id)}) %}{% endif %}{% endfor %}
+{{ row_actions(actions, object=item.payload.title) }}
+</td>
 </tr>
 {% endfor %}
 </tbody>
