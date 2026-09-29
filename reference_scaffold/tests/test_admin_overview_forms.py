@@ -159,6 +159,9 @@ def test_menu_direct_origin_action_preserves_native_form(
         route = f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
         assert page.goto(route).status == 200
         page.get_by_label('Menüname', exact=True).fill('Direkte Herkunftsaktion')
+        if family == 'cafeteria':
+            page.get_by_label('Mitarbeitende CHF', exact=True).fill('9.50')
+            page.get_by_label('Preis für externe Gäste CHF', exact=True).fill('14.50')
         field = page.locator('[name="origin_ingredient"]').first
         field.fill('Tomate')
         page.locator('[name="origin_country_code"]').first.select_option('CH')
