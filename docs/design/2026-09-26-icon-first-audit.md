@@ -256,6 +256,8 @@ Grenze der Zählung: `label as ui_label` zählt nicht als `label(`. `components.
 
 ## 1. Korrekturen an Runde 1
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die historischen Befunde Nr. 2/3/5 zu Bearbeiten/Öffnen plus Überlauf sind keine aktuellen Gestaltungsvorgaben. Das zugehörige Zwei-Aktionen-Budget ist abgelöst; Befunde und damalige Zählungen bleiben unverändert.
+
 Die Zeilenangaben aus Runde 1 stimmen überwiegend. Diese Zuordnungen waren falsch oder unvollständig:
 
 1. **Zutaten sind nicht `grundlagen_food.html`.** Die Liste ist `grundlagen.html` über `admin.master_data_list` (`GET /admin/grundlagen`, Art Zutaten und dieselben anderen Stammdatenarten). `grundlagen_food.html:1` erweitert diese Liste und ersetzt Kopf und Inhalt. Das ist die Detail- und Neuanlage der Zutat (`admin.master_data_detail`, `admin.master_data_new`), einschliesslich der Preistabelle ab Zeile 88. Der Befund «zwei Filter, Containerüberschrift, schon teilweise Iconbuttons» steht in `grundlagen.html:50-74`, nicht im Detailformular. `grundlagen_food.html:147` bleibt der Prüfknopf des Detailformulars.
@@ -541,6 +543,8 @@ Die Matrix führt an den Routen `default`, `empty` / `empty_or_unavailable`, `in
 `admin.recipe_view` listet in der Matrix zusätzlich `rezepte_scale.html`. Gerendert wird im Erfolg `rezepte_ansicht.html` (`recipe_routes.py:183`).
 
 ## 6. Sichtbare Zeilenaktionen über 2
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Überschreitung von zwei sichtbaren Aktionen ist kein Verstoß gegen den aktuellen Vertrag mehr. Alle verfügbaren Aktionen müssen direkt sichtbar sein. Nachfolgende Messwerte bleiben historische Befunde, keine Direktaktionsabnahme.
 
 Geprüft wurden alle Schleifen, deren Skriptobergrenze über 2 lag.
 

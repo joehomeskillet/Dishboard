@@ -53,7 +53,9 @@ Vorrang vor älteren Text-/48-px-Regeln: gemeinsame Symbolbuttons mit lokalisier
 zugänglichem Namen und Tooltip; 36 px bei feinem, mindestens 44 px bei grobem
 Zeiger. Sichtbarer Text bleibt in den Ausnahmen aus §5.4, insbesondere Navigation,
 Formular-/Inhaltsabschnitten, geöffneten Menüs und eindeutigen Sicherheitsbestätigungen.
-Pro normaler Zeile höchstens Hauptaktion plus Überlauf, Details erst bei Bedarf.
+Alle verfügbaren Aktionen direkt als einheitliche Symbole zeigen; keine Mehr-/Drei-Punkte-Menüs.
+Schmale Breiten nutzen sichtbaren Umbruch gemäss [SDD Direkte Symbolaktionen](docs/design/2026-09-29-direct-symbol-actions-sdd.md).
+Fachliche Details bleiben bei Bedarf erreichbar.
 Gemeinsame Filter verwenden, Normalzustände nicht doppelt anzeigen und gleiche
 Warnursachen bündeln; einzelne Probleme und ihre Bedeutung bleiben erreichbar.
 Nicht erfasst bleibt ungleich allergenfrei, fehlender Bestand ungleich null;

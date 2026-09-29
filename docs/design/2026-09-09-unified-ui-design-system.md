@@ -14,7 +14,19 @@ Dieses Dokument ist eigenständig verwendbar. Die beiden älteren Entwürfe zum 
 
 ---
 
+## Direkte Symbolaktionen
+
+Sämtliche im aktuellen Kontext verfügbaren Objekt- und Zeilenaktionen werden direkt als einheitliche Symbole dargestellt. Generische Mehr-/Drei-Punkte-Menüs, Hover-only-Aktionen und aufklappende Aktionslisten sind für diesen Zweck nicht zulässig. Diese Regel gilt auch für Objektköpfe, Formularaktionsgruppen und eingebettete Listen und ersetzt frühere feste Budgets sichtbarer Aktionen.
+
+Die gemeinsame Aktionskomponente rendert alle berechtigten und fachlich vorgesehenen Aktionen. Sie wahrt stabile Semantik und Reihenfolge, eindeutige zugängliche Namen, gemeinsame Geometrie sowie native Link- und Formularverträge. Keine seitenlokalen Sonderrenderer.
+
+Desktop: eine kompakte Symbolreihe, soweit der Platz reicht. Schmale Oberflächen: sichtbare Aktionszeile mit geordnetem Umbruch. Mobile Darstellung ist keine Ausnahme für versteckte Aktionen.
+
+Fachliche Informationen, notwendige Warnungen, Berechtigungen und Schutzschritte bleiben erhalten. Sicherheitsbestätigungen dürfen lesbaren Text enthalten. Echte Auswahl-, Filter-, Navigations- und Detailkomponenten bleiben von dieser Regel unberührt, solange sie keine generische Aktionssammlung verstecken.
+
 ## Vorrang der Icon-first-Spezifikation vom 2026-09-26
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Das folgende Budget „Hauptaktion plus Überlauf“ und D17 „Weitere Aktionen für …“ als Normalfall sind abgelöst. Icon-first, 36/44-px-Ziele, Listenanatomie, Sticky-Vertrag, Rückkehrkontext, Prüfhinweise und fehlend ≠ 0/allergenfrei bleiben erhalten.
 
 Für Verwaltungsoberflächen ist die [Icon-first-Spezifikation](2026-09-26-icon-first-simplification-spec.md)
 der aktuelle Gestaltungsvertrag. Sie ersetzt widersprechende ältere Vorgaben in
@@ -198,6 +210,8 @@ In operativen Planungs- und Listenansichten nur **kleine Thumbnails** mit festem
 
 ### Verbotene Anti-Patterns (Manifest v2 §14)
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Nr. 9 ist hinsichtlich des Aktionsüberlaufmenüs abgelöst. Ungewohnte Aktionen erhalten direkte Symbole mit Namen und Tooltip; notwendige Konsequenztexte bleiben im Bestätigungsschritt.
+
 1. horizontale Subnavigation zusätzlich zur Sidebar;
 2. mehrere gleich starke Primärbuttons;
 3. permanent sichtbare Sonderoptionen;
@@ -239,6 +253,8 @@ Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. 
 
 #### Informationshierarchie (Prompt §3)
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** R12/R13 sind hinsichtlich des Verbergens verfügbarer Aktionen in `action_menu`/Overflow abgelöst. Gewichtung, Fachdetails und technische Zusatzinformationen behalten ihre Regeln.
+
 | ID | Regel | Prüfbar durch: |
 |---|---|---|
 | R11 | Primär sichtbar: Seitentitel (`page_header` H1), aktueller Kontext (Statusbar/Breadcrumb), wichtigste Information und genau eine dominante Primäraktion im Kopf. | Screenshot 360/1024/1440 px: H1 + Statusbar + Primärbutton innerhalb des ersten Viewports ohne Scroll; `templates/admin/_macros.html:11` |
@@ -246,6 +262,8 @@ Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. 
 | R13 | Tertiäre Inhalte dürfen visuell nicht dieselbe Prominenz wie Primär haben (kein gleich grosser Button, keine volle Card für Zusatzinfo). | Visuell: Tertiär nutzt `btn-ghost-*`, `disclosure_section` oder `action_menu`; höchstens ein `btn-primary` je Kontext |
 
 #### Aktionen (Prompt §4)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** R16s `action_menu`, Ein-Aktions-Budget und Menü-Kurztext sind abgelöst. Alle verfügbaren Aktionen erscheinen direkt als Symbole; Primärgewichtung und Schutzschritte bleiben erhalten.
 
 | ID | Regel | Prüfbar durch: |
 |---|---|---|
@@ -285,6 +303,8 @@ Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. 
 | R27 | Keine leeren Riesen-Cards: Card-Innenabstand `--app-card-inset` (`var(--app-space-6)` compact / `var(--app-space-8)` comfortable), nicht weiter aufblähen. | `data-density` auf `.admin-main`; Card ohne Inhalt >50 % Leerfläche im Screenshot = Verstoß |
 
 #### Icons (Prompt §9)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** R29s Textausnahme für geöffnete Aktionsmenüs erlaubt keinen generischen Aktionssammler mehr. Direkte Symbolaktionen behalten zugängliche Namen; Sicherheitsbestätigungen bleiben lesbar.
 
 | ID | Regel | Prüfbar durch: |
 |---|---|---|
@@ -330,6 +350,8 @@ Quelle: `docs/design/uiux-polish-2026-09-23/00_PROMPT_Global_UI_Polish_Run.md`. 
 | R42 | Neue Abstraktion nur wenn ≥2 Stellen vereinfacht; keine Migration als Nebenprodukt. | PR-Beschreibung nennt betroffene Makros; keine DB-/API-Änderung |
 
 ### M-Muster — verbindliches Kleinst-Designsystem (Prompt §2)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** P2s `details.admin-form-rare` und M54s `action_menu` als Versteck seltener Befehle sind abgelöst. Formularaktionen bleiben direkt sichtbar; echte Auswahl, Filter und Fachdetails dürfen aufklappen.
 
 **P2 Aktionsvertrag:** Primär `btn btn-primary` (genau eine je `main`, P3 prüft
 die Modul-Aufrufer), sekundär `btn` oder `btn-outline-*`, tertiär `btn btn-ghost`
@@ -409,6 +431,8 @@ destruktive separat in `admin-form-danger`. Bestehende Positionsargumente bleibe
 | M63 | Information | `.alert-info`; `status.info` Registry | Neutral/informativ, nicht warnend | Erledigt: status.info und admin-statusbar-item--info; P3-Einsatz offen |
 
 ### A-Anti-Patterns (Prompt §1)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** A42s Verweis auf `action_menu` ist als Mittel gegen konkurrierende Aktionen abgelöst. Ruhige Gewichtung bleibt Pflicht; alle verfügbaren Befehle bleiben direkt sichtbar.
 
 | ID | Woran erkennbar | Ersatz |
 |---|---|---|
@@ -559,6 +583,8 @@ Import `upload`, Export `download`, Mehr `dots`.
 
 ### R44 — Kurze Aktionen und sichere Icon-only-Bedienung
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die nachfolgende Textausnahme für `action_menu` ist keine Erlaubnis für generische Aktionsverstecke. Verfügbare Befehle erscheinen direkt; fachliche Inhalte, echte Auswahl/Navigation und notwendige Bestätigungstexte bleiben lesbar.
+
 **Ersetzt:** Die P2c/P2d-Regel «Primär- und destruktive Aktionen behalten sichtbaren
 Kurztext» sowie native Button-Tooltips gelten nicht mehr. Quelle:
 `2026-09-26-icon-first-simplification-spec.md` §5–7, §12.3, §12.5.
@@ -590,6 +616,8 @@ Geometrie über `--app-sem-control-*`: 36 × 36 px bei feinem Zeiger, mindestens
 gemeinsamer Control-Radius. Auch ein laufender Symbolbutton behält seine Breite.
 
 ### R45 — Eine Direktaktion pro Zeile
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Überschrift, Erstes-Item-Budget und Mehr-Menü-Vertrag sind abgelöst. `row_actions` zeigt alle verfügbaren Items direkt; Altadapter dürfen nur dieselbe Direktgruppe rendern. Reihenfolge, Rechte, URLs, CSRF, Formulare, Primärgewichtung und Konsequenzprüfung bleiben erhalten.
 
 `row_actions(items, object=none)` zeigt höchstens das erste Element direkt. Alle weiteren
 liegen in `more_actions(items, object=none)` (`action_menu` bleibt kompatibler Adapter),
@@ -647,6 +675,8 @@ R46/R47 und ihre gemeinsamen Metriken gelten unverändert.
 
 ### M64 — Button- und Aktionsvertrag
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die beschriebenen Menüaktionen/`more_actions` und `dropdown-item` begründen keinen Aktionsüberlauf mehr. Altadapter rendern direkte Symbolgruppen; Kontextparameter, Attributprüfung, Zustände und Formularverträge bleiben erhalten.
+
 In `templates/ui/_semantic.html`: bisherige Positionsparameter von `icon_button`
 bleiben, einschliesslich `size='default'` (Legacy-`large` verändert Symbolbuttons nicht). P2c ergänzt
 `text=none, aria_label=none, title=none, class='', emphasis=none, attrs=none`.
@@ -689,6 +719,8 @@ Klassen `.badge.admin-label.admin-status--<variant>`. Tokens:
 Lange Texte dürfen die Mindesthöhe erweitern; kurze Varianten sind gleich hoch.
 
 ### M66 — Listen- und Tabellenvertrag
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Der Legacy-Slot `more_actions` darf keine Befehle mehr verstecken. `overflow` für weitere Kennzeichnungen bleibt davon unberührt.
 
 `list_row(name=none, subtitle=none, state=none, action=none, markings=none,
 overflow=0, more_actions=none, primary=none, secondary=none, meta=none,
@@ -748,6 +780,8 @@ Submitter während des breitenstabilen Ladezustands. Listenmessung: 390/1440 px,
 Verboten; Registry und `icon_button`/`icon_label` verwenden.
 
 ### A52 — Mehrere dauernd sichtbare Zeilenaktionen
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Dieses Verbot samt „höchstens eine Direktaktion, Rest natives Mehr“ ist abgelöst. Alle verfügbaren Aktionen bleiben direkt sichtbar, bei schmaler Breite mit Umbruch.
 Verboten; höchstens eine Direktaktion, Rest natives «Mehr».
 
 ### A53 — Individuelle Badge-Metriken oder abgeschnittene Warntexte
@@ -760,6 +794,8 @@ Verboten; gemeinsame Tokens, Status-/Aktionsspalten und mobile Stack-Darstellung
 Verboten; Anstiege korrigieren. Statische Null ist kein Beweis für gerenderte Konsistenz.
 
 ## Auftraggeber-Paket Semantic UI Language (2026-09-20)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die beschriebene Nutzung von `actions.more` als Aktionsverstecker ist abgelöst. Historische Registry-Schlüssel bleiben dokumentiert; fachliche Disclosures und das Verbot zyklischer Imports bleiben gültig.
 
 Verbindliche Quelle: `docs/design/semantic-ui-language-2026-09-20/`, einschliesslich
 `IMPORT_NOTES.md`. Dieses Paket präzisiert Icon-/Label-Regeln; Fachlichkeit,
@@ -890,6 +926,8 @@ Versteckte Warnungen, verlorene Werte und eine breite Hülle mit weiterhin riesi
 
 ### 1.1 Verbindliche Regeln R01–R10
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** R08s „Seltene Aktionen in einem beschrifteten Menü“ ist abgelöst. Die hervorgehobene Speicherhandlung und der Sticky-Vertrag bleiben unverändert.
+
 | ID | Regel | Konkrete Umsetzung |
 |---|---|---|
 | R01 | Volle Arbeitsbreite | Hauptbereich rechts der Navigation vollständig nutzen; keine schmalen inneren Gesamtwrapper und kein `100vw` über die Sidebar hinweg. Verschärft durch Polish-Lauf: R25, R26. |
@@ -906,6 +944,8 @@ Versteckte Warnungen, verlorene Werte und eine breite Hülle mit weiterhin riesi
 ## 2. Konkrete Stellungnahme zum bisherigen Stand
 
 ### 2.1 Am gezeigten Ist-Interface erkennbar
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Empfehlung, seltene Zeilenaktionen in ein Menü zu verschieben, ist abgelöst. Der historische Befund bleibt erhalten; verfügbare Aktionen werden direkt dargestellt.
 
 Diese Befunde stammen aus der gezeigten Oberfläche. Ob dieselben Probleme auf weiteren Seiten bestehen, musst du im Repository und Browser prüfen.
 
@@ -1087,6 +1127,8 @@ Kurze Felder nebeneinander: Menge/Einheit, Preis/Zielgruppe, Dauer/Zeiteinheit. 
 
 ### 5.3 Gemeinsame Symbolsprache
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Der `[...]`-Eintrag ist als Vorgabe für generische Aktionssammler abgelöst. Historische Symbolzuordnung bleibt dokumentiert.
+
 Nutze das vorhandene zentrale `icon`-Makro und die tatsächlich verfügbaren Tabler-Sprite-IDs. Keine neue Iconbibliothek und keine Emojis als Bedienelemente. Ein fehlendes Symbol darf nicht unbemerkt leer bleiben.
 
 | ASCII-Kürzel in den Skizzen | In der Anwendung | Sichtbarer Text, beispielsweise |
@@ -1139,6 +1181,8 @@ Seitenkopf: logisch korrekter Breadcrumb, genau eine H1, gegebenenfalls ein kurz
 
 ## 8. Komponentenregeln für alle Tools
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Tabellenregel „Zeilenaktionen“ ist hinsichtlich des Dropdowns für seltene Aktionen abgelöst. Alle verfügbaren Befehle sind direkt sichtbar; keine Hover-only-Aktionen oder leeren Aktionshüllen.
+
 | Komponente | Verbindliche Regel |
 |---|---|
 | Cards | Weisse Fläche, 12px Radius, dezenter Rand und minimaler Schatten nur bei inhaltlich nötiger Gruppierung. Wiederholte Zutaten, Schritte, Bausteine und Zuordnungen als kompakte Arbeitszeilen, keine hohe offene Card je Objekt oder Schmuckkarte. Keine Card in Card ohne fachlichen Grund. |
@@ -1163,6 +1207,8 @@ Ein statisches Anlegeformular braucht nicht automatisch einen „Abbrechen“-Bu
 Sprache: Bestehende Anrede und Anwendungssprache konsistent halten. Für deutschsprachige Schweizer Anwendungen Schweizer Rechtschreibung verwenden. Sichtbare Datumsformate können lokalisiert werden; maschinelle Feldwerte und erwartete Backend-Formate unverändert lassen. Keine technischen Interna oder vertraulichen Informationen in Endbenutzer-Fehlermeldungen.
 
 ### 8.1 Interaktions- und Formularinvarianten
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** In „Keine zusätzliche Pflichtklickstrecke“ ist das Verbergen seltener Befehle in Menüs/Dropdowns abgelöst. Echte Auswahl, Fachdetails und native Formularinvarianten bleiben gültig.
 
 Die Skizzen sind nicht allein durch CSS abzuhaken. Folgende Verhaltensregeln gelten bei jeder Umsetzung:
 
@@ -1321,6 +1367,8 @@ sichtbare Wiederherstellungstext. Allergenprüfung heisst «Prüfung bestätigen
 
 #### M02 — Rezepteditor: kompakter Ausgangszustand
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
+
 Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeutiges Objekt, nicht mehrfach denselben Titel.
 
 ```text
@@ -1356,6 +1404,8 @@ Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeu
 **Keine Scheinlösung:** Nicht die gesamte Zutatenliste hinter einem Akkordeon verstecken. Nicht alle Zutaten gleichzeitig in grossen Detailkarten darstellen. Die Warnung bleibt sichtbar, auch wenn technische Quellenangaben geschlossen sind. Der Standardzustand darf bei echten Pflichtfehlern automatisch grösser werden.
 
 ##### Modul Rezepte (2026-09-20)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Ein-Direktaktions-/Menü-Regel der Übersicht und Verwerfen unter „Weitere Aktionen“ sind abgelöst. Verwerfen startet direkt den bestehenden Bestätigungsschritt. Historische Prüfbelege werden nicht zur Direktaktionsabnahme umgedeutet.
 
 Die Rezeptübersicht verwendet M22/M23: Suche und Kennzeichnung zuerst, Titel-,
 Zutaten- und Archivfilter in nativen Details. Aktive Zusatzfilter öffnen sich;
@@ -1417,6 +1467,8 @@ unverändert. Nachweise: `test_recipe_search_browser.py`, `test_recipe_filters_b
 
 #### M03 — Rezeptzutat: nur die benötigten Details öffnen
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
+
 Dieselbe Liste wie M02; die erste Zutat ist geöffnet. Andere Zutaten bleiben direkt erreichbar.
 
 ```text
@@ -1445,6 +1497,8 @@ Dieselbe Liste wie M02; die erste Zutat ist geöffnet. Andere Zutaten bleiben di
 
 #### M04 — Zubereitung: Kurzfassung und gezielte Bearbeitung
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
+
 Ein Schritt ist geöffnet. Vollständige Anleitung, Zeit und Bildzuordnung bleiben erhalten.
 
 ```text
@@ -1469,6 +1523,8 @@ Ein Schritt ist geöffnet. Vollständige Anleitung, Zeit und Bildzuordnung bleib
 
 #### M05 — Zeilenaktionen: kompakt, beschriftet und kontextbezogen
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Das geöffnete Aktionsmenü samt Menü-Kurztexten ist als Zielbild abgelöst. Vorhandene Einfüge-/Verschiebe-/Entfernungsbefehle erscheinen direkt; Namen, Rechte, Rückkehrkontext und `formaction`-/`formnovalidate`-Verträge bleiben erhalten.
+
 Geöffnetes Aktionsmenü einer Zutat. Nur im Bestand vorhandene Operationen anbieten.
 
 ```text
@@ -1490,6 +1546,8 @@ Geöffnetes Aktionsmenü einer Zutat. Nur im Bestand vorhandene Operationen anbi
 **Vertrag:** Die zuvor untersuchten Rezeptaktionen verwendeten eigene Submit-/`formaction`-Wege. Aktuellen Stand prüfen und vorhandene `formnovalidate`-Semantik für Strukturaktionen erhalten. Nicht durch neue pauschale Validierungsumgehungen oder eine zweite clientseitige Sortierlogik ersetzen. Nach der Aktion zum betroffenen Objekt zurückkehren.
 
 #### M06 — Rezepteditor auf dem Smartphone
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
 
 Schmaler Viewport: Name, Menge, Einheit und beschriftete Aktionen bleiben nutzbar. Keine verkleinerte Desktoptabelle.
 
@@ -1586,6 +1644,8 @@ Liste mit wenigen Standardfiltern; zusätzliche Filter sind ausdrücklich geöff
 
 #### M09 — Wochenübersicht: auswählen zuerst, anlegen bei Bedarf
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
+
 Normalansicht mit geschlossenem Erstellformular. Dieses Muster gilt analog für Listen mit selten genutzter Anlagefunktion.
 
 ```text
@@ -1608,6 +1668,8 @@ Normalansicht mit geschlossenem Erstellformular. Dieses Muster gilt analog für 
 **Semantik:** ISO-Woche und tatsächliche Cafeteria-Ausgabetage unterscheiden. Datumsbereich aus dem geplanten Zeitraum; Freititel ist keine verlässliche Datumsquelle. Kopieraktionen erklären Quelle, Ziel und tatsächliche Überschreibwirkung anhand des Bestands. Keine Zusicherungen erfinden.
 
 #### M10 — Cafeteriaplan: Arbeitsraster statt Verwaltungsblöcke
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
 
 Breiter Desktop mit ausreichender realer Spaltenbreite; fünf Tage und die zwei vorhandenen Menüarten.
 
@@ -1653,6 +1715,8 @@ Breiter Desktop mit ausreichender realer Spaltenbreite; fünf Tage und die zwei 
 **Responsive:** Wenn fünf ausreichend lesbare Spalten nicht passen, in chronologische Tagesabschnitte wechseln. Nicht Schrift verkleinern oder vollständige Namen abschneiden. Beide Preise müssen dem richtigen Menü und der richtigen Zielgruppe zugeordnet bleiben; fehlende Werte nicht raten.
 
 #### M11 — Patientenplan: kompakte Tagesgruppen mit Mittag und Abend
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
 
 Patienten bleiben ein Sieben-Tage-Plan. Darstellung der Mahlzeiten nebeneinander nur bei genügend Platz.
 
@@ -1704,6 +1768,8 @@ Die vorhandene globale Gangwarnung bleibt Aufgabe der Wochenplan-Statusbar (WP21
 
 #### M12 — Menüeditor: breite Hauptarbeit, schmalerer Prüfkontext
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
+
 Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten stehen die Bereiche untereinander.
 
 ```text
@@ -1731,6 +1797,8 @@ Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten st
 **Geltungsbereich:** Diese Skizze zeigt Patienten, deshalb ohne Preisfelder. In der Cafeteria bleiben beide vorhandenen Preisgruppen als kompakte Feldgruppe erhalten. Menübausteine dürfen die bestehende klare Auswahlart Katalog/Freitext erhalten; Rezeptzutaten aus M03 sind fachlich etwas anderes. Eine existierende seitliche Bearbeitung verwendet dasselbe Formularmuster; keine neue Panel-API bauen.
 
 ##### Modul Menüs und Menüeditor inkl. Allergene (2026-09-20)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** P4s „Seltene Zeilenaktionen stehen unter Mehr“ ist abgelöst. Historische Prüfbelege bleiben stehen; JS-Hooks, `formaction`, Rückkehr-Submit und Rezeptfilter behalten ihre Verträge.
 
 **Polish P4: menues (2026-09-24).** Menütabelle nutzt `admin-table` mit
 Status-/Aktionsspalten; kurzer Prüfchip und vollständiger Inline-Prüfhinweis
@@ -1791,6 +1859,8 @@ Prüfstand ist `admin-status--warning`/`--success` inkl. Allergenhinweis. Ansich
 in `hint()`.
 
 #### M13 — Baustein bearbeiten: eindeutige Allergenfelder
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** „Weitere Aktionen“ in Skizze und Modulbeschreibung für Archivieren/Reaktivieren ist abgelöst. Direkte Symbole starten vorhandene Bestätigungsschritte; Folgetext, CSRF/CAS und Allergendaten bleiben erhalten.
 
 Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine fachliche Deklaration.
 
@@ -1895,6 +1965,8 @@ Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte W
 **Layoutverwaltung:** Für normales Drucken keine Versionsverwaltung durchlaufen. Entwurf ansehen und aktivieren bleiben getrennt. Keine neue PDF-Engine oder Vorschau-API. Patienten- und Cafeteriaausgaben behalten ihre eigene Preis- und Mahlzeitenlogik.
 
 ##### Modul Vorschau & Bildschirme (2026-09-20)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Genau eine Direktaktion plus weitere Ausgabeziele unter „Weitere Aktionen“ ist abgelöst. Alle zulässigen Ausgabeziele bleiben direkt erreichbar; historische Nachweise bleiben erhalten.
 
 **Polish P3: editoren (2026-09-24).** Auf der Zuweisungsseite ist die Auswahl
 direkt sichtbar in `section#screen-assignment-details`; nur die technische
@@ -2057,6 +2129,8 @@ unter «Weitere Optionen»; sie sind keine Statusslots. Ein globaler API-Gesamtz
 wird nicht erfunden. Die frühere offene Publikationstabelle ist ersetzt am
 2026-09-20 durch diese Statusbar und nachrangige technische Angaben.
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** „Details als einzige direkte Zeilenaktion“ mit verstecktem Widerruf ist abgelöst. Zulässiger Widerruf ist direkt erreichbar und behält den beschriebenen Bestätigungsschritt; Metadaten dürfen im fachlichen Detailbereich bleiben.
+
 Schlüssel bleiben kompakte Tabellenzeilen, mobil priorisierte Listen ohne
 Horizontal-Scroll. «Details» ist die einzige direkte Zeilenaktion; Metadaten und
 Widerruf folgen darin. Widerruf verlangt einen nativen Bestätigungsschritt mit
@@ -2161,6 +2235,8 @@ Kompakte Verwaltung mit klarer Objektaktion; ausschliesslich vorhandene und erla
 **Kritische Vorgänge:** Passwort, Deaktivierung und Rechteänderung behalten ihre vorhandenen separaten Schutz- und Bestätigungswege. Keine neue Rollenlogik, keine Teständerungen an echten Konten. Tabellenzeilen dürfen bei langen Namen wachsen.
 
 #### M19 — Fehler in einem zuvor geschlossenen Detailbereich
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler `[...]`/„Weitere Aktionen“ dieser Skizze sind abgelöst. Alle verfügbaren Befehle erscheinen direkt als Symbole, schmal mit sichtbarem Umbruch. Fachliche Details, Inhalte und Formularverträge bleiben erhalten.
 
 Beispiel eines tatsächlichen Validierungsfehlers, nicht eine neue fachliche Mengenregel.
 
@@ -2273,6 +2349,8 @@ Gemeinsame Filterleiste für alle Listenmodule; dieselbe Reihenfolge überall.
 **Technischer Vertrag:** M67 beschreibt beide gemeinsamen Filtermakros vollständig. Native GET-Übermittlung und Details bleiben ohne JS bedienbar. `test_admin_shared_patterns_browser.py` prüft Parameter, Reset, Fokus und Reflow; `test_ui_list_family_browser.py` misst zusätzlich Filtereinstiege mit sichtbarem Text und leere Überlaufmenüs.
 
 #### M23 — Eine Zeile pro Datensatz
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** ASCII-Mehr-Menü, „höchstens Haupt-Symbolaktion plus dots“, Menütext und R45-Budgetverweis sind abgelöst. `row_actions` und Legacy-`more_actions` dürfen nur direkte Symbolgruppen liefern. Listenanatomie, Status, Kennzeichnungs-„+n“, Informationsdetails und native Bedienung bleiben erhalten.
 
 Kompakte Listenzeile mit klarer Hierarchie und einer sichtbaren Zeilenaktion.
 
@@ -2400,6 +2478,8 @@ Knopf. Optionale Erklärtexte liegen als `hint()`; Übernahme- und Bindungshinwe
 bleiben sichtbar. Archivieren bleibt selten, destruktiv, mit Folgetext.
 
 ##### Modul Einkaufslisten (2026-09-20)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** „Drucken und Archivieren unter Weitere Aktionen“ ist abgelöst. Beide zulässigen Befehle bleiben direkt erreichbar; Archivierungsbestätigung, Folgetext und Formulare bleiben erhalten.
 
 **Seitenrahmen:** Liste und Detail tragen den Seitentitel «Einkaufslisten», entsprechend dem Navigationspunkt. Im Detail stehen Listenname, Woche und vorhandener Berechnungsstand in der Kontextzeile; «Drucken» bleibt sekundär. Höchstens eine `.btn-primary` im `main`: auf der Liste «Anlegen» als direkter Fokuslink zum sichtbaren Titelfeld (`draft.write`), im Detail «Neu berechnen», sobald berechtigte Nutzer Bausteine wählen können. Ohne Schreibrecht oder im historischen Stand wird keine Primäraktion erzwungen. Zeilenaktionen bleiben neutral, ausgenommen «Löschen»: Gefahrenstil, räumlicher Abstand und ein gemeinsamer Folgetext über `aria-describedby`. Aktive Archivfilter tragen `active` und `aria-current="true"`.
 
@@ -2597,6 +2677,8 @@ Klare Rasterstruktur statt verstreuter Karten; Zielmodell SDD v2 §5.2.
 
 #### M28 — Wochenübersicht — Tabelle
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** ASCII-Mehr-Menü und Kopieren/Vorschau/Archivieren im Overflow sind abgelöst. Alle verfügbaren Befehle erscheinen direkt; Daten-, Rechte-, CSRF-/CAS- und Allergenverträge bleiben erhalten.
+
 Kompakte Verwaltungsliste; Zielmodell SDD v2 §5.3.
 
 ```text
@@ -2616,6 +2698,8 @@ Kompakte Verwaltungsliste; Zielmodell SDD v2 §5.3.
 **Responsive:** Tabelle darf in priorisierte Listen wechseln; «Öffnen» bleibt sichtbar beschriftet.
 
 ##### Modul Wochenübersicht (Tabelle der gespeicherten Wochen) (2026-09-20)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** „Öffnen direkt; Vorschau und Kopieren vorbereiten in Weitere Aktionen“ ist abgelöst. Direkte Symbole behalten Quell-/Zielkontext und Schutzschritte; historische Höhenmessungen bleiben historische Belege.
 
 **Polish P4:** `admin-table admin-table--stack`, gemeinsame Status-/Aktionsspalten,
 `label()` und `empty_value()` vereinheitlichen die gespeicherten Wochen.
@@ -2696,6 +2780,8 @@ in `hint()`.
 
 #### M30 — Tagesansicht
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Aktionssammler in Kopf/Karten und „Bearbeiten und Overflow“ sind abgelöst. Vorhandene Befehle bleiben direkt sichtbar; Datum, Fachinhalte und Schutzverträge bleiben erhalten.
+
 Operativer Arbeitsplatz für einen einzelnen Tag; Zielmodell SDD v2 §6.
 
 ```text
@@ -2721,6 +2807,8 @@ Operativer Arbeitsplatz für einen einzelnen Tag; Zielmodell SDD v2 §6.
 **Responsive:** Meal-Gruppen untereinander; Add-Karten und Primäraktionen bleiben tastaturbedienbar.
 
 ##### Modul Wochenplan-Kern: Cafeteria-Woche, Patienten-Raster, gemeinsame Wochen-Partials (2026-09-20)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** „Seltene Aktionen im nativen Weitere-Aktionen-Bereich“ und Hauptaktion-plus-Überlauf als Prüfziel sind abgelöst. Historische P3-Nachweise bleiben stehen; alle zulässigen Wochen-/Kartenaktionen sind direkt erreichbar.
 
 **Polish P4:** Gänge, Menüdeklarationen und Prüfstatus nutzen gemeinsame Labels;
 Allergene und fehlende Angaben bleiben vollständig inline. Registry-Symbole und
@@ -2781,6 +2869,8 @@ Kopieren zeigt Quelle und Ziel einmal in der Statusbar. Browser-Messungen prüfe
 360/768/1024/1440 px, Thumbnailgrösse, Tageshöhe, Mahlzeitenausrichtung und Tastatur.
 
 ## 9. Wiederverwendung statt Seitensonderlösungen
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Tabellenzeile „Zeilenaktionsmenü“ ist als Versteck seltener Befehle abgelöst. Der gemeinsame Direktaktionsrenderer erhält Struktur-/Submit-Semantik und Rückkehr zum Objekt.
 
 Nutze vorhandene Strukturen. Fehlen gemeinsame Bausteine, lege sie in der passenden bestehenden Projektstruktur an. Geeignete Verträge sind:
 
@@ -2890,6 +2980,8 @@ Nutze die vorhandenen Flask-Tests für serverseitiges Verhalten und Browser-Test
 
 ### Kleine Pakete und laufende Integration
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Das Aktionsmenü in Paket UI-02 ist als Zielkomponente abgelöst durch die gemeinsame direkte Symbolgruppe. Detailbereich, Tastatur-, Fehler- und Formularprüfungen bleiben erhalten.
+
 Arbeit in das vorhandene Backlog übernehmen; bestehende Pakete zuordnen und korrekte erledigte Arbeit erhalten. Gemeinsame Templates, Makros, Iconmapping und Styles haben einen Integrationsowner. Die folgende Aufgabenfolge wird vorhandenen MP-/WP-IDs zugeordnet; sie erzeugt keine zweite Paket- oder Leaseverwaltung.
 
 | Paket | Inhalt | Pflichtnachweis |
@@ -2931,6 +3023,8 @@ Freigegebene Baselines versionieren. Der Agent darf vorgeschlagene erste Referen
 **Ein Prompt allein ist keine Garantie für identische Oberflächen. Verbindlich wird der Standard durch gemeinsame implementierte Komponenten, zentrale Tokens und geprüfte visuelle Referenzen.**
 
 ### 12.1 Abnahmekriterien A01–A24
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** In A26 ist „seltene im Weitere-Aktionen-Menü“ abgelöst. Eine hervorgehobene Speicherhandlung, Schutzschritte und Sticky-Vertrag bleiben gültig; Direktaktionsabnahme folgt SDD §10, Dokumentation A24 der SDD.
 
 Nutze die vorhandenen Testmittel. Neue reine Entwicklungsabhängigkeiten nur im Rahmen der Projektregeln; keine zusätzliche Produktionsbibliothek für diese UI-Aufgabe. Tests dürfen echte Layoutprobleme nicht durch blind aktualisierte Screenshots als neue Baseline akzeptieren.
 

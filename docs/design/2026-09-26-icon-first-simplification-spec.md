@@ -48,6 +48,8 @@ Platzgewinn durch kleinere Schrift, winzige Klickziele oder das Verbergen wichti
 
 ### 1.2 Nicht Bestandteil dieses Auftrags
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Erlaubnis, seltene Aktionen ins Überlaufmenü zu verschieben, ist abgelöst. Vorhandene zulässige Befehle bleiben direkt erreichbar; keine Funktionen erfinden oder ersatzlos entfernen.
+
 Keine neuen Fachmodule, kein Umbau des Datenmodells, keine Änderung von Freigaberegeln und keine pauschale Migration von Daten. Keine zusätzlichen Ansichts-, Dichte-, Experten- oder Personalisierungsschalter nur zur Lösung dieses UI-Problems.
 
 Bestehende Funktionen werden nicht ersatzlos entfernt. Seltene Aktionen dürfen in das gemeinsame Überlaufmenü wandern. Offensichtlich redundante Bedienelemente dürfen zusammengeführt werden.
@@ -80,6 +82,8 @@ Auch uneinheitliche Leer-, Lade-, Fehler-, Archiv- und Nur-Lesen-Zustände gehö
 
 ### 3.1 Seitenkopf
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Das Limit von zwei Zusatzaktionen und der Verweis weiterer Befehle ins Überlaufmenü sind abgelöst. Alle verfügbaren Kopfaktionen erscheinen direkt. Maximal eine gefüllte Primärgewichtung und die Regeln für Kontext/Leerraum bleiben erhalten.
+
 Ein normaler Seitenkopf besteht aus Titel, bei Bedarf einem kurzen Kontext und einer kleinen Aktionsgruppe. Maximal eine fachliche Primäraktion erhält eine gefüllte Akzentfläche. Daneben stehen höchstens zwei zusätzliche fachliche Aktionen; weitere Aktionen gehören in das Überlaufmenü.
 
 Datumsnavigation und Profilauswahl sind Kontextsteuerungen und werden nicht künstlich in dieses Aktionslimit gepresst. Trotzdem müssen sie als eine zusammengehörige, kompakte Gruppe erscheinen.
@@ -89,6 +93,8 @@ Entferne standardmässige grosse Informationskarten, wenn sie nur bereits sichtb
 Beschreibungen unter dem Titel nur behalten, wenn sie eine echte Unklarheit auflösen. Keine generischen Bedienungsanleitungen auf jeder Seite. Leere Infobereiche und alleinstehende Infoicons ohne hilfreichen Inhalt vollständig entfernen, einschliesslich ihrer Abstände.
 
 ### 3.2 Datensatzaktionen
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Das Zwei-Button-Budget, Hauptaktion plus Überlauf und das Verbot eines permanenten Symbolstreifens sind abgelöst. Alle verfügbaren Aktionen erscheinen direkt, schmal mit sichtbarem Umbruch; leere Gruppen und erfundene Funktionen bleiben ausgeschlossen.
 
 In der normalen Datensatzzeile sind rechts maximal zwei eigenständige Aktionsbuttons sichtbar:
 
@@ -180,6 +186,8 @@ Das ist ein Komponentenvertrag, keine Aufforderung zu einem neuen umfangreichen 
 
 ### 5.3 Zugängliche Namen, Fokus und Touch
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** „Weitere Aktionen für Broccoli“ als normaler Zugang und das Touch-Überlaufmenü für ungewohnte Aktionen sind abgelöst. Auch auf Touch bleiben Befehle direkt erreichbar; lokalisierte Namen, Tooltip-, Tastatur- und Fokusvertrag bleiben erhalten.
+
 Jeder Iconbutton benötigt einen zugänglichen Namen, beispielsweise „Broccoli bearbeiten“ oder „Weitere Aktionen für Broccoli“. Verwende korrektes `aria-label` oder passend verknüpften Text. Das dekorative SVG darf nicht zusätzlich als unbenanntes Bedienelement vorgelesen werden. Siehe technische Referenz R1.
 
 Tooltips erscheinen konsistent bei Hover und Tastaturfokus. Sie sind bei Bedarf mit Escape schliessbar, mit dem Zeiger erreichbar und verschwinden nicht willkürlich nach kurzer Zeit. Ein natives `title`-Attribut allein ist für diesen Auftrag keine ausreichende Erklärung. Siehe R2.
@@ -189,6 +197,8 @@ Tastaturfokus muss deutlich sichtbar sein. Normale Buttons funktionieren mit Ent
 Auf Touchgeräten darf Verstehen nicht von Hover oder einem versteckten Langdruck abhängen. Ungewohnte Fachaktionen erscheinen vorzugsweise im aufklappbaren Überlaufmenü mit kurzem Text. Häufige eindeutige Aktionen wie Hinzufügen oder Bearbeiten bleiben direkt erreichbar.
 
 ### 5.4 Bewusste Text-Ausnahmen
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Ausnahme für geöffnete Aktionsmenüs erlaubt keine generischen Mehr-/Drei-Punkte-Sammler mehr. Fachinhalte, Formulare, Navigation, echte Auswahl, Warnungen und Sicherheitsbestätigungen behalten sichtbaren Text.
 
 Icon-first ist kein Verbot von Sprache. Text bleibt sichtbar bei:
 
@@ -210,6 +220,8 @@ Laufende Aktionen blockieren Doppelübermittlung, behalten ihren zugänglichen N
 ---
 
 ## 6. Verbindliche Icon-Semantik
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** „Weitere Aktionen = dots“ ist als normaler Aktionszugang abgelöst. Historische Schlüssel dürfen bestehen; verfügbare Befehle verwenden direkt ihre eigene Semantik.
 
 Verwende die bereits vorhandene zentrale Registry. Lege keine zweite riesige Symbolsammlung an. Konsolidiere widersprüchliche Zuordnungen und ergänze nur reale Lücken.
 
@@ -384,6 +396,8 @@ Die heutige Auswahl und der aktuelle Tag dürfen visuell nicht verwechselt werde
 
 ## 11. ASCII-Zielbilder
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Sämtliche `[...]`-Aktionssammler und festen Aktionsbudgets in §11.1–11.7 sind als Zielbilder abgelöst. Aktuelle Direktaktionsbilder stehen in SDD §5; Fachspalten, Inhalte, Detailzugänge, Warnungen und Responsive-Regeln bleiben erhalten.
+
 Diese Zielbilder beschreiben Anordnung und Informationsmenge, nicht konkrete Schriftzeichen für die Produktion. `[e]`, `[f]`, `[p]` und ähnliche Kürzel stehen ausschliesslich für echte Tabler-Icons. Sie dürfen nicht als Buchstabenbuttons implementiert werden.
 
 Legende: `[+]` Hinzufügen, `[e]` Bearbeiten, `[...]` weitere Aktionen, `[f]` Filter, `[->]` zur Detailansicht navigieren, `[>]` Detail aufklappen, `[v]` Detail zuklappen, `[o]` Vorschau, `[p]` Veröffentlichen. `!` innerhalb eines Status ist ein Warnsymbol, nicht automatisch ein weiterer Button.
@@ -499,6 +513,8 @@ Gleiche Reihenfolge und Symbolbedeutung. Metadaten dürfen unter den Hauptinhalt
 
 ### 11.7 Aktionsmenü erst bei Bedarf
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Das geöffnete Aktionsmenü samt erst dann sichtbaren Kurztexten ist als Standard abgelöst. Alle tatsächlich verfügbaren Befehle bleiben unmittelbar als Symbole erreichbar.
+
 ```text
 Broccoli                                          [e] [...]
                                                        |
@@ -581,6 +597,8 @@ Jedes Paket liefert nachvollziehbaren Diff, betroffene Ansichten, Testnachweise 
 ---
 
 ## 14. Abnahmekriterien
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** UI-05s „höchstens Hauptaktion plus Überlauf“ ist abgelöst: alle verfügbaren Aktionen direkt sichtbar prüfen, ohne Doppelbefehle mit gleichem Ziel und gleicher Wirkung. UI-15 erlaubt kein generisches Aktionsmenü; vorhandene Bestätigungs- und Schutzschritte bleiben Pflicht. Neue Direktaktionskriterien: SDD §10.
 
 Ein Punkt gilt nur mit tatsächlichem Nachweis als erfüllt. Automatische Prüfungen ergänzen die visuelle und manuelle Prüfung, ersetzen sie nicht.
 
