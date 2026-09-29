@@ -191,26 +191,29 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         assert list_box['y'] >= filter_box['y'] + filter_box['height'] - 1
         row = main.locator('.component-list-container .component-row').first
         name = row.locator('.component-row-name')
-        edit_link = name.get_by_role('link', name=component['name'], exact=True)
+        name_text = name.get_by_text(component['name'], exact=True)
+        expect(name_text).to_be_visible()
+        edit_link = row.locator('[data-semantic="actions.edit"]')
         expect(edit_link).to_have_attribute('href', f"/admin/{family}/komponenten/{component['public_id']}")
         expect(name).to_have_attribute('scope', 'row')
-        expect(name.get_by_role('link')).to_have_count(1)
-        expect(row.get_by_role('link')).to_have_count(2)
+        expect(name.get_by_role('link')).to_have_count(0)
+        expect(row.get_by_role('link')).to_have_count(1)
+        expect(edit_link).to_have_accessible_name(f"{component['name']} bearbeiten")
         expect(row.get_by_role('link', name=f"{component['name']} bearbeiten", exact=True)).to_have_attribute(
             'href', f"/admin/{family}/komponenten/{component['public_id']}",
         )
         name_box = name.bounding_box()
         category_box = row.locator('.category').bounding_box()
-        link_box = edit_link.bounding_box()
-        assert name_box is not None and category_box is not None and link_box is not None
+        name_text_box = name_text.bounding_box()
+        assert name_box is not None and category_box is not None and name_text_box is not None
         if width >= 1000:
             assert category_box['x'] >= name_box['x'] + name_box['width']
         else:
             assert category_box['y'] >= name_box['y'] + name_box['height']
-        assert link_box['x'] >= name_box['x'] - 1
-        assert link_box['x'] + link_box['width'] <= name_box['x'] + name_box['width'] + 1
-        assert link_box['y'] >= name_box['y'] - 1
-        assert link_box['y'] + link_box['height'] <= name_box['y'] + name_box['height'] + 1
+        assert name_text_box['x'] >= name_box['x'] - 1
+        assert name_text_box['x'] + name_text_box['width'] <= name_box['x'] + name_box['width'] + 1
+        assert name_text_box['y'] >= name_box['y'] - 1
+        assert name_text_box['y'] + name_text_box['height'] <= name_box['y'] + name_box['height'] + 1
     elif page_kind == 'detail':
         expect(main).to_have_attribute('data-public-id', str(component['public_id']))
         expect(main.locator('[name="name"]')).to_have_value(component['name'])
