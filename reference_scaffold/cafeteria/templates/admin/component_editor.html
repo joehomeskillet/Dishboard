@@ -123,14 +123,14 @@
   <p>Sie ändern den Baustein im Katalog. Gespeicherte Menüzuordnungen werden dabei nicht neu gespeichert. Beim erneuten Speichern eines Menüs werden seine Katalogzuordnungen und automatisch übernommenen Angaben neu ermittelt; manuelle Angaben bleiben separat.</p>
 </details>
 <details class="component-secondary-actions admin-compact-details mt-2">
-  {{ icon_summary('actions.more', object=component.name) }}
+  {{ icon_summary('actions.archive' if component.active else 'actions.activate', object=component.name) }}
   <div class="py-2">
     <h2 class="h4 card-title mb-2">{{ 'Archivieren' if component.active else 'Reaktivieren' }}</h2>
     <p class="ui-sem-consequence">{% if component.active %}Der Baustein wird aus neuen Auswahlen ausgeblendet, bleibt aber in bestehenden Menüs erhalten.{% else %}Der Baustein wird wieder für neue Menüzuordnungen verfügbar.{% endif %}</p>
-    <form method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}/{{ 'archive' if component.active else 'unarchive' }}" data-confirm="{{ 'Baustein wirklich archivieren?' if component.active else 'Baustein reaktivieren?' }}">
+    <form id="component-status" method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}/{{ 'archive' if component.active else 'unarchive' }}" data-confirm="{{ 'Baustein wirklich archivieren?' if component.active else 'Baustein reaktivieren?' }}">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="row_version" value="{{ component.row_version }}">
-      {{ icon_button('actions.archive' if component.active else 'actions.activate', object=component.name) }}
+      {{ icon_button('actions.archive' if component.active else 'actions.activate', object=component.name, show_text=true) }}
     </form>
   </div>
 </details>

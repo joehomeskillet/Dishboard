@@ -66,6 +66,9 @@ def test_detail_actions_native_roles_profiles_and_print(
                                 form = page.locator('#component-form')
                                 values = form.evaluate('el => Array.from(new FormData(el))')
                                 more = page.locator('.component-secondary-actions > summary')
+                                expect(more).to_have_attribute('data-semantic', 'actions.archive')
+                                expect(more).to_have_accessible_name('Detail-Prüfung archivieren')
+                                expect(page.locator('main [data-semantic="actions.more"]')).to_have_count(0)
                                 if more.inner_text().strip() or not more.get_attribute('aria-label'):
                                     failures.append((label, family, 'More is not an accessible icon action'))
                                 _check_action(page, more, javascript)

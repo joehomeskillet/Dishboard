@@ -319,7 +319,7 @@ def test_create_edit_archive_payloads_unchanged(
 
         page.goto(detail_path)
         page.locator('.component-secondary-actions summary').click()
-        archive = page.get_by_role('button', name=re.compile(r'.+ archivieren$'))
+        archive = page.locator('.component-secondary-actions form').get_by_role('button', name=re.compile(r'.+ archivieren$'))
         if javascript:
             page.once('dialog', lambda dialog: dialog.accept())
         with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/archive')) as archived:
