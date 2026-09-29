@@ -67,7 +67,7 @@
           <textarea class="form-control" id="cookbook-description" name="description" rows="2" maxlength="2000">{{ '' if creating else book.description or '' }}</textarea>
         </div>
       </div>
-      {{ form_footer(save_primary, url_for('admin.cookbooks_list'), rare=archive_rare if book else none) }}
+      {{ form_footer(save_primary, g.get('cookbook_list_return') or url_for('admin.cookbooks_list'), rare=archive_rare if book else none) }}
     </form>
     {% elif book %}
     {% if book.description %}<p class="text-break mb-0">{{ book.description }}</p>{% else %}<p class="text-secondary mb-0">Keine Beschreibung</p>{% endif %}

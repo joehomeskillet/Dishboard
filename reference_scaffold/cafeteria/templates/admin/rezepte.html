@@ -35,7 +35,7 @@
 <td class="admin-list-meta" data-label="Ausbeute">{{ item.payload.servings }} {{ item.payload.servings_unit_code }}</td>
 <td class="admin-table-status" data-label="Zustand">{% if not item.active %}{{ label('Archiviert', 'neutral') }}{% elif archived %}{{ label('Entwurf', 'info') }}{% endif %}{% if item.active and draft.incomplete %}{{ label('Angaben fehlen', 'warning', icon='alert-triangle', detail='Zutaten, Mengen oder Einheiten fehlen') }}{% endif %}</td>
 <td class="admin-table-actions" data-label="Aktionen"><div class="admin-row-actions">
-{% if can_write and item.active %}{{ icon_button('actions.edit', href=url_for('admin.recipe_edit', recipe_id=item.public_id), icon_only=true, object=item.payload.title) }}{% else %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, object=item.payload.title) }}{% endif %}
+{% if can_write and item.active %}{{ icon_button('actions.edit', href=url_for('admin.recipe_edit', recipe_id=item.public_id, **({'from': 'recipes', 'q': query, 'archived': '1' if archived else '0', 'page': page} if query or archived or page > 1 else {})), icon_only=true, object=item.payload.title) }}{% else %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, object=item.payload.title) }}{% endif %}
 <details class="ui-sem-actions">{{ icon_summary('actions.more', object=item.payload.title) }}<div class="ui-sem-action-items">
 {% if can_write and item.active %}{{ icon_button('actions.open', href=url_for('admin.recipe_view', recipe_id=item.public_id), icon_only=true, object=item.payload.title, show_text=true) }}{% endif %}
 {% if links.latest_revision %}

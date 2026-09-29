@@ -283,13 +283,14 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     expect(row).to_contain_text('archiviert')
     expect(row.get_by_role('link', name=long_name, exact=True)).to_have_count(0)
     open_link = row.get_by_role('link', name=f'{long_name} öffnen', exact=True)
-    expect(open_link).to_have_attribute('href', detail_path)
+    filtered_detail = detail_path + '?' + urlencode({'from': 'components', 'q': '', 'status': 'all', 'category': ''})
+    expect(open_link).to_have_attribute('href', filtered_detail)
     open_link.focus()
     page.keyboard.press('Shift+Tab')
     page.keyboard.press('Tab')
     expect(open_link).to_be_focused()
     open_link.press('Enter')
-    page.wait_for_url('**' + detail_path)
+    page.wait_for_url('**' + filtered_detail)
     expect(page.locator('main')).to_have_attribute('data-active', '0')
 
 

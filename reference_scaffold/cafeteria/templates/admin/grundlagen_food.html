@@ -16,7 +16,7 @@
 {{ page_header(t('navigation.ingredients.label'), description='Zutat bearbeiten' if row else 'Zutat anlegen', status_items=status_items) }}
 {% endblock %}
 {% block content %}
-<div class="mb-3">{{ icon_button('actions.back', href=url_for('admin.master_data_list', kind=query_kinds[kind])) }}</div>
+<div class="mb-3">{{ icon_button('actions.back', href=g.get('food_list_return') or url_for('admin.master_data_list', kind=query_kinds[kind])) }}</div>
 {{ errors() }}
 {% if not row %}<div class="alert alert-info" role="status">{{ icon('info-circle') }}<strong>Lagerort erforderlich:</strong> Mindestens ein Lagerort ist für jede Zutat Pflicht. Fehlt die Zuordnung, wird «Lagerort fehlt» angezeigt.</div>{% endif %}
 {% set core = 'stammdaten' if row else 'neu' %}

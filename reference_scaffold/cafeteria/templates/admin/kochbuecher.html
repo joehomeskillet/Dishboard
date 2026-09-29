@@ -23,7 +23,7 @@
   {% set count = book.recipe_public_ids|length %}
   {% set editable = can_write and book.active %}
   {% set actions %}
-  {{ icon_button('actions.edit' if editable else 'actions.open', href=url_for('admin.cookbook_edit' if editable else 'admin.cookbook_view', cookbook_id=book.public_id), object=book.name, class='cookbook-row-action') }}
+  {{ icon_button('actions.edit' if editable else 'actions.open', href=url_for('admin.cookbook_edit' if editable else 'admin.cookbook_view', cookbook_id=book.public_id, **({'from': 'cookbooks', 'q': search, 'archived': '1' if include_archived else '0', 'page': page} if editable and (search or include_archived or page > 1) else {})), object=book.name, class='cookbook-row-action') }}
   {% if editable %}
   <details class="ui-sem-actions">{{ icon_summary('actions.more', object=book.name) }}<div class="ui-sem-action-items">
     {{ icon_button('actions.open', href=url_for('admin.cookbook_view', cookbook_id=book.public_id), object=book.name, show_text=true) }}

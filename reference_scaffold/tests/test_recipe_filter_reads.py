@@ -75,12 +75,13 @@ def complete_snapshot(owner):
 
 
 def recipe_ids(html):
-    return re.findall(r'href="/admin/rezepte/([0-9a-f-]{36})"', html)
+    return re.findall(r'href="/admin/rezepte/([0-9a-f-]{36})(?:\?[^"#]*)?"', html)
 
 
 def page_link(html, page):
     return next(url for url in map(unescape, re.findall(r'href="([^"]+)"', html))
-                if parse_qs(urlsplit(url).query).get('page') == [str(page)])
+                if urlsplit(url).path == '/admin/rezepte'
+                and parse_qs(urlsplit(url).query).get('page') == [str(page)])
 
 
 def seed_pages(fixture, count=53):
