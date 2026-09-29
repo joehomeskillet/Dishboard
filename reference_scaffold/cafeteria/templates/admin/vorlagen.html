@@ -82,19 +82,17 @@
               {% endif %}
               {% endfor %}
         </section>
-        <div class="output-print-actions btn-list">
+        <div class="output-print-actions">
+          {% set actions = [
+            {'key': 'actions.open', 'href': url_for('admin.' ~ output_family, week=week), 'aria_label': label ~ ' gewählte Woche öffnen'},
+            {'key': 'actions.open', 'href': url_for('admin.menu_collection', family=output_family), 'aria_label': label ~ ' Menüs öffnen'},
+            {'key': 'actions.open', 'href': url_for('admin.components_get', family=output_family), 'aria_label': label ~ ' Komponenten öffnen'}
+          ] %}
           {% if output_family != 'cafeteria' %}
-          {{ icon_button('actions.print', href=url_for('admin.print_week', family=output_family, week=week), aria_label=label ~ ' PDF der gespeicherten Woche öffnen') }}
+          {% set _ = actions.append({'key': 'actions.print', 'href': url_for('admin.print_week', family=output_family, week=week), 'aria_label': label ~ ' PDF der gespeicherten Woche öffnen'}) %}
           {% endif %}
-          {{ icon_button('actions.print', href=url_for('public.print_' ~ endpoint ~ '_week'), aria_label=label ~ ' veröffentlichten Wochenplan drucken') }}
-        <details class="admin-compact-details">
-          {{ icon_summary('actions.more', aria_label=label ~ ' Inhalte bearbeiten') }}
-          <div class="btn-list pt-2">
-            {{ icon_button('actions.open', href=url_for('admin.' ~ output_family, week=week), aria_label=label ~ ' gewählte Woche öffnen') }}
-            {{ icon_button('actions.open', href=url_for('admin.menu_collection', family=output_family), aria_label=label ~ ' Menüs öffnen') }}
-            {{ icon_button('actions.open', href=url_for('admin.components_get', family=output_family), aria_label=label ~ ' Komponenten öffnen') }}
-          </div>
-        </details>
+          {% set _ = actions.append({'key': 'actions.print', 'href': url_for('public.print_' ~ endpoint ~ '_week'), 'aria_label': label ~ ' veröffentlichten Wochenplan drucken'}) %}
+          {{ row_actions(actions, object=label) }}
         </div>
   </div>
   {% endfor %}
@@ -168,14 +166,10 @@
     </div>
   </div>
 </div>
-<details class="admin-compact-details mt-4">
-  {{ icon_summary('ui.disclosure.more_options') }}
-  <div class="btn-list pt-2">
-    {{ icon_button('actions.open', href=url_for('admin.master_data_list', kind='foods'), aria_label='Zutaten und Grundlagen öffnen') }}
-    {% if can_browse_recipes %}
-    {{ icon_button('actions.open', href=url_for('admin.cookbooks_list'), aria_label='Kochbücher öffnen') }}
-    {% endif %}
-  </div>
-</details>
+<div class="mt-4">
+  {% set actions = [{'key': 'actions.open', 'href': url_for('admin.master_data_list', kind='foods'), 'aria_label': 'Zutaten und Grundlagen öffnen'}] %}
+  {% if can_browse_recipes %}{% set _ = actions.append({'key': 'actions.open', 'href': url_for('admin.cookbooks_list'), 'aria_label': 'Kochbücher öffnen'}) %}{% endif %}
+  {{ row_actions(actions) }}
+</div>
 {% endif %}
 {% endblock %}
