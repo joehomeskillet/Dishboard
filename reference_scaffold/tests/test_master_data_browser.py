@@ -13,6 +13,7 @@ from playwright.sync_api import expect
 from sqlalchemy import text
 from werkzeug.serving import make_server
 
+from cafeteria import roles
 from test_master_data_routes import (  # noqa: F401
     app_engine, b3, create, installed_pg16, pg16, save, seeded_pg16, snapshot,
 )
@@ -138,8 +139,69 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         page.screenshot(path=str(screenshot), full_page=True)
         screenshot.chmod(0o600)
         page.get_by_role('link', name='Zurück', exact=True).click()
-        expect(page.locator('.admin-list-row').filter(has_text='Andere Sitzung').get_by_role('link', name='Andere Sitzung', exact=True)).to_be_visible()
+        row = page.locator('.admin-list-row').filter(has_text='Andere Sitzung')
+        expect(row.get_by_role('link', name='Andere Sitzung', exact=True)).to_have_count(0)
+        expect(row.get_by_role('link', name='Andere Sitzung bearbeiten', exact=True)).to_be_visible()
         targets(page)
+
+
+@pytest.mark.parametrize('readonly', [False, True])
+@pytest.mark.parametrize('javascript', [False, True])
+@pytest.mark.parametrize('width', [390, 1440])
+def test_master_names_are_text_with_keyboard_action_in_all_states(
+    b3, master_server, browser, monkeypatch, readonly, javascript, width, tmp_path,  # noqa: F811
+):
+    _, _, client, _ = b3
+    cases = [('zutaten', 'Zutat D3', {}),
+             ('kategorien', 'Kategorie D3', {'code': 'D3CAT', 'sort_order': '1'}),
+             ('tags', 'Kennzeichnung D3', {'code': 'D3TAG'}),
+             ('lagerorte', 'Lagerort D3', {'code': 'D3STORAGE', 'sort_order': '1'}),
+             ('einheiten', 'Einheit D3', {'code': 'D3UNIT', 'display_name': 'Einheit D3',
+                                       'dimension': 'count', 'base_factor': '2'})]
+    entries = [(kind, name, create(client, kind, **(values if kind == 'einheiten' else {'name': name, **values})))
+               for kind, name, values in cases]
+    query_kinds = {'zutaten': 'foods', 'kategorien': 'categories', 'tags': 'tags',
+                   'lagerorte': 'storage_locations', 'einheiten': 'units'}
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': width, 'height': 900},
+                             java_script_enabled=javascript, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        for archived in (False, True):
+            if archived:
+                for _, _, path in entries:
+                    assert save(client, path, 'archivieren').status_code == 303
+            with monkeypatch.context() as access:
+                if readonly:
+                    access.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+                for kind, name, path in entries:
+                    response = page.goto(f'{base}/admin/grundlagen?kind={query_kinds[kind]}&archived=1')
+                    assert response.status == 200
+                    row = page.locator('.admin-list-row').filter(has=page.get_by_text(name, exact=True))
+                    primary = row.locator('.admin-list-primary').last
+                    expect(primary).to_have_text(name)
+                    expect(row.get_by_role('link', name=name, exact=True)).to_have_count(0)
+                    assert primary.evaluate('el => !el.closest("a, button, [role=link], [onclick]")')
+                    verb = 'öffnen' if readonly or archived else 'bearbeiten'
+                    action = row.get_by_role('link', name=f'{name} {verb}', exact=True)
+                    expect(action).to_have_attribute('href', path)
+                    expect(action).to_have_text('')
+                    if readonly:
+                        expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
+                    else:
+                        row.locator('summary[data-semantic="actions.more"]').press('Enter')
+                        status = row.get_by_role('link', name=f'{name} {"aktivieren" if archived else "archivieren"}', exact=True)
+                        expect(status).to_have_attribute('href', path + '#master-status')
+                        row.locator('summary[data-semantic="actions.more"]').press('Enter')
+                    action.focus()
+                    page.keyboard.press('Shift+Tab')
+                    page.keyboard.press('Tab')
+                    expect(action).to_be_focused()
+                    if kind == 'zutaten':
+                        page.screenshot(path=str(tmp_path / f'ingredients-{width}-js{javascript}-readonly{readonly}-archived{archived}.png'))
+                    action.press('Enter')
+                    page.wait_for_url(base + path)
+                    assert page.url == base + path
 
 
 def test_browser_vocabulary_unit_forms_and_error_focus(b3, master_server, browser):  # noqa: F811

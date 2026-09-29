@@ -30,7 +30,7 @@ MEASURE = '''({rows, component}) => {
     };
     const main = box(document.querySelector('main'));
     const records = [...document.querySelectorAll(rows)].map(row => {
-        const primary = row.querySelector(component ? 'a.admin-list-primary' : '.admin-list-primary');
+        const primary = row.querySelector(component ? 'span.admin-list-primary' : '.admin-list-primary');
         const secondary = row.querySelector('th .admin-list-secondary');
         const meta = row.querySelector('.admin-list-meta');
         const contentBoxes = [...row.children].map(box);
@@ -182,11 +182,18 @@ def test_pilot_density_real_records_filtering_and_native_forms(
         assert parse_qs(urlsplit(page.url).query)['q' if component else 'text'] == [names[-1]]
         search.get_by_role('link', name='Zurücksetzen', exact=True).click()
         expect(page.locator(row_selector)).to_have_count(10)
-        primary_selector = 'a.admin-list-primary' if component else '.admin-list-primary'
+        primary_selector = 'span.admin-list-primary' if component else '.admin-list-primary'
         first_name = page.locator(row_selector).first.locator(primary_selector).inner_text()
-        edit = page.locator(row_selector).first.locator('[data-semantic="actions.edit"]')
+        first_row = page.locator(row_selector).first
+        if component:
+            expect(first_row.get_by_role('link', name=first_name, exact=True)).to_have_count(0)
+        edit = first_row.get_by_role('link', name=f'{first_name} bearbeiten', exact=True)
         expect(edit).to_have_count(1)
+        if component:
+            expect(edit).to_have_attribute('href', path + '/' + first_row.get_attribute('data-public-id'))
         edit.focus()
+        page.keyboard.press('Shift+Tab')
+        page.keyboard.press('Tab')
         expect(edit).to_be_focused()
         edit.press('Enter')
         form = page.locator('#component-form' if component else '#recipe-editor')
