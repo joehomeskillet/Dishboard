@@ -116,6 +116,10 @@
   grid-row: 3 / span 3;
   align-self: end;
 }
+.dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-week-card-action:has(.admin-week-template[open]) {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
 .dishboard-admin .admin-main[data-layout="workspace"] .menu-slot .admin-week-thumbnail {
   grid-column: 2;
   grid-row: 1 / span 2;
@@ -144,7 +148,7 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-issues, .admin-week-nojs-publish, .admin-week-template) > summary {
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-issues, .admin-week-nojs-publish, .admin-week-template) > summary:not(.ui-sem-control) {
   min-height: 48px;
   padding: var(--app-space-2);
 }

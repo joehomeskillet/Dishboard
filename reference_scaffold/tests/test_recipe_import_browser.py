@@ -54,11 +54,64 @@ def test_upload_conflict_keyboard_and_tabler(b3, master_server, browser, width, 
         expect(page.get_by_text('Noch keine Importstapel')).to_be_visible()
         page.set_input_files('#source_file', str(source))
         page.get_by_label('ungeprüft').check()
-        preview = page.get_by_role('button', name='Vorschau speichern')
-        expect(preview).to_contain_text('Vorschau speichern')
-        preview.click()
+        preview = page.get_by_role('button', name='Vorschau speichern', exact=True)
+        expect(preview).to_have_accessible_name('Vorschau speichern')
+        expect(preview).to_have_attribute('data-ui-tooltip', 'Vorschau speichern')
+        expect(preview).to_have_attribute('data-semantic', 'actions.preview')
+        expect(preview.locator('svg[aria-hidden="true"] > use')).to_have_attribute(
+            'href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-eye')
+        preview_text = preview.inner_text().strip()
+        upload_form = preview.locator('xpath=ancestor::form')
+        expect(upload_form).to_have_attribute('method', 'post')
+        expect(upload_form).to_have_attribute('enctype', 'multipart/form-data')
+        upload_url = upload_form.evaluate('f => f.action')
+        upload_fields = upload_form.evaluate('''form => {
+            const data = new FormData(form), file = data.get('source_file');
+            return {keys: [...data.keys()], csrf: !!data.get('_csrf'),
+                annotations: data.getAll('annotation'), filename: file.name, size: file.size};
+        }''')
+        assert set(upload_fields['keys']) == {'_csrf', 'source_file', 'annotation'}
+        assert upload_fields['csrf'] and upload_fields['annotations'] == ['unreviewed']
+        assert upload_fields['filename'] == source.name and upload_fields['size'] == source.stat().st_size
+
+        def capture_preview(state):
+            capture_width = 390 if width == 360 else width
+            page.set_viewport_size({'width': capture_width, 'height': height})
+            page.mouse.move(0, 0)
+            page.locator('#source_file').focus()
+            expect(page.get_by_role('tooltip')).to_have_count(0)
+            page.evaluate('scrollTo(0, 0)')
+            page.screenshot(path=str(tmp_path / f'preview-{state}-{capture_width}-js-{javascript}.png'))
+            page.set_viewport_size({'width': width, 'height': height})
+
+        capture_preview('upload')
+        page.keyboard.press('Tab')
+        expect(preview).to_be_focused()
+        assert preview.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+        if javascript:
+            tooltip = page.get_by_role('tooltip', name='Vorschau speichern', exact=True)
+            expect(tooltip).to_be_visible()
+            preview.press('Escape')
+            expect(tooltip).to_be_hidden()
+            preview.hover()
+            expect(tooltip).to_be_visible()
+            preview.press('Escape')
+            expect(tooltip).to_be_hidden()
+        with page.expect_response(lambda response: response.request.method == 'POST') as uploaded:
+            preview.click()
+        assert uploaded.value.status == 303 and uploaded.value.request.url == upload_url
+        assert uploaded.value.request.header_value('content-type').startswith('multipart/form-data; boundary=')
         expect(page.get_by_role('heading', name='Importstapel')).to_be_visible()
         expect(page.get_by_text('Browser Import')).to_be_visible()
+        expect(page.locator('[data-checked-identity] + p')).to_contain_text('Entwurf')
+        expect(page.locator('[data-checked-identity] + p')).to_contain_text('Noch keine Bestätigung')
+        expect(page.locator('#batch-unreviewed')).to_be_checked()
+        expect(page.get_by_role('button', name='Importstapel übernehmen', exact=True)).to_have_count(0)
+        expect(page.get_by_text('Speichern legt keine Rezepte an, veröffentlicht nichts und bestätigt keine Allergene.')).to_be_visible()
+        upload_summary = page.locator('[data-import-upload] > summary')
+        upload_summary.press('Enter')
+        capture_preview('draft')
+        upload_summary.press('Enter')
         path = urlsplit(page.url).path
         token = page.locator('input[name="row_version"]').input_value()
         stale_title = page.get_by_label('Titel', exact=True)
@@ -89,6 +142,7 @@ def test_upload_conflict_keyboard_and_tabler(b3, master_server, browser, width, 
         page.screenshot(path=str(shot), full_page=True)
         expected_conflict = 'Failed to load resource: the server responded with a status of 409 (CONFLICT)'
         assert all(error == expected_conflict for error in errors)
+        assert preview_text == '', 'Vorschau speichern must use the shared icon-only action'
 
 
 @pytest.mark.parametrize('width,height', SHARED_VIEWPORTS)
@@ -138,7 +192,7 @@ def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, 
         _open(page, base, path)
         expect(page.get_by_role('heading', name='Importstapel übernehmen')).to_be_visible()
         expect(page.locator('main .btn-primary')).to_have_count(1)
-        expect(page.locator('.admin-statusbar')).to_contain_text('Erledigt')
+        expect(page.locator('[data-checked-identity] + p')).to_contain_text('Bestätigte Signatur vorhanden')
         expect(page.get_by_text('keine Veröffentlichung')).to_be_visible()
         targets(page)
         confirm_shot = tmp_path / f'rezepte-import-confirm-{width}-js-{javascript}.png'
@@ -152,7 +206,7 @@ def test_commit_confirmation_and_recipe_link(b3, master_server, browser, width, 
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.back')
         expect(page.locator('main .btn-primary')).to_have_accessible_name('Zu Rezepten')
-        expect(page.locator('.admin-statusbar')).to_contain_text('Übernommen')
+        expect(page.locator('[data-checked-identity] + p')).to_contain_text('Übernommen')
         expect(page.locator('.admin-list-row')).to_be_visible()
         expect(page.get_by_role('link', name='Bearbeiten', exact=True)).to_be_visible()
         targets(page)
@@ -371,6 +425,162 @@ def test_discard_requires_explicit_native_confirmation(b3, master_server, browse
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.back')
         expect(page.locator('main .btn-primary')).to_have_accessible_name('Zu Rezepten')
-        expect(page.locator('.admin-statusbar')).to_contain_text('Verworfen')
+        expect(page.locator('[data-checked-identity] + p')).to_contain_text('Verworfen')
         expect(page.locator('.admin-label').first).to_contain_text('Verworfen')
         expect(page.get_by_role('button', name='Verwerfen bestätigen', exact=True)).to_have_count(0)
+
+
+@pytest.mark.parametrize('javascript', [False, True], ids=['nojs', 'js'])
+def test_upload_preview_preserves_coarse_pointer_and_draft_only(
+    b3, master_server, browser, tmp_path, javascript,  # noqa: F811
+) -> None:
+    from test_recipe_import_routes import snapshot
+
+    _, owner, _, _ = b3
+    before = snapshot(owner)
+    base, cookie = master_server
+    with browser.new_context(
+        viewport={'width': 390, 'height': 844}, has_touch=True,
+        java_script_enabled=javascript, reduced_motion='reduce', service_workers='block',
+    ) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        posts = []
+        page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
+        _open(page, base)
+        for index, state in enumerate(('initial', 'draft'), start=1):
+            if state == 'draft':
+                page.locator('[data-import-upload] > summary').press('Enter')
+                expect(page.locator('[data-import-upload]')).to_have_attribute('open', '')
+            form = page.locator('form[action="/admin/rezepte/import"]')
+            preview = form.get_by_role('button', name='Vorschau speichern', exact=True)
+            expect(preview).to_be_visible()
+            expect(preview).to_have_accessible_name('Vorschau speichern')
+            expect(preview).to_have_attribute('data-ui-tooltip', 'Vorschau speichern')
+            expect(preview).to_have_attribute('data-semantic', 'actions.preview')
+            expect(preview).to_have_text('')
+            expect(preview.locator('svg[aria-hidden="true"] > use')).to_have_attribute(
+                'href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-eye')
+            expect(form).to_have_attribute('method', 'post')
+            expect(form).to_have_attribute('enctype', 'multipart/form-data')
+            expect(form.locator('[name="_csrf"]')).not_to_have_value('')
+            preview.scroll_into_view_if_needed()
+            pointer = "[matchMedia('(pointer: coarse)').matches, matchMedia('(any-pointer: coarse)').matches, navigator.maxTouchPoints]"
+            assert page.evaluate(pointer) == [True, True, 1]
+            box = preview.bounding_box()
+            assert box and box['width'] == box['height'] == 44, box
+            page.screenshot(path=str(tmp_path / f'preview-{state}-390-coarse.png'), full_page=False)
+            assert page.evaluate(pointer) == [True, True, 1]
+            box = preview.bounding_box()
+            assert box and box['width'] == box['height'] == 44, box
+            source = json_bytes(recipe(f'Touch Import {state}'))
+            form.locator('#source_file').set_input_files({
+                'name': f'{state}.json', 'mimeType': 'application/json', 'buffer': source,
+            })
+            form.locator('[name="annotation"][value="unreviewed"]').check()
+            with page.expect_response(lambda response: response.request.method == 'POST'
+                                      and urlsplit(response.url).path == '/admin/rezepte/import') as uploaded:
+                preview.click()
+            assert uploaded.value.status == 303
+            assert uploaded.value.request.header_value('content-type').startswith('multipart/form-data; boundary=')
+            expect(page.get_by_role('heading', name=f'Importstapel · {state}.json', exact=True)).to_be_visible()
+            expect(page.locator('[data-checked-identity] + p')).to_contain_text('Entwurf')
+            expect(page.locator('#batch-unreviewed')).to_be_checked()
+            expect(page.get_by_role('button', name='Importstapel übernehmen', exact=True)).to_have_count(0)
+            assert urlsplit(page.url).path.startswith('/admin/rezepte/import/')
+            after = snapshot(owner)
+            assert after['recipes'] == before['recipes']
+            assert len(after['recipe_import_batches']) == len(before['recipe_import_batches']) + index
+            assert posts == [base + '/admin/rezepte/import'] * index
+            assert page.evaluate(pointer) == [True, True, 1]
+
+
+@pytest.mark.parametrize('width,height', ((390, 844), (1440, 900)))
+@pytest.mark.parametrize('javascript', [False, True])
+def test_batch_status_and_confirmation_remain_independent(
+    b3, master_server, browser, tmp_path, width, height, javascript,  # noqa: F811
+) -> None:
+    import json
+    from test_recipe_import_routes import snapshot
+
+    app, owner, client, actor = b3
+    engine = app.extensions['cafeteria_db']
+    with signed_in(engine, actor):
+        food = masters.create_food(engine, actor, {
+            'name': 'Status-Zutat', 'base_unit_code': 'KG',
+            'storage_location_public_ids': [STORAGE_PUBLIC_ID],
+        })
+    path = create(client, annotation='unreviewed')
+    data = Forms(client.get(path).text).forms[path]
+    data['row.1.ingredient.0.food_public_id'] = food.public_id
+    data['row.1.duplicate_decision'] = 'create_new'
+    data['action'] = 'save'
+    assert client.post(path, data=data).status_code == 303
+    recipes_before = snapshot(owner)['recipes']
+    base, cookie = master_server
+    records = []
+    with browser.new_context(
+        viewport={'width': width, 'height': height}, has_touch=width == 390,
+        java_script_enabled=javascript, reduced_motion='reduce', service_workers='block',
+    ) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        pointer = "[matchMedia('(pointer: coarse)').matches, navigator.maxTouchPoints]"
+        expected_pointer = [True, 1] if width == 390 else [False, 0]
+
+        def observe(state, status, confirmation, can_commit=False):
+            status_line = page.locator('[data-checked-identity] + p')
+            expect(status_line.locator('.admin-label')).to_have_text(status)
+            expect(status_line).to_contain_text(confirmation)
+            expect(status_line).to_be_visible()
+            expect(page.get_by_role('button', name='Importstapel übernehmen', exact=True)).to_have_count(int(can_commit))
+            form = page.locator('[data-checked-file] > form')
+            expect(form.locator('[name="_csrf"]')).not_to_have_value('')
+            expect(form.locator('[name="row_version"]')).not_to_have_value('')
+            assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
+            page.mouse.move(0, 0)
+            page.evaluate('document.activeElement.blur(); scrollTo(0, 0)')
+            assert page.evaluate(pointer) == expected_pointer
+            page.screenshot(path=str(tmp_path / f'{state}-{width}-js-{javascript}.png'), full_page=False)
+            assert page.evaluate(pointer) == expected_pointer
+            records.append({'state': state, 'body': status_line.inner_text(),
+                            'header_cards': page.locator('.admin-statusbar-item').count(),
+                            'status_box': status_line.bounding_box(), 'pointer': page.evaluate(pointer)})
+
+        def submit(button, target):
+            with page.expect_response(lambda response: response.request.method == 'POST'
+                                      and urlsplit(response.url).path == target) as response:
+                button.click()
+            if response.value.status != 303:
+                error = page.locator('#recipe-import-error')
+                expect(error).to_be_visible()
+                assert response.value.status == 303, error.inner_text()
+
+        _open(page, base)
+        expect(page.locator('.admin-statusbar')).to_contain_text('Vorschau')
+        _open(page, base, path)
+        pending = 'Noch keine Bestätigung. Übernahme in Rezepte braucht zuerst diese Signatur.'
+        confirmed = 'Bestätigte Signatur vorhanden. Jede Änderung entwertet sie.'
+        observe('draft', 'Entwurf', pending)
+        submit(page.get_by_role('button', name='Bestätigen', exact=True), path)
+        observe('confirmed', 'Entwurf', confirmed, True)
+        assert snapshot(owner)['recipes'] == recipes_before
+        page.get_by_label('Titel', exact=True).fill('Geänderter Status-Entwurf')
+        submit(page.get_by_role('button', name='Speichern', exact=True), path)
+        observe('changed', 'Entwurf', pending)
+        assert snapshot(owner)['recipes'] == recipes_before
+        submit(page.get_by_role('button', name='Bestätigen', exact=True), path)
+        submit(page.get_by_role('button', name='Importstapel übernehmen', exact=True), f'{path}/commit')
+        observe('imported', 'Übernommen', 'unveränderlich. Es erfolgte keine Veröffentlichung und keine Allergenfreigabe.')
+        recipes_imported = snapshot(owner)['recipes']
+        assert len(recipes_imported) == len(recipes_before) + 1
+        cancelled_path = create(client, annotation='unreviewed')
+        _open(page, base, cancelled_path)
+        page.locator('.admin-compact-actions > summary').press('Enter')
+        page.locator('summary[aria-label="Stapel verwerfen"]').press('Enter')
+        expect(page.locator('#discard-consequence')).to_contain_text('vorhandene Rezepte bleiben unverändert')
+        submit(page.get_by_role('button', name='Verwerfen bestätigen', exact=True), cancelled_path)
+        observe('cancelled', 'Verworfen', pending)
+        assert snapshot(owner)['recipes'] == recipes_imported
+    (tmp_path / 'status-states.json').write_text(json.dumps(records, indent=2, ensure_ascii=False) + '\n')
+    assert all(record['header_cards'] == 0 for record in records), records

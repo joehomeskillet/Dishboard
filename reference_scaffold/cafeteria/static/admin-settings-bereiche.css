@@ -49,7 +49,7 @@
     display: block;
     padding: var(--app-space-1) var(--app-space-2);
   }
-  .dishboard-admin .operations-schedule td::before { display: none; }
+  .dishboard-admin .operations-schedule td[data-label]::before { display: none; }
   .dishboard-admin .operations-schedule .form-label {
     position: static;
     width: auto;
@@ -58,7 +58,6 @@
     clip-path: none;
     margin-bottom: var(--app-space-1);
   }
-  .dishboard-admin .operations-schedule .operations-notice .form-label { display: none; }
   .dishboard-admin .operations-schedule tr:has(option[value="closed"]:checked):not(:has([aria-invalid="true"])) .operations-time:not(.has-content) {
     display: none;
   }

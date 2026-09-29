@@ -1,5 +1,549 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## Kalender: Heute, Fokus und nativer Überlauf — 2026-09-28, 15:02 CEST
+
+Zwei ergänzte UI19-Fälle prüfen JS mit Fine-Pointer bei1440/390px. Sechs echte
+DB-Titel am belegten Tag erzeugen +3 Überlauf. Heute ist fest2026-09-02;
+Tastaturfokus auf3.September ist davon getrennt. Die bestehende API besitzt
+keinen ausgewählten Tag: Fokus wird ausdrücklich nicht als Auswahl gewertet.
+Monat und Profil bleiben unabhängige Zustände. Desktop zeigt den gedämpften
+31.August; Mobil prüft dessen echte Vormonatsnavigation und Heute-Rückkehr,
+weil die mobile Liste absichtlich nur Tage innerhalb des Monats zeigt.
+
+Native Tastaturbedienung öffnet den Überlauf und folgt einem Eintrag per GET
+zum Patientenmenü; Pfad/Query/200 und keine POSTs werden geprüft. Zwei erste
+Läufe scheiterten allein am Vergleich des whitespacebehafteten rohen href
+mit der normalisierten Browser-URL. Ein anderer Autor korrigierte nur diese
+Oracle auf a.href; sämtliche Pfad-/Query-/Zustandsprüfungen bleiben erhalten.
+Autor:2 bestanden in12.05s, komplette Datei11 in50.61s. Root:11 bestanden
+in53.42s. Root sah eigene Desktop-Heute/Fokus- und mobile Überlaufaufnahme;
+Review `/tmp/wp-629944221b32.md` ist CLEAN im genannten Umfang.
+
+Eine bestehende Testdatei übernommen, Bestand jetzt54; ursprünglicher
+341-Zeilen-Präfix exakt erhalten. Alle54 Quellhashes und19 geschützte
+Git-Metadaten nach Übernahme geprüft. Kombinierter Root-Lauf:2 bestanden
+in12.33s, Outer-/Gate-Exit0. Belege `/tmp/calendar-state-{full,combined}-root-0928.{log,xml}`,
+Receipt `/tmp/wp-6e63b3f0fab4-receipt.json`. Keine Produktänderung,
+kein Touch-/NoJS-/Zoom- oder globaler UI19-Abnahmeanspruch, kein Commit/Deploy.
+
+## Lokalisierte primäre Rezeptaktionen — 2026-09-28, 14:47 CEST
+
+Die Rezeptliste übergibt den Rezepttitel nun mit dem vorhandenen object-
+Vertrag an Bearbeiten/Öffnen. Zwei hart codierte deutsche Namensüberschreibungen
+entfallen; Rollen-/Aktivbedingungen, Icons und native Ziel-URLs bleiben gleich.
+Damit heißen die Hauptaktionen bei EN Edit/Open, bei DE bearbeiten/öffnen.
+Dies lokalisiert ausdrücklich noch nicht die geöffneten Mehr-Menütexte.
+
+Zwölf neue Fälle (DE/EN × aktiver Writer/Reader/archivierter Writer ×
+JS1440fine oder NoJS390coarse) belegten vor dem Fix zweimal10FAIL/2PASS allein
+an den falschen Namen. Eine vorherige ungültige Titel-Fixture wurde separat
+durch einen anderen Autor korrigiert; deren12 Fehler waren kein Produkt-RED.
+Autor12 bestanden in53.19s, unveränderte Navigation7 in60.05s.
+
+Der Review fand mehrere Tooltips in einer Autorenaufnahme. Ein anderer Autor
+ergänzte vor dem Screenshot die atomare exakte Einzeltooltip-/Textprüfung
+sowie rohe Tooltipwerte vor/nach Aufnahme. Alle vorhandenen Namen-, Rollen-,
+SVG-,36/44px-,GET-,NoPOST- und Datenprüfungen bleiben erhalten. Root12 bestanden
+in56.78s;24 Zustände aus12 eindeutigen Fällen haben stabile Tooltip-/Pointer-
+Werte. JS-Hauptaktionen zeigen je genau den passenden Tooltip, NoJS keinen.
+Root und Reviewer sahen das korrigierte EN-Archivbild und das mobile NoJS-Ziel.
+Review `/tmp/wp-63691746f338.md` CLEAN im beschriebenen Umfang.
+
+Zwei Dateien übernommen, Bestand jetzt53; alle53 Quellhashes und19 geschützte
+Git-Metadaten nach Übernahme geprüft. Root wiederholte die zwölf Fälle auf dem
+gemeinsamen Stand:12 bestanden in54.39s, Outer-/Gate-Exit0, keine Fehler/Skips.
+Receipt `/tmp/wp-878fa72fe89f-receipt.json`, Belege
+`/tmp/recipe-locale-{settled,combined}-root-0928.{log,xml}`. Keine Änderungen
+an Backend/Berechtigungen, kein Commit oder Deploy. Neue Tests untracked,
+daher außerhalb des nur getrackte Dateien erfassenden Paketmanifests.
+
+## Echter Menüeditorzoom mit stabilen Aufnahmen — 2026-09-28, 14:34 CEST
+
+Vier neue Fälle prüfen beide Profile mit und ohne JavaScript bei echtem200%-
+Chromium-Browserzoom. Set/GetDefaultZoom2 und App-CDPzoom2 werden bestätigt,
+Root/Body CSSzoom1 und transformnone sowie720px innen/1440px außen/DPR2 geprüft.
+Die unbeschnittene CDP-Viewportaufnahme verändert Geometrie/Scroll/Pointer nicht;
+36 eindeutige Messzustände belegen diese Gleichheit. Dies ist Fine-Pointer-
+Abdeckung, keine Touch- oder künstliche DPR-Zoombehauptung.
+
+Jeder Fall durchläuft tatsächlichen400 mit erhaltenen Formularwerten,
+Speichern303, Speichern-und-zurück303 und sauberes Abbrechen ohne POST.
+Mehrfachfelder, CSRF/CAS, gespeicherte Versionen und native Tab-/Enter-
+Bedienbarkeit bleiben streng geprüft. Kein neuer Dirty-Abbruch-/409-/EN-
+Nachweis; die bisherigen720px-Reflowtests bleiben davon getrennt gültig.
+
+Autor4 bestanden in34.52s, unabhängig Root4 in37.74s. Der Bildreview fand
+überlagerte Tooltips in einer Aufnahme. Ein anderer Autor ergänzte Pointer-
+Abstand und atomare exakte Tooltiptext-/Anzahlprüfung nach Tastaturfokus.
+Ein zwischenzeitlicher getrennter Count-/Textcheck zeigte einen Assertion-
+Übergang (1FAIL/3PASS, identischer Retry4PASS), keinen bewiesenen Produktfehler.
+Finale vier Fälle bestanden in36.39s, Outer-/Gate-Exit0, ohne Fehler/Skips;
+alle JS-Footeraufnahmen enthalten genau den Zieltooltip, NoJS keine Tooltips.
+Root und Reviewer sahen das korrigierte Footerbild, außerdem NoJS400.
+
+Review `/tmp/wp-fc796f792d70.md` CLEAN im Vierfallumfang; Capturekorrektur
+`/tmp/wp-2eb64dc57741.md`, finale Belege
+`/tmp/menu-native-zoom-atomic-root-0928.{log,xml}`. Neue Testdatei übernommen,
+Quellbestand jetzt51 mit geprüften SHA-Werten;19 Git-Metadaten unverändert.
+Receipt `/tmp/wp-2ee561fba01d-receipt.json`. Der Vierfalllauf gegen den
+gemeinsamen Stand bestand in38.11s, Outer-/Gate-Exit0, ohne Fehler/Skips:
+`/tmp/menu-native-zoom-combined-root-0928.{log,xml}`. Kein neuer Produktcode/Deploy.
+Die neue Datei ist untracked und deshalb nicht im getrackten Paketmanifest.
+
+## Eingereichte Kurswerte bei Konflikten — 2026-09-28, 14:17 CEST
+
+Das passende Gängeformular erhält nach fehlgeschlagenem Speichern die
+eingereichten IDs, Versionen, Zustände und Rezeptauswahlen zurück. Leere Werte
+und Version0 bleiben erhalten; andere Tage, Mahlzeiten und Formulararten
+verwenden weiterhin ihren gespeicherten Stand. Fehlt eine eingereichte Auswahl
+in den tatsächlich angebotenen und gebundenen Rezepten, hält eine escaped,
+neutrale Option „Eingereichte Auswahl“ ihren Wert. Sie behauptet weder einen
+Rezepttitel noch eine gültige oder autorisierte Bindung; Serverprüfungen bleiben.
+
+Ein echter409 verlor zuvor zweimal genau die Dessertauswahl außerhalb der
+50 Treffer bei ansonsten27 gleichen Formularfeldern. Nach der Korrektur
+bestanden Autor13 HTML und13 Browser. Root wiederholte beide vollständigen
+Dateien unabhängig:26 bestanden in440.27s, Outer-/Gate-Exit0, keine Fehler/Skips.
+Sechs native Abläufe decken Cafeteria Mittag und Patienten Mittag/Abend,
+jeweils JS1440/fine und NoJS390/coarse, vier303 und einen409, vollständige
+28-Feld-Nutzdaten, CSRF/CAS, echte Speicherung und unveränderte Nachbarn ab.
+Der neue echte Outside-Page-Konflikt ist Cafeteria/JS/Dessert; alle sechs
+Selects, Escaping, Empty/0 und Zielisolation ergänzend per SSR geprüft.
+Dies erweitert den Nachweis nicht pauschal auf echte400-/Inactive-Ausnahmen.
+
+NoJS aktiviert denselben Link per Fokus und Enter, mit sichtbarem Fokus,
+Viewportprüfung und44px-Controls. Das ist keine Tap-/Scroll-API-Abnahme;
+die frühere detached-element-Diagnose bleibt ohne bewiesene Produktursache.
+Root sah zwei eigene Desktop-/NoJS-Aufnahmen, der Reviewer zwei Autorbilder.
+Review `/tmp/wp-a84a74f6bb6c.md` CLEAN im beschriebenen Umfang.
+
+Drei Quelldateien gezielt übernommen, Bestand jetzt50; alle50 Quellhashes
+und19 Git-Metadaten nach Übernahme geprüft. Receipt
+`/tmp/wp-1e4afa25a9e0-receipt.json`, unabhängiges Gate
+`/tmp/course-retention-full-root-0928.{log,xml}`. Die sechs neuen Browserfälle
+bestanden zusätzlich im gemeinsamen50-Dateien-Stand in301.08s, Outer-/Gate-
+Exit0, ohne Fehler/Skips: `/tmp/course-retention-combined-root-0928.{log,xml}`.
+Keine Änderung an Backend, Datenbank oder Berechtigungen. Kein neuer Commit
+oder Deploy; der14:07-Stundenzug war mangels neuer Commits erneut NOOP.
+
+## Herkunftsaktionen und Tooltip-Lebenszyklus — 2026-09-28, 14:03 CEST
+
+Der Menüeditor zeigt pro Herkunftszeile nur die gemeinsame Mehr-Aktion.
+Löschen samt Folgehinweis steht im geöffneten nativen Überlaufmenü (§5.4).
+Automatische Herkunft bleibt gesperrt; die Löschung wird weiterhin erst mit
+dem nativen Speichern persistiert. Ohne JavaScript bleibt der vorhandene
+Weg über zwei leere Herkunftsfelder und Speichern erhalten. Der type=button-
+Löschknopf erhält dadurch keine neue No-JS-Funktion.
+
+Beim Entfernen einer Zeile entsorgt admin.js deren registrierte Tooltip-
+Instanzen vor row.remove() und entfernt genau diese Controls aus dem Set.
+Dies behebt den zweimal über fünf Sekunden nachgewiesenen doppelten Tooltip
+nach Klonen und Entfernen. Das Leeren der letzten Zeile bleibt unverändert.
+Die Tastaturaufnahme setzt vor dem Fokuszyklus den Mauszeiger ausserhalb
+der Controls; exakte Fokus-, Namens- und Tooltip-Eindeutigkeit bleibt geprüft.
+
+Unabhängig bestanden auf den anschließend übernommenen identischen Quellen
+56 Tests in196.20s: Admin20, Escape16, Readonly8, echtes CSP4 und Herkunft8.
+Outer-/Gate-Exit0, keine Fehler oder Skips. Autorprüfung49 Ausführungen grün;
+der einzelne Regressionstest ist zusätzlich in dessen Admin20 enthalten.
+Root sah zwei eigene Herkunftsbilder, Peer die Vorher-/Nachheraufnahmen.
+Die acht Readonly-PNGs entstanden in einem zuvor nicht vorhandenen Verzeichnis;
+keine fremden Baselines wurden ersetzt. Dies ist keine appweite Sichtabnahme.
+
+Gemeinsamer Quellstand jetzt47 Dateien mit geprüften SHA-Werten;19 Git-
+Metadaten unverändert. Receipt `/tmp/wp-2ac1ebf9419e-receipt.json`, Root-Gate
+`/tmp/tooltip-origin-full-root-0928.{log,xml}`, unabhängige Reviews
+`/tmp/wp-e44f11e0ba99.md` und `/tmp/wp-c6d15f4f4bdf.md` CLEAN im belegten Umfang.
+Kursfehlerkorrekturen und echter Menüeditorzoom bleiben separat und offen.
+Neue Tests sind teils untracked; das Paketmanifest erfasst nur getrackte
+Dateien. Kein neuer Commit/Deploy: Git-Metadaten sind hier schreibgeschützt.
+
+## Native Ladeanzeige und einheitliche Speicheraktionen — 2026-09-28, 13:00 CEST
+
+Die Wochenprüfung aktiviert jetzt mit einem `data-loading`-Attribut die
+vorhandene gemeinsame Ladefunktion. Vier echte native Abläufe (Patienten390
+coarse/Cafeteria1440 fine, jeweils303 und veralteter Stand409) scheiterten
+zuvor zweimal ausschliesslich an der fehlenden Ladeanzeige. Nach dem Opt-in
+bestanden unabhängig Root4 in12.03s, bestehende Wochenprüfung24 in59.09s
+und nach Übernahme in den gemeinsamen Quellstand neue4 in12.06s.
+Alle Exits0, keine Fehler/Skips; unabhängiger Review CLEAN.
+CSRF/week/context_version, externer Submit, Prüfbeleg/Audit sowie die Trennung
+von Menüprüfung und Veröffentlichung bleiben nachgewiesen erhalten.
+
+Der Test beobachtet submit/MutationObserver/beforeunload passiv und nimmt
+während des echten serverseitig gehaltenen POSTs ein Bild auf. Die strenge
+Spinnerbegrenzung stammt aus aufgelöstem CSSOM am beforeunload-Snapshot,
+nicht aus einer während der Navigation blockierenden CDP-DOM-Abfrage.
+Kein BFCache-Nachweis; Konflikterholung über frischen GET. Kein unmittelbarer
+DOM-Pointerread nach dem Busybild. Dies schliesst die konkrete Wochenprüfung,
+keine pauschale appweite UI20-Abnahme. Belege `/tmp/wp-0c6e30a8df95.md`
+und `/tmp/wp-week-loading-review-root-0928.md`; Root sah zwei eigene
+Pendingbilder, Peer alle14 Aufnahmen.
+
+Im Menüeditor wurde genau die lokale48px-Mindesthöhe der Primäraktion
+entfernt. Speichern, Speichern und Rückkehr sowie Abbrechen nutzen die
+gemeinsame36px-fine/44px-coarse-Geometrie. Autor21 bestanden in70.99s,
+unabhängig Root21 in70.07s. Zwei überholte Primärhöhen-Assertions wurden
+auf exakte Quadrate umgestellt. Die separate alte96px-Footerannahme
+scheiterte zweimal; ein anderer Autor ersetzte sie durch tatsächliche
+Begrenzung in beiden Achsen und gegenseitige Nichtüberlappung bei wrap.
+Sticky-/Scroll-/Tastatur-/Formularprüfungen bleiben erhalten. Root volle20
+bestanden in92.13s; unabhängiger Review CLEAN. Zwei eigene Root-Bilder
+und vier Vorher-/Nachherpaare beim Autor wurden angesehen.
+
+Gemeinsamer Quellstand damals46 Dateien mit geprüften SHA-Werten;19
+Git-Metadaten unverändert. Die gemeinsame Menüprüfung41 bestand in163.79s
+mit Exit0, ohne Fehler oder Skips. Vier Inventarprüfungen bestanden in0.83s.
+Aktuelle Receipts `/tmp/wp-0c6e30a8df95-receipt.json` und
+`/tmp/wp-bf8d5cbbfeef-receipt.json`. Neue Tests sind teils untracked und
+damit nicht Teil des nur getrackte Dateien erfassenden Paketmanifests.
+Kein Commit/Deploy; damals blieben Herkunft-Remove/Sicherheitskontext,
+vollständige Gängematrix und echter Menüeditorzoom eigene offene Grenzen.
+
+## Kontextnamen der Wochenaktionen geprüft — 2026-09-28, 12:25 CEST
+
+Leere Wochen-Slots verwenden jetzt den lokalisierten Anlegen-Namen, belegte
+Slots den Bearbeiten-Namen. Beide behalten Tag, Datum, Mahlzeit, Menüoption
+und Gericht im zugänglichen Namen und Tooltip. Die Symbolaktion nutzt den
+bestehenden `actions.*.object`-Vertrag; Ziel-URL, native GET-Navigation und
+Formulare bleiben erhalten. Deutsch/Englisch, beide Profile, JS/No-JS,
+390px mit echtem Touch und 1440px sind in den bestehenden20 Fällen geprüft.
+
+Der erste Autor verwendete eine falsche Testgrammatik. Ein anderer Agent
+korrigierte genau zwei Solltextzeilen: anschließend20 bestanden in77.60s,
+unabhängig Root20 in82.03s. Nach gezielter Übernahme beider Dateien in den
+gemeinsamen Quellstand nochmals20 bestanden in78.70s; sämtliche Exitcodes0,
+keine Fehler oder Skips. Zwei eigene Root-Aufnahmen und acht Peer-Aufnahmen
+wurden angesehen. Belege: `/tmp/dishboard-week-slot-{oracle-peer,oracle-root,combined-root}-0928.{log,xml}`,
+Bericht `/tmp/wp-918bf8e58c72.md`, Quellreceipt gleicher WP mit Suffix `-receipt.json`.
+Der gemeinsame Bestand bleibt43 Dateien; zwei Identitäten wurden ersetzt.
+Git-Metadaten unverändert, kein neuer Commit oder Deploy.
+
+Zusätzlicher Inventarlauf auf dem vorherigen43-Dateien-Stand:10 Tests bestanden
+in137.44s,204 neue Aufnahmen mit geprüften Bild-Hashes und ohne aufgezeichneten
+horizontalen Überlauf. Dies ist keine Sichtabnahme sämtlicher204 Bilder.
+Nur sechs Aufnahmen nennen ihre Rolle ausdrücklich. Historische Commit-/Grok-
+Metadaten des Originalmanifests sind keine aktuelle Ausführungszuordnung.
+Getrennte Quellen-/Ausführungsbelege: `/tmp/wp-capture-provenance-root-0928.{json,md}`.
+Der spätere Namensfix ist durch diesen älteren Aufnahmesatz nicht abgedeckt.
+
+UI20 bleibt offen: Der echte Lade-Test blockiert beim Anhalten der Navigation
+im Testaufbau. Produktverhalten ist dadurch noch nicht als fehlerhaft bewiesen.
+Unabhängige Testreparatur läuft; keine globale Ladefunktion wurde geändert.
+
+## Drei Statuspakete gemeinsam geprüft — 2026-09-28, 11:47 CEST
+
+Die drei P2-Statusgruppen des mobilen Reviews sind jetzt im gemeinsamen
+Integrationsquellstand enthalten: 43 Dateien mit exakt geprüften SHA-Werten.
+Sechs gezielte Dateideltas, elf Original-/Quellsicherungen und sämtliche
+19 Git-Metadaten sind geprüft. Kein neuer Commit oder Deploy.
+Auf genau diesem Stand bestanden unabhängig67 Fälle: ganze Wochenprüfung24
+in60.18s, Skalierung/Bildbrowser/Route/Unit39 in84.22s und neue Importzustände4
+in20.99s. Alle Outer-/GATE-Exits0, keine Fehler/internen Fehler/Skips.
+Belege: `/tmp/dishboard-status-combined-{week,scale,import}-0928.{log,xml}`.
+Die ursprünglichen26 Importbrowserfälle wurden im Autorenstand geprüft,
+auf dem gemeinsamen Stand hier nur die vier neuen vollständigen Abläufe.
+Die folgenden Einzelpaketprüfungen bleiben zusätzliche Belege:
+
+- Wochenprüfung, beide Profile, Admin, ungeprüft/geprüft, JS/No-JS,
+  390px mit echtem Touch und 1440px: redundante Kopfkarte entfernt,
+  normale Bestätigungsaktion nur Symbol; Audittext, Zeitpunkt, Akteur und
+  Trennung von Menüprüfung/Veröffentlichung erhalten. Autor neue8/volle24;
+  unabhängig Root volle24 bestanden in60.10s.
+- Rezeptskalierung, Admin, Entwurf/feste Revision, gültige/ungültige Zielmenge,
+  JS/No-JS, 390/1440px mit feinem Zeiger: beide redundanten Kopfkarten entfernt.
+  Original/Ziel, Nur-Lesen, native GETs und Datenbestand unverändert.
+  Autor neue4/Bildbrowser12/Route+Unit23; Root neue4+Bildbrowser12 in67.20s.
+- Rezeptimport, Admin, Entwurf/signiert/geändert/übernommen/verworfen,
+  JS/No-JS, 390px Touch/1440px: doppelte Stapel-/Signaturkarten entfernt;
+  unabhängige Aussagen im Ergebnisabsatz, erste Vorschau und Fehlerkontext
+  erhalten. Autor neue4/volle30; Root neue4 in23.85s. Root korrigierte zuvor
+  ausschließlich die MultiDict-Testvorbereitung und sechs alte Statusselektoren.
+
+Alle genannten Gates ohne Fehler/interne Fehler/Skips, beide Exit-Ebenen0.
+Root sichtete sechs eigene aktuelle Aufnahmen. Belege und genaue Grenzen:
+`/tmp/wp-e7ca1496efdc.md`; Einzelpakete `wp-59ef37538fcb`, `wp-b66addecf5f0`,
+`wp-de71c7e7ecdd`. Der neue Skalierungstest belegt keinen Coarse-Pointer.
+Kein neuer 41-Seitenlauf oder vollständiger UI01–28-Nachweis behauptet.
+Die erste übergrosse Patchübertragung scheiterte zweimal ohne Dateimutation.
+Getrennte vollständige Dateisicherungen und der kompakte30450-Byte-Patch sind
+anschliessend nativ angewendet und vollständig SHA-geprüft worden. Receipt:
+`/tmp/wp-e7ca1496efdc-receipt.json`; kein Reapply. Git bleibt schreibgeschützt.
+Stundenläufe09:07/10:07/11:07 waren NOOP; live weiterhin
+`4ded0a7a16` seit08:20:45CEST, frisch11:32 healthy/Login200 geprüft.
+
+## Kandidaten und offene Nachweise — 2026-09-28, 10:55 CEST
+
+Die 39 geprüften Quelldateien sind jetzt gemeinsam im Integrations-Worktree
+vorbereitet. Nach dem ersten 36-Datei-Stand ergänzte Root acht gezielte Deltas:
+fünf aktualisierte Identitäten und drei zusätzliche Pfade. Sechs Screen-Dateien
+und sämtliche 19 geprüften Git-Metadaten blieben unverändert. SHA-Prüfung aller
+39 Dateien: ohne Abweichung. Das ist kein abgeschlossener Git-Merge oder Deploy.
+Speichern/Rückkehr besteht unabhängig 332 Tests: Browser21, Semantik258,
+Menü32, vollständige Admin-UX19 und NoJS-Konflikt2. Neuer sekundärer Submit ist
+symbolbasiert mit lokalisiertem Namen; FormData, CSRF, CAS, Rückkehr und
+implizites Enter auf dem Hauptsubmit bleiben geprüft. Vorhandener Hauptsubmit
+bleibt 48px hoch; die 36/44px-Aussage betrifft nur den geänderten Zweitsubmit.
+Auf dem gemeinsamen 39-Datei-Stand bestanden zusätzlich zehn Freigabefälle
+in60.79s: neuer vollständiger Korrektur-/Prüfpfad4 plus bestehende Publikation6.
+Speichern, Prüfen und Veröffentlichen bleiben getrennt. Gesamtbeleg:
+`/tmp/dishboard-source-cohort-root-0928.md` und dort benannte Rohlogs/JUnits.
+Der gemeinsame Listenfamilienlauf bestand mit 6 Tests in 26.64s: 41 Ansichten,
+1440×900 und 390×844, keine gemessenen Abweichungscodes. Belege:
+`/tmp/dishboard-cohort-list-root-0928.xml` und `.log`; neue Aufnahmen, Messdaten
+und Bericht unter `/tmp/dishboard-cohort-list-root-evidence-0928`.
+Alle 85 ursprünglichen Bild-/Bericht-/Baselinepfade sind bytegenau wiederhergestellt.
+Abgedeckt sind Admin, JavaScript und feiner Zeiger; weitere Rollen, Touch,
+vollständige Seiten und Zustandskombinationen bleiben gesonderte Nachweise.
+Desktopkontaktblatt und mobile Operations/API/Screen-Ansichten wurden von Root
+gesichtet; zusätzlich wurden alle 41 mobilen Originale unabhängig einzeln
+betrachtet. Das Mess-PASS ersetzt die verbleibenden visuellen Befunde nicht.
+Finaler Review: `/tmp/wp-4d6ec1c04f50.md`, SHA-256
+`2682cc7caea86dfbb6b9e30e285d3864f26674d0d49ac643bc273d41b5909044`.
+Drei P2-Gruppen betreffen wiederholte Statuskarten in Importdetail,
+Wochenprüfung und Rezeptskalierung. Formularabschnittstitel bleiben gemäß §5.4
+lesbar; ihre Texte sind keine bestätigten Buttonverstöße. Ein offener Tooltip
+begrenzt die Vorlagenaufnahme, ohne einen dauerhaften Produktfehler zu beweisen.
+Live-Prüfung um 10:35 erneut gesund/Login200, kein ALERT; letzter Deploy 08:20:45.
+Die folgenden älteren Kandidatenangaben bleiben als Einzelpaket-Nachweise erhalten.
+
+Live bleibt der unten belegte Stand `4ded0a7a16ccd9e975e5263e3b99486b3e4326a8`
+seit 08:20 CEST mit 2776 bestandenen Zugtests. Die folgenden Arbeitsstände sind
+separat erhalten und noch nicht integriert; Git-Metadaten bleiben schreibgeschützt.
+Eine weitere unabhängige Prüfung gegen den vollständigen erwarteten SHA bestand:
+`/tmp/dishboard-live-0920-root-0928.log`, Exit 0, healthy/Login 200, kein ALERT.
+Die Kandidaten sind damit nicht live und nicht vollständig nach UI-01–28 abgenommen.
+Der autonome 09:07-Zug bestätigte einen NOOP: Kandidat und Basis sind beide 4ded,
+keine zusätzlichen Commits gegenüber GitHub. Beleg:
+`/var/tmp/dishboard-release-train/20260928T070700Z-ZAp2L0/train.log`.
+Letztes Deployment bleibt 08:20:45 CEST. Auch der 10:07-Zug war ein NOOP:
+`/var/tmp/dishboard-release-train/20260928T080700Z-L5MCiM/train.log`.
+Die erneute erwarteter-SHA-Prüfung um 10:08 bestätigte healthy/Login 200,
+kein ALERT, keine zusätzlichen Commits (`/tmp/dishboard-live-1008-root-0928.log`).
+Alle Worker-Testprozesse waren vor dem Zug beendet.
+Die abschließende Integrationsliste `/tmp/wp-e8fc5210a82b.md` und `.json`
+enthält 36 eindeutige finale Quelldateien: sechs bereits im begonnenen
+Screen-Merge, 30 noch einzuspielen. Root verglich alle 72 Kandidat-/Zielstände
+per SHA ohne Abweichung. Reihenfolge und Abhängigkeiten sind vorbereitet;
+das ist kein gemeinsamer Release-Test oder Deploymentnachweis.
+Die erneute Live-Prüfung um 09:47
+bestand mit healthy/Login 200 (`/tmp/dishboard-live-0947-root-0928.log`).
+HEAD und github/main des Integration-Worktrees sind direkt als derselbe volle
+4ded-SHA geprüft; die main-relative Commitzahl des älteren Statusskripts ist
+kein Nachweis zusätzlicher auslieferbarer Commits.
+
+- Menüeditor, `wp-003d5880a2e5`: doppelte Tag-Infokarte entfernt; Datum,
+  Mahlzeit, Menüoption, Profil und Warnung bei fehlenden Allergenangaben bleiben.
+  Unabhängig bestanden Editor32 (104.41s), SaveBack5 (16.43s) und NoJS-Konflikt2
+  (7.44s), jeweils GATE-/Prozess-Exit 0, keine Fehler oder Skips. Belege:
+  `/tmp/dishboard-menu-day-root-0928.xml/.log`,
+  `/tmp/dishboard-menu-day-saveback-root-0928.xml/.log` und
+  `/tmp/dishboard-menu-day-conflict-root-0928.xml/.log`.
+  Eigene Cafeteria-/Patientenbilder bei 390px und dichter Patientenfall bei
+  1440px gesichtet. Zweidateien-Patch und Bericht `/tmp/wp-003d5880a2e5.*`.
+  Weitere sichtbare Aktionstexte werden getrennt geprüft; kein Nachweis einer
+  vollständig konformen Menüeditorseite, kein neuer Coarse- oder Zoomnachweis.
+- Die aktuelle Matrix `/tmp/wp-f2fb60af27f7.md` ordnet UI-01–28 vorhandenen
+  Belegen und Lücken zu. Zusammenhängende aktuelle 41-Seiten-/82-Bilder-Abnahme
+  auf einem ausgelieferten SHA fehlt. UI-13, UI-20 und UI-26 bleiben offen.
+  UI-23-Pilot ist bereits grün (207/212.30px); neun Kalenderfälle prüfen `+n`.
+  Teilweise deutsche API-Aktionsnamen im englischen Kontext sind konkret offen.
+- Operations-Hinweise: Notice-Paket
+  `wp-321045080150` plus unabhängiger Reviewfix `wp-e13edb89b088` bestanden
+  gezielte acht Fälle (38.21s), unabhängig 22 Fälle (85.08s) und final bei Root
+  22 Fälle (87.05s), jeweils Prozess/GATE 0, keine Fehler/Skips. Vorherige Root-
+  Prüfungen der 27 Routen und elf gemeinsamen Fehlerfälle bleiben separat belegt.
+  Eigene Mobilbilder zeigten doppelte Feldlabels; zwei reproduzierende Läufe
+  scheiterten genau daran. Ein enger Selektor korrigiert die bestehende lokale
+  CSS-Regel. Aktuelle Bilder zeigen Beschriftungen einmal; Hinweisfeld, Werte,
+  Fokus und 36/44px-Kontrollen bleiben erhalten. Finaler Drei-Dateien-Patch:
+  `/tmp/wp-321045080150-reviewed.patch`; Root-Bericht `/tmp/wp-e13edb89b088.md`.
+- API, `wp-a9b5ab01773d`: lokalisierte Widerrufnamen, Konsequenz und lesbare
+  Bestätigung sowie kontextbezogene Detailsnamen. Vier Sprachschlüssel sind
+  ausdrücklich in der weiterhin strikten Allowlist erfasst. Root bestand acht
+  DE/EN-JS/NoJS-Touch/Feinzeigerfälle (33.01s) und zehn bestehende API-Fälle
+  (22.50s); tatsächlicher POST 303, CSRF, Abbruch ohne POST und wörtliche
+  Metazeichen im Namen belegt. Eigene EN-Bilder bei 390/1440px gesichtet.
+  Die ganze Seite wird damit nicht als englisch übersetzt bezeichnet.
+  Zwei alte Image-Upload-Textassertionen scheiterten zunächst zweimal bei sonst
+  250 bestandenen Fällen. Separater unabhängiger Testfix `wp-2172c788bdd7`
+  prüft stattdessen leeren Sichttext, exakten lokalisierten Namen/Tooltip und
+  das Uploadsymbol. Ganze Semantikdatei danach bei Autor 252/252 (22.93s),
+  unabhängig bei Root 252/252 (24.96s), jeweils Prozess/GATE 0 ohne Skips.
+  Root-Beleg `/tmp/dishboard-api-image-semantics-root-0928.xml/.log`;
+  keine Known-red-Erweiterung. API-Sieben-Dateien-Patch und separater
+  Ein-Dateien-Testfix bleiben getrennt erhalten und müssen zusammen mit dem
+  bereits geprüften Imagecalm-Stand integriert werden.
+
+- Importvorschau, `wp-6095a60d482d`: `Vorschau speichern` nutzt nach Entfernen
+  eines `show_text=true` das vorhandene Augensymbol. Zugänglicher Name und Tooltip,
+  native Multipart-/CSRF-/Annotationsfelder, POST 303, Entwurf/Offen und lesbarer
+  Sicherheitsdialog bleiben erhalten. Der eingefrorene Autorstand bestand alle
+  24 bestehenden Fälle in 87.59s, GATE-/Prozess-Exit 0; Vorher/Nachher-Bilder bei
+  1440/390px wurden gesichtet. Das belegt native Abläufe, Feinzeiger, Tastatur und
+  den vorhandenen echten Browserzoom, keinen Coarse-Pointer. Belege:
+  `/tmp/import-preview-icon-0928-after.xml/.log`, Bericht
+  `/tmp/wp-6095a60d482d.md`. Zehn ursprüngliche Bilder wurden wiederhergestellt
+  und per SHA geprüft. Child `wp-319877b9d6ac` ergänzte den exakten
+  Vierdateien-Abgleich mit Shared-Stand 4ded und zwei zusätzliche Coarse-Fälle;
+  die 24 bestehenden Fälle bleiben erhalten. Sein erster kombinierter Autorlauf
+  ergab 43 bestandene und zwei fehlgeschlagene Fälle in 176.09s: Die beiden neuen
+  Fälle erwarten nach erfolgreichem nativem POST 303 eine nicht gefundene
+  Überschrift `Importstapel`. Der identische Retry endete mit denselben zwei
+  Fehlern und 43 bestandenen Fällen in 177.10s; die ursprünglichen zehn Bilder
+  wurden wiederhergestellt und ihre SHAs geprüft. Root korrigierte anschließend
+  genau die Erwartung auf `name=f'Importstapel · {state}.json'`, weiterhin exakt
+  (`wp-3f9f779a05d0`); unabhängige Peerprüfung ohne Befund. Root bestätigte
+  anschließend zwei fokussierte Fälle in 8.22s und den vollständigen Lauf mit
+  45 Fällen in 177.01s, jeweils GATE-/Prozess-Exit 0 und ohne Fehler oder Skips.
+  Beide nativen Multipart-POSTs erzeugen nur Entwürfe; vorhandene Rezepte bleiben
+  unverändert. 390px mit echtem Coarse-Pointer und maxTouchPoints=1 behält
+  44×44px vor und nach Viewport-Aufnahmen, mit und ohne JavaScript.
+  Root sichtete eigene JS-Initial-/Entwurfs- und No-JS-Entwurfsbilder. Die
+  ursprünglichen 24 Fälle bleiben als 23.985 Bytes bytegleich erhalten.
+  Belege: `/tmp/dishboard-import-{coarse,current}-reviewed-root-0928.xml/.log`;
+  finaler Zweidateienpatch `/tmp/dishboard-import-preview-final-0928.patch`.
+  Alle zehn Originalbilder sind erneut SHA-geprüft restauriert; neue Aufnahmen
+  liegen separat unter `/tmp/dishboard-import-root-final-evidence-0928`.
+- Wochenplan, Shared-Abgleich `wp-508d8009e174`: Autor 39 Fälle in 128.76s,
+  unabhängig Root 39 in 132.11s, jeweils GATE-/Prozess-Exit 0 und ohne Fehler,
+  interne Fehler oder Skips. Die Kombination umfasst elf Fehlerindikator-,
+  20 Wochenkontext- und acht bestehende Formular-Rerender-Fälle. Alle vier
+  übernommenen Dateien sind bytegleich zum Shared-Stand; SHA-Liste und
+  abgegrenzter Abhängigkeitspatch stehen in `/tmp/wp-508d8009e174.md`.
+  Root-Belege: `/tmp/dishboard-week-shared-root-0928.xml/.log`; 48 neue Bilder
+  unter `/tmp/dishboard-week-shared-root-evidence-0928`, ursprüngliche 48
+  wiederhergestellt und geprüft. Root sichtete `cafeteria-service-True-390x844`
+  und `patienten-service-False-390x844`: Werte und Fehlermeldungen bleiben,
+  mit JS ist der Fehlerindikator sichtbar. Dies ist eine Verbraucherprüfung,
+  keine Abnahme sämtlicher Admin-Seiten. Der ursprüngliche Week-Dreidateienstand
+  und seine Belege bleiben erhalten.
+- Operations-Kopf/Detailaktion, `wp-3d847506cb68`: eingefrorener Kandidat im
+  isolierten Worktree `menu-metadata-calm-0928`. Autor: acht neue Fälle in
+  21.02s, sechs bestehende in 29.54s und 27 Routenfälle in 97.45s. Root bestätigte
+  anschließend 52 kombinierte Fälle in 175.59s, GATE-/Prozess-Exit 0
+  (elf Shared-, 14 Browser-, 27 Routenfälle):
+  `/tmp/dishboard-operations-current-root-0928.xml/.log`. Root sichtete eigene
+  390px-DE-No-JS-, 390px-EN-JS-geöffnet- und 1440px-DE-JS-Bilder. Acht JSON-Belege
+  mit je zehn Zuständen prüfen echte 44px-Coarse-/36px-Fine-Kontrollen vor und
+  nach Aufnahmen. Warnzahlen 5/14, Zeitzone und FormData bleiben erhalten;
+  die redundante Bereichskarte entfällt. Drei Produktzeilen in zwei Dateien,
+  keine CSS-Korrektur; ursprüngliche sechs Lifecycle-Fälle bytegleich. Dieser geprüfte
+  Kandidat bleibt uncommitted und ist noch nicht live.
+- Kochbucheditor, `wp-e5cfe2e726e8`, isolierter Print-Worktree: redundante
+  Statuskarte entfernt, normaler Reaktivierungs-GET als Symbol. Aktiv-/Archivbadge,
+  Rezeptzahl, Schreibschutz und lesbare Sicherheitsbestätigung bleiben erhalten.
+  Root bestätigte zwölf UI-Fälle in 60.65s, zwölf bestehende Browserfälle in
+  49.60s und 29 Routenfälle in 40.30s, jeweils ohne Fehler/Skips und Exit 0.
+  Native Archivierungs-/Reaktivierungs-POSTs behalten genaue CSRF-, Kontext-,
+  Versions- und Aktionsfelder; GET-Öffner erzeugen keine POSTs.
+  Eigene 390px-No-JS-Archiv-, 390px-JS-Bestätigungs- und 1440px-JS-Archivbilder
+  gesichtet. Diese neuen Fälle nutzen Tastatur/Feinzeiger, keinen Coarse-Pointer.
+  Belege: `/tmp/dishboard-cookbook-{calm,existing,routes}-root-0928.xml/.log`.
+  40 neue feste PNGs und vier JSONs liegen unter
+  `/tmp/dishboard-cookbook-root-fixed-0928`; die ursprüngliche Abwesenheit ihres
+  Worktree-Verzeichnisses ist wiederhergestellt. Alle fünf vorherigen Print-/
+  Shared-Dateien sind SHA-identisch. Zweidateienpatch:
+  `/tmp/dishboard-cookbook-own-e5cfe2e726e8.patch`, Root-Reverse-Prüfung Exit 0.
+- Verbleibender statischer P2-Befund: Der Menüeditor wiederholt den bereits
+  im Kontext genannten Tag. Paket `wp-003d5880a2e5` ist vorbereitet, noch nicht
+  gestartet. Generische Mehr-Optionen-Öffner in Operations sind separat zu prüfen.
+  Drucklinks der Vorschau gelten allein durch den bisherigen Quellbefund nicht
+  als Regelverstoß. Der Auditbericht `/tmp/wp-b9fec9627d39.md` bleibt ein
+  historischer Quellbefund und kein Browser- oder Gesamtabnahmenachweis.
+
+## Release bestätigt — 2026-09-28, 08:21 CEST
+
+Live ist `4ded0a7a16ccd9e975e5263e3b99486b3e4326a8` seit 08:20 CEST:
+healthy, Login 200, identisch mit `github/main`. Zug 08:07 bestand 2776 Tests
+ohne Fehler, interne Fehler oder Skips (A2016/B150/C599/D11), `NEW_FAILURES=0`
+und alle vier Gate-Exits 0. Automatischer Push, Deployment und Abschluss waren
+erfolgreich. Die neue Readiness-Prüfung wartete bei exakt dieser Revision auf
+`health=starting`, danach lief die normale Liveprüfung erfolgreich. Damit ist
+der zuvor offene unbeaufsichtigte Ablauf dieses Fixes tatsächlich belegt.
+
+Root wiederholte die erwartete Revisionsprüfung unabhängig mit Exit 0:
+`/tmp/dishboard-live-0821-root-0928.log`. Zugbelege:
+`/var/tmp/dishboard-release-train/20260928T060702Z-FBbc6w`.
+`last_success` enthält diese Revision, kein ALERT liegt vor und der temporäre
+Release-Worktree wurde entfernt. Fehlerindikator und Readiness-Fix sind live;
+die nachfolgenden Screen-/Bild-/Print-/Wochenkandidaten weiterhin nicht.
+
+## Isolierte Verbraucherprüfung — 2026-09-28, 08:19 CEST
+
+Die folgenden Nachweise gehören zu uncommitteten Kandidaten in separaten
+Worktrees und sind keine Live-Abnahme:
+
+- `/admin/rezepte/<id>/bilder`, Schreibrecht und archivierter Lesestand,
+  JS/No-JS, 390/1440, DE/EN: Upload nur als Symbol; Entwurf/Archivstatus in
+  der Kopfzeile erhalten, redundante Statuskarte entfernt. Root bestätigte
+  acht erweiterte Fälle (47.87s) und zwölf bestehende Bildabläufe (48.73s),
+  jeweils ohne Fehler/Skips; eigene mobile Upload-/Archivbilder gesichtet.
+- Druckvorlageneditor aller drei Profile: Root bestätigte 31 bestehende
+  Archivfälle (142.43s) und 29 Routenfälle (68.46s). Statische Antworten bleiben
+  streng geprüft; einzig der zuvor erfolgreich geladene SVG-Sprite darf mit
+  passenden ETag-Validatoren 304 liefern. Sichtbare Spriteglyphen werden auch
+  ohne JavaScript geprüft; das Fehlericon nach ungültiger Bestätigung zusätzlich
+  mit JavaScript. Fachliche Archiv-/CSRF-/CAS-Verträge
+  bleiben erhalten. Die ergänzte Gesamtsuite bestand anschließend mit 36 Fällen
+  (158.02s): ursprüngliche 30 plus sechs echte Touch-Fälle bei 390px für drei
+  Profile mit/ohne JS. 36 Zustandsmessungen vor/nach Viewport-Aufnahmen liefern
+  537 Symbolkontrollen mit exakt 44×44px und unverändertem Coarse-Pointer.
+  Ungespeicherte Werte, FormData und CSRF-/Versionsfelder bleiben erhalten;
+  zusätzliche POSTs finden nicht statt. Root sichtete eigene Profilbilder.
+  Diese Touch-Aufnahmen belegen keine PDF-Darstellung ohne JavaScript.
+- `/admin/cafeteria` und `/admin/patienten`, Admin mit aktiven und archivierten
+  Menüvorlagen: 20 Root-Fälle bestanden in 74.07s. Der Symbolöffner nennt
+  Tag/Datum/Mahlzeit/Option/Titel und nutzt übersetzte Aktionsgrammatik.
+  Geöffnete Vorlagenlinks stehen in eigener Zeile ohne Textkompression;
+  36/44px gelten vor und nach dem Öffnen. 16 Kontextläufe mit 348 Messpunkten
+  behalten ihre Pointer-/Touch-Konfiguration. Eigene Desktop- und mobile
+  JS-/No-JS-Bilder gesichtet. Zusätzlich bestanden 16 unveränderte Layout- und
+  Erreichbarkeitsfälle (71.91s) sowie zehn Vorlagenbindungsfälle (35.52s),
+  einschließlich archivierter Bezüge und nativer Konflikt-/Speicherabläufe.
+
+JUnits liegen unter `/tmp/dishboard-image-{calm,existing-calm}-root-0928.xml`,
+`/tmp/dishboard-print-{archive-validated,routes-restarted}-root-0928.xml` und
+`/tmp/dishboard-print-coarse-final-root-0928.xml` sowie
+`/tmp/dishboard-week-context-final-root-0928.xml` sowie
+`/tmp/dishboard-week-existing-{layout,binding}-root-0928.xml`. Git-Metadaten bleiben
+schreibgeschützt. Der abgeschlossene 08:07-Zug prüfte ausschließlich `4ded0a7a`;
+diese drei Verbraucherpakete sind darin nicht enthalten.
+
+## Bildschirm-Kandidat, noch nicht committed — 2026-09-28, 07:58 CEST
+
+Screen-Kette `0e05edfa`, `4b7d63be`, `74048d60` liegt als geprüfter
+Merge-Entwurf im Integrationsarbeitsbaum. Native logische Tabellenzeilen zeigen
+Titel und Aktionen vor der aufklappbaren Vorschau; vier `tbody`-Gruppen tragen
+je einen 1-px-Trenner und eindeutige Headerbezüge. Tatsächliche Vorlagenzuordnung
+und gemischte Vorgabe-/Aktivzustände bleiben sichtbar; doppelte Statuskarten
+und redundanter normaler Signage-Kontext entfallen.
+
+Root prüfte den kombinierten Stand mit den aktuellen Tooltip-/Fehlerkorrekturen:
+34 Fälle bestanden in 224.17s sowie die gesamte bestehende Screen-Suite mit
+21 Fällen in 109.42s, jeweils GATE-/Prozess-Exit 0. Der neue Kontexttest prüft
+jetzt ausdrücklich Escape1: Tooltip zu, Menü offen, Itemfokus; Escape2: Menü zu,
+Summaryfokus ohne Ersatztooltip. Diese acht zusätzlichen Testzeilen beheben
+eine veraltete Erwartung, die zweimal 12 Fehler/22 Passes erzeugte
+(257.96/264.95s); Produktcode blieb dabei unverändert. Separater Peerreview CLEAN.
+JUnits `/tmp/dishboard-screen-escape-reviewed-root-0928.xml` und
+`/tmp/dishboard-screen-existing-current-root-0928.xml`.
+
+Vorher bestanden auf Paketbasis bereits 34 Kontext-, sechs Listenfamilien-,
+13 Preview- und 20 Vorlagenfälle. Die Contentbox-Messung berücksichtigt reale
+Zeilenpadding-/Borderwerte; 1-px-Toleranz und 220-px-Mindestvorschau bleiben.
+Root sichtete eigene mobile gemischte Zustände und echten 200-%-Browserzoom:
+CDP zoom 2, CSS-Viewport 720×406.5, native PNG 1440×813. Vorhandene acht
+ungetrackte Screen-Bilder wurden vor dem 21er in
+`/tmp/dishboard-screen-consumer-originals-0754-0928` gesichert; keine Baseline
+blind ersetzt oder als Gateerfolg verwendet.
+
+Seit dem Sitzungswechsel sind Git-Metadaten schreibgeschützt. Deshalb bleibt
+dieser Merge uncommitted; der Stundenzug kann nur HEAD `4ded0a7a` übernehmen.
+Manifest und Templatequellhashes werden auch für den reviewbaren Arbeitsbaum
+nachgeführt. Dies ist keine neue Live-Abnahme. Weitere Bild-/Druck-/Wochenpakete
+bleiben in ihren isolierten Worktrees; die vollständige UI-01–28-Abnahme ist offen.
+
 ## Fehleranzeige an Symbolöffnern 2026-09-28, 07:28 CEST
 
 `wp-3ba9cd7236a8`, `ca314632`: ungültige native Felder erhalten am

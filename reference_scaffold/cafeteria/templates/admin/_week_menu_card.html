@@ -1,6 +1,6 @@
 {% from '_food_symbols.html' import symbol, allergen_text %}
 {% from 'admin/_macros.html' import label as ui_label %}
-{% from 'ui/_semantic.html' import status_badge_sem, sem_icon, icon_button %}
+{% from 'ui/_semantic.html' import status_badge_sem, sem_icon, icon_button, icon_summary %}
 {% set hint_len = (cell.description|default('') ~ cell.note|default(''))|length %}
 {% set slot_name = cell.title if cell.title else 'Noch kein Gericht' %}
 {% set slot_action = 'actions.edit' if cell.title else 'actions.add' %}
@@ -69,11 +69,13 @@
       </p>
       {% endif %}
       <div class="admin-week-card-action">
-        {{ icon_button(slot_action, href=cell.edit_url, aria_label='Bearbeiten: ' ~ cell.day_label ~ ', ' ~ cell.day_short ~ ', ' ~ cell.meal_label ~ ', ' ~ cell.option_label ~ ' – ' ~ slot_name, emphasis='secondary') }}
+        {{ icon_button(slot_action, href=cell.edit_url, object=cell.day_label ~ ', ' ~ cell.day_short ~ ', ' ~ cell.meal_label ~ ', ' ~ cell.option_label ~ ' – ' ~ slot_name, emphasis='secondary') }}
         {% if cell.dish_template %}
-        <details class="admin-week-template">
-          <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.more" data-ui-tooltip="Weitere Optionen" aria-label="Weitere Optionen für {{ slot_name }}">{{ sem_icon('actions.more') }}</summary>
+        <details class="admin-week-template ui-sem-actions">
+          {{ icon_summary('actions.more', object=cell.day_label ~ ', ' ~ cell.day_short ~ ', ' ~ cell.meal_label ~ ', ' ~ cell.option_label ~ ' – ' ~ slot_name) }}
+          <div class="ui-sem-action-items">
           <a href="{{ url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id) }}">{{ sem_icon('navigation.templates') }}Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</a>
+          </div>
         </details>
         {% endif %}
       </div>

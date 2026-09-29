@@ -672,5 +672,10 @@
   "ui.disclosure.more_options.tooltip": "Expand or collapse more options",
   "recipe.import.row_details": "Details for row {row}",
   "print_template.reactivate.label": "Reactivate",
-  "print_template.reactivate.aria": "Reactivate print template {name}"
+  "print_template.reactivate.aria": "Reactivate print template {name}",
+  "api_key.revoke.label": "Revoke",
+  "api_key.revoke.aria": "Revoke key {name}",
+  "api_key.revoke.confirm": "Really revoke this key?",
+  "api_key.revoke.consequence": "Applications will lose preview access.",
+  "menu.save_return.aria": "Save and return to week"
 }

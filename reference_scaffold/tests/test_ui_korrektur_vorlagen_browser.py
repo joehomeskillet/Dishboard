@@ -239,15 +239,17 @@ def test_editor_prioritises_form_and_one_primary_save_action(
         expect(page.locator("[data-template-status-scope]")).to_contain_text(
             "Patienten-Wochenpläne"
         )
-        expect(page.locator("details[data-template-activation] summary")).to_have_text(
-            "Aktivieren"
-        )
+        activation = page.locator("details[data-template-activation] > summary")
+        expect(activation).to_have_accessible_name("Standard aktivieren")
+        expect(activation).to_have_attribute("data-ui-tooltip", "Standard aktivieren")
+        expect(activation).to_have_text("")
         expect(page.locator("details[data-template-versions] > summary")).to_have_text(
             "Versionen"
         )
-        expect(page.locator("details[data-template-more-actions] summary")).to_have_text(
-            "Weitere Aktionen"
-        )
+        more = page.locator("details[data-template-more-actions] > summary")
+        expect(more).to_have_accessible_name("Weitere Aktionen für Standard")
+        expect(more).to_have_attribute("data-ui-tooltip", "Weitere Aktionen für Standard")
+        expect(more).to_have_text("")
         form = page.locator("form[data-template-properties]")
         expect(form).to_be_visible()
         expect(page.locator("details[data-template-appearance]")).not_to_have_attribute(

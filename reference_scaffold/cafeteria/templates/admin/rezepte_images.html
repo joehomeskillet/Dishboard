@@ -1,9 +1,9 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, field, disclosure_section, hint, empty_state %}
-{% from 'ui/_semantic.html' import icon_button, sem_icon %}
+{% from 'ui/_semantic.html' import icon_button, icon_summary %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-admin.css') }}">{% endblock %}
 {% block title %}Bilder · {{ recipe.payload.title }}{% endblock %}
-{% block page_header %}{% call page_header(t('navigation.recipes.label'), recipe.payload.title, status_items=[{'label': t('recipe.recipe.label'), 'value': t('publish.draft.label') if recipe.active else 'Archiviert', 'variant': 'neutral'}]) %}{{ icon_button('actions.back', href=url_for('admin.recipe_edit', recipe_id=recipe.public_id), text='Zum Rezept', aria_label='Zum Rezept', title='Zum Rezept', emphasis='primary' if not token else none) }}{% endcall %}{% endblock %}
+{% block page_header %}{% call page_header(t('navigation.recipes.label'), recipe.payload.title ~ ' · ' ~ (t('publish.draft.label') if recipe.active else 'Archiviert')) %}{{ icon_button('actions.back', href=url_for('admin.recipe_edit', recipe_id=recipe.public_id), text='Zum Rezept', aria_label='Zum Rezept', title='Zum Rezept', emphasis='primary' if not token else none) }}{% endcall %}{% endblock %}
 {% block content %}
 {% if token %}<section class="card mb-3"><div class="card-header"><h2 class="card-title">Bild hochladen</h2></div><div class="card-body">
 <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.recipe_images', recipe_id=recipe.public_id) }}" data-loading>
@@ -11,8 +11,8 @@
 <div class="row g-3">
 <div class="col-12"><div class="d-flex align-items-center gap-2"><label class="form-label" for="image-file">Bilddatei</label>{{ hint('PNG oder JPEG, höchstens 1 MiB und 10 000 × 10 000 Pixel.', 'image-format-hint') }}</div><input class="form-control" type="file" name="file" id="image-file" accept="image/png,image/jpeg" required aria-describedby="image-hint"><div class="form-hint" id="image-hint">Nach einem Fehler wählen Sie die Datei erneut.</div></div>
 <div class="col-12 col-lg-6">{{ field('caption', 'Bildunterschrift · optional') }}</div>
-<div class="col-12">{{ icon_button('actions.upload', show_text=true, emphasis='primary') }}<p class="form-hint mb-0 mt-2">Der Upload speichert einen neuen Rezeptstand. Eine noch nicht gesendete Dateiauswahl geht beim Verlassen der Seite verloren.</p></div>
-<div class="col-12"><details><summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="ui.disclosure.more_options" aria-label="{{ t(sem('ui.disclosure.more_options').aria_key) }}">{{ sem_icon('ui.disclosure.more_options') }}</summary><div class="row g-3 mt-1">
+<div class="col-12">{{ icon_button('actions.upload', emphasis='primary') }}<p class="form-hint mb-0 mt-2">Der Upload speichert einen neuen Rezeptstand. Eine noch nicht gesendete Dateiauswahl geht beim Verlassen der Seite verloren.</p></div>
+<div class="col-12"><details>{{ icon_summary('ui.disclosure.more_options', object=recipe.payload.title or none) }}<div class="row g-3 mt-1">
 <div class="col-12">{{ field('source_url', 'Quellenadresse · optional', type='url', hint='Wird nur dokumentiert, niemals automatisch abgerufen.') }}</div>
 <div class="col-12 col-lg-6">{{ field('source_license', 'Lizenz · bei Quellenadresse erforderlich') }}</div>
 <div class="col-12 col-lg-6">{{ field('fetched_at', 'Abrufzeit · bei Quellenadresse erforderlich', hint='Mit Zeitzone, zum Beispiel 2026-09-07T10:30:00+02:00.') }}</div>

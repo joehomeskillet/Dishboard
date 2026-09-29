@@ -5,6 +5,7 @@ import json
 import re
 import threading
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 from wsgiref.simple_server import make_server
 
 import pytest
@@ -65,6 +66,7 @@ def editor_page(request: pytest.FixtureRequest, family: str, javascript: bool):
         with request.getfixturevalue('browser').new_context(
             base_url=f'http://127.0.0.1:{httpd.server_port}',
             java_script_enabled=javascript, reduced_motion='reduce',
+            has_touch=getattr(request, 'param', False),
             locale='de-CH', timezone_id='Europe/Zurich', device_scale_factor=1,
         ) as context:
             context.add_cookies([{
@@ -129,6 +131,13 @@ def _controls(page: Page, family: str, *, component_rows: int | None = 2, requir
     expect(page.locator('main')).to_have_attribute('data-layout', 'standard')
     expect(page.locator('h1')).to_have_count(1)
     expect(page.locator('h1')).to_have_text('Menüs')
+    option = page.locator('form[data-menu-editor] [name="option"]').input_value()
+    option_title = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'}[option]
+    expect(page.locator('.page-header-subtitle')).to_have_text(
+        f'Menü bearbeiten · 31. August 2026 · Mittag · {option_title}'
+    )
+    profile = page.locator('.admin-statusbar-item').filter(has=page.get_by_text('Profil', exact=True))
+    expect(profile.locator('dd')).to_have_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
     expect(page.get_by_role('navigation', name='Breadcrumb')).to_contain_text('Wochenplan')
     expect(page.locator('form[data-menu-editor] .btn-primary')).to_have_count(1)
     expect(page.locator('#sec-components')).to_have_text('Bausteine')
@@ -246,6 +255,9 @@ def test_menu_editor_states_and_viewports(editor_page, family: str, tmp_path: Pa
             assert page.goto(url).status == 200
             _controls(page, family, component_rows=1, require_modes=False)
             if state == 'empty':
+                warning = page.locator('.admin-statusbar-item--warning')
+                expect(warning).to_be_visible()
+                expect(warning).to_contain_text('Allergenangaben nicht erfasst')
                 output = page.locator('#sec-output-texts')
                 if family == 'cafeteria':
                     expect(page.locator('#f-int')).to_be_visible()
@@ -358,7 +370,15 @@ def test_p4_action_meanings_and_proposal_states(editor_page, family, javascript)
         origins.locator('summary').click()
     expect(page.locator('[data-add-row="origins-list"]')).to_have_accessible_name('Herkunft hinzufügen')
     expect(page.locator('[data-add-row="origins-list"]')).to_have_text('')
-    expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_text('')
+    origin_actions = origins.locator('.menu-editor-row-actions').first
+    assert origin_actions.inner_text().strip() == ''
+    summary = origin_actions.locator('summary')
+    expect(summary).to_have_text('')
+    expect(summary).to_have_accessible_name('Weitere Aktionen für Herkunft')
+    summary.focus()
+    summary.press('Enter')
+    expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_text('Löschen')
+    expect(origin_actions.locator('.ui-sem-consequence')).to_have_text('Löschen')
     expect(origins.get_by_role('button', name='Herkunft löschen')).to_have_class(re.compile(r'\bbtn-danger\b'))
     expect(page.locator('#components-list [data-remove-row]').first).to_have_class(re.compile(r'\bbtn-danger\b'))
     review = page.get_by_role('button', name='Als geprüft bestätigen', exact=True)
@@ -386,3 +406,129 @@ def test_p4_action_meanings_and_proposal_states(editor_page, family, javascript)
         expect(action).to_have_attribute('href', '/admin/rezepte/stand' if freeze else '/admin/rezepte/ansicht')
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+
+
+@pytest.mark.parametrize('editor_page', (False, True), indirect=True, ids=('fine', 'coarse'))
+def test_origin_overflow_native_removal_and_save(editor_page, family, javascript, request, tmp_path):
+    page, engine, scope, profile, _, base_url = editor_page
+    coarse = request.node.callspec.params['editor_page']
+    width, height = (390, 844) if coarse else (1440, 900)
+    payload = _payload(staff=profile == 'staff_guest')
+    payload['origins'] = [
+        {'ingredient': 'Rind', 'country_code': 'CH', 'text': 'Rind: CH'},
+        {'ingredient': 'Reis', 'country_code': 'IT', 'text': 'Reis: IT'},
+    ]
+    persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, 1)
+    _open(page, family, (width, height))
+    form = page.locator('form[data-menu-editor]')
+    rows = page.locator('#origins-list > .origin-row')
+    # The persisted origin view is ordered by ingredient, independent of fixture insertion order.
+    expect(rows.first.locator('[name="origin_ingredient"]')).to_have_value('Reis')
+    expect(rows.last.locator('[name="origin_ingredient"]')).to_have_value('Rind')
+    posts, measurements = [], []
+    page.on('request', lambda r: posts.append(r.url) if r.method == 'POST' else None)
+    form_data = '''form => [...new FormData(form)].reduce((data, [key, value]) => {
+        (data[key] ||= []).push(value); return data;
+    }, {})'''
+
+    def capture(stage):
+        rows.first.scroll_into_view_if_needed()
+        for moment in ('before', 'after'):
+            state = page.evaluate('''() => ({
+                coarse: matchMedia('(pointer: coarse)').matches,
+                anyCoarse: matchMedia('(any-pointer: coarse)').matches,
+                fine: matchMedia('(pointer: fine)').matches, touch: navigator.maxTouchPoints,
+                width: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+                actions: [...document.querySelectorAll('#origins-list .menu-editor-row-actions')]
+                    .map(el => ({text: el.innerText, open: !!el.querySelector('details[open]')}))
+            })''')
+            measurements.append({'stage': stage, 'moment': moment, 'state': state})
+            (tmp_path / 'origin-measurements.json').write_text(json.dumps(measurements, indent=2))
+            assert state['coarse'] == state['anyCoarse'] == coarse
+            assert state['fine'] is not coarse and state['touch'] == int(coarse)
+            assert state['width'] == width and state['scrollWidth'] <= width + 1
+            if moment == 'before':
+                page.screenshot(path=str(tmp_path / f'{stage}.png'), full_page=False)
+
+    for step in range(2):
+        expect(rows).to_have_count(2 if step == 0 else 1)
+        page.mouse.move(0, 0)
+        if javascript:
+            expect(page.get_by_role('tooltip')).to_have_count(0)
+        actions = rows.first.locator('.menu-editor-row-actions')
+        capture(f'closed-{step}')
+        assert actions.inner_text().strip() == ''
+        details, summary = actions.locator('details'), actions.locator('summary')
+        expect(summary).to_have_text('')
+        expect(summary).to_have_accessible_name('Weitere Aktionen für Herkunft')
+        expect(summary).to_have_attribute('data-ui-tooltip', 'Weitere Aktionen für Herkunft')
+        assert summary.locator('svg use').get_attribute('href').endswith('#tabler-dots')
+        box = summary.bounding_box()
+        assert box is not None and box['width'] == box['height'] == (44 if coarse else 36)
+        original = form.evaluate(form_data)
+        tokens = _tokens(page)
+        assert tokens['row_version'] == str(2 + step)
+        summary.focus()
+        summary.press('Enter')
+        expect(details).to_have_attribute('open', '')
+        summary.press('Space')
+        expect(details).not_to_have_attribute('open', '')
+        summary.press('Enter')
+        remove = actions.get_by_role('button', name='Herkunft löschen', exact=True)
+        expect(remove).to_have_text('Löschen')
+        expect(remove).to_have_attribute('data-ui-tooltip', 'Herkunft löschen')
+        expect(remove).to_have_attribute('data-semantic', 'actions.delete')
+        expect(remove).to_have_attribute('type', 'button')
+        expect(remove).to_have_attribute('data-remove-row', 'true')
+        expect(remove).to_have_class(re.compile(r'\bbtn-danger\b'))
+        expect(actions.locator('.ui-sem-consequence')).to_be_visible()
+        expect(actions.locator('.ui-sem-consequence')).to_have_text('Löschen')
+        assert remove.get_attribute('name') is None and remove.get_attribute('value') is None
+        assert form.evaluate(form_data) == original and len(posts) == step
+        if javascript:
+            expect(remove).to_be_focused()
+            expect(page.get_by_role('tooltip', name='Herkunft löschen', exact=True)).to_be_visible()
+            expect(page.get_by_role('tooltip', name='Weitere Aktionen für Herkunft', exact=True)).to_be_hidden()
+            expect(page.get_by_role('tooltip')).to_have_count(1)
+        capture(f'opened-{step}')
+        remove.focus()
+        remove.press('Enter')
+        if javascript:
+            expect(rows).to_have_count(1)
+            expect(rows.first.locator('[name="origin_ingredient"]')).to_be_focused()
+            expect(rows.first.locator('[data-row-legend]')).to_have_text('Herkunft 1')
+            expect(rows.first.locator('[name="origin_ingredient"]')).to_have_value('Rind' if step == 0 else '')
+            expect(rows.first.locator('[name="origin_country_code"]')).to_have_value('CH' if step == 0 else '')
+        else:
+            # The existing type=button has no native delete effect. Persist removal by clearing both fields.
+            assert form.evaluate(form_data) == original
+            rows.first.locator('[name="origin_ingredient"]').fill('')
+            rows.first.locator('[name="origin_country_code"]').select_option('')
+        assert _tokens(page) == tokens and len(posts) == step
+        expected = form.evaluate(form_data)
+        assert {k: v for k, v in expected.items() if not k.startswith('origin_')} == {
+            k: v for k, v in original.items() if not k.startswith('origin_')
+        }
+        with page.expect_response(lambda r: r.request.method == 'POST') as saved:
+            page.get_by_role('button', name='Menü speichern', exact=True).click()
+        assert saved.value.status == 303 and saved.value.url == base_url + f'/admin/{family}/menu'
+        assert parse_qs(saved.value.request.post_data, keep_blank_values=True) == expected
+        assert expected['_csrf'] == [tokens['_csrf']] and expected['row_version'] == [tokens['row_version']]
+        page.wait_for_load_state()
+        assert len(posts) == step + 1 and urlsplit(page.url).path == f'/admin/{family}/menu'
+        expect(form.locator('[name="row_version"]')).to_have_value(str(3 + step))
+        expect(rows).to_have_count(1)
+        expect(rows.first.locator('[name="origin_ingredient"]')).to_have_value('Rind' if step == 0 else '')
+        expect(rows.first.locator('[name="origin_country_code"]')).to_have_value('CH' if step == 0 else '')
+        capture(f'saved-{step}')
+
+    payload.update(origin_mode='auto', origins=[])
+    persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, 4)
+    _open(page, family, (width, height))
+    section = page.locator('details[data-mode-section="origin"]')
+    section.locator(':scope > summary').press('Enter')
+    expect(section.locator('[data-mode-badge]')).to_have_text('automatisch geerbt')
+    rows.first.locator('.menu-editor-row-actions summary').press('Enter')
+    expect(rows.first.get_by_role('button', name='Herkunft löschen', exact=True)).to_be_disabled()
+    capture('automatic-disabled')
+    assert len(posts) == 2

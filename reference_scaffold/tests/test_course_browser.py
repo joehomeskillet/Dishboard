@@ -65,6 +65,12 @@ def test_ac11_course_editor_retains_bound_recipe(browser, live_server, admin_app
         context.close()
 
 
+@pytest.fixture(autouse=True)
+def _isolated_course_evidence(tmp_path, monkeypatch):
+    """Keep existing screenshot assertions away from shared evidence paths."""
+    monkeypatch.setitem(globals(), 'EVIDENCE', tmp_path / 'course-evidence')
+
+
 def test_ac12_course_issues_in_info_bar(browser, live_server, admin_app, admin_engine) -> None:
     client, user_id = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     engine = admin_engine
@@ -312,3 +318,242 @@ def test_ac13_public_courses_with_allergens_and_exceptions(browser, live_public_
         page.screenshot(path=str(EVIDENCE / 'ac13-signage-week.png'), full_page=True)
     finally:
         context.close()
+
+
+@pytest.mark.parametrize('family,profile,meal', [
+    ('cafeteria', 'staff_guest', 'LUNCH'),
+    ('patienten', 'patient', 'LUNCH'),
+    ('patienten', 'patient', 'DINNER'),
+])
+@pytest.mark.parametrize('javascript_enabled,width,height', [(True, 1440, 900), (False, 390, 844)])
+def test_native_course_add_edit_preserves_neighbor_slots(
+    browser, live_server, admin_app, admin_engine, tmp_path,
+    family, profile, meal, javascript_enabled, width, height,
+) -> None:
+    """Wrong meal/kind writes, lost overrides and stale overwrites must fail."""
+    import datetime
+    import json
+    import time
+    from urllib.parse import parse_qs
+
+    from cafeteria.course_store import load_week_courses
+
+    client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    scope = _scope(admin_engine, actor, profile)
+    names = ('Rüeblisuppe', 'Tomatensuppe', 'Apfelcreme', 'Birnenkompott')
+    recipes = [_recipe(admin_engine, actor, scope.location_id, name) for name in names]
+    next_day = (datetime.date.fromisoformat(DAY) + datetime.timedelta(days=1)).isoformat()
+    target = (DAY, meal)
+    neighbors = [(next_day, meal)]
+    if profile == 'patient':
+        neighbors.append((DAY, 'DINNER' if meal == 'LUNCH' else 'LUNCH'))
+    for day, period in [target, *neighbors]:
+        persist_service_state(admin_engine, scope, WEEK, day, period, _service_payload(), 0)
+        for option in ('MENU_1', 'VEGGIE'):
+            persist_menu_item(admin_engine, scope, WEEK, day, period, option,
+                              _payload(title=f'{day} {period} {option}', staff=profile == 'staff_guest'), 0)
+        persist_service_courses(
+            admin_engine, scope, WEEK, day, period,
+            soup={'state': 'unplanned'} if (day, period) == target else {
+                'state': 'planned', 'recipe_public_id': recipes[1]['public_id']},
+            dessert={'state': 'unplanned'} if (day, period) == target else {
+                'state': 'planned', 'recipe_public_id': recipes[3]['public_id']},
+            exceptions=[{'option': 'VEGGIE', 'kind': kind, 'state': 'planned',
+                         'recipe_public_id': recipes[index]['public_id']}
+                        for kind, index in (('soup', 1), ('dessert', 3))],
+        )
+
+    def stored():
+        return load_week_courses(admin_engine, scope.location_id, WEEK, profile)
+
+    initial = stored()
+    untouched = {key: value for key, value in initial.items() if key != target}
+    cookie = client.get_cookie('session')
+    assert cookie is not None
+    records = []
+    with browser.new_context(base_url=live_server, java_script_enabled=javascript_enabled,
+                             has_touch=width == 390, viewport={'width': width, 'height': height}) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        assert page.goto(f'/admin/{family}?week={DAY}').status == 200
+        editor = page.locator(f'#course-{DAY}-{meal}')
+        form = editor.locator('form[method="post"]')
+        posts = []
+        page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
+        navigation = []
+
+        def record_navigation(event, **values):
+            navigation.append({'event': event, 'time': time.monotonic(), **values})
+            (tmp_path / 'navigation.json').write_text(json.dumps(navigation, indent=2))
+
+        def document_request(request):
+            if request.is_navigation_request() and request.frame == page.main_frame:
+                record_navigation('request', method=request.method, url=request.url,
+                                  redirected_from=request.redirected_from.url if request.redirected_from else None)
+
+        def document_response(response):
+            if response.request.is_navigation_request() and response.request.frame == page.main_frame:
+                record_navigation('response', status=response.status, url=response.url,
+                                  location=response.headers.get('location'), refresh=response.headers.get('refresh'))
+
+        page.on('request', document_request)
+        page.on('response', document_response)
+        page.on('framenavigated', lambda frame: record_navigation('navigation', url=frame.url)
+                if frame == page.main_frame else None)
+        expected_pointer = {'coarse': width == 390, 'anyCoarse': width == 390,
+                            'fine': width == 1440, 'touch': int(width == 390)}
+
+        def capture(stage, action):
+            record_navigation('capture', stage=stage, url=page.url,
+                              ready_state=page.evaluate('document.readyState'))
+            record_navigation('action-state', stage=stage, state=action.evaluate('''el => ({
+                connected: el.isConnected, rects: el.getClientRects().length,
+                box: el.getBoundingClientRect().toJSON(), visibility: getComputedStyle(el).visibility,
+                display: getComputedStyle(el).display,
+                details: [...(function* () { for (let p = el.parentElement; p; p = p.parentElement)
+                    if (p.tagName === 'DETAILS') yield p; })()].map(p => ({id: p.id, open: p.open}))
+            })'''))
+            pointer_script = '''() => ({coarse: matchMedia('(pointer: coarse)').matches,
+                anyCoarse: matchMedia('(any-pointer: coarse)').matches,
+                fine: matchMedia('(pointer: fine)').matches, touch: navigator.maxTouchPoints})'''
+            assert page.evaluate(pointer_script) == expected_pointer
+            if javascript_enabled:
+                action.scroll_into_view_if_needed()
+            else:
+                action.focus()
+                expect(action).to_be_focused()
+                expect(action).to_be_in_viewport()
+            box = action.bounding_box()
+            assert box['width'] == box['height'] == (44 if width == 390 else 36)
+            icon = action.locator('svg').bounding_box()
+            assert icon['width'] == icon['height'] == 20
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            page.screenshot(path=str(tmp_path / f'{stage}.png'), full_page=False)
+            assert page.evaluate(pointer_script) == expected_pointer
+            records.append({'stage': stage, 'box': box, 'pointer': expected_pointer})
+
+        for kind, label, index, adding in (
+            ('soup', 'Suppe', 0, True), ('soup', 'Suppe', 1, False),
+            ('dessert', 'Dessert', 2, True), ('dessert', 'Dessert', 3, False),
+        ):
+            before = stored()
+            name = f'{label} {"planen" if adding else "bearbeiten"} · {DAY} · {meal}'
+            action = page.get_by_role('link', name=name, exact=True)
+            expect(action).to_have_attribute('href', f'#course-{DAY}-{meal}-{kind}-state')
+            expect(action).to_have_attribute('data-ui-tooltip', name)
+            expect(action).to_have_text('')
+            expect(action.locator('svg > use')).to_have_attribute(
+                'href', '/static/vendor/tabler-icons/tabler-icons.svg#tabler-' + ('plus' if adding else 'edit'))
+            capture(f'{kind}-{"add" if adding else "edit"}', action)
+            if javascript_enabled:
+                action.click()
+            else:
+                action.press('Enter')
+            state = form.locator(f'[name="{kind}_state"]')
+            expect(state).to_be_visible()
+            if javascript_enabled:
+                expect(state).to_be_focused()
+            fields = dict(form.evaluate('form => [...new FormData(form)]'))
+            assert fields['_csrf'] and fields['week'] == fields['day'] == DAY and fields['meal'] == meal
+            prefixes = [('soup', before[target]['shared']['soup']),
+                        ('dessert', before[target]['shared']['dessert'])]
+            for option in ('MENU_1', 'VEGGIE'):
+                for course_kind in ('soup', 'dessert'):
+                    prefixes.append((f'{option}_{course_kind}',
+                                     before[target]['exceptions'].get(option, {}).get(course_kind, {})))
+            assert set(fields) == {'_csrf', 'week', 'day', 'meal'} | {
+                prefix + suffix for prefix, _ in prefixes
+                for suffix in ('_public_id', '_row_version', '_state', '_recipe')}
+            for prefix, course in prefixes:
+                assert fields[prefix + '_public_id'] == str(course.get('public_id') or '')
+                assert fields[prefix + '_row_version'] == str(course.get('row_version', 0))
+            state.select_option('planned')
+            form.locator(f'[name="{kind}_recipe"]').select_option(recipes[index]['public_id'])
+            expected = {**fields, kind + '_state': 'planned', kind + '_recipe': recipes[index]['public_id']}
+            assert dict(form.evaluate('form => [...new FormData(form)]')) == expected
+            expect(form).to_have_attribute('action', f'/admin/{family}/courses')
+            with page.expect_navigation(wait_until='domcontentloaded'), page.expect_response(
+                lambda response: response.request.method == 'POST'
+                and response.url == live_server + f'/admin/{family}/courses'
+            ) as response:
+                form.get_by_role('button', name='Speichern', exact=True).click()
+            assert response.value.status == 303
+            assert response.value.headers['location'] == f'/admin/{family}?week={DAY}#course-{DAY}-{meal}'
+            assert parse_qs(response.value.request.post_data, keep_blank_values=True) == {
+                key: [value] for key, value in expected.items()}
+            after = stored()
+            assert set(after) == set(initial)
+            assert {key: value for key, value in after.items() if key != target} == untouched
+            saved = after[target]['shared'][kind]
+            assert saved['state'] == 'planned' and saved['recipe_public_id'] == recipes[index]['public_id']
+            assert saved['title'] == names[index] and saved['public_id']
+            assert saved['row_version'] > before[target]['shared'][kind].get('row_version', 0)
+            if not adding:
+                assert saved['public_id'] == before[target]['shared'][kind]['public_id']
+            other = 'dessert' if kind == 'soup' else 'soup'
+            assert {key: value for key, value in after[target]['shared'][other].items() if key != 'row_version'} == {
+                key: value for key, value in before[target]['shared'][other].items() if key != 'row_version'}
+            assert set(after[target]['exceptions']) == {'VEGGIE'}
+            for course_kind in ('soup', 'dessert'):
+                assert {key: value for key, value in after[target]['exceptions']['VEGGIE'][course_kind].items()
+                        if key != 'row_version'} == {
+                    key: value for key, value in initial[target]['exceptions']['VEGGIE'][course_kind].items()
+                    if key != 'row_version'}
+            course_line = page.locator(f'[data-course="{kind}"]').filter(has=page.get_by_role(
+                'link', name=f'{label} bearbeiten · {DAY} · {meal}', exact=True))
+            expect(course_line).to_contain_text(f'{label}: {names[index]} · Für alle Menüs')
+        assert len(posts) == 4
+        # The browser retains the last issued CAS fields while another editor saves.
+        edit = page.get_by_role('link', name=f'Dessert bearbeiten · {DAY} · {meal}', exact=True)
+        if javascript_enabled:
+            edit.click()
+        else:
+            edit.focus()
+            expect(edit).to_be_focused()
+            expect(edit).to_be_in_viewport()
+            edit.press('Enter')
+        if javascript_enabled and family == 'cafeteria':
+            outside = _recipe(admin_engine, actor, scope.location_id, 'ZZZ Eingereichtes Dessert')
+            for index in range(50):
+                _recipe(admin_engine, actor, scope.location_id, f'AAA Seitenauswahl {index:02d}')
+            search = editor.locator('form[method="get"]')
+            search.locator('..').locator('summary').click()
+            search.locator('[name="recipe_search"]').fill('ZZZ Eingereichtes Dessert')
+            with page.expect_navigation(wait_until='domcontentloaded'):
+                search.get_by_role('button').first.click()
+            page.get_by_role('link', name=f'Dessert bearbeiten · {DAY} · {meal}', exact=True).click()
+            form.locator('[name="dessert_recipe"]').select_option(outside['public_id'])
+        stale_fields = dict(form.evaluate('form => [...new FormData(form)]'))
+        current = stored()[target]
+        persist_service_courses(
+            admin_engine, scope, WEEK, DAY, meal,
+            soup=current['shared']['soup'],
+            dessert={'state': 'planned', 'public_id': current['shared']['dessert']['public_id'],
+                     'recipe_public_id': recipes[2]['public_id']},
+            soup_row_version=current['shared']['soup']['row_version'],
+            dessert_row_version=current['shared']['dessert']['row_version'],
+        )
+        concurrent = stored()
+        assert concurrent[target]['shared']['dessert']['recipe_public_id'] == recipes[2]['public_id']
+        with page.expect_navigation(wait_until='domcontentloaded'), page.expect_response(
+            lambda response: response.request.method == 'POST'
+            and response.url == live_server + f'/admin/{family}/courses'
+        ) as conflict:
+            form.get_by_role('button', name='Speichern', exact=True).click()
+        assert conflict.value.status == 409 and len(posts) == 5
+        assert parse_qs(conflict.value.request.post_data, keep_blank_values=True) == {
+            key: [value] for key, value in stale_fields.items()}
+        assert stored() == concurrent
+        assert dict(form.evaluate('form => [...new FormData(form)]')) == stale_fields
+        assert page.goto(f'/admin/{family}?week={DAY}').status == 200
+        assert len(posts) == 5
+        assert stored() == concurrent
+        assert {key: value for key, value in concurrent.items() if key != target} == untouched
+        expect(form.locator('[name="dessert_recipe"]')).to_have_value(recipes[2]['public_id'])
+        capture('persisted-after-conflict', page.get_by_role(
+            'link', name=f'Dessert bearbeiten · {DAY} · {meal}', exact=True))
+        (tmp_path / 'course-flow.json').write_text(json.dumps({
+            'family': family, 'meal': meal, 'javascript': javascript_enabled,
+            'native_statuses': [303, 303, 303, 303, 409], 'posts': len(posts),
+            'neighbor_slots': [list(key) for key in untouched], 'geometry': records,
+        }, indent=2) + '\n')

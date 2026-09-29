@@ -339,3 +339,135 @@ def test_statusbar_excludes_version_and_day_date(
         assert 'von' in status_text
     finally:
         context.close()
+
+
+@pytest.mark.parametrize('width', (1440, 390))
+def test_calendar_today_range_and_native_overflow(
+    browser: Browser, live_server: str, admin_app: Flask, admin_engine,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, width: int,
+) -> None:
+    import json
+    from datetime import date
+    from urllib.parse import parse_qs
+
+    from sqlalchemy import text
+
+    from cafeteria.admin import calendar_routes
+
+    # Freeze only the existing server clock boundary, not browser dates or records.
+    monkeypatch.setattr(calendar_routes, 'effective_today', lambda: date(2026, 9, 2))
+    page, context = _open_calendar(
+        browser, live_server, admin_app, admin_engine, width=width, height=900,
+    )
+    posts: list[str] = []
+    page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
+    trace = []
+
+    def follow(link) -> None:
+        link.focus()
+        with page.expect_navigation() as navigated:
+            page.keyboard.press('Enter')
+        assert navigated.value.status == 200
+
+    def capture(stage: str) -> None:
+        state = page.evaluate('''() => ({
+            url: location.href, width: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+            coarse: matchMedia('(pointer: coarse)').matches, touch: navigator.maxTouchPoints,
+            today: [...document.querySelectorAll('.kitchen-cal-day-today')]
+                .filter(el => el.getClientRects().length).map(el => el.innerText),
+            focus: document.activeElement.outerHTML
+        })''')
+        assert state['scrollWidth'] <= state['width'] + 1
+        assert state['coarse'] is False and state['touch'] == 0
+        page.screenshot(path=str(tmp_path / f'{stage}-{width}.png'), full_page=False)
+        assert page.evaluate("[matchMedia('(pointer: coarse)').matches, navigator.maxTouchPoints]") == [False, 0]
+        trace.append({'stage': stage, **state})
+        (tmp_path / 'calendar-trace.json').write_text(json.dumps(trace, indent=2, ensure_ascii=False))
+
+    try:
+        with admin_engine.connect() as connection:
+            records = connection.execute(text('''SELECT i.title FROM cafeteria.menu_items i
+                JOIN cafeteria.menu_services s ON s.id=i.service_id
+                WHERE s.service_date=:day ORDER BY i.title
+            '''), {'day': date(2026, 9, 2)}).scalars().all()
+        assert len(records) == EXPECTED_DISHES_FULL_DAY
+        grid, agenda = page.locator('.kitchen-cal-grid'), page.locator('.kitchen-cal-list')
+        expect(page.get_by_role('heading', name='Küchenkalender · September 2026', exact=True)).to_be_visible()
+        expect(page.locator('#calendar-jump')).to_have_value('2026-09')
+        today_action = page.locator('.kitchen-cal-month-nav a[aria-label="Heute"]')
+        expect(today_action).to_have_attribute('aria-current', 'true')
+        expect(page.locator('.kitchen-cal-filters [aria-current="true"]')).to_have_text('Beide')
+        if width == 1440:
+            expect(grid).to_be_visible()
+            expect(agenda).to_be_hidden()
+            today = grid.locator('.kitchen-cal-day-today')
+            expect(today.locator('.kitchen-cal-day-num')).to_have_text('2')
+            expect(today.locator('.kitchen-cal-today-mark')).to_have_text('Heute')
+            boundary = grid.locator('tbody tr').first.locator('td').first
+            expect(boundary).to_have_class(re.compile(r'\bkitchen-cal-day-muted\b'))
+            expect(boundary.locator('.kitchen-cal-day-num')).to_have_text('31')
+            expect(grid.locator('thead th').first).to_have_text('Mo')
+            other_day = grid.locator('tbody tr').first.locator('td').nth(3)
+            other_link = other_day.locator('.kitchen-cal-day-head')
+            expect(other_link).to_have_text('3')
+        else:
+            expect(grid).to_be_hidden()
+            expect(agenda).to_be_visible()
+            expect(agenda.locator('.kitchen-cal-list-day')).to_have_count(30)
+            today = agenda.locator('.kitchen-cal-day-today')
+            expect(today.locator('h2')).to_have_text('Mi, 2. September · Heute')
+            other_day = agenda.locator('.kitchen-cal-list-day').filter(has=page.get_by_role('link', name='Do, 3. September', exact=True))
+            other_link = other_day.locator('h2 a')
+        expect(today).to_have_count(1)
+        other_link.focus()
+        expect(other_link).to_be_focused()
+        expect(other_day).not_to_have_class(re.compile(r'\bkitchen-cal-day-today\b'))
+        assert parse_qs(urlsplit(other_link.get_attribute('href')).query)['week'] == ['2026-08-31']
+        capture('today-and-other-day-focus')
+        # Keyboard focus is independent of today's date; the route has no selected-day state.
+        assert sorted(today.locator('.kitchen-cal-dish').all_text_contents()) == sorted(records)
+        assert _dish_counts(today) == {'visible': 3, 'overflow': 3, 'total': 6}
+        details = today.locator('details.kitchen-cal-more')
+        summary = details.locator('summary')
+        expect(summary).to_have_text('+ 3 weitere')
+        expect(details.locator('a').first).to_be_hidden()
+        summary.focus()
+        page.keyboard.press('Enter')
+        expect(details).to_have_attribute('open', '')
+        expect(summary).to_be_focused()
+        page.keyboard.press('Tab')
+        entry = details.locator('a').first
+        expect(entry).to_be_focused()
+        expect(entry).to_be_visible()
+        target = entry.evaluate('(a) => a.href')
+        assert urlsplit(target).path == '/admin/patienten/menu'
+        assert parse_qs(urlsplit(target).query) == {
+            'week': ['2026-08-31'], 'day': ['2026-09-02'], 'meal': ['LUNCH'], 'option': ['VEGGIE'],
+        }
+        capture('overflow-open')
+        follow(entry)
+        assert page.url == target
+        response = page.goto(CALENDAR_URL)
+        assert response.status == 200
+        follow(page.locator('.kitchen-cal-filters a').filter(has_text='Cafeteria'))
+        expect(page.locator('.kitchen-cal-filters [aria-current="true"]')).to_have_text('Cafeteria')
+        expect(page.locator('#calendar-jump')).to_have_value('2026-09')
+        expect(today_action).to_have_attribute('aria-current', 'true')
+        capture('independent-profile-selection')
+        follow(page.get_by_role('link', name='Vorheriger Monat', exact=True))
+        expect(page.locator('#calendar-jump')).to_have_value('2026-08')
+        expect(today_action).not_to_have_attribute('aria-current', 'true')
+        if width == 390:
+            # The mobile agenda deliberately omits adjacent-month days: navigate to August.
+            boundary_link = agenda.get_by_role('link', name='Mo, 31. August', exact=True)
+            boundary_link.focus()
+            expect(boundary_link).to_be_focused()
+            expect(agenda.locator('.kitchen-cal-day-today')).to_have_count(0)
+            capture('adjacent-month-day')
+        follow(today_action)
+        expect(page.locator('#calendar-jump')).to_have_value('2026-09')
+        expect(page.locator('.kitchen-cal-filters [aria-current="true"]')).to_have_text('Cafeteria')
+        expect(today_action).to_have_attribute('aria-current', 'true')
+        assert posts == []
+    finally:
+        context.close()

@@ -190,11 +190,19 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
             expect(first_item).to_be_visible()
             if javascript:
                 expect(first_item).to_be_focused()
+                tooltip = page.get_by_role('tooltip', name=first_item.get_attribute('aria-label'), exact=True)
+                expect(tooltip).to_be_visible()
+                page.keyboard.press('Escape')
+                expect(page.get_by_role('tooltip')).to_have_count(0)
+                expect(row.locator('.ui-sem-actions')).to_have_attribute('open', '')
+                expect(first_item).to_be_focused()
                 page.keyboard.press('Escape')
             else:
                 summary.press('Enter')
             expect(row.locator('.ui-sem-actions')).not_to_have_attribute('open', '')
             expect(summary).to_be_focused()
+            if javascript:
+                expect(page.get_by_role('tooltip')).to_have_count(0)
             preview.press('Enter')
             expect(row.locator('.screen-preview-details')).to_have_attribute('open', '')
             expect(preview).to_be_focused()

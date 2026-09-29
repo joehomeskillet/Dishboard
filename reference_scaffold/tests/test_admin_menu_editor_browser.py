@@ -135,18 +135,24 @@ def test_error_descriptions_follow_surviving_rows_and_are_not_cloned(page_contex
     expect(rows.nth(1).locator('[name="origin_country_code"]')).to_have_attribute(
         'aria-describedby', 'origin-1-country-error',
     )
+    rows.first.locator('.menu-editor-row-actions summary').press('Enter')
     rows.first.get_by_role('button', name='Herkunft löschen').click()
     expect(rows.first.locator('[name="origin_country_code"]')).to_have_attribute(
         'aria-describedby', 'origin-0-country-error',
     )
     expect(rows.first.locator('#origin-0-country-error')).to_be_visible()
+    rows.first.locator('.menu-editor-row-actions summary').press('Enter')
     remove = rows.first.get_by_role('button', name='Herkunft löschen')
     remove.hover()
     tooltip = page.get_by_role('tooltip', name='Herkunft löschen', exact=True)
+    expect(tooltip).to_have_count(1)
     expect(tooltip).to_be_visible()
     tooltip_id = tooltip.get_attribute('id')
     page.get_by_role('button', name='Herkunft hinzufügen').click()
     expect(rows).to_have_count(2)
+    expect(rows.last.locator('[name="origin_ingredient"]')).to_be_focused()
+    # Native details clone its source's open state; both rows remain usable.
+    expect(rows.last.locator('.ui-sem-actions')).to_have_attribute('open', '')
     assert tooltip_id not in (rows.last.get_by_role('button', name='Herkunft löschen').get_attribute('aria-describedby') or '').split()
     expect(rows.last.locator('.field-error')).to_have_count(0)
     assert rows.last.locator('[name="origin_country_code"]').get_attribute('aria-describedby') is None
@@ -265,11 +271,20 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
         assert bar.evaluate('el => getComputedStyle(el).position') == expected_position
         primary = bar.get_by_role('button', name='Menü speichern', exact=True)
         expect(primary).to_have_class(re.compile(r'\bbtn-primary\b'))
+        assert bar.evaluate('el => getComputedStyle(el).flexWrap') == 'wrap'
+        button_boxes = []
         for button in bar.locator('.btn').all():
             button_box = _box(button)
             assert button_box['x'] >= bar_box['x'] - 1 and button_box['x'] + button_box['width'] <= width + 1
-        if width == 360:
-            assert bar_box['height'] >= 2 * 48, 'Save bar must wrap at 360 px instead of overflowing.'
+            assert button_box['x'] + button_box['width'] <= bar_box['x'] + bar_box['width'] + 1
+            assert button_box['y'] >= bar_box['y'] - 1
+            assert button_box['y'] + button_box['height'] <= bar_box['y'] + bar_box['height'] + 1
+            for other in button_boxes:
+                assert (button_box['x'] + button_box['width'] <= other['x'] + 1
+                        or other['x'] + other['width'] <= button_box['x'] + 1
+                        or button_box['y'] + button_box['height'] <= other['y'] + 1
+                        or other['y'] + other['height'] <= button_box['y'] + 1), 'Save actions overlap.'
+            button_boxes.append(button_box)
         expect(main).to_have_attribute('data-density', 'compact')
         expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)
 
@@ -374,6 +389,7 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
         'els => els.map(el => el.htmlFor).filter(id => !document.getElementById(id))',
     )
     assert dangling == []
+    origin_rows.first.locator('.menu-editor-row-actions summary').press('Enter')
     for name in ('Baustein hinzufügen', 'Löschen', 'Nach oben', 'Nach unten', 'Herkunft hinzufügen', 'Herkunft löschen'):
         assert page.get_by_role('button', name=name).count() >= 1, name
 

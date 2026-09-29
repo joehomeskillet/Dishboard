@@ -247,7 +247,9 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
     with _context(browser, editor_server, client, width, javascript=javascript) as context:
         page = context.new_page()
         page.goto(f'/admin/vorlagen/{family}?week={DAY}')
-        expect(page.locator('.admin-statusbar')).to_be_visible()
+        expect(page.locator('.admin-statusbar')).to_have_count(0)
+        expect(page.locator('.page-header-subtitle')).to_have_text(('Patienten' if family == 'patienten' else 'Cafeteria') + ' · Vorlageneditor.')
+        expect(page.locator('[data-template-status-scope]')).to_contain_text('Aktiv für ' + ('Patienten' if family == 'patienten' else 'Cafeteria') + '-Wochenpläne:')
         expect(page.locator('main .btn-primary')).to_have_count(1)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         expect(page.locator('iframe')).to_be_visible()

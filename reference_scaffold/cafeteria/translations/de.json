@@ -672,5 +672,10 @@
   "ui.disclosure.more_options.tooltip": "Weitere Optionen ein- oder ausklappen",
   "recipe.import.row_details": "Details für Zeile {row}",
   "print_template.reactivate.label": "Reaktivieren",
-  "print_template.reactivate.aria": "Druckvorlage {name} reaktivieren"
+  "print_template.reactivate.aria": "Druckvorlage {name} reaktivieren",
+  "api_key.revoke.label": "Widerrufen",
+  "api_key.revoke.aria": "Schlüssel {name} widerrufen",
+  "api_key.revoke.confirm": "Schlüssel wirklich widerrufen?",
+  "api_key.revoke.consequence": "Anwendungen verlieren damit den Vorschauzugriff.",
+  "menu.save_return.aria": "Speichern und zum Wochenplan"
 }

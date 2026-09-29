@@ -757,6 +757,12 @@
                 const row = removeButton.closest('.component-row, .origin-row');
                 list = row.parentElement;
                 if (list.children.length > 1) {
+                    // Body-mounted tooltips must not outlive their removed controls.
+                    iconActions.forEach(link => {
+                        if (!row.contains(link)) return;
+                        window.tabler?.Tooltip?.getInstance(link)?.dispose();
+                        iconActions.delete(link);
+                    });
                     row.remove();
                     focusTarget = list.lastElementChild.querySelector('[data-edit-row], input, select');
                 } else {

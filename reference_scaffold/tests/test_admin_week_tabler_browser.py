@@ -417,3 +417,173 @@ def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engi
                 assert after['height'] <= before['height'] + 1, (name, before['height'], after['height'])
                 assert len(after['rows']) == len(before['rows'])
                 assert all(a <= b + 1 for a, b in zip(after['rows'], before['rows'])), (name, before['rows'], after['rows'])
+
+
+@pytest.mark.parametrize('family,profile,values', [
+    ('cafeteria', 'staff_guest', _staff_values), ('patienten', 'patient', _patient_values),
+])
+@pytest.mark.parametrize('javascript', [True, False])
+def test_publish_guidance_correction_review_and_publish(
+    admin_app, admin_engine, live_server, browser, family, profile, values, javascript, tmp_path,  # noqa: F811
+):
+    from sqlalchemy import text
+    from cafeteria.db import active_snapshot
+    from cafeteria.workflow import load_draft
+    from cafeteria.workflow_review_context import get_week_review
+    from review_support import write_expectations
+
+    data = values()
+    for day in data['days']:
+        for service in day['services']:
+            service.update(service_start='11:30', service_end='13:30')
+            for option in service['options']:
+                option['allergens'] = [{'code': 'MILK', 'name': 'Milch', 'presence': 'contains'}]
+    _save_reviewed(admin_app.extensions['cafeteria_db'], profile, data)
+    client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    cookie = client.get_cookie('session')
+    scope = _scope(admin_engine, actor, profile)
+    overview = f'/admin/{family}?week={DAY}'
+    editor = f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1'
+    slot_id = f'week-slot-{DAY}-LUNCH-MENU_1'
+    target_title = data['days'][0]['services'][0]['options'][0]['title']
+
+    def state():
+        draft = load_draft(admin_engine, profile, WEEK, actor_id=actor,
+                           **write_expectations(admin_engine, actor))
+        with admin_engine.connect() as connection:
+            published = connection.execute(text('SELECT count(*) FROM cafeteria.publication_revisions')).scalar_one()
+            reviewed = connection.execute(text(
+                "SELECT count(*) FROM cafeteria.audit_events WHERE action='workflow.menu_reviewed'"
+            )).scalar_one()
+        return draft, published, reviewed
+
+    with browser.new_context(base_url=live_server, java_script_enabled=javascript,
+                             viewport={'width': 1440, 'height': 900}, reduced_motion='reduce') as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        posts = []
+        page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
+
+        def capture(stage, locator):
+            for width in (1440, 390):
+                page.set_viewport_size({'width': width, 'height': 900})
+                locator.scroll_into_view_if_needed()
+                expect(locator).to_be_visible()
+                page.screenshot(path=str(tmp_path / f'{family}-{javascript}-{stage}-{width}.png'), full_page=False)
+
+        def submit(button, path):
+            with page.expect_navigation(wait_until='domcontentloaded'), page.expect_response(
+                lambda response: response.request.method == 'POST' and response.url == live_server + path
+            ) as response:
+                button.click()
+            assert response.value.status == 303
+            return parse_qs(response.value.request.post_data, keep_blank_values=True)
+
+        # Create the one missing, unreviewed target by an actual save; all other receipts stay valid.
+        page.goto(editor)
+        milk = page.locator('[name="allergen_code"][value="MILK"]')
+        expect(milk).to_be_checked()
+        initial = state()
+        milk.uncheck()
+        submit(page.get_by_role('button', name='Menü speichern', exact=True), f'/admin/{family}/menu')
+        page.locator('[data-semantic="navigation.weekplan"]').click()
+        page.wait_for_url(live_server + overview)
+        blocked = state()
+        assert blocked[1:] == initial[1:] and blocked[1] == 0
+        assert blocked[0]['days'][0]['services'][0]['options'][0]['allergens'] == []
+        assert blocked[0]['days'][0]['services'][0]['options'][0]['allergen_review_status'] != 'checked'
+        week_review = get_week_review(admin_engine, scope, WEEK)
+        assert week_review['receipt'] is not None
+        summary = page.locator('#week-check-summary')
+        expect(summary).to_contain_text('1 Menü: Allergenangaben nicht erfasst (nicht allergenfrei).')
+        expect(summary).to_contain_text('1 Menü mit offener Kartenprüfung.')
+        trigger = page.locator('[data-bs-target="#week-publish-modal"]')
+        expect(trigger).to_be_disabled()
+        expect(trigger).to_have_attribute('aria-describedby', 'week-publish-guidance')
+        expect(page.locator('#week-publish-guidance')).to_be_visible()
+        expect(page.locator('#week-publish-guidance')).to_contain_text('Zuerst offene Prüfungen abschliessen')
+        capture('blocked', summary)
+        publish_form = page.locator('#week-publish-form')
+        payload = publish_form.evaluate('form => Object.fromEntries(new FormData(form))')
+        assert set(payload) == {'_csrf', 'week', 'row_version'} and payload['week'] == DAY
+        refused = context.request.post(f'/admin/{family}/publish', form=payload)
+        assert refused.status == 400 and 'Allergendeklaration ist nicht geprüft.' in refused.text()
+        assert state() == blocked
+
+        summary.locator('summary').click()
+        affected = summary.locator(f'a[href="#{slot_id}"]').filter(has_text='Allergenangaben nicht erfasst')
+        expect(affected).to_have_count(1)
+        expect(affected).to_contain_text('Montag · Mittag · Menü 1: Allergenangaben nicht erfasst')
+        before_navigation = len(posts)
+        affected.click()
+        page.wait_for_url(live_server + overview + '#' + slot_id)
+        slot = page.locator(f'#{slot_id}')
+        edit = slot.locator(f'a[href="{editor}"]')
+        expect(edit).to_have_count(1)
+        expect(edit).to_have_attribute('aria-label', re.compile('Bearbeiten:.*' + re.escape(target_title)))
+        edit.click()
+        page.wait_for_url(live_server + editor)
+        assert len(posts) == before_navigation and state() == blocked
+        form = page.locator('form[data-menu-editor]')
+        for name, value in {'week': DAY, 'day': DAY, 'meal': 'LUNCH', 'option': 'MENU_1'}.items():
+            expect(form.locator(f'input[name="{name}"]')).to_have_value(value)
+        expect(page.locator('[data-review-field="allergens"]')).to_contain_text('Allergenangaben nicht erfasst')
+        milk.check()
+        page.locator('#allergen-milk-presence').select_option('contains')
+        saved = submit(page.get_by_role('button', name='Menü speichern', exact=True), f'/admin/{family}/menu')
+        assert saved['allergen_code'] == ['MILK'] and saved['allergen_presence__MILK'] == ['contains']
+        assert saved['week'] == saved['day'] == [DAY] and saved['meal'] == ['LUNCH']
+        after_save = state()
+        assert after_save[1:] == blocked[1:]
+        saved_option = after_save[0]['days'][0]['services'][0]['options'][0]
+        assert [(a['code'], a['presence']) for a in saved_option['allergens']] == [('MILK', 'contains')]
+        assert saved_option['allergen_review_status'] != 'checked'
+        expect(page.locator('[data-review-field="allergens"]')).to_contain_text('Milch')
+        capture('saved-not-reviewed', page.locator('#review'))
+        # Obtain fresh CAS/CSRF without navigating away from the review section.
+        overview_response = context.request.get(overview)
+        from bs4 import BeautifulSoup
+        publish_fields = BeautifulSoup(overview_response.text(), 'html.parser').select_one('#week-publish-form')
+        fresh_payload = {field['name']: field['value'] for field in publish_fields.select('input[name]')}
+        assert set(fresh_payload) == {'_csrf', 'week', 'row_version'}
+        refused = context.request.post(f'/admin/{family}/publish', form=fresh_payload)
+        assert refused.status == 400 and 'Allergendeklaration ist nicht geprüft.' in refused.text()
+        assert state() == after_save
+        review_form = page.locator(f'form[action="/admin/{family}/menu/review"]')
+        expected_review = review_form.evaluate('form => Object.fromEntries(new FormData(form))')
+        reviewed = submit(review_form.get_by_role('button', name='Als geprüft bestätigen', exact=True),
+                          f'/admin/{family}/menu/review')
+        assert reviewed == {key: [value] for key, value in expected_review.items()}
+        assert set(reviewed) == {'_csrf', 'week', 'day', 'meal', 'option', 'row_version', 'component_version'}
+        after_review = state()
+        assert after_review[1] == 0 and after_review[2] == after_save[2] + 1
+        assert after_review[0]['days'][0]['services'][0]['options'][0]['allergen_review_status'] == 'checked'
+        back = page.locator('[data-semantic="navigation.weekplan"]')
+        expect(back).to_have_attribute('href', overview)
+        before_navigation = len(posts)
+        back.click()
+        page.wait_for_url(live_server + overview)
+        assert len(posts) == before_navigation and state() == after_review
+        assert get_week_review(admin_engine, scope, WEEK)['receipt'] == week_review['receipt']
+        expect(page.locator('main')).to_have_attribute('data-status', 'ready')
+        expect(page.locator('#week-check-summary')).to_have_count(0)
+        capture('ready-not-published', page.locator('.admin-week-controls'))
+        expected_publish = publish_form.evaluate('form => Object.fromEntries(new FormData(form))')
+        if javascript:
+            trigger.click()
+            expect(page.locator('#week-publish-modal')).to_be_visible()
+            confirm = publish_form.get_by_role('button', name=re.compile('Veröffentlichen'))
+        else:
+            page.locator('.admin-week-nojs-publish > summary').click()
+            confirm = page.locator('.admin-week-nojs-publish button')
+        published = submit(confirm, f'/admin/{family}/publish')
+        assert published == {key: [value] for key, value in expected_publish.items()}
+        assert set(published) == {'_csrf', 'week', 'row_version'}
+        page.wait_for_url(live_server + overview)
+        expect(page.locator('main')).to_have_attribute('data-status', 'live')
+        assert state()[1:] == (1, after_review[2])
+        snapshot = active_snapshot(admin_engine, profile, DAY)
+        public_option = snapshot['days'][0]['services'][0]['options'][0]
+        assert public_option['title'] == target_title and public_option['allergen_review_status'] == 'checked'
+        assert [(a['code'], a['presence']) for a in public_option['allergens']] == [('MILK', 'contains')]
+        capture('published', page.locator('.admin-week-controls'))

@@ -78,8 +78,9 @@ def test_native_upload_freeze_history_scaling_and_assets(a3, recipe_server, brow
         expect(page.get_by_role('heading', name='Bild hochladen', exact=True)).to_be_visible()
         before = snapshot(owner)
         upload = page.get_by_role('button', name='Hochladen', exact=True)
-        expect(upload).to_contain_text('Hochladen')
-        assert 'Hochladen' in (upload.get_attribute('aria-label') or '')
+        expect(upload).to_have_text('')
+        expect(upload).to_have_accessible_name('Hochladen')
+        expect(upload).to_have_attribute('data-ui-tooltip', 'Hochladen')
         upload.click()
         assert posts == [] and snapshot(owner) == before
         expect(page.locator('#image-file')).to_be_focused()

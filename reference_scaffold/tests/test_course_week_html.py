@@ -60,6 +60,51 @@ def test_cafeteria_week_shows_shared_course_once(app, database_engine: Engine) -
     assert 'name="recipe_search"' in html
 
 
+def test_course_error_retains_unoffered_submitted_recipes(app) -> None:
+    """An errored target keeps raw selections/CAS without leaking to its neighbors."""
+    from html import unescape
+    from flask import render_template_string
+    from cafeteria.menu_recipe_choices import RecipeChoice, RecipeChoicePage, RecipeChoiceQuery
+
+    prefixes = ('soup', 'dessert', 'MENU_1_soup', 'MENU_1_dessert', 'VEGGIE_soup', 'VEGGIE_dessert')
+    choices = tuple(RecipeChoice(str(index), f'offered-{index}', 1, 'hash', f'Rezept {index}',
+                                '1 G', True, True) for index in range(50))
+    recipe_page = RecipeChoicePage(RecipeChoiceQuery(), choices, (), True, 50, None)
+    values = {'day': DAY, 'meal': 'LUNCH'}
+    for index, prefix in enumerate(prefixes):
+        values.update({f'{prefix}_public_id': '', f'{prefix}_row_version': '0',
+                       f'{prefix}_state': 'planned', f'{prefix}_recipe': f'outside-{index}"<script>&'})
+    current = {'state': 'planned', 'public_id': 'fresh-id', 'row_version': 9,
+               'recipe_public_id': 'offered-0'}
+    with app.test_request_context():
+        for kind, day, meal, submitted in (
+            ('courses', DAY, 'LUNCH', values),
+            ('courses', DAY, 'DINNER', values),
+            ('courses', '2026-09-29', 'LUNCH', values),
+            ('service', DAY, 'LUNCH', values),
+            ('courses', DAY, 'LUNCH', {**values, **{f'{p}_recipe': '' for p in prefixes}}),
+        ):
+            body = render_template_string(
+                "{% from 'admin/_macros.html' import icon %}{% include 'admin/_course_editor.html' %}",
+                day_iso=day, meal_code=meal,
+                meal_label='Mittag', family='patienten', week_value=DAY, week_csrf='test-token',
+                shared={'soup': current, 'dessert': current},
+                exceptions={option: {'soup': current, 'dessert': current} for option in ('MENU_1', 'VEGGIE')},
+                week_form_kind=kind, week_form_values=submitted, recipe_page=recipe_page)
+            target = kind == 'courses' and day == DAY and meal == 'LUNCH'
+            for prefix in prefixes:
+                select = body.split(f'name="{prefix}_recipe"', 1)[1].split('</select>', 1)[0]
+                selected = re.findall(r'<option value="([^"]*)" selected', select)
+                expected = submitted[f'{prefix}_recipe'] if target else 'offered-0'
+                assert [unescape(value) for value in selected] == ([expected] if expected else [])
+                assert '<script>' not in select
+                assert select.count('Eingereichte Auswahl') == int(target and bool(expected))
+                identity, version = ('', '0') if target else ('fresh-id', '9')
+                assert f'name="{prefix}_public_id" value="{identity}"' in body
+                assert f'name="{prefix}_row_version" value="{version}"' in body
+            assert len(re.findall(r'name="', body.split('<form method="post"', 1)[1])) == 28
+
+
 def test_course_form_saves_atomically(app, database_engine: Engine) -> None:
     client, user_id = _login(app, database_engine, ['Cafeteria.Admin'])
     engine = app.extensions['cafeteria_db']

@@ -160,7 +160,7 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
     if page.locator('#sec-output-texts').get_attribute('open') is None:
         page.locator('#sec-output-texts > summary').click()
     page.fill('input[name="internal_chf"]', 'invalid')
-    page.click('form[data-menu-editor] button[type="submit"]')
+    page.click('form[data-menu-editor] button[type="submit"].btn-primary')
     page.wait_for_load_state()
     alert = page.locator('.error-region[role="alert"]')
     expect(alert).to_be_visible()
@@ -214,7 +214,7 @@ def _submit_menu(page: Page, status: int = 303) -> dict[str, list[str]]:
     with page.expect_response(
         lambda response: response.request.method == 'POST' and response.url.endswith('/menu')
     ) as submitted:
-        page.locator('form[data-menu-editor] button[type="submit"]').click()
+        page.locator('form[data-menu-editor] button[type="submit"].btn-primary').click()
     response = submitted.value
     assert response.status == status
     data = response.request.post_data

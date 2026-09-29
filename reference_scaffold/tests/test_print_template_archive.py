@@ -196,7 +196,10 @@ def test_archive_routes_exact_fields_status_and_original_cas(editor_app: Any, da
     response = client.post(url, data=fields('archive', 3))
     assert response.status_code == 303 and 'revision=1' in response.location
     response = client.get(response.location)
-    assert response.status_code == 200 and b'Vorlage reaktivieren' in response.data
+    assert response.status_code == 200
+    assert b'aria-label="Druckvorlage Kopie reaktivieren"' in response.data
+    assert b'data-ui-tooltip="Druckvorlage Kopie reaktivieren"' in response.data
+    assert b'>Reaktivieren</span>' in response.data
     assert b'name="action" value="save"' not in response.data
     assert b'name="action" value="activate"' not in response.data
     before = snapshot(database_engine)

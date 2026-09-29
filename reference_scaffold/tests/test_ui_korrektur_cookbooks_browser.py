@@ -237,7 +237,8 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
 
         page.set_content(_editor_html(_book()))
         expect(page.get_by_role('heading', level=2, name='Rezept-Zuordnung')).to_be_visible()
-        expect(page.locator('dl.admin-statusbar')).to_contain_text('Aktiv')
+        expect(page.locator('[data-status="active"]')).to_have_text('Aktiv')
+        expect(page.locator('.admin-statusbar-label').filter(has_text='Status')).to_have_count(0)
         expect(page.locator('dl.admin-statusbar')).to_contain_text('0 Rezepte')
         header_save = page.locator('form[action="/admin/kochbuecher/book-1"]').get_by_role(
             'button', name='Speichern', exact=True,
@@ -281,11 +282,13 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         archived = _book(active=False, recipe_public_ids=('recipe-1',))
         page.set_content(_editor_html(archived, header_token='', recipes_token=''))
         expect(page.locator('section[aria-labelledby="cookbook-header-title"] .badge')).to_have_text('Archiviert')
-        expect(page.locator('dl.admin-statusbar')).to_contain_text('Archiviert')
+        expect(page.locator('.admin-statusbar-label').filter(has_text='Status')).to_have_count(0)
         expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
         assert page.locator('section[aria-labelledby="cookbook-header-title"] h3').count() == 0
         expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
         reactivate = page.get_by_role('link', name='Reaktivieren', exact=True)
+        assert _icon_control(reactivate) == ('Reaktivieren', 'Reaktivieren')
+        expect(reactivate).to_have_attribute('href', '/admin/kochbuecher/book-1/status')
         assert _symbol(reactivate) == 'circle-check'
         expect(page.get_by_role('link', name='Wiederherstellen', exact=True)).to_have_count(0)
         assert page.locator('form[action$="/rezepte"]').count() == 0
@@ -478,10 +481,13 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
 
 
 @pytest.mark.parametrize('javascript', [False, True])
-def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browser, javascript):  # noqa: F811
+@pytest.mark.parametrize('width', [390, 1440])
+def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browser, javascript, width, tmp_path):  # noqa: F811
     path = _create_book(cookbook_server, f'Vertrag {javascript}')
-    context = _context(browser, cookbook_server, 1440, 900, javascript=javascript)
+    context = _context(browser, cookbook_server, width, 900, javascript=javascript)
     page = context.new_page()
+    posts, failures = [], []
+    page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
     try:
         page.goto(cookbook_server['base'] + path)
         page.get_by_label('Name', exact=True).fill(f'Gespeichert {javascript}')
@@ -508,6 +514,60 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
         }
         assert len(assignment['recipe_positions']) == len(assignment['recipe_public_ids'])
         assert urlsplit(assignment_request.value.url).path == path + '/rezepte'
+
+        for state, action, label in (
+            ('active', 'cookbook.archive', 'Archivieren'),
+            ('archived', 'cookbook.reactivate', 'Reaktivieren'),
+        ):
+            badge = page.locator(f'section[aria-labelledby="cookbook-header-title"] [data-status="{state}"]')
+            expect(badge).to_have_text('Aktiv' if state == 'active' else 'Archiviert')
+            expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
+            if page.locator('.admin-statusbar-label').filter(has_text='Status').count():
+                failures.append(f'{state}: redundant status header card')
+            page.screenshot(path=str(tmp_path / f'cookbook-{state}.png'), full_page=False)
+            before_posts = len(posts)
+            if state == 'active':
+                opener = _open_archive_action(page)
+                expect(opener).to_have_text('Archivieren')
+            else:
+                expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
+                expect(page.locator('form[action$="/rezepte"], #cookbook-name')).to_have_count(0)
+                opener = page.get_by_role('link', name='Reaktivieren', exact=True)
+                expect(opener).to_have_attribute('data-ui-tooltip', 'Reaktivieren')
+                assert _symbol(opener) == 'circle-check'
+                if opener.inner_text().strip():
+                    failures.append('reactivate GET opener contains visible text')
+                opener.focus()
+                expect(opener).to_be_focused()
+                _focus_ring(opener)
+                if javascript:
+                    expect(page.get_by_role('tooltip', name='Reaktivieren', exact=True)).to_be_visible()
+            expect(opener).to_have_attribute('href', path + '/status')
+            opener.press('Enter')
+            expect(page).to_have_url(cookbook_server['base'] + path + '/status')
+            confirm = page.get_by_role('button', name=label, exact=True)
+            expect(confirm).to_have_text(label)
+            expect(page.get_by_role('link', name='Abbrechen', exact=True)).to_have_text('Abbrechen')
+            form = page.locator(f'form[action="{path}/status"]')
+            fields = form.evaluate('form => Object.fromEntries(new FormData(form))')
+            assert set(fields) == {'_csrf', '_form_context', 'row_version', 'status_action'}
+            assert fields['_csrf'] and fields['_form_context'] and fields['row_version'].isdigit()
+            assert fields['status_action'] == action
+            assert len(posts) == before_posts
+            page.screenshot(path=str(tmp_path / f'cookbook-{state}-confirmation.png'), full_page=False)
+            with page.expect_response(lambda response: response.request.method == 'POST') as response:
+                confirm.click()
+            assert response.value.status == 303
+            assert urlsplit(response.value.url).path == path + '/status'
+            assert parse_qs(response.value.request.post_data, keep_blank_values=True) == {
+                key: [value] for key, value in fields.items()
+            }
+            assert len(posts) == before_posts + 1
+            page.goto(cookbook_server['base'] + path)
+            _assert_page_width(page, width)
+        expect(page.locator('[data-status="active"]')).to_have_text('Aktiv')
+        expect(page.locator(f'form[action="{path}/rezepte"]')).to_be_visible()
+        assert not failures, failures
     finally:
         context.close()
 

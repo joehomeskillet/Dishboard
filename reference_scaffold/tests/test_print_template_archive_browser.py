@@ -1,6 +1,7 @@
 """Tabler lifecycle with native forms, historical PDFs and read-only catalog."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from threading import Event
 from typing import Any
@@ -32,10 +33,38 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         network = context.new_cdp_session(page)
         network.send('Network.enable')
         network.send('Network.setCacheDisabled', {'cacheDisabled': True})
-        assets: list[tuple[str, int]] = []
+        assets: list[dict[str, Any]] = []
         errors: list[str] = []
-        page.on('response', lambda response: assets.append((response.url, response.status)) if '/static/' in response.url else None)
+        sprite_url = f'{editor_server}/static/vendor/tabler-icons/tabler-icons.svg'
+
+        def record_asset(response):
+            if '/static/' in response.url:
+                asset = {'url': response.url, 'status': response.status}
+                assets.append(asset)
+                asset.update({
+                    'if_none_match': response.request.header_value('if-none-match'),
+                    'if_modified_since': response.request.header_value('if-modified-since'),
+                    'etag': response.header_value('etag'),
+                    'last_modified': response.header_value('last-modified'),
+                })
+
+        page.on('response', record_asset)
         page.on('pageerror', lambda error: errors.append(str(error)))
+
+        def capture_error_glyph(phase):
+            selector = 'details[data-template-more-actions] > summary [data-admin-details-error] svg > use'
+            glyph = page.locator(selector)
+            expect(glyph).to_be_visible()
+            expect(glyph).to_have_attribute('href', f'{urlsplit(sprite_url).path}#tabler-circle-x')
+            page.wait_for_function('''selector => {
+                const glyph = document.querySelector(selector);
+                return glyph && glyph.getBBox().width > 0 && glyph.getBBox().height > 0;
+            }''', arg=selector)
+            geometry = glyph.evaluate('''el => ({href: new URL(el.getAttribute('href'), location.href).href,
+                width: el.getBBox().width, height: el.getBBox().height})''')
+            (tmp_path / f'archive-error-{phase}.json').write_text(
+                json.dumps({'assets': assets, 'glyph': geometry}, indent=2))
+
         response = page.goto(f'/admin/vorlagen/{family}?week={DAY}')
         assert response is not None and response.status == 200
         expect(page.get_by_role('button', name='Vorlage archivieren', exact=True)).to_have_count(0)
@@ -61,12 +90,16 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         expect(confirmation).to_be_focused()
         assert confirmation.evaluate('el => el.validity.valueMissing')
         assert not posts and snapshot(database_engine) == before_confirmation
+        if javascript:
+            capture_error_glyph('first-invalid')
         confirmation.press('Space')
         expect(confirmation).to_be_checked()
         confirmation.press('Space')
         expect(confirmation).not_to_be_checked()
         page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
         assert not posts and snapshot(database_engine) == before_confirmation
+        if javascript:
+            capture_error_glyph('second-invalid')
         label.click()
         expect(confirmation).to_be_checked()
         page.get_by_role('button', name='Vorlage archivieren', exact=True).focus()
@@ -77,7 +110,10 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         assert len(posts) == 1
         assert set(parse_qs(posts[0].post_data)) == {'_csrf', 'action', 'version', 'revision'}
         page.locator('details[data-template-more-actions] summary').click()
-        expect(page.get_by_role('button', name='Vorlage reaktivieren', exact=True)).to_be_visible()
+        reactivate = page.get_by_role('button', name='Druckvorlage Standard reaktivieren', exact=True)
+        expect(reactivate).to_be_visible()
+        expect(reactivate).to_have_text('Reaktivieren')
+        expect(reactivate).to_have_attribute('data-ui-tooltip', 'Druckvorlage Standard reaktivieren')
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_disabled()
         expect(page.get_by_role('button', name='Vorlage speichern', exact=True)).to_have_count(0)
         expect(page.get_by_role('button', name='Diese Version aktivieren', exact=True)).to_have_count(0)
@@ -98,7 +134,9 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         page.screenshot(path=str(tmp_path / f'archive-catalog-{family}-{width}-js{javascript}.png'), full_page=True)
         item.get_by_role('link', name='Standard bearbeiten', exact=True).click()
         page.locator('details[data-template-more-actions] summary').click()
-        expect(page.get_by_role('button', name='Vorlage reaktivieren', exact=True)).to_be_visible()
+        expect(reactivate).to_be_visible()
+        expect(reactivate).to_have_text('Reaktivieren')
+        expect(reactivate).to_have_attribute('data-ui-tooltip', 'Druckvorlage Standard reaktivieren')
         assert snapshot(database_engine) == before
         if javascript:
             frame = page.locator('iframe')
@@ -109,13 +147,29 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         assert page.locator('.skip-link').evaluate('el => el.getBoundingClientRect().bottom <= 0')
         page.screenshot(path=str(tmp_path / f'archive-viewport-{family}-{width}-js{javascript}.png'))
         page.screenshot(path=str(tmp_path / f'archive-editor-{family}-{width}-js{javascript}.png'), full_page=True)
-        page.get_by_role('button', name='Vorlage reaktivieren', exact=True).click()
+        reactivate.click()
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_enabled()
         page.locator('details[data-template-more-actions] summary').click()
         expect(page.get_by_role('button', name='Vorlage archivieren', exact=True)).to_be_visible()
         expect(page.locator(f'#template-select option[value="{copy_id}"]')).to_contain_text('Aktiv: Revision 1')
         assert client.get(old_pdf_url).data == original_pdf.data
-        assert assets and all(status == 200 for _, status in assets)
+        glyphs = page.locator('svg:visible > use').evaluate_all('''items => items.map(el => {
+            const box = el.getBBox();
+            return {href: new URL(el.getAttribute('href'), location.href).href,
+                    width: box.width, height: box.height};
+        })''')
+        (tmp_path / 'archive-assets.json').write_text(json.dumps({'assets': assets, 'glyphs': glyphs}, indent=2))
+        sprite_glyphs = [glyph for glyph in glyphs if glyph['href'].partition('#')[0] == sprite_url]
+        assert sprite_glyphs and all(glyph['width'] > 0 and glyph['height'] > 0 for glyph in sprite_glyphs)
+        assert assets
+        previous_200 = {}
+        for asset in assets:
+            if asset['status'] == 200:
+                previous_200[asset['url']] = asset['etag']
+                continue
+            assert asset['url'] == sprite_url and asset['status'] == 304, asset
+            etag = previous_200.get(asset['url'])
+            assert etag and asset['if_none_match'] == etag and asset['etag'] == etag, asset
         assert not errors
 
 
@@ -192,7 +246,10 @@ def test_archive_confirmation_survives_late_pdf_response(editor_app, editor_serv
             assert post.value.status == 303 and len(posts) == 1
             assert set(parse_qs(posts[0].post_data)) == {'_csrf', 'action', 'version', 'revision'}
             page.locator('details[data-template-more-actions] summary').click()
-            expect(page.get_by_role('button', name='Vorlage reaktivieren', exact=True)).to_be_visible()
+            reactivate = page.get_by_role('button', name='Druckvorlage Kopie reaktivieren', exact=True)
+            expect(reactivate).to_be_visible()
+            expect(reactivate).to_have_text('Reaktivieren')
+            expect(reactivate).to_have_attribute('data-ui-tooltip', 'Druckvorlage Kopie reaktivieren')
             assert not errors
     finally:
         release.set()
@@ -257,6 +314,7 @@ def test_read_roles_see_archive_but_cannot_mutate(editor_app: Any, database_engi
     response = client.get(f'/admin/vorlagen?week={DAY}')
     assert response.status_code == 200 and b'Archivierte Vorlagen' in response.data
     assert b'Vorlageneditor' not in response.data and b'Vorlage reaktivieren' not in response.data
+    assert b'Druckvorlage Kopie reaktivieren' not in response.data
     for action in ['archive', 'reactivate']:
         assert client.post(f'/admin/vorlagen/patienten?week={DAY}&template={COPY_ID}', data=fields(action, 3)).status_code == 403
     assert snapshot(database_engine) == before
@@ -284,6 +342,9 @@ def test_archive_conflict_preserves_original_version_and_focus(editor_app: Any, 
         assert snapshot(database_engine) == before
         page.get_by_role('link', name='Aktuellen Stand neu laden', exact=True).click()
         page.locator('details[data-template-more-actions] summary').click()
-        expect(page.get_by_role('button', name='Vorlage reaktivieren', exact=True)).to_be_visible()
-        page.get_by_role('button', name='Vorlage reaktivieren', exact=True).click()
+        reactivate = page.get_by_role('button', name='Druckvorlage Kopie reaktivieren', exact=True)
+        expect(reactivate).to_be_visible()
+        expect(reactivate).to_have_text('Reaktivieren')
+        expect(reactivate).to_have_attribute('data-ui-tooltip', 'Druckvorlage Kopie reaktivieren')
+        reactivate.click()
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_enabled()

@@ -1,13 +1,13 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import icon, page_header, flash_region, label, empty_state, empty_value %}
-{% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button %}
+{% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button, icon_summary %}
 {% set workflow_nav = 'operations' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Bereiche & Öffnungszeiten · Dishboard{% endblock %}
 {% block sidebar %}{% include 'admin/_workflow_sidebar.html' %}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-bereiche.css') }}">{% endblock %}
 {% block page_header %}
-{% set status_items = [{'label': icon_label('admin.area'), 'value': area_names.values()|join(' · '), 'variant': 'neutral'}, {'label': 'Zeitzone', 'value': timezone, 'variant': 'neutral'}] %}
+{% set status_items = [{'label': 'Zeitzone', 'value': timezone, 'variant': 'neutral'}] %}
 {% for code, schedule in schedules.items() %}
   {% set missing = namespace(count=0) %}
   {% for slot, rule in schedule.slots.items() %}{% if rule.state == 'open' and (not rule.start or not rule.end) %}{% set missing.count = missing.count + 1 %}{% endif %}{% endfor %}
@@ -52,7 +52,7 @@
           {% set missing_times = namespace(found=false) %}
           <div class="operations-overview-actions">
           <details class="operations-overview-details">
-          <summary>{{ icon_label('ui.disclosure.details') }}</summary>
+          {{ icon_summary('ui.disclosure.details', object=area_names[code]) }}
           <ul class="list-unstyled mb-0">
           {% for slot, rule in schedule.slots.items() %}
             {% set day, meal = slot %}
@@ -137,7 +137,7 @@
         {% for part, label in [('start', 'Beginn'), ('end', 'Ende'), ('notice', 'Hinweis')] %}
         {% set field_value = values.get(prefix ~ part, rule[part] or '') if editing else rule[part] or '' %}
         <td data-label="{{ label }}"{% if part != 'notice' %} class="operations-time{% if field_value or errors.get(code ~ '-' ~ prefix ~ part) %} has-content{% endif %}"{% endif %}>
-          {% if part == 'notice' %}<details class="operations-notice"{% if field_value or errors.get(code ~ '-' ~ prefix ~ part) %} open{% endif %}><summary>{{ icon_label('ui.disclosure.more_options') }}</summary>{% endif %}
+          {% if part == 'notice' %}<details class="operations-notice"{% if field_value or errors.get(code ~ '-' ~ prefix ~ part) %} open{% endif %}>{{ icon_summary('ui.disclosure.more_options', object=area_names[code] ~ ' · ' ~ day_names[day - 1] ~ ' · ' ~ meal_labels[meal] ~ ' · ' ~ label) }}{% endif %}
           {{ input(prefix ~ part, label, field_value, 'text' if part == 'notice' else 'time', code ~ '-' ~ prefix ~ part) }}
           {% if part == 'notice' %}</details>{% endif %}
         </td>
@@ -189,7 +189,7 @@
         <div class="col-12 col-lg-4"><label class="form-label" for="service_state">Betrieb</label><select class="form-select" id="service_state" name="service_state"{{ validation('service_state') }}>{% for state, label in state_labels.items() %}<option value="{{ state }}"{% if values.service_state == state %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ error_text('service_state') }}</div>
         <div class="col-12 col-lg-4 operations-time{% if values.service_start or errors.get('service_start') %} has-content{% endif %}">{{ input('service_start', 'Beginn', values.service_start, 'time') }}</div>
         <div class="col-12 col-lg-4 operations-time{% if values.service_end or errors.get('service_end') %} has-content{% endif %}">{{ input('service_end', 'Ende', values.service_end, 'time') }}</div>
-        <div class="col-12"><details class="operations-notice"{% if values.notice or errors.get('notice') %} open{% endif %}><summary>{{ icon_label('ui.disclosure.more_options') }}</summary>{{ input('notice', 'Hinweis', values.notice) }}</details></div>
+        <div class="col-12"><details class="operations-notice"{% if values.notice or errors.get('notice') %} open{% endif %}>{{ icon_summary('ui.disclosure.more_options', object=area_names[values.profile] ~ ' · ' ~ values.date ~ ' · ' ~ meal_labels[values.meal] ~ ' · Hinweis') }}{{ input('notice', 'Hinweis', values.notice) }}</details></div>
         <div class="col-12">{{ icon_button('actions.save', object=area_names[values.profile]) }}</div>
       </div>
     </form>

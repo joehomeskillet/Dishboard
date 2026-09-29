@@ -53,12 +53,12 @@
                 <td data-label="Aktionen" class="admin-table-actions">
                   <div class="admin-row-actions">
                     {% if key.state == 'active' %}
-                    <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="d-inline" data-confirm="Schlüssel wirklich widerrufen?">
+                    <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="d-inline" data-confirm="{{ t('api_key.revoke.confirm') }}">
                       <input type="hidden" name="_csrf" value="{{ csrf }}">
                       <details class="admin-compact-details">
-                        {{ icon_summary('actions.delete', aria_label='Schlüssel ' ~ key.label ~ ' widerrufen') }}
-                        <p class="my-2 ui-sem-consequence">Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.</p>
-                        {{ icon_button('actions.confirm', text='Widerrufen', aria_label='Schlüssel ' ~ key.label ~ ' widerrufen', emphasis='secondary', class='btn-danger', show_text=true) }}
+                        {{ icon_summary('actions.delete', aria_label=t('api_key.revoke.aria', name=key.label).unescape()) }}
+                        <p class="my-2 ui-sem-consequence">{{ t('api_key.revoke.confirm') }} {{ t('api_key.revoke.consequence') }}</p>
+                        {{ icon_button('actions.confirm', text=t('api_key.revoke.label'), aria_label=t('api_key.revoke.aria', name=key.label), emphasis='secondary', class='btn-danger', show_text=true) }}
                       </details>
                     </form>
                     {% endif %}
@@ -66,7 +66,7 @@
                       {{ icon_summary('actions.more', object=key.label) }}
                       <div class="ui-sem-action-items">
                         <details class="admin-compact-details admin-api-key-details">
-                          {{ icon_summary('ui.disclosure.details', aria_label='Details zu ' ~ key.label, show_text=true) }}
+                          {{ icon_summary('ui.disclosure.details', object=key.label, show_text=true) }}
                           <dl class="mb-0 mt-2">
                             <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
                             <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>

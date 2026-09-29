@@ -187,7 +187,10 @@ def test_locale_symmetry_orphans_missing_and_pseudo():
 
 @pytest.mark.parametrize('locale', ['de', 'en'])
 @pytest.mark.parametrize('key', ['recipe.import.row_details',
-                                'print_template.reactivate.label', 'print_template.reactivate.aria'])
+                                'print_template.reactivate.label', 'print_template.reactivate.aria',
+                                'api_key.revoke.label', 'api_key.revoke.aria',
+                                'api_key.revoke.confirm', 'api_key.revoke.consequence',
+                                'menu.save_return.aria'])
 @pytest.mark.parametrize('mutation', ['missing', 'empty', 'unknown'])
 def test_context_message_allowlist_stays_strict(locale, key, mutation):
     locales = load_locales()
@@ -1126,4 +1129,6 @@ def test_p4_registry_visible_text_is_in_accessible_name(semantic_app, locale, mo
     assert edit in edit_control['aria-label']
     assert edit_control['data-ui-tooltip'] == edit_control['aria-label']
     upload_button = BeautifulSoup(images, 'html.parser').select_one('button[data-semantic="actions.upload"]')
-    _visible_word_in_name(upload_button, upload)
+    assert upload_button.get_text(strip=True) == ''
+    assert upload_button['aria-label'] == upload_button['data-ui-tooltip'] == upload
+    assert upload_button.select_one('use')['href'].endswith('#tabler-upload')

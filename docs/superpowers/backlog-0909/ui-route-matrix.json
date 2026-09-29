@@ -10461,7 +10461,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "510461d0dec3b2b8a15235ddd33f8985bbdac2016765c757695f58b247c2672a",
+      "sha256": "81a7984e18c3008e67c745a00ab103eb39186c5c45cc9987d2004d4d0b5372e9",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10636,7 +10636,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "3cc57e2339d455c3829676271c3bfff2e8d6d40e747e834fceb6dcd9e8f3b953",
+      "sha256": "b67a696a4939cf814d4b4813d9532e7ef4b7db456eaee26d5498584ced6b0a8a",
       "used_by_endpoints": [
         "admin.api_overview"
       ],
@@ -11118,7 +11118,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "9ea90f66a54a57c4252d286fd9fdf1461fd18847b596d2a1ae2c2845d438ad18",
+      "sha256": "4cbdc5acd3d6770431726f8e9e082bef70ab2ff6d62f86f2e901d6d798c95511",
       "used_by_endpoints": [
         "admin.cookbook_edit",
         "admin.cookbook_new",
@@ -11342,7 +11342,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "e8e63804a9679bac9a25b6d91115953deff0d2df7b2c83b820cbd6dc426e86d7",
+      "sha256": "2fb93904b5468c4269e0b3a601a6befa5d49a1549922f185c59d961ffb21ed65",
       "used_by_endpoints": [
         "admin.menu_get"
       ],
@@ -11365,7 +11365,7 @@
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
-      "sha256": "f3e1ee529b13f0d20d337c35ea5cc04ce95562f9a05314adc42f0a3017bc2e80",
+      "sha256": "9b6138939f4ff128b4620e47c1b95679601a1886ddef9626c7e8d85d34f0b204",
       "used_by_endpoints": [
         "admin.operations_settings"
       ],
@@ -11440,7 +11440,7 @@
         "admin/_macros.html",
         "admin/_recipe_template_selection.html"
       ],
-      "sha256": "37eb38221e528fdfa4fb9fbc10f34aa85e932dd6141fbdee7064dbaf143e6f01",
+      "sha256": "05b74e5b45967f3abe76f604ae8004ffad999e6d92a0274c1b2f9577b0851598",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -11502,7 +11502,7 @@
         "admin/_macros.html",
         "admin/rezepte_ansicht.html"
       ],
-      "sha256": "a612e28467cf5e36b6dacc673c10a0d10606aca5e92fe0c194f866827ef08478",
+      "sha256": "6ace16c1d2f0c15515674f64b8de16cd9141df7f1b3edfb985906ed44fab3466",
       "used_by_endpoints": [
         "admin.recipes_list"
       ],
@@ -11600,7 +11600,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "91203b69b876c48d3372accf59e280d4480dbf463628d3de4c66233b75dc23dd",
+      "sha256": "3893074c25ada5c071a72a7bd8162bbd5e42c2ac85a61644ac632253384e0b4a",
       "used_by_endpoints": [
         "admin.recipe_images"
       ],
@@ -11621,7 +11621,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "924addcb829082e65ff6497a2a32e4f306fb5fe32427e32ed9e277d1a8b14831",
+      "sha256": "9d71ea55dd5e66306a31ddc4adde59b0b7f6d10139e2eadec308d6db793b7972",
       "used_by_endpoints": [
         "admin.recipe_import_commit",
         "admin.recipe_import_create",
@@ -11695,7 +11695,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "013ba0faa61f705304c14943c71a565dd90aa96f3d118e5ade3ce3f06ecb8686",
+      "sha256": "d9b6216da542fb9057edaabd69c9ce3d69c0b3d035ba89d9f7b903bf26373625",
       "used_by_endpoints": [
         "admin.recipe_revision",
         "admin.recipe_scale",
@@ -11765,7 +11765,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "560d8f7a86b7d2ded8479b362bead384e37819f18a06816f6f971c0a8807378f",
+      "sha256": "4e163a35a7bce012ca4a1f7c2f0d34270b1028995a81df976d59c4f99b40e582",
       "used_by_endpoints": [
         "admin.screens"
       ],
@@ -11829,7 +11829,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "549adf098b83755036726697a52294febf3f6e98e9eb146f3097238c5ec97ce9",
+      "sha256": "ca259b2f8b15e9ddc885dfbfeff2058d5809541ea26e4843e20048d0759113a7",
       "used_by_endpoints": [
         "admin.week_review_get"
       ],
@@ -12354,7 +12354,7 @@
       "includes": [
         "admin/_course_recipe_search.html"
       ],
-      "sha256": "5d4dbd5d43b4acbac60f370e2428c3df3dc4b1ba33209b8cebdfaf55d8192e94",
+      "sha256": "e0ef509ed3c14de4d4fe0633f5c7c6e01b759d83ef8a3c24d1acf866ba5fe536",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"

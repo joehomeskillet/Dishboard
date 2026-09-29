@@ -19,7 +19,7 @@
 {% if payload is defined %}
 {% extends 'admin/base_tabler.html' %}
 {% block title %}Mengen berechnen · {{ payload.title }}{% endblock %}
-{% block page_header %}{% call page_header(t('navigation.recipes.label'), payload.title, status_items=[{'label': t('recipe.quantity.label'), 'value': calculated.target ~ ' ' ~ calculated.unit, 'variant': 'neutral'}, {'label': t('recipe.recipe.label'), 'value': t('status.readonly.label'), 'variant': 'neutral'}]) %}
+{% block page_header %}{% call page_header(t('navigation.recipes.label'), payload.title) %}
 {{ icon_button('actions.open', href=read_url, icon_only=true, aria_label='Rezept ansehen') }}
 {% if revision is defined %}{{ icon_button('actions.print', href=url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=revision.public_id, yield=calculated.target), text='Drucken', aria_label='Drucken · PDF öffnen', title='Drucken · PDF öffnen') }}{% endif %}
 {% endcall %}{% endblock %}

@@ -327,7 +327,7 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript):
                     more.focus()
                     more.press('Enter')
                     details = page.locator('.admin-api-key-details > summary')
-                    expect(details).to_have_attribute('data-ui-tooltip', re.compile(r'Details zu '))
+                    expect(details).to_have_attribute('data-ui-tooltip', 'Küchenintegration: Details ein- oder ausklappen')
                     expect(details).to_contain_text('Details')
                     details.press('Enter')
                     expect(page.locator('[data-label="Präfix"]')).to_be_visible()

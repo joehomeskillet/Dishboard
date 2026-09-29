@@ -5,10 +5,16 @@
 {% set recipe_retained = (recipe_page.retained if recipe_page is defined else []) %}
 {% set form_id = 'course-' ~ day_iso ~ '-' ~ meal_code %}
 {% set course_open = week_form_kind|default(none) == 'courses' and week_form_values.get('day') == day_iso and week_form_values.get('meal') == meal_code %}
+{% set course_values = week_form_values if course_open else {} %}
 {% set soup = shared.get('soup', {'state': 'unplanned'}) %}
 {% set dessert = shared.get('dessert', {'state': 'unplanned'}) %}
 {% macro course_recipe_options(selected_id) %}
+              {% set offered_ids = recipe_choices|selectattr('selectable')|map(attribute='recipe_public_id')|list %}
+              {% set retained_ids = recipe_retained|map(attribute='recipe_public_id')|list %}
               <option value="">Rezept wählen</option>
+              {% if course_open and selected_id and selected_id not in offered_ids and selected_id not in retained_ids %}
+              <option value="{{ selected_id }}" selected>Eingereichte Auswahl</option>
+              {% endif %}
               {% if recipe_choices %}
               <optgroup label="Gefundene Rezepte">
               {% for choice in recipe_choices %}
@@ -37,6 +43,11 @@
       <input type="hidden" name="meal" value="{{ meal_code }}">
       <p class="text-secondary mb-2">{{ meal_label }} · gilt für alle Menüs dieser Ausgabe.</p>
       {% for kind, course, kind_label in (('soup', soup, 'Suppe'), ('dessert', dessert, 'Dessert')) %}
+      {% set course = dict(course,
+        public_id=course_values.get(kind ~ '_public_id', course.public_id|default('', true)),
+        row_version=course_values.get(kind ~ '_row_version', course.row_version|default(0)),
+        state=course_values.get(kind ~ '_state', course.state),
+        recipe_public_id=course_values.get(kind ~ '_recipe', course.recipe_public_id|default(''))) %}
       <input type="hidden" name="{{ kind }}_public_id" value="{{ course.public_id|default('', true) }}">
       <input type="hidden" name="{{ kind }}_row_version" value="{{ course.row_version|default(0) }}">
       <details class="admin-compact-details mb-2"{% if course.state == 'planned' or course.recipe_public_id|default('') or course_open %} open{% endif %}>
@@ -68,6 +79,12 @@
           {% set option_exc = exceptions.get(option_code, {}) %}
           {% for kind, kind_label in (('soup', 'Suppe'), ('dessert', 'Dessert')) %}
             {% set override = option_exc.get(kind, {'state': 'inherit'}) %}
+            {% set prefix = option_code ~ '_' ~ kind %}
+            {% set override = dict(override,
+              public_id=course_values.get(prefix ~ '_public_id', override.public_id|default('', true)),
+              row_version=course_values.get(prefix ~ '_row_version', override.row_version|default(0)),
+              state=course_values.get(prefix ~ '_state', override.state),
+              recipe_public_id=course_values.get(prefix ~ '_recipe', override.recipe_public_id|default(''))) %}
             <input type="hidden" name="{{ option_code }}_{{ kind }}_public_id" value="{{ override.public_id|default('', true) }}">
             <input type="hidden" name="{{ option_code }}_{{ kind }}_row_version" value="{{ override.row_version|default(0) }}">
             <details class="admin-compact-details mb-2"{% if override.state in ('planned', 'not_offered') or override.recipe_public_id|default('') or course_open %} open{% endif %}>

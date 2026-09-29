@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, hint, label, list_row %}
-{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon, row_actions %}
+{% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon, row_actions, more_actions %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set layout_variant = 'standard' %}
 {% set day_title = cell.day_label|default(cell.day|date_long) %}
@@ -15,7 +15,6 @@
 {% block page_header %}
 {% call page_header('Menüs', description=(('Neues Menü aus Vorlage «' ~ cell.dish_template.title ~ '»') if cell.template_proposal and cell.dish_template else 'Menü bearbeiten') ~ ' · ' ~ slot_title, breadcrumbs=[('Wochenplan', back_url), ('Menü',)], status_items=[
   {'label': 'Profil', 'value': 'Cafeteria' if profile == 'staff_guest' else 'Patienten'},
-  {'label': 'Tag', 'value': day_title},
   {'label': 'Allergene', 'value': 'Allergenangaben nicht erfasst' if not cell.retained_only and not origin_conflict and (not effects or not effects.allergens) else none, 'variant': 'warning'}
 ]) %}
 {{ icon_button('navigation.weekplan', href=back_url) }}
@@ -280,7 +279,7 @@
                   </div>
                 </div>
                 <div class="menu-editor-row-actions mt-2">
-                  {{ icon_button('actions.delete', type='button', object='Herkunft', consequence_key='actions.delete', attrs={'data-remove-row': true, 'disabled': is_auto['origin']}) }}
+                  {{ more_actions([{'key': 'actions.delete', 'type': 'button', 'consequence_key': 'actions.delete', 'attrs': {'data-remove-row': true, 'disabled': is_auto['origin']}}], object='Herkunft') }}
                 </div>
               </div>
             </fieldset>
@@ -337,8 +336,8 @@
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
         {{ icon_button('actions.save', text='Menü speichern', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'} if cell.template_proposal else {}) }}
-        {# Native submit input: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
-        {% if not cell.template_proposal %}<input type="submit" class="btn" formaction="/admin/{{ family }}/menu?return_to=week" value="Speichern und zum Wochenplan">{% endif %}
+        {# Native secondary submit: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
+        {% if not cell.template_proposal %}{{ icon_button('actions.save', aria_label=t('menu.save_return.aria'), emphasis='secondary', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'}) }}{% endif %}
         {{ icon_button('actions.cancel', href=back_url) }}
       </div>
     </form>
