@@ -56,7 +56,8 @@ def literal_report(source: str) -> list[str]:
                 parser.feed('0')
     for call in tree.find_all(nodes.Call):
         if isinstance(call.node, nodes.Name) and call.node.name in LEGACY:
-            texts.extend(arg.value for arg in call.args if isinstance(arg, nodes.Const)
+            args = call.args[1:] if call.node.name == 'empty_state' else call.args
+            texts.extend(arg.value for arg in args if isinstance(arg, nodes.Const)
                          and isinstance(arg.value, str) and any(c.isalpha() for c in arg.value))
     parser.close()
     return parser.texts + texts
@@ -78,3 +79,12 @@ def test_guard_recognizes_visible_and_accessible_literals():
     assert literal_report('<button title="Löschen">Löschen</button>') == ['Löschen', 'Löschen']
     assert literal_report('<h1>{{ t("actions.save.label") }}</h1>') == []
     assert literal_report('<script>const label="ignored";</script>') == []
+
+
+def test_guard_ignores_only_empty_state_variant():
+    assert literal_report("{{ empty_state('error', t('title'), t('description')) }}") == []
+    assert literal_report("{{ empty_state('error', 'error', 'Sichtbarer Hinweis') }}") == [
+        'error', 'Sichtbarer Hinweis',
+    ]
+    for macro in ('page_header', 'field', 'select', 'disclosure_section'):
+        assert literal_report("{{ " + macro + "('Sichtbarer Text') }}") == ['Sichtbarer Text']

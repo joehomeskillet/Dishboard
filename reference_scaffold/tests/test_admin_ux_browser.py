@@ -271,7 +271,9 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
         page.locator('[name="origin_ingredient"]').nth(index).fill(ingredient)
         page.locator('[name="origin_country_code"]').nth(index).select_option(country)
     page.locator('[data-add-row="origins-list"]').click()
-    page.locator('#origins-list [data-remove-row]').last.click()
+    added_origin = page.locator('#origins-list .origin-row').last
+    added_origin.locator('details > summary').click()
+    added_origin.locator('[data-remove-row]').click()
     page.locator('[data-add-row="origins-list"]').click()
     for code, presence in (('MILK', 'may_contain'), ('GLUTEN', 'contains')):
         checkbox = page.locator(f'[name="allergen_code"][value="{code}"]')

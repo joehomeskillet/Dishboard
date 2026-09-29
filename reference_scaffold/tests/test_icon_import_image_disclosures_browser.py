@@ -173,7 +173,10 @@ def test_native_import_image_disclosures(
         assert sent['action'] == ['cancel']
         for key, value in original:
             assert value in sent[key]
-        expect(page.locator('.admin-statusbar')).to_contain_text('Verworfen')
+        batch_status = form.locator(':scope > p > .admin-label')
+        expect(batch_status).to_be_visible()
+        expect(batch_status).to_have_text('Verworfen')
+        expect(page.locator('.page-header .admin-statusbar')).to_have_count(0)
         assert import_snapshot(owner)['recipes'] == before['recipes']
 
         assert page.goto(base + image_path).status == 200
