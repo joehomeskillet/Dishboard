@@ -152,7 +152,8 @@ def test_native_import_image_disclosures(
         assert import_snapshot(owner) == before and len(posts) == 1
         expect(page.locator('[data-hostile]')).to_have_count(0)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        page.evaluate('scrollTo(0, 0)')
+        more.scroll_into_view_if_needed()
+        expect(more).to_be_in_viewport(ratio=1)
         (tmp_path / 'import-capture.json').write_text(json.dumps({
             'route': batch_path, 'viewport': page.viewport_size, 'role': 'Cafeteria.Publisher',
             'locale': locale, 'javascript': javascript, 'coarse': width == 390,
@@ -169,6 +170,8 @@ def test_native_import_image_disclosures(
         expect(confirm).to_have_attribute('aria-describedby', 'discard-consequence')
         expect(form.locator('#discard-consequence')).to_contain_text('vorhandene Rezepte bleiben unverändert')
         assert _values(form) == original and len(posts) == 1
+        confirm.scroll_into_view_if_needed()
+        expect(confirm).to_be_in_viewport(ratio=1)
         page.screenshot(path=str(tmp_path / 'import-confirmation.png'), full_page=False)
         with page.expect_response(lambda response: response.request.method == 'POST') as response:
             confirm.click()
