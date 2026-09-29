@@ -276,8 +276,7 @@ def _keyboard(page: Page, javascript: bool) -> None:
     page.keyboard.press('Tab')
     expect(page.get_by_role('region', name='Menüliste', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
-    expect(page.locator('#menu-list a.admin-list-primary').first).to_be_focused()
-    page.keyboard.press('Tab')
+    expect(page.locator('#menu-list a.admin-list-primary')).to_have_count(0)
     action = page.locator('#menu-list [data-semantic="actions.edit"]').first
     expect(action).to_be_focused()
     assert action.evaluate('el => getComputedStyle(el).outlineStyle') == 'solid'

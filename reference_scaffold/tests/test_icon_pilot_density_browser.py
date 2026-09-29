@@ -40,7 +40,7 @@ MEASURE = '''({rows}) => {
     };
     const main = box(document.querySelector('main'));
     const records = [...document.querySelectorAll(rows)].map(row => {
-        const primary = row.querySelector('a.admin-list-primary') || row.querySelector('.admin-list-primary');
+        const primary = row.querySelector('span.admin-list-primary') || row.querySelector('.admin-list-primary');
         const secondary = row.querySelector('th .admin-list-secondary, td:first-child .admin-list-secondary, .admin-list-name .admin-list-secondary, .admin-list-secondary');
         const meta = row.querySelector('.admin-list-meta');
         const contentBoxes = [...row.children].map(box);
@@ -254,8 +254,11 @@ def test_pilot_density_real_records_filtering_and_native_forms(
             search.get_by_role('link', name='Zurücksetzen', exact=True).click()
             expect(page.locator(row_selector)).to_have_count(10)
         first_row = page.locator(row_selector).first
-        primary_sel = 'a.admin-list-primary' if slug.startswith('components') else '.admin-list-primary'
+        primary_sel = 'span.admin-list-primary' if slug.startswith('components') else '.admin-list-primary'
         first_name = first_row.locator(primary_sel).first.inner_text()
+        if slug.startswith(('components', 'menus')) or slug == 'foods':
+            # D3: names are plain text; the edit icon is the single entry.
+            expect(first_row.get_by_role('link', name=first_name.strip(), exact=True)).to_have_count(0)
         if slug == 'dish-templates':
             edit = first_row.locator('.admin-list-primary').first
             edit.focus()
@@ -269,7 +272,12 @@ def test_pilot_density_real_records_filtering_and_native_forms(
         else:
             edit = first_row.locator('[data-semantic="actions.edit"]')
             expect(edit).to_have_count(1)
+            if slug.startswith('components'):
+                expect(edit).to_have_accessible_name(f'{first_name.strip()} bearbeiten')
+                expect(edit).to_have_attribute('href', path + '/' + first_row.get_attribute('data-public-id'))
             edit.focus()
+            page.keyboard.press('Shift+Tab')
+            page.keyboard.press('Tab')
             expect(edit).to_be_focused()
             edit.press('Enter')
             if slug.startswith('components'):

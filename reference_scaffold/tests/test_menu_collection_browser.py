@@ -311,7 +311,9 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
         expect(row).to_contain_text('Mittag')
         expect(row).to_contain_text('Menü 1')
         link = row.locator('[data-semantic="actions.edit"]')
-        expect(row.locator('a.admin-list-primary')).to_have_attribute('href', link.get_attribute('href'))
+        primary = row.locator('.admin-list-primary')
+        expect(row.get_by_role('link', name=primary.inner_text(), exact=True)).to_have_count(0)
+        assert primary.evaluate('el => !el.closest("a, button, [role=link], [onclick]")')
         destination = urlsplit(link.get_attribute('href'))
         assert destination.path == f'/admin/{family}/menu'
         fields = parse_qs(destination.query)
@@ -334,8 +336,49 @@ def test_collection_card_list_switch_keeps_scope_search_and_editor_targets(
     assert parse_qs(urlsplit(page.url).query) == {'q': ['Kartoffelgratin']}
     listing.click()
     expect(rows).to_have_count(1)
-    rows.get_by_role('link', name='Kartoffelgratin mit Gemüse', exact=True).click()
+    rows.get_by_role('link', name='Kartoffelgratin mit Gemüse vom 31.08.2026 bearbeiten', exact=True).click()
     expect(page.locator('input[name="title"]')).to_have_value('Kartoffelgratin mit Gemüse')
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+@pytest.mark.parametrize('role', ['Cafeteria.Admin', 'Cafeteria.Editor', 'Cafeteria.Publisher'])
+@pytest.mark.parametrize('javascript', [False, True])
+def test_menu_text_names_keep_active_and_archived_keyboard_targets(
+    admin_app, admin_engine, browser, live_server, family, profile, role, javascript,
+):
+    client, _ = _login(admin_app, admin_engine, [role])
+    _save(admin_engine, _scope(client, admin_engine, profile), title='Menü D3')
+    cookie = client.get_cookie('session')
+    assert cookie is not None
+    destination = f'/admin/{family}/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
+    with browser.new_context(base_url=live_server, java_script_enabled=javascript) as context:
+        context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        for state, verb in [('draft', 'bearbeiten'), ('archived', 'öffnen')]:
+            if state == 'archived':
+                with admin_engine.begin() as connection:
+                    connection.execute(text("UPDATE cafeteria.menu_weeks SET workflow_state='archived'"))
+            for view in ('list', 'cards'):
+                response = page.goto(f'/admin/{family}/menues')
+                assert response.status == 200
+                if view == 'cards':
+                    if javascript:
+                        page.get_by_role('tab', name='Karten', exact=True).click()
+                    else:
+                        page.get_by_role('navigation', name='Menüansicht ohne JavaScript').get_by_role('link', name='Karten', exact=True).click()
+                region = page.locator(f'#menu-{view}')
+                expect(region.get_by_role('link', name='Menü D3', exact=True)).to_have_count(0)
+                expect(region.locator('.admin-list-primary')).to_have_text('Menü D3')
+                action = region.get_by_role('link', name=f'Menü D3 vom 31.08.2026 {verb}', exact=True)
+                expect(action).to_have_attribute('href', destination)
+                expect(action).to_have_text('')
+                action.focus()
+                page.keyboard.press('Shift+Tab')
+                page.keyboard.press('Tab')
+                expect(action).to_be_focused()
+                action.press('Enter')
+                page.wait_for_url(live_server + destination)
+                expect(page.locator('input[name="title"]')).to_have_value('Menü D3')
 
 
 def test_p4_density_and_form_contract_against_base(live_branding, database_engine, browser, tmp_path):
