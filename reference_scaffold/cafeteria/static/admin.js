@@ -793,7 +793,7 @@
         });
     });
 
-    // Sticky save bar: leave the flow while a virtual keyboard shrinks the visual viewport,
+    // Sticky save bar: return to the flow while a virtual keyboard shrinks the visual viewport,
     // and keep focused controls clear of the bar.
     document.querySelectorAll('form[data-menu-editor] [data-sticky], [data-sticky-form], .admin-form-footer[data-sticky]').forEach(stickyBar => {
         const form = stickyBar.dataset.stickyForm
@@ -810,20 +810,44 @@
         if (viewport) viewport.addEventListener('resize', syncSticky);
         window.addEventListener('resize', syncSticky);
         syncSticky();
-        document.addEventListener('focusin', (e) => {
-            if (!form.contains(e.target) || stickyBar.contains(e.target)) return;
-            window.requestAnimationFrame(() => {
-                if (getComputedStyle(stickyBar).position !== 'sticky') return;
-                const bar = stickyBar.getBoundingClientRect();
-                const field = e.target.getBoundingClientRect();
-                if (stickyBar.dataset.stickyEdge === 'top') {
-                    if (bar.top <= 0 && field.top < bar.bottom) {
-                        window.scrollBy(0, field.top - bar.bottom - 8);
-                    }
-                } else if (bar.top < window.innerHeight && field.bottom > bar.top) {
-                    window.scrollBy(0, field.bottom - bar.top + 8);
+        let pointerId = null;
+        let releaseFrame = 0;
+        const revealFocus = () => {
+            const active = document.activeElement;
+            if (pointerId !== null || !form.contains(active) || stickyBar.contains(active)
+                || getComputedStyle(stickyBar).position !== 'sticky') return;
+            const bar = stickyBar.getBoundingClientRect();
+            const field = active.getBoundingClientRect();
+            if (stickyBar.dataset.stickyEdge === 'top') {
+                if (bar.top <= 0 && field.top < bar.bottom) {
+                    window.scrollBy(0, field.top - bar.bottom - 8);
                 }
+            } else if (bar.top < window.innerHeight && field.bottom > bar.top) {
+                window.scrollBy(0, field.bottom - bar.top + 8);
+            }
+        };
+        // Native focus changes between pointerdown and click must not move the target.
+        document.addEventListener('pointerdown', (e) => {
+            if (!e.isPrimary || e.button !== 0) return;
+            window.cancelAnimationFrame(releaseFrame);
+            pointerId = e.pointerId;
+            stickyBar.dataset.stickyPointerPosition = getComputedStyle(stickyBar).position;
+        }, true);
+        const releasePointer = (e) => {
+            if (pointerId === null || (e && e.pointerId !== pointerId)) return;
+            window.cancelAnimationFrame(releaseFrame);
+            // Keep the mode through the native click, including touch compatibility events.
+            releaseFrame = window.requestAnimationFrame(() => {
+                pointerId = null;
+                delete stickyBar.dataset.stickyPointerPosition;
+                revealFocus();
             });
+        };
+        window.addEventListener('pointerup', releasePointer, true);
+        window.addEventListener('pointercancel', releasePointer, true);
+        window.addEventListener('blur', () => releasePointer());
+        document.addEventListener('focusin', () => {
+            window.requestAnimationFrame(revealFocus);
         });
     });
 
