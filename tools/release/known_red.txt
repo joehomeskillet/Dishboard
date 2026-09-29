@@ -66,13 +66,6 @@ tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[144
 tests/test_recipe_pdf_http.py::test_v2_native_revision_scaling_and_pdf_paint[390-False]
 # 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 Browsertests - Ursache noch nicht klassifiziert.
 tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromium_200_percent_zoom
-# 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Tab nach «Zum Wochenplan» landet nicht auf #menu-query-search - Ursache noch nicht klassifiziert.
-tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[True-cafeteria-staff_guest]
-tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[True-patienten-patient]
-tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[False-cafeteria-staff_guest]
-tests/test_ui_reference_list_browser.py::test_reference_states_and_viewports[False-patienten-patient]
-# 2026-09-26 R16: test_list_typography_across_modules bleibt rot, weil fremde Modul-Selektoren (Benutzer, API-Schlüssel) nicht mehr treffen. Rezepte und Kochbücher in diesem Test sind angepasst.
-tests/test_ui_list_typography_browser.py::test_list_typography_across_modules
 
 # 2026-09-27 R18-R1 Zusatzgate, T: Grund: erwartet details:has(#new-week-date); 62888f0c ersetzte details durch Collapse, a191cea9 setzt div#new-week-form.collapse. Wochen-Selektormigration ausserhalb der drei R1-Dateien offen; Template/Test seit R1-Basis efb20258 unverändert.
 tests/test_admin_tabler_browser.py::test_tabler_lists_preserve_navigation_and_tablet_layout[cafeteria]
