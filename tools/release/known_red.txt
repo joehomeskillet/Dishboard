@@ -8,20 +8,8 @@
 # (git log -S '<assertierter Text>'). Meldet das Gate «BEKANNT ROT, JETZT GRÜN», die Zeile löschen.
 # Gesperrte Abnahmetests (*_accept.py) stehen nie hier: Wenn sie rot sind, ist das Produkt falsch.
 
-# 2026-09-29 V3-4 klassifiziert (audit/V3-4-known-red-classification.md): VERALTETER TEST, kein Produktfehler. Quelle/Ziel ins Statusband seit 561bdd58, Copy-Button im Seitenkopf seit 815d7bd7, Importbereich im Statusband seit 14a24e86, API-Icon-Submit/Zeilenmenü seit 03e3ed5b/12f9c5d3/45d12e76. Testnachzug offen (Paket V3-4 P2).
-tests/test_ui_korrektur_tools_browser.py::test_tool_pages_put_primary_content_before_administration
+# 2026-09-29 V3-4 P2 (17d43d1c) Testnachzug integriert; 12 IDs grün im Zug 18:07. Verbleibend: Produktbefund P2-PROD-01 (API-Tooltip 14 px Seitenüberlauf, UI-21) - Fix in Paket D22.
 tests/test_ui_korrektur_tools_browser.py::test_api_density_viewports_and_publication_truth
-tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[True-1440]
-tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[False-1440]
-tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[True-390]
-tests/test_ui_korrektur_tools_browser.py::test_api_density_native_lifecycle_and_error_retention[False-390]
-tests/test_ui_korrektur_tools_browser.py::test_tool_pages_fit_required_viewports_and_capture_evidence
-tests/test_ui_korrektur_tools_browser.py::test_owned_import_copy_review_fit_density_viewports
-tests/test_ui_korrektur_tools_browser.py::test_import_checked_result_is_not_relabeled_after_new_selection
-tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[False-320-844]
-tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[False-2560-1440]
-tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[True-320-844]
-tests/test_ui_korrektur_tools_browser.py::test_import_density_missing_viewports[True-2560-1440]
 # 2026-09-29 V3-4 klassifiziert: VERALTETER TEST. h1 «Zutaten» und Aktionstexte im Untertitel seit 5d452529 (2026-09-23), Speichern-Beschriftung. Testnachzug offen (Paket V3-4 P3).
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[1440-1100-True]
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[1440-900-True]
@@ -32,5 +20,3 @@ tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_p
 tests/test_master_data_prepared_browser.py::test_original_storage_and_prepared_pin_are_visible_after_location_change[390-False]
 # 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 200-%-Zoom. V3-4: seither nur ein grüner Lauf (r18b-0927 d-8) - bleibt bis zur zweiten Bestätigung.
 tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromium_200_percent_zoom
-# 2026-09-29 sporadischer Testfehler (Wettlauf: Speichern-Button instabil/detached während noch laufender Navigation, danach Navigations-Timeout); rot in Zügen 14:07, 15:07 und 17:07 (Kandidat ohne Fix). Fix R11 65c6ece4 integriert (15/15 isoliert grün) - Zeile erst nach «BEKANNT ROT, JETZT GRÜN» in einem Zug streichen.
-tests/test_course_browser.py::test_native_course_add_edit_preserves_neighbor_slots[False-390-844-patienten-patient-LUNCH]
