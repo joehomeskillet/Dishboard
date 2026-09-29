@@ -70,7 +70,7 @@ def _confirm_mutation(page, button, message, action, cas, activate, read_state, 
     page.screenshot(path=str(tmp_path / f'{action}-{activate}-cancelled.png'), full_page=True)
     page.remove_listener('dialog', dismiss)
     page.on('dialog', accept)
-    target = form.evaluate('form => form.action')
+    target = form.evaluate('form => new URL(form.getAttribute("action"), document.baseURI).href')
     with page.expect_navigation(wait_until='load'), page.expect_response(
         lambda response: response.request.method == 'POST' and response.url == target,
     ) as result:
@@ -110,7 +110,7 @@ def test_delete_manual_item_requires_submitter_confirmation(
             assert connection.execute(text(
                 'SELECT count(*) FROM cafeteria.shopping_list_manual_items WHERE public_id=CAST(:id AS uuid)',
             ), {'id': item_id}).scalar_one() == 0
-        expect(page.locator('form.shopping-item-form')).to_have_count(0)
+        expect(form).to_have_count(0)
 
 
 @pytest.mark.parametrize('activate', ['click', 'enter'])

@@ -227,6 +227,15 @@
     const forms = document.querySelectorAll('form:not([data-dirty-tracking="off"])');
     let isDirty = false;
 
+    // Confirm before dirty-state clearing and the document's loading listener.
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', event => {
+            if (event.defaultPrevented) return;
+            const confirmation = event.submitter?.getAttribute('data-confirm') || form.getAttribute('data-confirm');
+            if (confirmation && !window.confirm(confirmation)) event.preventDefault();
+        });
+    });
+
     forms.forEach(form => {
         form.addEventListener('input', () => {
             if (!isDirty) {
@@ -241,11 +250,6 @@
             }
         });
         form.addEventListener('submit', (e) => {
-            const confirmation = form.getAttribute('data-confirm');
-            if (confirmation && !window.confirm(confirmation)) {
-                e.preventDefault();
-                return;
-            }
             if (!e.defaultPrevented) {
                 isDirty = false;
             }
