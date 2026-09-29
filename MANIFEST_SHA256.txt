@@ -452,7 +452,7 @@ c3c1c638d61eb644cc3d684022a30f6ce81232bfcc0d933d7a89e5809525f02a  docs/design/20
 c6cfcc0b057ef70d1b4c824384110c42cc11988e34ce55df46888afaf9c2da2c  docs/design/2026-09-07-rec-r1-contract-addendum.md
 7fa4a272a56b5b6c8cd1259344582d8fdb865b4b26aa45ec5837629c1b2ddd92  docs/design/2026-09-08-authentication-access-history.md
 329fb91389a57b2ae8385d36c6fe5d77f1d02e0b113e4bd2d66e71881a0c2645  docs/design/2026-09-08-native-pdf-layout-contract.md
-f83ab972a3a288b8cffcfb81d55f215f30c17ae904726dcb041c6c20dd03ead3  docs/design/2026-09-09-unified-ui-design-system.md
+f3c6f04dd09c5109f834e843288875336c71666b354f4dc3fbf42f449c4188ef  docs/design/2026-09-09-unified-ui-design-system.md
 63a324123ff4fb7c700b0d3b8d7e204fa361146b56edb6b6e84535088458e42b  docs/design/2026-09-11-admin-shell-navigation-spec.md
 a8ae5e0a496b7d2126b4eeaf368810cc2a892a890b7d7f4c6bfc8ed8facf9fda  docs/design/2026-09-12-api-key-policy.md
 f08c79d654f9fc73edb5b884247f0fb7423b4d2247a09f2465a3c6fcc1bedbfe  docs/design/2026-09-12-correction-wave-delivery.md
@@ -642,7 +642,7 @@ fb9bb367915a4c9d933f67727997c411fa2dc45d4b794001a7eda3425d35cbb3  docs/superpowe
 d1cd6cea051f85fbe97683a5e55743aa3ccee22e2cc1ab2bbf0e37c76555b2b4  docs/superpowers/specs/2026-09-02-dishboard-admin-redesign-design.md
 36e5592ac293490e1455de9601ff00c7cf958f44dfbfe14aff8f586dc6304717  docs/superpowers/specs/2026-09-05-dishboard-api-mcp-fhir-design.md
 55840fa7ffd684696de1350774f022bf6332de4b2add545e51e9c58867229ea2  docs/superpowers/ui003-delivery-0906.md
-618dc2774eb2f1a619606dbe1ed4c1ec5eb25cf0c65da42f403dfddd8427c7f8  docs/ui-consistency-inventory.md
+bc7e09189981735611ed4cae3c137820e8b6ac1ffef10ac6051069e5c24ac94a  docs/ui-consistency-inventory.md
 f8d10484847ac84c7e90949084194e6ee03d716d4221f457909cb1fc4280b57f  docs/ui-semantic-audit.md
 4f520503970deb613e3ce0d359305a4ac946283c02e982c6f1524536c5f928e9  entra/app-roles-manifest.json
 189293e103f3c239a293eacab021513ec6bf09dad79ea39747c3aa4a7ef65dfd  entra/configure-entra-app.ps1
