@@ -135,8 +135,12 @@ def test_tool_pages_put_primary_content_before_administration(site) -> None:  # 
 
         target = (WEEK + dt.timedelta(days=7)).isoformat()
         _goto(page, f'/admin/cafeteria/copy?week={target}')
-        expect(page.locator('#copy-description')).to_contain_text('Quelle:')
-        expect(page.locator('#copy-description')).to_contain_text('Ziel:')
+        for label, date in (('Quellwoche', WEEK), ('Zielwoche', dt.date.fromisoformat(target))):
+            status = page.locator('.admin-statusbar-item').filter(
+                has=page.get_by_text(label, exact=True)
+            )
+            expect(status).to_be_visible()
+            expect(status.locator('dd')).to_contain_text(date.strftime('%d.%m.%Y'))
         expect(page.locator('#copy-effects')).to_contain_text(
             'Wochenkopf, Ausgabeangaben und Menüs werden aus der Quellwoche übernommen.'
         )
@@ -146,7 +150,7 @@ def test_tool_pages_put_primary_content_before_administration(site) -> None:  # 
         _assert_no_duplicate_primary_action(page)
 
         _goto(page, f'/admin/cafeteria/wochen/pruefung?week={WEEK.isoformat()}')
-        expect(page.get_by_role('heading', name='Wochenkopf und Ausgabeangaben prüfen')).to_be_visible()
+        expect(page.get_by_role('heading', name='Wochenangaben prüfen', exact=True)).to_be_visible()
         status_box = page.locator('main .alert').first
         assert page.evaluate('''() => Boolean(
           document.querySelector('main .alert')
@@ -201,22 +205,47 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                 assert page.locator('[data-key-state="active"] button').count() == 1
                 assert page.locator('[data-key-state="expired"] button, [data-key-state="revoked"] button').count() == 0
                 expect(page.locator('[data-api-help], [data-api-versions]')).to_have_count(2)
+                technical = page.locator('[data-api-technical]')
+                summary = technical.locator(':scope > summary')
+                expect(technical).not_to_have_attribute('open', '')
                 for selector in ('[data-api-help]', '[data-api-versions]'):
-                    details = page.locator(selector)
-                    expect(details).not_to_have_attribute('open', '')
-                    summary = details.locator('summary')
-                    summary.focus()
-                    page.keyboard.press('Enter')
-                    expect(details).to_have_attribute('open', '')
-                    _assert_full_width(page, width)
+                    expect(page.locator(selector)).not_to_be_visible()
+                summary.focus()
+                expect(summary).to_be_focused()
+                page.keyboard.press('Enter')
+                expect(technical).to_have_attribute('open', '')
+                for selector in ('[data-api-help]', '[data-api-versions]'):
+                    expect(page.locator(f'section{selector}')).to_be_visible()
+                expect(page.locator('[data-api-status]')).to_be_visible()
+                _assert_full_width(page, width)
+                _assert_rendered_icons(page)
+                minimum = page.evaluate(
+                    "matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36"
+                )
+                box = summary.bounding_box()
+                assert box and box['height'] >= minimum and box['width'] >= minimum
+                summary.press('Enter')
+                expect(technical).not_to_have_attribute('open', '')
+                for selector in ('[data-api-help]', '[data-api-versions]'):
+                    expect(page.locator(selector)).not_to_be_visible()
+                for state in ('active', 'expired', 'revoked'):
+                    menu = page.locator(f'[data-key-state="{state}"] .ui-sem-actions')
+                    more = menu.locator(':scope > summary')
+                    expect(menu).not_to_have_attribute('open', '')
+                    more.press('Enter')
+                    expect(menu).to_have_attribute('open', '')
+                    expect(menu.locator('.admin-api-key-details > summary')).to_be_visible()
                     _assert_rendered_icons(page)
-                    assert summary.bounding_box()['height'] >= 48
-                    page.keyboard.press('Enter')
-                    expect(details).not_to_have_attribute('open', '')
+                    box = more.bounding_box()
+                    assert box and box['height'] >= minimum and box['width'] >= minimum
+                    more.press('Enter')
+                    expect(menu).not_to_have_attribute('open', '')
                 assert 'dbk_' not in ' '.join(page.locator('main summary').all_text_contents())
                 key_details = page.locator('[data-key-state="active"] .admin-api-key-details')
+                page.locator('[data-key-state="active"] .ui-sem-actions > summary').click()
                 key_details.locator('summary').click()
                 expect(key_details).to_have_attribute('open', '')
+                _assert_rendered_icons(page)
                 prefix_mask = _api_prefix_mask_locators(page)
                 expect(prefix_mask).to_have_count(1)
                 page.evaluate('if (document.activeElement && document.activeElement.blur) { document.activeElement.blur(); }')
@@ -225,12 +254,18 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                     height: document.documentElement.scrollHeight,
                     firstContentY: document.querySelector('[data-api-keys]').getBoundingClientRect().y,
                     publicationY: document.querySelector('[data-api-status]').getBoundingClientRect().y,
-                    documentOverflow: document.documentElement.scrollWidth - innerWidth
+                    documentOverflow: document.documentElement.scrollWidth - innerWidth,
+                    overflowNodes: [...document.querySelectorAll('body *')]
+                        .filter(node => node.checkVisibility())
+                        .map(node => ({tag: node.tagName, className: String(node.className),
+                            right: node.getBoundingClientRect().right}))
+                        .filter(node => node.right > innerWidth + 1).slice(0, 12)
                 })''')
-                assert geometry['documentOverflow'] <= 1, (width, javascript, geometry)
                 measurements.append({'width': width, 'javascript': javascript, **geometry})
+                (API_EVIDENCE / 'geometry.json').write_text(json.dumps(measurements, indent=2))
                 page.screenshot(path=str(API_EVIDENCE / f'keys-{width}-js-{javascript}.png'),
                                 full_page=True, mask=[prefix_mask])
+                assert geometry['documentOverflow'] <= 1, (width, javascript, geometry)
             finally:
                 page.context.close()
     (API_EVIDENCE / 'geometry.json').write_text(json.dumps(measurements, indent=2))
@@ -250,7 +285,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         form = page.locator('#api-key-create')
         summary.focus()
         page.keyboard.press('Enter')
-        page.get_by_role('button', name='Schlüssel erstellen').click()
+        form.get_by_role('button', name='Anlegen', exact=True).click()
         expect(page.locator('#api-key-label')).to_be_focused()
         page.get_by_label('Bezeichnung', exact=True).fill('Synthetischer Browserzugang')
         page.locator('#api-key-channel-cafeteria').check()
@@ -261,7 +296,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         summary.click()
         assert bool(original == form.evaluate('form => [...new FormData(form)]'))
         with page.expect_response(lambda response: response.request.method == 'POST') as rejected:
-            page.get_by_role('button', name='Schlüssel erstellen').click()
+            form.get_by_role('button', name='Anlegen', exact=True).click()
         assert rejected.value.status == 400  # No scope selected: existing server validation.
         expect(form.get_by_role('alert')).to_be_visible()
         if javascript:
@@ -274,7 +309,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         expect(summary).to_contain_text('Fehler')
         summary.click()
         page.locator('#api-key-scope-preview').check()
-        page.get_by_role('button', name='Schlüssel erstellen').click()
+        form.get_by_role('button', name='Anlegen', exact=True).click()
         expect(page.locator('[data-new-key]')).to_be_visible()
         assert 'dbk_' not in ' '.join(page.locator('main summary').all_text_contents())
         if width == 390:
@@ -297,19 +332,47 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         row = page.locator('[data-key-state="active"]')
         expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('preview.read')
         expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('Cafeteria, Patienten')
-        details = row.locator('details')
+        row.locator('.ui-sem-actions > summary').click()
+        details = row.locator('.admin-api-key-details')
         expect(details.locator('summary')).to_have_attribute(
-            'aria-label', 'Details zu Synthetischer Browserzugang'
+            'aria-label', 'Synthetischer Browserzugang: Details ein- oder ausklappen'
         )
         details.locator('summary').click()
         expect(details).to_contain_text('Zuletzt verwendet')
+        expect(details.locator('dl')).to_be_visible()
+        _assert_rendered_icons(page)
         _assert_full_width(page, width)
         if javascript:
+            details.locator('summary').press('Escape')
+            expect(page.get_by_role('tooltip')).not_to_be_visible()
+        row.locator('.ui-sem-actions > summary').press('Enter')
+        revoke = row.locator('form[action$="/revoke"]')
+        trigger = revoke.locator('summary')
+        confirm = revoke.get_by_role(
+            'button', name='Schlüssel Synthetischer Browserzugang widerrufen', exact=True
+        )
+        posts = []
+        page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
+        trigger.click()
+        expect(confirm).to_be_visible()
+        expect(revoke.locator('.ui-sem-consequence')).to_have_text(
+            'Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.'
+        )
+        trigger.click()
+        expect(confirm).not_to_be_visible()
+        expect(row).to_be_visible()
+        assert posts == []
+        trigger.click()
+        if javascript:
             page.once('dialog', lambda dialog: dialog.dismiss())
-            row.get_by_role('button', name='Widerrufen').click()
+            confirm.click()
             expect(row).to_be_visible()
+            assert posts == []
             page.once('dialog', lambda dialog: dialog.accept())
-        row.get_by_role('button', name='Widerrufen').click()
+        with page.expect_response(lambda response: response.request.method == 'POST') as revoked:
+            confirm.click()
+        assert revoked.value.status == 303
+        assert len(posts) == 1
         expect(page.locator('[data-key-state="revoked"]')).to_be_visible()
         expect(page.locator('[data-key-state="revoked"] button')).to_have_count(0)
     finally:
@@ -363,7 +426,7 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
         ('schnittstellen', '/admin/api', '#api-keys-title'),
         ('import-leer', '/admin/import-preview', '#csv-upload button.btn-primary'),
         ('vorwoche-kopieren', f'/admin/cafeteria/copy?week={target}',
-         'form.admin-copy-actions button.btn-primary'),
+         'button.btn-primary[form="week-copy-form"]'),
         ('wochenpruefung-offen', f'/admin/cafeteria/wochen/pruefung?week={WEEK.isoformat()}',
          'main .alert'),
     )
@@ -409,7 +472,8 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
 
 
 def _assert_rendered_icons(page: Page) -> None:
-    icons = page.locator('main svg.icon')
+    # Closed disclosures are checked by callers after opening their controls.
+    icons = page.locator('main svg.icon:visible')
     assert icons.count() > 0
     missing = icons.evaluate_all('''icons => icons.flatMap(icon => {
       const box = icon.getBBox();
@@ -428,7 +492,7 @@ def test_owned_import_copy_review_fit_density_viewports(site) -> None:  # noqa: 
     routes = (
         ('import-leer', '/admin/import-preview', '#csv-upload button.btn-primary'),
         ('vorwoche-kopieren', f'/admin/cafeteria/copy?week={target}',
-         'form.admin-copy-actions button.btn-primary'),
+         'button.btn-primary[form="week-copy-form"]'),
         ('wochenpruefung-offen', f'/admin/cafeteria/wochen/pruefung?week={WEEK.isoformat()}',
          'main .alert'),
     )
@@ -462,7 +526,10 @@ def test_import_checked_result_is_not_relabeled_after_new_selection(site) -> Non
         profile = result.get_attribute('data-checked-profile')
         assert week == '2026-08-31'
         assert profile == 'staff_guest'
-        expect(result).to_contain_text('Cafeteria')
+        status = page.locator('.admin-statusbar')
+        expect(status).to_contain_text('Cafeteria')
+        expect(status).to_contain_text('KW 36')
+        expect(status).to_contain_text('31.08.2026')
         expect(result).not_to_contain_text('andere-datei.csv')
         page.locator('#file').set_input_files({
             'name': 'andere-datei.csv',
@@ -471,6 +538,10 @@ def test_import_checked_result_is_not_relabeled_after_new_selection(site) -> Non
         })
         assert page.locator('[data-checked-identity]').inner_text() == identity
         assert result.get_attribute('data-checked-week') == week
+        assert result.get_attribute('data-checked-profile') == profile
+        expect(status).to_contain_text('Cafeteria')
+        expect(status).to_contain_text('KW 36')
+        expect(status).to_contain_text('31.08.2026')
         assert 'andere-datei.csv' not in result.inner_text()
         expect(page.get_by_role('heading', name='Bereit zum Import', exact=True)).to_be_visible()
         assert page.locator('input[name="import_token"]').input_value()
@@ -588,11 +659,20 @@ def test_import_density_missing_viewports(site, width, height, javascript) -> No
             button.focus()
             expect(button).to_be_focused()
             if name == 'review':
-                expect(page.locator('.admin-compact-row')).to_have_count(5)
-                expect(page.locator('main')).to_contain_text('Kein Ausgabehinweis')
+                expect(page.get_by_role('list', name='Ausgabeangaben').get_by_role('listitem')).to_have_count(5)
+                expect(page.locator('#week-service-normal')).to_contain_text(
+                    'Normalzustand: geöffnet, kein Ausgabehinweis.'
+                )
+                expect(page.locator('#week-service-normal')).to_contain_text(
+                    'Alle gespeicherten Angaben entsprechen diesem Normalzustand.'
+                )
             if name == 'copy':
-                expect(page.locator('#copy-description')).to_contain_text('Quelle:')
-                expect(page.locator('#copy-description')).to_contain_text('Ziel:')
+                for label, date in (('Quellwoche', WEEK), ('Zielwoche', dt.date.fromisoformat(target))):
+                    status = page.locator('.admin-statusbar-item').filter(
+                        has=page.get_by_text(label, exact=True)
+                    )
+                    expect(status).to_be_visible()
+                    expect(status.locator('dd')).to_contain_text(date.strftime('%d.%m.%Y'))
         page.locator('#file').set_input_files(ROOT / 'csv/menu_cafeteria_example.csv')
         page.get_by_role('button', name='Vorschau prüfen', exact=True).click()
         expect(page.get_by_role('heading', name='Bereit zum Import', exact=True)).to_be_visible()
