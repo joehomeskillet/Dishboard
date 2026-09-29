@@ -112,7 +112,8 @@ def test_direct_actions_across_wp3_surfaces(
     _, actor = _login(screen_app, database_engine, ['Cafeteria.Admin'])
     prepared = _prepare_inventory_entities(screen_app, database_engine, actor)
     client, _ = _login(screen_app, database_engine, [role])
-    cookie = client.get_cookie('session')
+    cookie = client.get_cookie(screen_app.config['SESSION_COOKIE_NAME'])
+    assert cookie is not None
     routes = {
         'rezepte': '/admin/rezepte', 'kochbuecher': '/admin/kochbuecher',
         'api': '/admin/api', 'components': '/admin/cafeteria/komponenten',
@@ -134,7 +135,7 @@ def test_direct_actions_across_wp3_surfaces(
             with browser.new_context(base_url=screen_server, java_script_enabled=javascript,
                                      has_touch=width == 390, reduced_motion='reduce',
                                      viewport={'width': width, 'height': 844 if width == 390 else 900}) as context:
-                context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': screen_server}])
+                context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
                 page = context.new_page()
                 posts = []
                 page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
