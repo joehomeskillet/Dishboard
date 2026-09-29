@@ -147,6 +147,12 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             expect(page.locator('.tab-content > .tab-pane').first).to_have_attribute('id', 'menu-list')
             first_row = page.locator('[data-menu-list-id]').first
             expect(first_row).to_be_visible()
+            expect(page.locator('#menu-list a.admin-list-primary, #menu-list .admin-list-primary a')).to_have_count(0)
+            expect(first_row.locator('span.admin-list-primary')).to_be_visible()
+            edit = first_row.locator('[data-semantic="actions.edit"]')
+            expect(edit).to_have_attribute('href', re.compile(rf'^/admin/{family}/menu\?week='))
+            expect(edit).to_have_accessible_name(re.compile(
+                re.escape(first_row.locator('span.admin-list-primary').inner_text()) + r' vom \d{2}\.\d{2}\.\d{4} bearbeiten$'))
             box = first_row.bounding_box()
             assert box is not None
             if height >= 768:
@@ -167,6 +173,8 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
 
             # Kartoffelgratin has open review badge AND missing allergens warning directly on card
             gratin_card = page.locator('#menu-cards [data-menu-id]').filter(has_text='Kartoffelgratin')
+            expect(gratin_card.locator('a.admin-list-primary, .admin-list-primary a')).to_have_count(0)
+            expect(gratin_card.locator('h2.admin-list-primary')).to_have_text('Kartoffelgratin mit Gemüse')
             expect(gratin_card.locator('[data-review="open"]')).to_contain_text('Prüfung offen')
             expect(gratin_card).to_contain_text('Allergenangaben nicht erfasst')
             expect(gratin_card.locator('[data-review="open"] .admin-list-secondary')).to_be_visible()
@@ -217,10 +225,15 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
         page.goto(f'{origin}/admin/{family}/menues')
         expect(page.locator('#menu-list')).to_be_visible()
         expect(page.locator('#menu-cards')).to_be_visible()
-        # Open action link has correct href
+        # Text names remain inert; the edit icon retains native No-JS navigation.
+        expect(page.locator('#menu-list a.admin-list-primary, #menu-list .admin-list-primary a')).to_have_count(0)
         link = page.locator('#menu-list [data-semantic="actions.edit"]').first
         dest = link.get_attribute('href')
         assert f'/admin/{family}/menu?week=' in dest
+        link.focus()
+        expect(link).to_be_focused()
+        link.press('Enter')
+        page.wait_for_url(origin + dest)
 
 
 @pytest.mark.parametrize('family', ['patienten', 'cafeteria'])
