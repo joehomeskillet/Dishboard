@@ -366,7 +366,13 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                 expect(page.locator('#shopping-delete-hint')).to_have_count(1)
                 delete = page.locator('.shopping-manual [data-semantic="actions.delete"]')
                 expect(delete).to_have_count(1)
-                expect(delete).to_have_attribute('aria-describedby', 'shopping-delete-hint')
+                descriptions = delete.get_attribute('aria-describedby').split()
+                assert 'shopping-delete-hint' in descriptions
+                consequence_ids = [value for value in descriptions if value.startswith('ui-action-description-')]
+                assert len(consequence_ids) == 1
+                consequence = page.locator('#' + consequence_ids[0])
+                assert consequence.inner_text().strip()
+                assert 'visually-hidden' in consequence.get_attribute('class').split()
                 expect(delete).to_have_attribute('data-confirm', 'Diese Position löschen?')
                 assert 'btn-danger' in (delete.get_attribute('class') or '').split()
                 delete_name = (delete.get_attribute('aria-label') or '').lower()

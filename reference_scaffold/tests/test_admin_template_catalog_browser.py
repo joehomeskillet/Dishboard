@@ -118,8 +118,8 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     assert response.text.count('<h3 class="admin-list-primary text-break mb-0">Aktiver Herbst</h3>') == 2
     assert response.text.count('<p class="admin-list-secondary print-tpl-meta mb-0">Version 2</p>') == 2
     assert response.text.count('Neuer Entwurf: Winter &amp; Festtage · Version 3') == 2
-    # Heading plus edit/overflow name and tooltip in both weekly catalogs.
-    assert response.text.count('Festliche Kopie') == 10
+    # Heading, named action group and edit name/tooltip in both weekly catalogs.
+    assert response.text.count('Festliche Kopie') == 8
     links = MainLinks(response.text).links
     assert '/admin/gerichtvorlagen' in links
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
