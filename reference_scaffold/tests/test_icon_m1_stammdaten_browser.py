@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -72,12 +73,17 @@ def test_stammdaten_icon_actions_names_and_list_states(admin_app, admin_engine, 
                             expect(page.locator('.admin-statusbar')).to_have_count(0)
                             expect(page.locator('#f-status')).to_have_value('active')
                             expect(page.locator('.component-status')).to_have_count(0)
-                            name = page.locator('.component-row-name a').first
-                            if name.count():
-                                name.focus()
-                                expect(name).to_be_focused()
-                                target = name.get_attribute('href')
-                                name.press('Enter')
+                            expect(page.locator('.component-row-name a')).to_have_count(0)
+                            row = page.locator('.component-row').first
+                            if row.count():
+                                name = row.locator('.component-row-name > .admin-list-primary').inner_text()
+                                edit = row.locator('[data-semantic="actions.edit"]')
+                                expect(edit).to_have_accessible_name(f'{name} bearbeiten')
+                                target = f'{path}/{row.get_attribute("data-public-id")}'
+                                expect(edit).to_have_attribute('href', target)
+                                edit.focus()
+                                expect(edit).to_be_focused()
+                                edit.press('Enter')
                                 page.wait_for_url('**' + target)
                                 expect(page.locator('#component-form')).to_be_visible()
                                 save = page.locator('#component-form [data-semantic="actions.save"]')
@@ -89,6 +95,19 @@ def test_stammdaten_icon_actions_names_and_list_states(admin_app, admin_engine, 
                             expect(page.locator('.grundlagen-filter [data-semantic="view.filter"]')).to_have_count(1)
                             expect(page.locator('.grundlagen-filter')).to_contain_text('Aktiv')
                             expect(page.locator('.grundlagen-list .admin-list-status .admin-label')).to_have_count(0)
+                            expect(page.locator('.grundlagen-list a.admin-list-primary, '
+                                                '.grundlagen-list .admin-list-primary a')).to_have_count(0)
+                            row = page.locator('.grundlagen-list .admin-list-row').first
+                            if row.count():
+                                name = row.locator('span.admin-list-primary').inner_text()
+                                edit = row.locator('[data-semantic="actions.edit"]')
+                                expect(edit).to_have_accessible_name(f'{name} bearbeiten')
+                                expect(edit).to_have_attribute('href', re.compile(r'^/admin/grundlagen/[^/]+/[^/#?]+$'))
+                                target = edit.get_attribute('href')
+                                edit.focus()
+                                expect(edit).to_be_focused()
+                                edit.press('Enter')
+                                page.wait_for_url('**' + target)
                             page.goto(path + '&archived=1')
                             for row in page.locator('.grundlagen-list .admin-list-row').all():
                                 expect(row.locator('.admin-list-status .admin-label')).to_be_visible()

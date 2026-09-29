@@ -146,8 +146,15 @@ def _open_editor(page: Page, family: str) -> None:
         form.get_by_role('button', name='Anlegen', exact=True).click()
         page.wait_for_url(f'**{list_path}/*')
     else:
-        page.locator('.component-row-name a').first.click()
-        page.wait_for_load_state()
+        row = page.locator('.component-row').first
+        expect(row.locator('.component-row-name a')).to_have_count(0)
+        edit = row.locator('[data-semantic="actions.edit"]')
+        name = row.locator('.component-row-name > .admin-list-primary').inner_text()
+        expect(edit).to_have_accessible_name(f'{name} bearbeiten')
+        target = f'{list_path}/{row.get_attribute("data-public-id")}'
+        expect(edit).to_have_attribute('href', target)
+        edit.click()
+        page.wait_for_url('**' + target)
 
 
 @pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
@@ -170,7 +177,12 @@ def test_list_first_row_visible_without_scroll(catalog_page: Page, family: str) 
     expect(page.locator('#f-status')).to_have_value('active')
     expect(first_row.locator('.admin-table-status .admin-label.admin-status--active')).to_have_count(0)
     expect(first_row.locator('.category .admin-label.admin-status--category')).to_be_visible()
-    expect(first_row.locator('.component-row-name a')).to_have_attribute('href', re.compile(r'/komponenten/[^/]+$'))
+    expect(first_row.locator('.component-row-name a')).to_have_count(0)
+    edit = first_row.locator('[data-semantic="actions.edit"]')
+    expect(edit).to_have_attribute('href', re.compile(r'/komponenten/[^/]+$'))
+    expect(edit).to_have_attribute('href', f'{list_path}/{first_row.get_attribute("data-public-id")}')
+    name = first_row.locator('.component-row-name > .admin-list-primary').inner_text()
+    expect(edit).to_have_accessible_name(f'{name} bearbeiten')
     expect(first_row.locator('.admin-row-actions')).to_have_count(1)
     expect(first_row.locator('[data-semantic="actions.edit"]')).to_be_visible()
     expect(first_row.locator('[data-semantic="actions.more"]')).to_be_visible()
@@ -452,8 +464,12 @@ def test_p3_polish_components_primary_stack_hint(catalog_page: Page) -> None:  #
     assert row.evaluate("e => getComputedStyle(e).display") == 'grid'
     expect(row.locator('[data-label="Kategorie"]')).to_be_visible()
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-    page.locator('.component-row-name a').first.click()
-    page.wait_for_load_state()
+    expect(row.locator('.component-row-name a')).to_have_count(0)
+    edit = row.locator('[data-semantic="actions.edit"]')
+    target = f'/admin/cafeteria/komponenten/{row.get_attribute("data-public-id")}'
+    expect(edit).to_have_attribute('href', target)
+    edit.click()
+    page.wait_for_url('**' + target)
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
     food_hint = page.locator('summary[aria-describedby="c-food-extra-hint"]')
     page.locator('#component-options > summary').click()
