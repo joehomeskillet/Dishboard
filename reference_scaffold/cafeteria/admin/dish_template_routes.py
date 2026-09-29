@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import re
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 from typing import Literal, cast
@@ -83,11 +84,27 @@ def _page(
     *, row=None, values=None, error: str | None = None, status: int = 200, include_archived: bool = False,
     cas: datetime | None = None, search: str | None = None, offset: int | None = None,
 ) -> Response:
+    template_search = request.args.get('q', '')
+    raw_page = request.args.get('page', '1')
+    if (len(template_search) > 200 or '\x00' in template_search
+            or not re.fullmatch(r'[1-9][0-9]{0,5}', raw_page)
+            or any(len(request.args.getlist(key)) > 1 for key in ('q', 'page', 'archived'))):
+        abort(400)
+    page = int(raw_page)
+    list_args = {'q': template_search or None,
+                 'archived': '1' if request.args.get('archived') == '1' else None}
+    listing = request.endpoint == 'admin.dish_templates_list'
     location = get_location(_db())
     values = values if values is not None else _fields()
     template_rows = links.list_template_links(
         _db(), include_archived=include_archived or row is not None,
+        search=template_search if listing else '',
+        limit=links.PAGE_SIZE + 1 if listing else None,
+        offset=(page - 1) * links.PAGE_SIZE if listing else 0,
     )
+    has_next = listing and len(template_rows) > links.PAGE_SIZE
+    if listing:
+        template_rows = template_rows[:links.PAGE_SIZE]
     cas_value = ''
     if row:
         cas_value = (request.form.get('updated_at', '') if request.method == 'POST'
@@ -109,6 +126,10 @@ def _page(
         row=row, values=values, error=error, can_write=_can_write(),
         location_id=location, scopes=SCOPES, types=TYPES, recipe_choices=choices,
         include_archived=include_archived, cas_value=cas_value,
+        template_search=template_search, page=page, has_next=has_next,
+        list_args={**list_args, 'page': page if page > 1 else None},
+        prev_url=url_for('admin.dish_templates_list', **list_args, page=page - 1),
+        next_url=url_for('admin.dish_templates_list', **list_args, page=page + 1),
         accompaniment_error=(
             'Bitte eine gültige Beilage wählen.'
             if values.get('accompaniment_default') not in ACCOMPANIMENTS else ''

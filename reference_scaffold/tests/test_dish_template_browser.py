@@ -6,10 +6,11 @@ import os
 import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from playwright.sync_api import expect
+from sqlalchemy import text
 
 from cafeteria.branding_config import contrast
 from test_dish_template_routes import COLUMNS, create, fields, make_recipe, snapshot
@@ -26,6 +27,103 @@ EVIDENCE = Path(os.environ.get(
 ))
 ROUTE_VIEWPORTS = ((360, 800), (390, 844), (1440, 900))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080), (2560, 1440))
+
+
+@pytest.mark.parametrize('width', [390, 1440])
+@pytest.mark.parametrize('javascript', [False, True])
+def test_template_title_search_enter_archive_reset_and_return(
+    b3, master_server, browser, width, javascript,  # noqa: F811
+):
+    _, owner, client, _ = b3
+    create(client, title='Rote Linsensuppe')
+    archived = create(client, title='LINSENSUPPE archiviert')
+    create(client, title='Kartoffelgratin', description='Linsensuppe')
+    data = fields(client, archived)
+    data['action'] = 'archive'
+    assert client.post(archived, data=data).status_code == 303
+    before = snapshot(owner)
+    base, cookie = master_server
+    with browser.new_context(viewport={'width': width, 'height': 900},
+                             java_script_enabled=javascript) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        _open(page, base)
+        search = page.locator('input[name="q"]')
+        search.fill('LiNsEn')
+        search.press('Enter')
+        expect(search).to_have_value('LiNsEn')
+        expect(page.locator('tbody tr')).to_have_count(1)
+        expect(page.get_by_role('link', name='Rote Linsensuppe', exact=True)).to_be_visible()
+        expect(page.get_by_role('link', name='Kartoffelgratin', exact=True)).to_have_count(0)
+        page.locator('details.admin-filter-more > summary').click()
+        page.get_by_label('Archivierte einschliessen', exact=True).check()
+        search.press('Enter')
+        expect(page.locator('tbody tr')).to_have_count(2)
+        expect(page.get_by_label('Archivierte einschliessen', exact=True)).to_be_checked()
+        expect(search).to_have_value('LiNsEn')
+        page.get_by_role('link', name='LINSENSUPPE archiviert', exact=True).click()
+        page.get_by_role('link', name='Zur Vorlagenliste', exact=True).click()
+        expect(search).to_have_value('LiNsEn')
+        expect(page.get_by_label('Archivierte einschliessen', exact=True)).to_be_checked()
+        page.locator('form [data-semantic="view.reset"]').click()
+        expect(search).to_have_value('')
+        expect(page.get_by_label('Archivierte einschliessen', exact=True)).not_to_be_checked()
+        expect(page.locator('tbody tr')).to_have_count(2)
+        search.fill('Keine solche Vorlage')
+        search.press('Enter')
+        expect(page.locator('[data-empty-kind="no_match"]')).to_be_visible()
+        expect(page.locator('tbody tr')).to_have_count(0)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        EVIDENCE.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(EVIDENCE / f'd4-no-match-{width}-js-{javascript}.png'), full_page=True)
+        page.locator('[data-empty-kind="no_match"] [data-semantic="view.reset"]').click()
+        expect(page.locator('tbody tr')).to_have_count(2)
+        _open(page, base, '/admin/gerichtvorlagen?archived=1')
+        page.locator('form [data-semantic="view.reset"]').click()
+        expect(page.locator('tbody tr')).to_have_count(2)
+        assert urlsplit(page.url).query == ''
+    assert snapshot(owner) == before
+
+
+@pytest.mark.parametrize('javascript', [False, True])
+def test_template_title_search_pagination_and_literal_sql_characters(
+    b3, master_server, browser, javascript,  # noqa: F811
+):
+    _, owner, client, _ = b3
+    with owner.begin() as connection:
+        connection.execute(text('INSERT INTO cafeteria.dish_templates(title,active) VALUES(:title,:active)'),
+                           [{'title': f'Suppe {number:03}', 'active': number != 50} for number in range(52)]
+                           + [{'title': "Suppe 100%_' OR 1=1 --", 'active': True}])
+    before = snapshot(owner)
+    base, cookie = master_server
+    with browser.new_context(java_script_enabled=javascript) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
+        page = context.new_page()
+        _open(page, base, '/admin/gerichtvorlagen?q=sUPPe&archived=1')
+        expect(page.locator('tbody tr')).to_have_count(50)
+        page.get_by_role('navigation', name='Gerichtvorlagenseiten').get_by_role('link', name='Weiter').click()
+        assert parse_qs(urlsplit(page.url).query) == {'q': ['sUPPe'], 'archived': ['1'], 'page': ['2']}
+        expect(page.locator('tbody tr')).to_have_count(3)
+        expect(page.get_by_role('link', name='Suppe 050', exact=True)).to_be_visible()
+        page.get_by_role('link', name='Suppe 050', exact=True).click()
+        page.get_by_role('link', name='Zur Vorlagenliste', exact=True).click()
+        assert parse_qs(urlsplit(page.url).query)['page'] == ['2']
+        page.get_by_role('navigation', name='Gerichtvorlagenseiten').get_by_role('link', name='Zurück').click()
+        expect(page.locator('tbody tr')).to_have_count(50)
+        search = page.locator('input[name="q"]')
+        for value in ["' OR 1=1 --", '%', '_']:
+            search.fill(value)
+            search.press('Enter')
+            expect(page.locator('tbody tr')).to_have_count(1)
+            expect(page.get_by_role('link', name="Suppe 100%_' OR 1=1 --", exact=True)).to_be_visible()
+            expect(search).to_have_value(value)
+        search.fill('x' * 200)
+        search.press('Enter')
+        expect(page.locator('[data-empty-kind="no_match"]')).to_be_visible()
+        expect(search).to_have_attribute('maxlength', '200')
+    for query in [{'q': 'x' * 201}, {'q': '\x00'}, {'page': '0'}, {'page': '1000000'}]:
+        assert client.get('/admin/gerichtvorlagen', query_string=query).status_code == 400
+    assert snapshot(owner) == before
 
 
 @pytest.mark.parametrize('width', [360, 390, 1440])
