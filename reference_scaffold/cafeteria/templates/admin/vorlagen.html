@@ -73,7 +73,7 @@
                       {'key': 'actions.preview', 'href': url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=catalog.active.id), 'aria_label': 'Aktive Version als PDF prüfen', 'text': 'PDF'}
                     ] %}
                     {% endif %}
-                    <div class="admin-list-actions">{{ row_actions(row.items) }}</div>
+                    <div class="admin-list-actions">{{ row_actions(row.items, object=latest.name) }}</div>
                   {% endif %}
                 </li>
                 {% endfor %}
@@ -127,7 +127,7 @@
             {% if item.id == recipe_catalog.document.active_template and active_template is not none and active_revision is not none and latest.id != active_revision.id %}
             {% set row.items = row.items + [{'key': 'actions.open', 'href': url_for('admin.recipe_print_template_editor', template=active_template.id, revision=active_revision.id), 'aria_label': 'Aktive Vorlage öffnen'}] %}
             {% endif %}
-            <div class="admin-list-actions">{{ row_actions(row.items) }}</div>
+            <div class="admin-list-actions">{{ row_actions(row.items, object=latest.name) }}</div>
           {% endif %}
         </li>
         {% endfor %}
@@ -161,7 +161,7 @@
       <div class="print-screen-row admin-list-row" role="listitem">
         <span class="admin-list-primary admin-list-name">{{ area_names[choice.profile] }} · {{ choice.name }}</span>
         <div>{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_label('Nicht aktiv', 'neutral') }}{% endif %}</div>
-        <div class="admin-list-actions">{{ row_actions(row.items) }}</div>
+        <div class="admin-list-actions">{{ row_actions(row.items, object=area_names[choice.profile] ~ ' · ' ~ choice.name) }}</div>
       </div>
       {% endfor %}
       {% endfor %}

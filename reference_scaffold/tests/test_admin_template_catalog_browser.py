@@ -118,7 +118,8 @@ def test_catalog_revision_links_render_real_saved_pdfs_without_mutation(editor_a
     assert response.text.count('<h3 class="admin-list-primary text-break mb-0">Aktiver Herbst</h3>') == 2
     assert response.text.count('<p class="admin-list-secondary print-tpl-meta mb-0">Version 2</p>') == 2
     assert response.text.count('Neuer Entwurf: Winter &amp; Festtage · Version 3') == 2
-    assert response.text.count('Festliche Kopie') == 6
+    # Heading plus edit/overflow name and tooltip in both weekly catalogs.
+    assert response.text.count('Festliche Kopie') == 10
     links = MainLinks(response.text).links
     assert '/admin/gerichtvorlagen' in links
     assert {link for link in MainLinks(response.text).links if link.startswith('/admin/vorlagen/screens/')} == SCREEN_TARGETS
@@ -288,9 +289,11 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
                     check_keyboard_link(link)
                 menus = section.locator('.admin-list-actions .admin-row-actions > .ui-sem-actions')
                 expect(menus).to_have_count(2)
-                for menu in menus.all():
+                for menu, template_name in zip(
+                    menus.all(), ('Winter & Festtage', 'Festliche Kopie'), strict=True,
+                ):
                     summary = menu.locator(':scope > summary')
-                    expect(summary).to_have_accessible_name('Weitere Aktionen')
+                    expect(summary).to_have_accessible_name(f'Weitere Aktionen für {template_name}')
                     expect(summary).to_have_text('')
                     summary.focus()
                     summary.press('Enter')

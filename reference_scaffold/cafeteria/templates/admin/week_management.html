@@ -91,7 +91,7 @@
                   {% set week_actions = [] %}
                   {% if can_preview %}{% set _ = week_actions.append({'key': 'actions.preview', 'href': url_for('admin.preview', family=family, week=row.week_start.isoformat()), 'object': week_object}) %}{% endif %}
                   {% if can_write and row.next_week %}{% set _ = week_actions.append({'key': 'actions.copy', 'href': url_for('admin.copy_get', family=family, week=row.next_week.isoformat()), 'object': week_object}) %}{% endif %}
-                  {{ row_actions(week_actions) }}
+                  {{ row_actions(week_actions, object=week_object) }}
                 </td>
               </tr>
               {% endfor %}
