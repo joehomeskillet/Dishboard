@@ -12,6 +12,8 @@ in den Quellen erhalten. `<family>` steht für `cafeteria` oder `patienten`.
 
 ### Migrierte Ansichten (Route, Muster, tatsächliche Tests)
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](design/2026-09-29-direct-symbol-actions-sdd.md)):** D17s datensatzbezogene Überlaufnamen und „Hauptaktion plus Überlauf“ in den folgenden Zeilen sind als Standard abgelöst. Alle verfügbaren Aktionen erscheinen direkt. Historische Routen-, Rollen-, Muster- und Testnachweise bleiben erhalten und belegen keine neue Direktaktionsabnahme.
+
 | Ansicht / Route | Muster, Rolle und Zustand | Tatsächliche Tests / Quelle |
 |---|---|---|
 | Bausteine: `/admin/<family>/komponenten` | DEC-2/D3: Namen als Text; Editor-Einstieg über Bearbeiten-Icon, archivierte Einträge über Öffnen. Beide Profile, vorhandene Rollen, JS/No-JS. | `tests/test_component_catalog_browser.py`, `tests/test_icon_pilot_density_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
@@ -119,6 +121,8 @@ kein Touch-/NoJS-/Zoom- oder globaler UI19-Abnahmeanspruch, kein Commit/Deploy.
 
 ## Lokalisierte primäre Rezeptaktionen — 2026-09-28, 14:47 CEST
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](design/2026-09-29-direct-symbol-actions-sdd.md)):** Die folgenden Mehr-Menütexte beschreiben einen historischen Restpunkt. Generische Aktionsmenüs sind als Standard abgelöst; direkte Befehle benötigen weiterhin lokalisierte Namen und Tooltips.
+
 Die Rezeptliste übergibt den Rezepttitel nun mit dem vorhandenen object-
 Vertrag an Bearbeiten/Öffnen. Zwei hart codierte deutsche Namensüberschreibungen
 entfallen; Rollen-/Aktivbedingungen, Icons und native Ziel-URLs bleiben gleich.
@@ -218,6 +222,8 @@ Keine Änderung an Backend, Datenbank oder Berechtigungen. Kein neuer Commit
 oder Deploy; der14:07-Stundenzug war mangels neuer Commits erneut NOOP.
 
 ## Herkunftsaktionen und Tooltip-Lebenszyklus — 2026-09-28, 14:03 CEST
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](design/2026-09-29-direct-symbol-actions-sdd.md)):** Löschen im geöffneten Überlaufmenü ist als Standard abgelöst. Der direkte Löschzugang behält Folgehinweis und sicheren Bestätigungsschritt; historische Testergebnisse bleiben unverändert.
 
 Der Menüeditor zeigt pro Herkunftszeile nur die gemeinsame Mehr-Aktion.
 Löschen samt Folgehinweis steht im geöffneten nativen Überlaufmenü (§5.4).
@@ -1034,6 +1040,8 @@ Wochen-Selektoren erwarten das in `62888f0c` entfernte `<details>` statt Collaps
 erfasst. Keine offenen Produktfehler aus R1; keine Deploy-/Releasefreigabe.
 
 ## Release 18 Gruppe V: Bildschirmzeilen und Aktionsmenüs (2026-09-27)
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](design/2026-09-29-direct-symbol-actions-sdd.md)):** Die hier dokumentierten Aktionsmenüs sind als Standard abgelöst. Historische Release- und Testbelege bleiben erhalten; verfügbare Bildschirmaktionen müssen direkt zugänglich sein.
 
 `/admin/screens`, Admin, veröffentlichte Pläne, JS/No-JS, 320–1440 px:
 Zeilen wachsen mit Vorschau und Inhalt; mobile Schalter bleiben anklickbar.

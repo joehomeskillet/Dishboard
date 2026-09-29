@@ -1,5 +1,7 @@
 # Listenfamilie — Vergleich der administrativen Listen
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Der folgende Messbezug auf §3.2/UI-05 (Aktionsbudget) und geschlossene Überlaufmenüs ist als Standard abgelöst. Alle verfügbaren Aktionen bleiben direkt sichtbar. Messwerte, Sichtbefunde und damalige Grenzen bleiben unverändert; sie belegen keine Direktaktionsabnahme.
+
 Gemessen 2026-09-28T00:38:16+00:00 gegen `docs/design/2026-09-26-icon-first-simplification-spec.md` (§3.2 Aktionsbudget, §4 gemeinsames Listenmuster, §5 Symbolbuttons; Abnahme UI-02, UI-03, UI-04, UI-05, UI-24).
 Fett markiert ist jeder Wert, der von der häufigsten Ausprägung dieser Messgrösse abweicht.
 Typografie wird nur zwischen vorhandenen Textrollen verglichen; fehlende Kopfzeilen zählen nicht als Abweichung. Kopf-Hintergrund, Kopf-Höhe und Linkstatus bleiben Messwerte, gehören aber nicht zur Schrift-Signatur. Abweichende Linkfarben zählen weiterhin.
@@ -116,6 +118,8 @@ als lokale Evidenz gesichert; die eingecheckten Screenshot-Baselines bleiben
 unverändert.
 
 ## Messwerte
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Messspalten zu sichtbaren Aktionen und „Überlaufmenü ohne Einträge“ beschreiben den damaligen Stand. Ein leeres Überlaufmenü bleibt unzulässig; null leere Menüs beweist jedoch keine direkte Erreichbarkeit aller Aktionen und zwei sichtbare Aktionen sind kein Höchstwert mehr.
 
 | Seite | Viewport | Messgrösse | Wert |
 |---|---|---|---|

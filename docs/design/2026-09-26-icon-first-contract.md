@@ -57,6 +57,8 @@ der tatsächlichen Kontrollziele. Abschnitt 5 benennt Zähleinheit und Grenzen.
 
 ### 2.1 Makros und Helper
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die folgenden Menü-/Erstes-Item-/Zwei-Aktionen-Befunde bleiben historische Bestandsaufnahme. Als Standard sind sie abgelöst; alle verfügbaren Befehle werden direkt gerendert.
+
 Signaturen hier sind IST, einschließlich Defaults; Änderungen folgen in Abschnitt 4.
 
 | Datei:Zeile | Signatur | Trefferzeilen | Varianten / Befund |
@@ -183,6 +185,8 @@ Datensatzdetails ausweiten. Bestehende Werte dürfen dabei nicht verloren gehen.
 
 ## 3. Icon-Semantik gegen S §6
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** `actions.more`/dots ist als normaler Aktionszugang abgelöst. Der historische Registry-Befund bleibt erhalten; keine generischen Aktionssammler rendern.
+
 147 Symbole im lokalen Sprite I:3–149. Die folgende Tabelle prüft die tatsächlich
 ausgelieferte Datei, nicht eine vermutete externe Tabler-Version. Heute liegen
 alle hier vorhandenen Registry-Icons direkt im Sprite. F:2–24 enthält nur
@@ -236,6 +240,8 @@ kein generisches „Bestätigen“ als Rückschritt.
 ## 4. Sollvertrag für WP2
 
 ### 4.1 Kompatibilität und Signaturen
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Menü-Wrapper, `menu_item` und Menütext begründen keinen generischen Aktionssammler mehr. Altadapter dürfen nur direkte Symbolgruppen ausgeben; Kontext-, Attribut-, Namens-, Zustands- und Formularverträge bleiben erhalten.
 
 Alle bisherigen Positionsparameter bleiben in gleicher Reihenfolge. Neue Parameter
 werden angehängt. „Rückwärtskompatibel“ meint Aufrufbarkeit, DOM-Hooks,
@@ -299,6 +305,8 @@ Wrapper müssen Ausnahmen explizit setzen, nicht aus Klassen oder Bildschirmbrei
 erraten. Unbekannte Enumwerte werden abgewiesen.
 
 ### 4.2 Lokalisierter Name, Escaping, Tooltip
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** „Weitere Aktionen für {object}“ ist als normaler Aktionszugang abgelöst. Historische Locale-Schlüssel dürfen bestehen; direkt gerenderte Befehle behalten eindeutige lokalisierte Namen und Tooltips.
 
 Priorität des Namens: vorhandenes explizites `aria_label` → übersetztes
 Objektmuster bei `object_name` → bestehendes `text` → `t(item.aria_key)`.
@@ -365,6 +373,8 @@ Fachaktionen sichtbaren Menütext, keinen Langdruck.
   Speichern/Löschen/Publizieren werden nicht zu GET. Serverprüfung bleibt maßgeblich.
 
 ### 4.4 Überlauf, Zeilen und Details
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Erstes-Item-plus-dots, Menü-Kurztext, Menü-Öffnen/Schliessen und Überlauf-Adapter für `more_actions`/`form_footer.rare` sind abgelöst. Alle verfügbaren Items erscheinen direkt, schmal mit sichtbarem Umbruch. Leere Gruppen entfallen; Fachdetails, Status, native Semantik, Fokus und Schutzschritte bleiben erhalten.
 
 `action_menu([])` rendert **nichts**; `row_actions([])` ebenfalls keine leere
 Aktionshülle. Nach erlaubnisgefilterter Eingabe zeigt row_actions höchstens das
@@ -436,6 +446,8 @@ Kein neues Autosubmit-System neben JS:668–672.
 ## 5. Testauswirkung
 
 ### 5.1 Zählweise und Ergebnis
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die historischen Menüeintrags- und Textausnahme-Erwartungen aus §5.1–5.4 begründen kein Aktionsmenü mehr. Zahlen und damalige Testbefunde bleiben unverändert; Direktdarstellung braucht neue Nachweise unter Erhalt aller Sicherheits-, Rollen- und Funktionsassertionen.
 
 **73 Testfunktionen mit textabhängigen Kontrollprüfungen, 215 weitere
 Testfunktionen mit Button-/Link-Namensselektoren; 2 davon in gesperrter Datei.
@@ -624,6 +636,8 @@ Konflikt an Orchestrator, niemals Accept-Datei anpassen.
   Status behält verständlichen Text gemäß S §8.
 
 ## 6. Regelkonflikte und Ersatzformulierungen
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die folgenden historischen Ersatzformulierungen mit Ein-Direktaktions-Budget, dots, Menü-Kurztext oder „kein dritter Button“ begründen keinen Aktionsüberlauf und kein Zahlenlimit mehr. Es gilt direkte Sichtbarkeit aller verfügbaren Aktionen; übrige Icon-first- und Schutzregeln bleiben gültig.
 
 Dieses WP dokumentiert Konflikte; es ändert weder Governance noch Tests.
 Alle M-Zeilen sind Fundstellen im bestehenden Manifest, inklusive wiederholter

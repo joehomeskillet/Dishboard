@@ -5,6 +5,8 @@ No module migration is implied by this inventory. Business values, rights and UR
 
 ## Polish P2b — 2026-09-24
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](design/2026-09-29-direct-symbol-actions-sdd.md)):** Der hier dokumentierte Overflow ist als generischer Aktionszugang abgelöst. Historische Registry- und Übersetzungsbefunde bleiben erhalten; alle verfügbaren Befehle erscheinen direkt.
+
 Runtime registry remains **184 customer seeds + 10 project additions = 194 keys**.
 No new key or sprite: `view.search`, `view.filter`, `admin.settings`, `actions.more`
 already cover search, filtering, settings and overflow. DE/EN short labels updated
@@ -54,6 +56,8 @@ migration, semantic status icons for legacy callers and existing action feedback
 
 ## Fundament 2 — 2026-09-23
 
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](design/2026-09-29-direct-symbol-actions-sdd.md)):** Die folgenden Shared-`list_row`-/Screens-Overflow-Verträge sind als Standard abgelöst. `actions.more` darf keine Befehle verstecken; Fachdetails, Rechte und historische Nachweise bleiben erhalten.
+
 Runtime registry at Fundament 2: **184 unchanged customer seeds + 9 project additions = 193 keys**.
 This package adds only `ui.disclosure.details` and `ui.disclosure.more_options`;
 the seven earlier project keys remain. Both use the existing `chevron-right` sprite,
@@ -80,6 +84,8 @@ and visible “Nicht ausgewählt”, while those unchanged component sources use
 `actions.add` and hide the unselected hint. This package does not change those tests.
 
 ## Shared components
+
+> **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](design/2026-09-29-direct-symbol-actions-sdd.md)):** Die historischen `more_actions`-/„Weitere Aktionen“-Inventurzeilen sind keine aktuelle Renderanweisung. Generische Aktionssammler sind abgelöst; `overflow`/„+n“ für Kennzeichnungen bleibt fachlicher Inhalt.
 
 Each row records source location and proposed semantic candidate. Matches from current labels/icons
 are candidates, not automatic substitutions: for example “Anlegen” and “Hinzufügen” depend on whether
