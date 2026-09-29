@@ -819,6 +819,7 @@ reference_scaffold/cafeteria/static/admin-week-tabler.css
 reference_scaffold/cafeteria/static/admin-wochenplan-kern.css
 reference_scaffold/cafeteria/static/admin-wochenuebersicht.css
 reference_scaffold/cafeteria/static/admin.js
+reference_scaffold/cafeteria/static/api-docs.css
 reference_scaffold/cafeteria/static/api-docs.js
 reference_scaffold/cafeteria/static/app.css
 reference_scaffold/cafeteria/static/cookbook-admin.css
@@ -1458,6 +1459,7 @@ reference_scaffold/tests/test_icon_mb2_stammdaten_browser.py
 reference_scaffold/tests/test_icon_menu_native_zoom_browser.py
 reference_scaffold/tests/test_icon_menu_unsaved_changes_browser.py
 reference_scaffold/tests/test_icon_native_summaries_browser.py
+reference_scaffold/tests/test_icon_overlap_browser.py
 reference_scaffold/tests/test_icon_pilot_density_browser.py
 reference_scaffold/tests/test_icon_pilot_filter_contracts.py
 reference_scaffold/tests/test_icon_pilot_filters_browser.py

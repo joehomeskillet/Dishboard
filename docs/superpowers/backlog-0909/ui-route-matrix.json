@@ -11239,7 +11239,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "d916844133bebb6a3ffce789f0c4464b09e00e00a26c119bdac8899a3607d6db",
+      "sha256": "f21036b6e68f2cf224e6819660394af324f9f2184772d5118616bb3a89321cdc",
       "used_by_endpoints": [
         "admin.kitchen_event_create",
         "admin.kitchen_event_edit",
@@ -11903,7 +11903,7 @@
       "kind": "page",
       "extends": [],
       "includes": [],
-      "sha256": "a78f7fb802fc961c67131ba04e71cf057d879385d45d46ca5fdc520f76b6afbe",
+      "sha256": "1e88c753b12e8f87b4c332a2f377ea15ed829772b8b12d13ede7a900d2aca978",
       "used_by_endpoints": [
         "api_docs.docs"
       ],
@@ -12365,7 +12365,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "3eb9356e1e0e0fa14bbac68e4549494ebf21d7ff73af4413647fc9f2daa5ed8c",
+      "sha256": "2689f8bde8e9867f60c8ba324b8bc4891e7059ea2a22790bee861d17e2c7cb7f",
       "used_by_endpoints": [
         "admin.shopping_list_archive",
         "admin.shopping_lists_create",
