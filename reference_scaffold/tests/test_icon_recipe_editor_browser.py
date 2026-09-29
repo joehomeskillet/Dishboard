@@ -100,8 +100,15 @@ def test_recipe_editor_icons_preserve_native_state(
             wrapper = blocked.locator('..')
             wrapper.press('Enter')
             expect(wrapper).to_be_focused()
-            description = page.locator('#' + wrapper.get_attribute('aria-describedby'))
-            assert description.inner_text().strip()
+            description_ids = (wrapper.get_attribute('aria-describedby') or '').split()
+            assert description_ids
+            descriptions = []
+            for description_id in description_ids:
+                description = page.locator('#' + description_id)
+                expect(description).to_have_count(1)
+                descriptions.append(description.inner_text().strip())
+            reason = 'Bereits an erster Position.' if 'nach oben' in name else 'Bereits an letzter Position.'
+            assert reason in descriptions
         assert not posts and snapshot(owner) == before
         page.keyboard.press('Escape')
         for section in ('ingredients', 'steps'):
