@@ -30,7 +30,7 @@
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="row_version" value="{{ component.row_version }}">
   <div class="card-header admin-compact-toolbar" data-sticky-form="component-form" data-sticky-edge="top">
-    {{ icon_button('actions.cancel', href='/admin/' ~ family ~ '/komponenten') }}
+    {{ icon_button('actions.cancel', href=g.get('component_list_return') or url_for('admin.components_get', family=family)) }}
     {{ icon_button('actions.save', object=component.name) }}
   </div>
   <div class="card-body">

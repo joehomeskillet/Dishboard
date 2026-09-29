@@ -170,7 +170,13 @@ def payload(kind: str, purpose: str, public_id: str | None, allergen_codes: set[
 
 def preparation_arguments(kind: str) -> tuple[str, int]:
     allowed = {'recipe_q', 'recipe_page'} if kind == 'zutaten' and request.method == 'GET' else set()
-    if set(request.args) - allowed or any(len(request.args.getlist(key)) != 1 for key in request.args):
+    keys = set(request.args)
+    if (allowed and request.endpoint == 'admin.master_data_detail'
+            and keys & {'from', 'kind', 'q', 'archived', 'page'}):
+        # The detail GET validates list context separately; invalid context falls back.
+        # Preparation search keeps its own strict validation, including duplicates.
+        keys &= allowed
+    if keys - allowed or any(len(request.args.getlist(key)) != 1 for key in keys):
         abort(400)
     query = request.args.get('recipe_q', '')
     if len(query) > 200 or '\x00' in query:

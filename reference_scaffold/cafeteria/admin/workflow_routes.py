@@ -986,6 +986,19 @@ def components_create(family: str):
 def component_detail(family: str, public_id: str):
     profile = profile_from_endpoint(family)
     _reject_override()
+    query = request.args.get('q', '')
+    category = request.args.get('category', '')
+    status = request.args.get('status', 'active')
+    g.component_list_return = None
+    if (request.args.getlist('from') == ['components']
+            and not set(request.args) - {'from', 'q', 'status', 'category'}
+            and all(len(request.args.getlist(key)) == 1 for key in request.args)
+            and len(query) <= 200 and '\x00' not in query
+            and status in ('active', 'archived', 'all')
+            and (not category or category in CATEGORY_LABELS)):
+        g.component_list_return = url_for(
+            'admin.components_get', family=family, q=query, status=status, category=category,
+        )
     scope = _scope(profile)
     row = _call(lambda: get_component(_db(), scope, public_id, include_archived=True))
     allergens, labels = _master_choices()

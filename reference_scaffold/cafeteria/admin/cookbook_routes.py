@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+import re
 
-from flask import abort, current_app, make_response, redirect, render_template, request, url_for
+from flask import abort, current_app, g, make_response, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response
 
 from .. import recipe_store as store
@@ -194,6 +195,19 @@ def cookbook_view(cookbook_id: str) -> Response:
 def cookbook_edit(cookbook_id: str) -> Response:
     public_id = parse_id(cookbook_id)
     if request.method == 'GET':
+        query = request.args.get('q', '')
+        page = request.args.get('page', '1')
+        archived = request.args.get('archived', '0')
+        g.cookbook_list_return = None
+        if (request.args.getlist('from') == ['cookbooks']
+                and not set(request.args) - {'from', 'q', 'archived', 'page'}
+                and all(len(request.args.getlist(key)) == 1 for key in request.args)
+                and len(query) <= 200 and '\x00' not in query
+                and archived in ('0', '1')
+                and re.fullmatch(r'[1-9][0-9]{0,5}', page) is not None):
+            g.cookbook_list_return = url_for(
+                'admin.cookbooks_list', q=query, archived=archived, page=int(page),
+            )
         return render_editor(public_id)
     try:
         expected = read_context(action='cookbook.update', target_public_id=public_id)

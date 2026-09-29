@@ -21,7 +21,7 @@
 {{ icon_button('actions.cancel', href=url_for('admin.recipe_edit', recipe_id=recipe_id), show_text=true) }}</div></form></div></div>
 {% else %}
 <div class="admin-compact-toolbar" data-sticky-form="recipe-editor" data-sticky-edge="top">
-{{ icon_button('actions.back', href=url_for('admin.recipes_list'), text='Zur Liste', aria_label='Zur Liste der Rezepte', title='Zur Liste der Rezepte', show_text=true) }}
+{{ icon_button('actions.back', href=g.get('recipe_list_return') or url_for('admin.recipes_list'), text='Zur Liste', aria_label='Zur Liste der Rezepte', title='Zur Liste der Rezepte', show_text=true) }}
 {% if recipe_id and can_write or links %}<details class="admin-compact-actions">{{ icon_summary('actions.more') }}<div class="d-flex flex-wrap gap-2 mt-2">
 {% if recipe_id and can_write %}{% if active %}{{ icon_button('actions.archive', href=url_for('admin.recipe_status', recipe_id=recipe_id), text='Archivieren', aria_label='Archivieren', title='Archivieren', show_text=true) }}{% else %}{{ icon_button('actions.activate', href=url_for('admin.recipe_status', recipe_id=recipe_id), text='Aktivieren', aria_label='Rezept aktivieren', title='Rezept aktivieren', show_text=true) }}{% endif %}{% endif %}
 {% if 'recipe_images' in links %}{{ icon_button('data.image', href=links['recipe_images'], show_text=true) }}{% endif %}

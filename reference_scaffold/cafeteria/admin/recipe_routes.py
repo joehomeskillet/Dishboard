@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 from typing import Any
 
-from flask import abort, current_app, redirect, render_template, request, url_for
+from flask import abort, current_app, g, redirect, render_template, request, url_for
 from werkzeug.datastructures import MultiDict
 
 from .. import master_data_store as masters, recipe_store as store, recipe_link_reads
@@ -203,9 +204,23 @@ def recipe_new():
 @protected
 def recipe_edit(recipe_id):
     recipe_id = _recipe_id(recipe_id)
-    _query(set())
     if request.method == 'GET':
+        query = request.args.get('q', '')
+        page = request.args.get('page', '1')
+        archived = request.args.get('archived', '0')
+        g.recipe_list_return = None
+        if (request.args.getlist('from') == ['recipes']
+                and not set(request.args) - {'from', 'q', 'archived', 'page'}
+                and all(len(request.args.getlist(key)) == 1 for key in request.args)
+                and len(query) <= 200 and '\x00' not in query
+                and archived in ('0', '1')
+                and re.fullmatch(r'[1-9][0-9]{0,5}', page) is not None
+                and int(page) <= 100000):
+            g.recipe_list_return = url_for(
+                'admin.recipes_list', q=query, archived=archived, page=int(page),
+            )
         return _get_editor(recipe_id)
+    _query(set())
     expected = forms.read_context(action='recipe.update', target_public_id=recipe_id)
     result = store.update_recipe(_engine(), expected.actor, expected.target, forms.parse_recipe_form(request.form),
                                  expected_location_id=expected.expected_location_id)

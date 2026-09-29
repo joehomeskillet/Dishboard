@@ -1,4 +1,4 @@
-"""V3-5 / UI-18: real dirty-leave, saved navigation and list-context evidence."""
+"""D20 / UI-18: validated list return, dirty-leave and saved navigation."""
 from __future__ import annotations
 
 import json
@@ -90,6 +90,7 @@ def editor_session(request, browser, tmp_path):
         return_query = {'kind': ['foods']} if kind == 'ingredient' else {}
         if kind == 'ingredient':
             filter_values['kind'] = 'foods'
+        filter_values['page'] = '1'
     cookie = client.get_cookie(app.config['SESSION_COOKIE_NAME'])
     assert cookie is not None
     collection = list_path + '?' + urlencode(filter_values)
@@ -109,9 +110,9 @@ def editor_session(request, browser, tmp_path):
         response = page.goto(collection, wait_until='networkidle')
         assert response is not None and response.status == 200
         expect(page.locator('[name="q"]')).to_have_value(TITLE)
-        page.locator(f'a[data-semantic="actions.edit"][href="{editor_path}"]').click()
+        page.locator(f'a[data-semantic="actions.edit"][href^="{editor_path}"]').click()
         page.wait_for_load_state('networkidle')
-        expect(page).to_have_url(base + editor_path)
+        assert urlsplit(page.url).path == editor_path
         field = page.locator(form_selector).locator('[name="title"], [name="name"]')
         expect(field).to_have_value(TITLE)
         pointer = 'coarse' if width == 390 else 'fine'
@@ -151,21 +152,21 @@ def _navigate(page, evidence, navigation):
         _return_control(page, evidence).click()
 
 
-def _expect_list(page, evidence, navigation):
+def _expect_list(page, evidence, navigation, *, retained=True):
     expected_query = evidence['return_query']
-    if navigation == 'history-back':
+    if retained:
         expected_query = {key: [value] for key, value in evidence['filter_values'].items()}
     destination = urljoin(evidence['editor'], evidence['list_path'])
     expect(page).to_have_url(re.compile(re.escape(destination) + r'(?:\?.*)?$'))
     page.wait_for_load_state('networkidle')
     assert parse_qs(urlsplit(page.url).query) == expected_query
-    expect(page.locator('[name="q"]')).to_have_value(TITLE if navigation == 'history-back' else '')
+    expect(page.locator('[name="q"]')).to_have_value(evidence['filter_values']['q'] if retained else '')
     if evidence['kind'] == 'component':
-        expect(page.locator('[name="status"]')).to_have_value('all' if navigation == 'history-back' else 'active')
-        expect(page.locator('#f-cat')).to_have_value('side' if navigation == 'history-back' else '')
+        expect(page.locator('[name="status"]')).to_have_value('all' if retained else 'active')
+        expect(page.locator('#f-cat')).to_have_value('side' if retained else '')
     else:
-        expect(page.locator('[name="archived"]')).to_be_checked(checked=navigation == 'history-back')
-    evidence['filter_return'] = 'retained by history' if navigation == 'history-back' else 'lost by list control'
+        expect(page.locator('[name="archived"]')).to_be_checked(checked=retained)
+    evidence['filter_return'] = f'retained by {navigation}' if retained else 'default after save'
 
 
 @pytest.mark.parametrize('navigation', ['list-control', 'history-back'])
@@ -244,7 +245,7 @@ def test_successful_save_releases_guard_without_extra_write(editor_session):
     after = _database_state(owner)
     assert after != before
     _navigate(page, evidence, 'list-control')
-    _expect_list(page, evidence, 'list-control')
+    _expect_list(page, evidence, 'list-control', retained=False)
     assert evidence['dialogs'] == []
     assert evidence['writes'] == [{'method': 'POST', 'path': post_path}]
     assert _database_state(owner) == after
@@ -253,13 +254,102 @@ def test_successful_save_releases_guard_without_extra_write(editor_session):
 
 @pytest.mark.parametrize('navigation', ['list-control', 'history-back'])
 def test_list_return_characterizes_current_filter_context(editor_session, navigation):
-    """History retains search/filters; explicit list controls currently discard them."""
+    """History and explicit list controls both retain the permitted list context."""
     page, owner, evidence = editor_session
     before = _database_state(owner)
     destination = urlsplit(_return_control(page, evidence).get_attribute('href'))
     assert destination.path == evidence['list_path']
-    assert parse_qs(destination.query) == evidence['return_query']
+    assert parse_qs(destination.query) == {key: [value] for key, value in evidence['filter_values'].items()}
     _navigate(page, evidence, navigation)
     _expect_list(page, evidence, navigation)
+    assert evidence['writes'] == []
+    assert _database_state(owner) == before
+
+
+def test_invalid_return_context_falls_back_without_writes(editor_session):
+    page, owner, evidence = editor_session
+    before = _database_state(owner)
+    marker = {'recipe': 'recipes', 'ingredient': 'foods', 'cookbook': 'cookbooks', 'component': 'components'}[evidence['kind']]
+    valid = {'from': marker, **evidence['filter_values']}
+    variants = [
+        ('missing-source', [(k, v) for k, v in valid.items() if k != 'from']),
+        ('wrong-source', list({**valid, 'from': '//example.invalid'}.items())),
+        ('long-search', list({**valid, 'q': 'x' * 201}.items())),
+        ('nul-search', list({**valid, 'q': 'x\x00y'}.items())),
+        ('free-target', [*valid.items(), ('next', 'https://example.invalid/')]),
+    ]
+    variants.extend((f'duplicate-{key}', [*valid.items(), (key, value)]) for key, value in valid.items())
+    if evidence['kind'] == 'component':
+        variants.extend((key, list({**valid, key: value}.items())) for key, value in (
+            ('category', 'invalid'), ('status', 'invalid'), ('page', '2'),
+        ))
+    else:
+        variants.extend((f'page-{value}', list({**valid, 'page': value}.items())) for value in (
+            '0', '-1', '1.5', '01', '１', '1000000', '9' * 100,
+        ))
+        variants.append(('archive', list({**valid, 'archived': 'yes'}.items())))
+        if evidence['kind'] == 'ingredient':
+            variants.append(('kind', list({**valid, 'kind': 'units'}.items())))
+    editor = urlsplit(evidence['editor']).path
+    evidence['invalid_contexts'] = []
+    for label, args in variants:
+        response = page.goto(editor + '?' + urlencode(args), wait_until='networkidle')
+        assert response is not None and response.status == 200, label
+        destination = urlsplit(_return_control(page, evidence).get_attribute('href'))
+        assert destination.path == evidence['list_path'], label
+        assert parse_qs(destination.query) == evidence['return_query'], label
+        _navigate(page, evidence, 'list-control')
+        _expect_list(page, evidence, 'list-control', retained=False)
+        evidence['invalid_contexts'].append(label)
+    assert evidence['writes'] == []
+    assert _database_state(owner) == before
+
+def test_valid_return_context_preserves_page_and_escaped_search(editor_session):
+    page, owner, evidence = editor_session
+    before = _database_state(owner)
+    marker = {'recipe': 'recipes', 'ingredient': 'foods', 'cookbook': 'cookbooks', 'component': 'components'}[evidence['kind']]
+    evidence['filter_values']['q'] = 'Kräuter & "<Zitrone>" / ? #'
+    if evidence['kind'] != 'component':
+        evidence['filter_values']['page'] = '2'
+    args = {'from': marker, **evidence['filter_values']}
+    response = page.goto(urlsplit(evidence['editor']).path + '?' + urlencode(args), wait_until='networkidle')
+    assert response is not None and response.status == 200
+    _navigate(page, evidence, 'list-control')
+    _expect_list(page, evidence, 'list-control')
+    assert evidence['writes'] == []
+    assert _database_state(owner) == before
+
+    evidence['filter_values']['q'] = 'x' * 200
+    if evidence['kind'] != 'component':
+        evidence['filter_values']['page'] = '999999' if evidence['kind'] == 'cookbook' else '100000'
+    args = {'from': marker, **evidence['filter_values']}
+    response = page.goto(urlsplit(evidence['editor']).path + '?' + urlencode(args), wait_until='networkidle')
+    assert response is not None and response.status == 200
+    _navigate(page, evidence, 'list-control')
+    _expect_list(page, evidence, 'list-control')
+    assert evidence['writes'] == []
+    assert _database_state(owner) == before
+
+
+@pytest.mark.parametrize('editor_session', [
+    ('ingredient', None, 1440, True), ('ingredient', None, 1440, False),
+], indirect=True, ids=['ingredient-js', 'ingredient-nojs'])
+def test_ingredient_recipe_search_keeps_its_validation_with_return_context(editor_session):
+    page, owner, evidence = editor_session
+    before = _database_state(owner)
+    editor = urlsplit(evidence['editor']).path
+    valid = {'from': 'foods', **evidence['filter_values'], 'recipe_q': 'Suchtest', 'recipe_page': '2'}
+    response = page.goto(editor + '?' + urlencode(valid), wait_until='networkidle')
+    assert response is not None and response.status == 200
+    destination = urlsplit(_return_control(page, evidence).get_attribute('href'))
+    assert parse_qs(destination.query) == {key: [value] for key, value in evidence['filter_values'].items()}
+    for args in (
+        list({**valid, 'recipe_page': '0'}.items()),
+        list({**valid, 'recipe_q': 'x' * 201}.items()),
+        [*valid.items(), ('recipe_page', '3')],
+        [*valid.items(), ('recipe_q', 'duplicate')],
+    ):
+        response = page.goto(editor + '?' + urlencode(args), wait_until='networkidle')
+        assert response is not None and response.status == 400
     assert evidence['writes'] == []
     assert _database_state(owner) == before

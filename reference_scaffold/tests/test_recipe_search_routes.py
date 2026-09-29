@@ -19,7 +19,7 @@ from test_recipe_store_db import line, payload, target
 def visible_ids(html):
     # recipe_ids() only matches the "Bearbeiten" link (active + can_write); archived cards
     # render just "Ansehen" (href ".../ansicht"), so this also accepts that suffix.
-    return set(re.findall(r'href="/admin/rezepte/([0-9a-f-]{36})(?:/ansicht)?"', html))
+    return set(re.findall(r'href="/admin/rezepte/([0-9a-f-]{36})(?:/ansicht)?(?:\?[^"#]*)?"', html))
 
 
 def seed_search_pages(fixture, count=53):

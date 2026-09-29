@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from functools import wraps
 from collections.abc import Callable
+import re
 from typing import Any, ParamSpec
 
-from flask import abort, current_app, flash, make_response, redirect, render_template, request, url_for
+from flask import abort, current_app, flash, g, make_response, redirect, render_template, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
@@ -216,6 +217,21 @@ def master_data_new(kind: str) -> Response:
 @protected
 def master_data_detail(kind: str, public_id: str) -> Response:
     check_kind(kind)
+    query = request.args.get('q', '')
+    page = request.args.get('page', '1')
+    archived = request.args.get('archived', '0')
+    g.food_list_return = None
+    if (kind == 'zutaten' and request.args.getlist('from') == ['foods']
+            and not set(request.args) - {'from', 'kind', 'q', 'archived', 'page', 'recipe_q', 'recipe_page'}
+            and all(len(request.args.getlist(key)) == 1 for key in request.args)
+            and request.args.get('kind', 'foods') == 'foods'
+            and len(query) <= 200 and '\x00' not in query
+            and archived in ('0', '1')
+            and re.fullmatch(r'[1-9][0-9]{0,5}', page) is not None
+            and int(page) <= 100000):
+        g.food_list_return = url_for(
+            'admin.master_data_list', kind='foods', q=query, archived=archived, page=int(page),
+        )
     forms.preparation_arguments(kind)
     return render_detail(kind, get_row(kind, public_id))
 

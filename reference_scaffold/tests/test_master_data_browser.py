@@ -6,7 +6,7 @@ import re
 import os
 import threading
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlencode, urlsplit
 
 import pytest
 from playwright.sync_api import expect
@@ -184,14 +184,16 @@ def test_master_names_are_text_with_keyboard_action_in_all_states(
                     assert primary.evaluate('el => !el.closest("a, button, [role=link], [onclick]")')
                     verb = 'öffnen' if readonly or archived else 'bearbeiten'
                     action = row.get_by_role('link', name=f'{name} {verb}', exact=True)
-                    expect(action).to_have_attribute('href', path)
+                    target = path + ('?' + urlencode({'from': 'foods', 'q': '', 'archived': '1', 'page': 1})
+                                     if kind == 'zutaten' else '')
+                    expect(action).to_have_attribute('href', target)
                     expect(action).to_have_text('')
                     if readonly:
                         expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
                     else:
                         row.locator('summary[data-semantic="actions.more"]').press('Enter')
                         status = row.get_by_role('link', name=f'{name} {"aktivieren" if archived else "archivieren"}', exact=True)
-                        expect(status).to_have_attribute('href', path + '#master-status')
+                        expect(status).to_have_attribute('href', target + '#master-status')
                         row.locator('summary[data-semantic="actions.more"]').press('Enter')
                     action.focus()
                     page.keyboard.press('Shift+Tab')
@@ -200,8 +202,8 @@ def test_master_names_are_text_with_keyboard_action_in_all_states(
                     if kind == 'zutaten':
                         page.screenshot(path=str(tmp_path / f'ingredients-{width}-js{javascript}-readonly{readonly}-archived{archived}.png'))
                     action.press('Enter')
-                    page.wait_for_url(base + path)
-                    assert page.url == base + path
+                    page.wait_for_url(base + target)
+                    assert page.url == base + target
 
 
 def test_browser_vocabulary_unit_forms_and_error_focus(b3, master_server, browser):  # noqa: F811
