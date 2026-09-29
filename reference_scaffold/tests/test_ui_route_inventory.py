@@ -584,6 +584,98 @@ def test_capture_viewports_and_dom_metrics(monkeypatch, tmp_path, browser, requi
         assert 'synthetic-private-sentinel' not in json.dumps(row)
 
 
+@pytest.mark.parametrize('pointer', [None, 'coarse'])
+def test_capture_pointer_target_sizes_and_overlaps(monkeypatch, tmp_path, browser, pointer):  # noqa: F811
+    sys.path.insert(0, str(EVIDENCE))
+    from capture import Outputs, capture_paths, context_for
+    from PIL import Image
+    from test_ui_inventory_capture import _serve
+
+    monkeypatch.delenv('UI_CAPTURE_POINTER', raising=False)
+    monkeypatch.setenv('UI_CAPTURE_VIEWPORTS', 'required')
+    if pointer:
+        monkeypatch.setenv('UI_CAPTURE_POINTER', pointer)
+    body = '''<!doctype html><html><head>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+      button, input, select, summary, a, [role=button] {
+        position:absolute; box-sizing:border-box; width:44px; height:44px;
+        margin:0; padding:0; left:0; top:0;
+      }
+      .adaptive {width:36px; height:36px; background:black; border:0; color:white}
+      @media (pointer:coarse) {.adaptive {width:44px; height:44px}}
+      </style></head><body><h1>Probe</h1>
+      <button id="narrow" aria-label="Schmal" style="top:80px;width:35px"></button>
+      <button id="short" aria-labelledby="missing label" style="top:140px;height:35px"></button>
+      <span id="label" hidden>Kurz</span>
+      <button id="fine" style="top:200px;width:36px;height:36px">Fein</button>
+      <button id="touch" style="top:260px">Touch</button>
+      <button id="adaptive" class="adaptive" style="top:320px">Adaptiv</button>
+      <label for="entry">Eingabe</label>
+      <input id="entry" style="top:380px;width:35px" value="private-value-sentinel">
+      <select id="choice" aria-label="Auswahl" style="top:440px;height:35px"><option>Text</option></select>
+      <details><summary id="summary" style="top:500px;height:35px">Details</summary></details>
+      <a id="link" href="#" style="top:560px;height:35px" title="Linktitel"><img alt="Bildname"></a>
+      <div id="parent" role="button" aria-label="Eltern" style="top:620px">
+        <button id="child" aria-label="Kind"></button></div>
+      <button id="overlap-a" style="left:100px;top:80px">A</button>
+      <button id="overlap-b" style="left:143px;top:80px">B</button>
+      <button id="edge-a" style="left:200px;top:200px">C</button>
+      <button id="edge-b" style="left:243px;top:243px">D</button>
+      <button id="hidden" hidden style="width:1px;height:1px">Hidden</button>
+      <button style="visibility:hidden;width:1px;height:1px">Invisible</button>
+      <div style="opacity:0"><button style="width:1px;height:1px">Transparent</button></div>
+      <button style="clip:rect(0px,0px,0px,0px);width:1px;height:1px">Clipped</button>
+      <button style="clip-path:inset(50%);width:1px;height:1px">Clipped path</button>
+      <div style="position:absolute;top:740px;height:10px;width:44px;overflow:auto">
+        <button style="top:20px;width:1px;height:1px">Outside scroll area</button></div>
+      <input type="hidden" value="private-hidden-sentinel">
+      <button id="long" aria-label="''' + 'Name ' * 30 + '''" style="top:680px;width:35px"></button>
+      <div style="height:1800px">Unterhalb der ersten Bildschirmhöhe</div></body></html>'''
+    server, live = _serve({'/probe': body})
+    try:
+        with context_for(browser, live, None) as context:
+            rows = capture_paths(context.new_page(), ['/probe'], out=Outputs.into(tmp_path))
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert len(rows) == 4
+    for row in rows:
+        assert row['rendered'] and row['status'] == 200
+        assert row['pointer_coarse'] is (pointer == 'coarse')
+        assert (row['max_touch_points'] > 0) is (pointer == 'coarse')
+        assert row['minimum_target_size'] == (44 if pointer else 36)
+        assert row['screenshot_full_page'] is (pointer is None)
+        with Image.open(row['screenshot']) as screenshot:
+            pixels = screenshot.convert('RGB')
+            assert sum(pixels.getpixel((x, 321)) == (0, 0, 0) for x in range(50)) == (44 if pointer else 36)
+            assert screenshot.width == row['viewport']['width']
+            if pointer:
+                assert screenshot.height == row['viewport']['height']
+        small = {target['id']: target for target in row['target_too_small']}
+        assert set(small) == {'narrow', 'short', 'entry', 'choice', 'summary', 'link', 'long'} | (
+            {'fine'} if pointer else set())
+        assert small['narrow']['width'] == 35 and small['narrow']['height'] == 44
+        assert small['short']['name'] == 'Kurz'
+        assert small['entry']['name'] == 'Eingabe'
+        assert small['choice']['name'] == 'Auswahl'
+        assert small['link']['name'] == 'Bildname'
+        assert len(small['long']['name']) == 80
+        assert [target['tag'] for target in (small['entry'], small['choice'], small['summary'], small['link'])] == [
+            'input', 'select', 'summary', 'a']
+        pairs = row['overlapping_targets']
+        assert [(pair['first']['id'], pair['second']['id'], pair['intersection_area'])
+                for pair in pairs] == [('overlap-a', 'overlap-b', 44)]
+        assert row['overflow_horizontal'] is False
+        assert 'private-value-sentinel' not in json.dumps(row)
+        assert 'private-hidden-sentinel' not in json.dumps(row)
+    audit = _write_capture_audit({'captures': rows}, tmp_path)
+    assert all(row['pointer_coarse'] is (pointer == 'coarse') for row in audit['captures'])
+    violations = json.loads((tmp_path / 'violations.json').read_text())['violations']
+    assert all(row['rules'] == ['target_too_small', 'overlapping_targets'] for row in violations)
+    assert len(violations) == 4
+
+
 def test_versioned_manifest_tracks_historical_gaps_without_current_pass(monkeypatch, tmp_path):
     application = _factory(monkeypatch, tmp_path)
     manifest = json.loads(MANIFEST_PATH.read_bytes())
@@ -629,7 +721,9 @@ def _write_capture_audit(manifest: dict, directory: Path) -> dict:
         row = {key: capture[key] for key in (
             'path', 'suffix', 'viewport', 'status', 'rendered', 'innerWidth', 'scrollWidth',
             'clientWidth', 'h1_count', 'overflow_horizontal', 'unnamed_controls',
-            'screenshot', 'screenshot_sha256')}
+            'pointer_coarse', 'max_touch_points', 'minimum_target_size',
+            'target_too_small', 'overlapping_targets',
+            'screenshot', 'screenshot_sha256', 'screenshot_full_page')}
         row['role'] = capture.get('role')
         rows.append(row)
         suffix = '' if row['suffix'] == 'reference' else row['suffix']
@@ -644,6 +738,10 @@ def _write_capture_audit(manifest: dict, directory: Path) -> dict:
             rules.append('horizontal_overflow')
         if row['unnamed_controls']:
             rules.append('unnamed_controls')
+        if row['target_too_small']:
+            rules.append('target_too_small')
+        if row['overlapping_targets']:
+            rules.append('overlapping_targets')
         if rules:
             violations.append({**row, 'rules': rules})
     missing = [{'path': path, 'suffix': suffix, 'role': role,
@@ -658,6 +756,13 @@ def _write_capture_audit(manifest: dict, directory: Path) -> dict:
     (directory / 'violations.json').write_text(
         json.dumps({'note': 'DOM findings require route/state review; h1 counts include hidden headings. '
                            'Control indexes address .ui-sem-control, button, a.btn in DOM order. '
+                           'Target indexes address a, button, input:not([type=hidden]), select, summary, '
+                           '[role=button] in DOM order; sizes and intersections are CSS-pixel DOM boxes '
+                           'clipped by ancestor overflow, legacy clip, inset(50%) and fixed viewports '
+                           'across the full page, not hit-testing, arbitrary clip-paths or iframe internals. '
+                           'Coarse screenshots show the requested viewport: Chromium full-page capture '
+                           'resets touch during rasterization; screenshot_full_page records this boundary. '
+                           'Names use ARIA references/labels, native labels, text/alt and title (80 characters). '
                            'Expected 4xx states are recorded, not automatically violations.',
                     'violations': violations, 'missing_viewports': missing,
                     'coverage_blocks': audit['coverage_blocks']}, ensure_ascii=False, indent=2) + '\n',
@@ -707,6 +812,9 @@ def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database
     if primary == set(REQUIRED):
         audit = _write_capture_audit(manifest, directory)
         assert not audit['missing_viewports'], audit['missing_viewports']
+    if os.environ.get('UI_CAPTURE_POINTER') == 'coarse':
+        assert all(row['pointer_coarse'] and row['max_touch_points'] > 0
+                   and row['minimum_target_size'] == 44 for row in manifest['captures'])
     assert MATRIX_PATH.read_bytes() == matrix_before
     assert MANIFEST_PATH.read_bytes() == ((directory / 'ui-before-manifest.json').read_bytes()
                                          if promote else manifest_before)
