@@ -8,8 +8,6 @@
 # (git log -S '<assertierter Text>'). Meldet das Gate «BEKANNT ROT, JETZT GRÜN», die Zeile löschen.
 # Gesperrte Abnahmetests (*_accept.py) stehen nie hier: Wenn sie rot sind, ist das Produkt falsch.
 
-# 2026-09-29 V3-4 P2 (17d43d1c) Testnachzug integriert; 12 IDs grün im Zug 18:07. Verbleibend: Produktbefund P2-PROD-01 (API-Tooltip 14 px Seitenüberlauf, UI-21) - Fix in Paket D22.
-tests/test_ui_korrektur_tools_browser.py::test_api_density_viewports_and_publication_truth
 # 2026-09-29 V3-4 klassifiziert: VERALTETER TEST. h1 «Zutaten» und Aktionstexte im Untertitel seit 5d452529 (2026-09-23), Speichern-Beschriftung. Testnachzug offen (Paket V3-4 P3).
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[1440-1100-True]
 tests/test_master_data_prepared_browser.py::test_native_storage_and_preparation_selection_survives_save_and_reload[1440-900-True]
