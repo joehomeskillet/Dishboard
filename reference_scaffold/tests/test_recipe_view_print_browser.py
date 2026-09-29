@@ -69,7 +69,7 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         card = page.locator('tr.recipe-row').filter(
             has=page.locator('.admin-list-primary', has_text=re.compile(r'^Suppe$')))
         edit = card.get_by_role('link', name='Suppe bearbeiten', exact=True)
-        card.locator('details.ui-sem-actions > summary').click()
+        expect(card.locator('[data-semantic="actions.more"]')).to_have_count(0)
         view = card.get_by_role('link', name='Suppe öffnen', exact=True)
         pdf = card.get_by_role('link', name='PDF öffnen · Stand 1 · Suppe', exact=True)
         expect(pdf).to_have_accessible_name('PDF öffnen · Stand 1 · Suppe')
@@ -78,12 +78,11 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         response = client.get(pdf.get_attribute('href'))
         assert response.status_code == 200 and response.data.startswith(b'%PDF-')
         assert response.headers['X-Recipe-Revision'] == revision.public_id
-        # The enhanced menu already focuses its first item after a mouse click.
-        # Establish an unfocused baseline, then enter through native keyboard focus.
-        card.locator('details.ui-sem-actions > summary').focus()
+        # Move backwards from Edit into the directly preceding native Open link.
+        edit.focus()
         idle = view.evaluate(
             "el => getComputedStyle(el).outlineStyle + '|' + getComputedStyle(el).outlineWidth + '|' + getComputedStyle(el).boxShadow")
-        page.keyboard.press('Tab')
+        page.keyboard.press('Shift+Tab')
         expect(view).to_be_focused()
         shown = view.evaluate(
             "el => getComputedStyle(el).outlineStyle + '|' + getComputedStyle(el).outlineWidth + '|' + getComputedStyle(el).boxShadow")
@@ -98,9 +97,9 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         assert page.locator('#recipe-document input, #recipe-document select, #recipe-document textarea').count() == 0
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.edit')
-        page.locator('.page-header details.ui-sem-actions > summary').click()
-        quantity = page.get_by_role('link', name='Mengen berechnen', exact=True)
-        expect(quantity).to_have_accessible_name('Mengen berechnen')
+        expect(page.locator('.page-header [data-semantic="actions.more"]')).to_have_count(0)
+        quantity = page.get_by_role('link', name='Suppe: Menge', exact=True)
+        expect(quantity).to_have_accessible_name('Suppe: Menge')
         quantity.click()
         page.get_by_label('Zielmenge · PORTION', exact=True).fill('8')
         scale = page.get_by_role('button', name='Mengen berechnen', exact=True)
@@ -312,10 +311,9 @@ def test_readable_recipe_content_and_explicit_mode(readable_recipe, recipe_edito
             expect(document.get_by_text('Originalausbeute: 4 PORTION', exact=True)).to_be_visible()
             page.keyboard.press('Enter')
             accessibility._accessible_capture(page, f'complete-{label}-{width}-js{javascript}', methods=['GET'])
-            more = page.locator('.page-header details.ui-sem-actions > summary')
-            if more.count():
-                more.click()
-            quantity = page.get_by_role('link', name='Mengen berechnen', exact=True)
+            expect(page.locator('.page-header details.ui-sem-actions')).to_have_count(0)
+            quantity = page.locator('.page-header [data-semantic="recipe.quantity"]')
+            expect(quantity).to_have_accessible_name('Mengen berechnen' if label == 'saved' else 'Gemüsesuppe · Leseprüfung: Menge')
             if javascript and label == 'saved':
                 print_action = page.get_by_role('link', name='Drucken · PDF öffnen', exact=True)
                 print_action.hover()

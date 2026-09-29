@@ -319,7 +319,8 @@ def test_save_activate_and_load_version_keep_native_requests(
         restore_button = page.locator(
             'details[data-template-versions] button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]'
         )
-        restore_button.locator("xpath=ancestor::details[1]").locator("summary").click()
+        expect(page.locator('details[data-template-versions] [data-semantic="actions.more"]')).to_have_count(0)
+        expect(restore_button).to_be_visible()
         with page.expect_request(lambda request: request.method == "POST") as sent:
             restore_button.click()
         restore = _assert_editor_target(sent.value, "patienten")

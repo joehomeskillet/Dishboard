@@ -25,7 +25,6 @@ def test_api_icon_actions_keyboard_and_confirmation(
     monkeypatch.setitem(application.config, 'UI_LOCALE', locale)
     key_label = 'Vorschau Küche' if locale == 'de' else 'Preview <Kitchen> & "A"'
     revoke_name = f'Schlüssel {key_label} widerrufen' if locale == 'de' else f'Revoke key {key_label}'
-    more_name = f'Weitere Aktionen für {key_label}' if locale == 'de' else f'More actions for {key_label}'
     details_name = (f'{key_label}: Details ein- oder ausklappen' if locale == 'de'
                     else f'Expand or collapse details: {key_label}')
     confirmation = 'Schlüssel wirklich widerrufen?' if locale == 'de' else 'Really revoke this key?'
@@ -60,7 +59,8 @@ def test_api_icon_actions_keyboard_and_confirmation(
             expect(row.locator('.admin-list-primary > *')).to_have_count(0)
             revoke = row.locator('form[action$="/revoke"]')
             trigger = revoke.locator('summary')
-            more = row.locator('.ui-sem-actions > summary')
+            expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
+            more = row.locator('.admin-api-key-details > summary')
 
             def capture(stage):
                 row.scroll_into_view_if_needed()
@@ -85,7 +85,7 @@ def test_api_icon_actions_keyboard_and_confirmation(
 
             capture('closed')
             expect(trigger).to_have_accessible_name(revoke_name)
-            expect(more).to_have_accessible_name(more_name)
+            expect(more).to_have_accessible_name(details_name)
             for control in (trigger, more):
                 expect(control).to_have_text('')
                 assert control.get_attribute('title') is None
@@ -106,13 +106,12 @@ def test_api_icon_actions_keyboard_and_confirmation(
             expect(more).to_be_focused()
             assert more.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
             if javascript:
-                tooltip = page.get_by_role('tooltip', name=more_name, exact=True)
+                tooltip = page.get_by_role('tooltip', name=details_name, exact=True)
                 expect(tooltip).to_be_visible()
                 more.press('Escape')
                 expect(tooltip).not_to_be_visible()
-            more.press('Enter')
             details = row.locator('.admin-api-key-details > summary')
-            expect(details).to_have_text('Details')
+            expect(details).to_have_text('')
             expect(details).to_have_accessible_name(details_name)
             expect(details).to_have_attribute('data-ui-tooltip', details_name)
             details.press('Enter')
@@ -120,8 +119,7 @@ def test_api_icon_actions_keyboard_and_confirmation(
             details.press('Enter')
             if javascript:
                 details.press('Escape')
-            more.press('Enter')
-            expect(row.locator('.ui-sem-actions')).not_to_have_attribute('open', '')
+            expect(row.locator('.ui-sem-actions')).to_have_count(0)
             if javascript:
                 more.press('Escape')
             trigger.press('Enter')

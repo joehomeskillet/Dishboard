@@ -15,6 +15,50 @@ from test_recipe_filter_reads import (  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
+def _assert_direct_actions(page, row, readonly, locale, javascript):
+    title = row.locator('.admin-list-primary').inner_text()
+    group = row.get_by_role('group', name=(f'Aktionen für {title}' if locale == 'de'
+                                         else f'Actions for {title}'), exact=True)
+    expect(group).to_be_visible()
+    expect(row.locator('details.ui-sem-actions, [data-semantic="actions.more"]')).to_have_count(0)
+    names = {
+        'actions.open': (f'{title} öffnen', f'Open {title}'),
+        'actions.edit': (f'{title} bearbeiten', f'Edit {title}'),
+        'actions.open_pdf': (f'PDF von {title} öffnen', f'Open PDF of {title}'),
+        'actions.history': (f'Verlauf für {title}', f'History for {title}'),
+        'actions.snapshot': (f'Stand von {title} festhalten', f'Save a revision of {title}'),
+        'actions.create_template': (f'Gerichtvorlage für {title} anlegen', f'Create dish template for {title}'),
+    }
+    keys = ['actions.open', 'actions.open_pdf', 'actions.history'] if readonly else list(names)
+    assert group.locator('[data-semantic]').evaluate_all('(els) => els.map(el => el.dataset.semantic)') == keys
+    for key in keys:
+        action = group.locator(f'[data-semantic="{key}"]')
+        name = names[key][locale == 'en']
+        expect(action).to_be_visible()
+        expect(action).to_have_text('')
+        expect(action).to_have_accessible_name(name)
+        if key == 'actions.open_pdf':
+            expect(action).to_be_disabled()
+            expect(action).to_have_accessible_description('Noch kein gespeicherter Stand vorhanden')
+            assert action.get_attribute('href') is None
+            action = group.locator('.ui-sem-disabled')
+            expect(action).to_have_accessible_name(name)
+            name += ': Noch kein gespeicherter Stand vorhanden'
+        else:
+            assert action.get_attribute('href')
+        expect(action).to_have_attribute('data-ui-tooltip', name)
+        action.focus()
+        expect(action).to_be_focused()
+        if javascript:
+            tooltip = page.get_by_role('tooltip', name=name, exact=True)
+            expect(tooltip).to_be_visible()
+            page.keyboard.press('Escape')
+            expect(tooltip).to_be_hidden()
+            expect(action).to_be_focused()
+        else:
+            expect(page.get_by_role('tooltip')).to_have_count(0)
+
+
 @pytest.mark.parametrize('width', [1440, 390])
 @pytest.mark.parametrize('javascript', [True, False])
 @pytest.mark.parametrize('readonly', [False, True])
@@ -78,25 +122,9 @@ def test_recipe_shared_filters_keep_queries_paging_and_role_actions(
         assert parse_qs(urlsplit(page.url).query) == ({key: [value] for key, value in params.items()}
                                                     | {'page': ['2']})
         row = page.locator('.recipe-row').first
-        title = row.locator('.admin-list-primary').inner_text()
-        more = row.locator('.ui-sem-actions > summary')
-        expect(more).to_have_text('')
-        expect(more).to_have_accessible_name('Weitere Aktionen für ' + title)
-        expect(more).to_have_attribute('data-ui-tooltip', 'Weitere Aktionen für ' + title)
-        more.focus()
-        expect(more).to_be_focused()
-        if javascript:
-            tooltip = page.get_by_role('tooltip', name='Weitere Aktionen für ' + title, exact=True)
-            expect(tooltip).to_be_visible()
-            page.keyboard.press('Escape')
-            expect(tooltip).to_be_hidden()
-        page.keyboard.press('Enter')
-        expect(row.locator('.ui-sem-actions')).to_have_attribute('open', '')
-        expect(row.locator('.ui-sem-action-items')).to_be_visible()
+        _assert_direct_actions(page, row, readonly, 'de', javascript)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         page.screenshot(path=str(tmp_path / f'filters-{width}-js{javascript}-readonly{readonly}.png'), full_page=True)
-        more.press('Enter')
-        expect(row.locator('.ui-sem-actions')).not_to_have_attribute('open', '')
         form.get_by_role('link', name='Zurücksetzen', exact=True).click()
         assert urlsplit(page.url).query == ''
         for name in ('text', 'q', 'ingredient', 'tag'):
@@ -110,11 +138,7 @@ def test_recipe_shared_filters_keep_queries_paging_and_role_actions(
         app.config['UI_LOCALE'] = 'en'
         assert page.goto(base + '/admin/rezepte').status == 200
         row = page.locator('.recipe-row').first
-        title = row.locator('.admin-list-primary').inner_text()
-        more = row.locator('.ui-sem-actions > summary')
-        expect(more).to_have_accessible_name('More actions for ' + title)
-        expect(more).to_have_attribute('data-ui-tooltip', 'More actions for ' + title)
-        expect(more).to_have_text('')
+        _assert_direct_actions(page, row, readonly, 'en', javascript)
         app.config['UI_LOCALE'] = 'de'
         assert not writes and not errors
     assert complete_snapshot(owner) == before

@@ -473,6 +473,17 @@
     "role": "danger"
   },
   {
+    "key": "status.archived",
+    "category": "status",
+    "ascii": "[ARCH]",
+    "icon": "archive",
+    "label_key": "status.archived.label",
+    "tooltip_key": "status.archived.tooltip",
+    "aria_key": "status.archived.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
     "key": "status.active",
     "category": "status",
     "ascii": "[ON]",

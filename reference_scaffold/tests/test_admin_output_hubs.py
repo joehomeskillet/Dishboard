@@ -95,6 +95,7 @@ def test_hubs_use_existing_read_roles_and_link_all_real_targets(hub_app, databas
         assert response.status_code == 200
         assert response.headers['Cache-Control'] == 'no-store'
         html = response.get_data(as_text=True)
+        assert 'data-semantic="actions.more"' not in html
         # The active sidebar link carries href, class and aria-current (other attributes such as the
         # collapsed-sidebar tooltip may sit in between).
         assert re.search(
@@ -300,9 +301,12 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
                         'main .print-related-grid .btn, main .screens-grid .btn, '
                         'main .page-header .btn'
                     ).all())
-                    more_options = page.locator('main details.admin-compact-details').last
-                    more_options.locator('summary').click()
-                    controls.extend(more_options.locator('.btn').all())
+                    expect(page.locator('main [data-semantic="actions.more"]')).to_have_count(0)
+                    related = page.locator('main .admin-row-actions').filter(
+                        has=page.locator('a[href="/admin/grundlagen?kind=foods"]'))
+                    expect(related).to_have_count(1)
+                    expect(related.locator('.btn')).to_have_count(2)
+                    controls.extend(related.locator('.btn').all())
                     families = ('cafeteria', 'patienten')
                     for family in families:
                         page.locator(f'[aria-controls="output-{family}"]').click()

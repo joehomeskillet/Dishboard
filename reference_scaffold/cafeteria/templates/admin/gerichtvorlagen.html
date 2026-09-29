@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, empty_state, hint, label, empty_value, disclosure_section, pagination %}
-{% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem, row_actions, action_menu %}
+{% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem, row_actions %}
 {% set workflow_nav = 'dish_templates' %}
 {% set scope_labels = {'common': 'Gemeinsam', 'patient': 'Patienten', 'staff_guest': 'Cafeteria'} %}
 {% set type_labels = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'} %}
@@ -189,7 +189,7 @@
     </div>
     <div class="admin-form-footer">
       {% if row %}
-        {{ action_menu([{'key': 'actions.archive' if row.active else 'actions.activate', 'object': row.title, 'class': 'btn-danger' if row.active else '', 'name': 'action', 'value': 'archive' if row.active else 'reactivate', 'attrs': {'data-confirm': 'Diese Vorlage archivieren?'} if row.active else {}}]) }}
+        {{ row_actions([{'key': 'actions.archive' if row.active else 'actions.activate', 'object': row.title, 'class': 'btn-danger' if row.active else '', 'name': 'action', 'value': 'archive' if row.active else 'reactivate', 'attrs': {'data-confirm': 'Diese Vorlage archivieren?'} if row.active else {}}]) }}
         {% if row.active %}<p class="ui-sem-consequence">Die Vorlage bleibt lesbar und erscheint nicht mehr in neuen Planungen.</p>{% endif %}
       {% endif %}
       <div class="admin-form-main">

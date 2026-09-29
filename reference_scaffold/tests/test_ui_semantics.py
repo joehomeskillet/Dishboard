@@ -137,7 +137,14 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; no aliases for different business actions.
     assert len(seeds) == 187
-    assert len(registry) == 218
+    assert len(registry) == 219
+    assert registry['status.archived'].category == 'status'
+    assert registry['status.archived'].resolved_icon == 'archive'
+    assert registry['status.archived'].role == 'neutral'
+    locales = load_locales()
+    for locale, expected in (('de', 'Archiviert'), ('en', 'Archived')):
+        for suffix in ('label', 'tooltip', 'aria'):
+            assert locales[locale][f'status.archived.{suffix}'] == expected
     for key, icon in {'actions.open_pdf': 'file-type-pdf',
                       'actions.snapshot': 'file-check',
                       'actions.create_template': 'circle-plus',
@@ -1092,7 +1099,7 @@ def test_p4_recipe_context_labels_survive_en_and_keep_name(semantic_app, locale,
     ('rezepte_ansicht.html', 'actions.back', 'Zur Liste', 'Zur Liste der Rezepte', 'arrow-left'),
     ('rezepte_images.html', 'actions.back', 'Zum Rezept', 'Zum Rezept', 'arrow-left'),
     ('rezepte_import.html', 'actions.back', 'Zu Rezepten', 'Zu Rezepten', 'arrow-left'),
-    ('rezepte.html', 'actions.print', 'PDF öffnen', 'PDF öffnen · Stand 1 · Suppe', 'printer'),
+    ('rezepte.html', 'actions.open_pdf', 'PDF öffnen', 'PDF öffnen · Stand 1 · Suppe', 'file-type-pdf'),
     ('rezepte.html', 'actions.history', 'Verlauf', 'Verlauf für Suppe', 'history'),
     ('rezepte_editor.html', 'actions.activate', 'Aktivieren', 'Rezept aktivieren', 'circle-check'),
 ])
@@ -1103,29 +1110,30 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
     from bs4 import BeautifulSoup
 
     source = (ROOT.parent / 'templates/admin' / template).read_text(encoding='utf-8')
-    calls = re.findall(r'\{\{\s*(icon_button\(.*?)\s*\}\}', source, re.S)
-    if (template, key) == ('rezepte.html', 'actions.print'):
-        matching = [call for call in calls if call.startswith("icon_button('actions.print',")
-                    and "t('recipe.pdf_open.label')" in call]
-    elif (template, key) == ('rezepte.html', 'actions.history'):
-        matching = [call for call in calls if call.startswith("icon_button('actions.history',")
-                    and "_anchor='recipe-freeze'" in call]
+    if template == 'rezepte.html':
+        matching = re.findall(
+            r'(\{% set actions = .*?\{\{ row_actions\(actions, object=item.payload.title\) \}\})',
+            source, re.S)
+        imports = "{% from 'ui/_semantic.html' import row_actions %}"
     else:
+        calls = re.findall(r'\{\{\s*(icon_button\(.*?)\s*\}\}', source, re.S)
         matching = [call for call in calls if call.startswith(f"icon_button('{key}',")
                     and f"text='{text}'" in call]
+        matching = ['{{ ' + call + ' }}' for call in matching]
+        imports = "{% from 'ui/_semantic.html' import icon_button %}"
     assert len(matching) == 1
     recipe = SimpleNamespace(public_id='r1', active=False, payload=SimpleNamespace(title='Suppe'))
     semantic_app.jinja_env.globals['url_for'] = lambda endpoint, **kwargs: '/target'
     with semantic_app.test_request_context():
         html = render_template_string(
-            "{% from 'ui/_semantic.html' import icon_button %}{{ " + matching[0] + ' }}',
+            imports + matching[0],
             recipe=recipe, item=recipe, recipe_id='r1', can_write=False, token='token', batch=None,
-            links=SimpleNamespace(latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
-    control = BeautifulSoup(html, 'html.parser').select_one('a, button')
-    recipe_menu = (template, key) in {
-        ('rezepte.html', 'actions.print'), ('rezepte.html', 'actions.history'),
-    }
-    visible = text if template == 'rezepte_editor.html' or recipe_menu else ''  # Spec §5.4.
+            can_create_template=False,
+            links=SimpleNamespace(templates=(), latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
+    controls = BeautifulSoup(html, 'html.parser').select(f'a[data-semantic="{key}"], button[data-semantic="{key}"]')
+    assert len(controls) == 1
+    control = controls[0]
+    visible = text if template == 'rezepte_editor.html' else ''  # Spec §5.4.
     assert (control.get_text(strip=True), control['aria-label']) == (visible, aria)
     assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
     assert control['data-ui-tooltip'] == aria

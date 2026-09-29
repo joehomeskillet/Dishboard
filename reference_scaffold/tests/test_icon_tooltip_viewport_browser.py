@@ -1,4 +1,4 @@
-"""D22: semantic tooltips stay in the viewport as right-edge disclosures expand."""
+"""D22: direct right-edge actions keep tooltips inside the viewport."""
 from __future__ import annotations
 
 import json
@@ -33,16 +33,33 @@ def test_api_tooltips_stay_inside_viewport(site, monkeypatch, tmp_path, width, c
         expect(page.locator('[data-api-help]')).to_be_visible()
         technical.press('Enter')
         for key_state in ('active', 'expired', 'revoked'):
-            menu = page.locator(f'[data-key-state="{key_state}"] .ui-sem-actions')
-            control = menu.locator(':scope > summary')
+            key_row = page.locator(f'[data-key-state="{key_state}"]')
+            label = f'Synthetischer {key_state} Testzugang'
+            group = key_row.get_by_role('group', name=f'Aktionen für {label}', exact=True)
+            expect(group).to_be_visible()
+            expect(key_row.locator('.ui-sem-actions, [data-semantic="actions.more"]')).to_have_count(0)
+            disclosure = group.locator('.admin-api-key-details')
+            control = disclosure.locator(':scope > summary')
+            name = f'{label}: Details ein- oder ausklappen'
+            expect(control).to_be_visible()
+            expect(control).to_have_text('')
+            expect(control).to_have_accessible_name(name)
+            expect(control).to_have_attribute('data-ui-tooltip', name)
+            control.focus()
+            expect(control).to_be_focused()
             control.press('Enter')
-            expect(menu.locator('.admin-api-key-details > summary')).to_be_visible()
+            expect(key_row.locator('[data-label="Präfix"]')).to_be_visible()
             control.press('Enter')
-            expect(menu).not_to_have_attribute('open', '')
+            expect(disclosure).not_to_have_attribute('open', '')
+            expect(key_row.locator('form[action$="/revoke"]')).to_have_count(int(key_state == 'active'))
         row = page.locator('[data-key-state="active"]')
-        more = row.locator('.ui-sem-actions > summary')
         details = row.locator('.admin-api-key-details')
         summary = details.locator(':scope > summary')
+        revoke = row.locator('form[action$="/revoke"] details')
+        revoke_action = revoke.locator(':scope > summary')
+        expect(revoke_action).to_be_visible()
+        expect(revoke_action).to_have_text('')
+        expect(revoke_action).to_have_accessible_name('Schlüssel Synthetischer active Testzugang widerrufen')
 
         def capture(stage):
             state = page.evaluate('''() => ({
@@ -95,12 +112,7 @@ def test_api_tooltips_stay_inside_viewport(site, monkeypatch, tmp_path, width, c
             assert tip.get_attribute('id') in control.get_attribute('aria-describedby').split()
             return tip
 
-        # Reopen after visiting the other rows, as on the tools regression route.
-        if trigger == 'hover':
-            more.click()
-        else:
-            more.press('Enter')
-        expect(row.locator('.ui-sem-actions')).to_have_attribute('open', '')
+        # Reopen the direct details action after visiting the other rows.
         if trigger == 'hover':
             summary.click()
         else:
@@ -118,11 +130,22 @@ def test_api_tooltips_stay_inside_viewport(site, monkeypatch, tmp_path, width, c
         explain(summary)
         capture('details-closed')
         page.keyboard.press('Escape')
-        more.press('Enter')
-        explain(more)
+        expect(details).not_to_have_attribute('open', '')
+        if trigger == 'focus':
+            expect(summary).to_be_focused()
+        else:
+            expect(summary).not_to_be_focused()
+        assert not summary.get_attribute('aria-describedby')
+        explain(revoke_action)
         capture('row-action')
         page.keyboard.press('Escape')
         expect(page.get_by_role('tooltip')).to_have_count(0)
+        if trigger == 'focus':
+            expect(revoke_action).to_be_focused()
+        else:
+            expect(revoke_action).not_to_be_focused()
+        expect(revoke).not_to_have_attribute('open', '')
+        assert not revoke_action.get_attribute('aria-describedby')
         assert not posts and not errors
     finally:
         page.context.close()

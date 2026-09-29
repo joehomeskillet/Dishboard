@@ -141,14 +141,14 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
             box = action.bounding_box()
             assert box and box['width'] >= 36 and box['height'] >= 36, box
         page.screenshot(path=str(tmp_path / f'recipe-list-{width}-js{javascript}.png'), full_page=True)
-        # Native disclosure grows only its own row, with and without JavaScript.
-        more = cards.first.locator('details > summary')
-        more.click()
+        # Direct actions never expand rows, with or without JavaScript.
+        more = cards.first.locator('[data-semantic="actions.open"]')
+        more.hover()
         expanded = [card.bounding_box() for card in cards.all()]
-        assert expanded[0]['height'] > boxes[0]['height']
+        assert abs(expanded[0]['height'] - boxes[0]['height']) <= 1
         assert all(abs(after['height'] - before['height']) <= 1
                    for before, after in zip(boxes[1:], expanded[1:])), {'before': boxes, 'after': expanded}
-        # Focus on the semantic summary shows its own tooltip; close natively.
+        # Focus on a direct action shows its own tooltip without changing layout.
         page.mouse.move(0, 0)
         more.focus()
         expect(more).to_be_focused()
@@ -157,34 +157,36 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
             assert tooltip_name
             expect(more).to_have_accessible_name(tooltip_name)
             expect(page.get_by_role('tooltip', name=tooltip_name, exact=True)).to_be_visible()
-        more.press('Enter')
-        expect(cards.first.locator('.ui-sem-actions')).not_to_have_attribute('open', '')
+        more.press('Escape')
+        expect(cards.first.locator('.ui-sem-actions')).to_have_count(0)
         expect(more).to_be_focused()
         for index, row in enumerate(cards.all()):
             title = row.locator('.admin-list-primary').inner_text()
             saved = title == 'Suppe'
-            summary = row.locator('.ui-sem-actions > summary')
-            expect(summary).to_have_text('')
-            summary.press('Enter')
-            entries = row.locator('.ui-sem-action-items > a[data-semantic]')
-            expect(entries).to_have_text(['Öffnen', 'PDF öffnen' if saved else 'Verlauf', 'Verlauf'])
-            names = [f'{title} öffnen', f'PDF öffnen · Stand 1 · {title}' if saved else f'Verlauf für {title}',
-                     f'Verlauf für {title}']
+            expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
+            entries = row.locator('.admin-row-actions > a[data-semantic]')
+            names = [f'{title} öffnen', f'{title} bearbeiten']
+            if saved:
+                names.append(f'PDF öffnen · Stand 1 · {title}')
+            names.append(f'Verlauf für {title}')
+            if not saved:
+                names.append(f'Stand von {title} festhalten')
+            names.append(f'Gerichtvorlage für {title} anlegen')
+            expect(entries).to_have_text([''] * len(names))
             for entry, name in zip(entries.all(), names):
                 expect(entry).to_be_visible()
                 expect(entry).to_have_accessible_name(name)
             if not saved:
-                expect(row.locator('.ui-sem-action-items > a[href$="#recipe-freeze"]')).to_have_accessible_name(
-                    f'Verlauf für {title}',
+                expect(row.locator('.admin-row-actions > a[href$="#recipe-freeze"]')).to_have_accessible_name(
+                    f'Stand von {title} festhalten',
                 )
-                expect(row.locator('.ui-sem-action-items > a[href$="/revisionen"]')).to_have_accessible_name(
+                expect(row.locator('.admin-row-actions > a[href$="/revisionen"]')).to_have_accessible_name(
                     f'Verlauf für {title}',
                 )
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             if index == 0 or saved:
                 page.evaluate('window.scrollTo(0, 0)')
                 page.screenshot(path=str(tmp_path / f'recipe-menu-{index}-{width}-js{javascript}.png'), full_page=True)
-            summary.press('Enter')
         editor = page.locator(f'main a[href="/admin/rezepte/{public_id}"]')
         expect(editor).to_have_attribute('data-semantic', 'actions.edit')
         expect(editor).to_have_attribute('aria-label', 'Suppe bearbeiten')
@@ -256,28 +258,27 @@ def test_full_registered_navigation_is_native_and_read_only(navigation, a3, reci
         page.get_by_role('link', name='Aktuellen Entwurf ansehen', exact=True).click()
         expect(page.get_by_text('Entwurf · nicht festgeschrieben', exact=True)).to_be_visible()
         page.mouse.move(0, 0)
-        summary = page.locator('.page-header .ui-sem-actions > summary')
-        expect(summary).to_have_text('')
-        summary.press('Enter')
-        entries = page.locator('.page-header .ui-sem-action-items > a[data-semantic]')
-        expect(entries).to_have_text(['Berechnen', 'Rezept-History', 'PDF öffnen'])
-        for entry, name in zip(entries.all(), ['Mengen berechnen', 'Rezept-History', 'PDF öffnen']):
+        expect(page.locator('.page-header [data-semantic="actions.more"]')).to_have_count(0)
+        entries = page.locator('.page-header .admin-row-actions > a[data-semantic]')
+        expect(entries).to_have_text(['', '', '', ''])
+        for entry, name in zip(entries.all(), ['Suppe bearbeiten', 'PDF öffnen · Stand 1 · Suppe', 'Verlauf für Suppe', 'Suppe: Menge']):
             expect(entry).to_be_visible()
             expect(entry).to_have_accessible_name(name)
         page.evaluate('window.scrollTo(0, 0)')
         page.screenshot(path=str(tmp_path / f'recipe-view-menu-{width}-js{javascript}.png'), full_page=True)
-        summary.press('Enter')
-        expect(page.locator('.page-header .ui-sem-actions')).not_to_have_attribute('open', '')
+        summary = entries.last
+        summary.focus()
+        expect(page.locator('.page-header .ui-sem-actions')).to_have_count(0)
         expect(summary).to_be_focused()
         if javascript:
             summary.press('Escape')
             expect(page.get_by_role('tooltip')).to_have_count(0)
-        page.get_by_role('link', name='Bearbeiten', exact=True).click()
+        page.get_by_role('link', name='Suppe bearbeiten', exact=True).click()
         page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
         page.get_by_role('link', name='Mengen berechnen', exact=True).click()
         active(page, 'Rezepte')
         page.get_by_role('link', name='Rezept ansehen', exact=True).click()
-        page.get_by_role('link', name='Bearbeiten', exact=True).click()
+        page.get_by_role('link', name='Suppe bearbeiten', exact=True).click()
         page.locator('.admin-compact-toolbar .admin-compact-actions > summary').click()
         page.get_by_role('link', name='Archivieren', exact=True).click()
         page.keyboard.press('Escape')

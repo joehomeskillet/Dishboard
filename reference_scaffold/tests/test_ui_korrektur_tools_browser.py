@@ -229,12 +229,13 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                 for selector in ('[data-api-help]', '[data-api-versions]'):
                     expect(page.locator(selector)).not_to_be_visible()
                 for state in ('active', 'expired', 'revoked'):
-                    menu = page.locator(f'[data-key-state="{state}"] .ui-sem-actions')
+                    expect(page.locator(f'[data-key-state="{state}"] [data-semantic="actions.more"]')).to_have_count(0)
+                    menu = page.locator(f'[data-key-state="{state}"] .admin-api-key-details')
                     more = menu.locator(':scope > summary')
                     expect(menu).not_to_have_attribute('open', '')
                     more.press('Enter')
                     expect(menu).to_have_attribute('open', '')
-                    expect(menu.locator('.admin-api-key-details > summary')).to_be_visible()
+                    expect(menu.locator('dl')).to_be_visible()
                     _assert_rendered_icons(page)
                     box = more.bounding_box()
                     assert box and box['height'] >= minimum and box['width'] >= minimum
@@ -242,7 +243,6 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                     expect(menu).not_to_have_attribute('open', '')
                 assert 'dbk_' not in ' '.join(page.locator('main summary').all_text_contents())
                 key_details = page.locator('[data-key-state="active"] .admin-api-key-details')
-                page.locator('[data-key-state="active"] .ui-sem-actions > summary').click()
                 key_details.locator('summary').click()
                 expect(key_details).to_have_attribute('open', '')
                 _assert_rendered_icons(page)
@@ -332,7 +332,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         row = page.locator('[data-key-state="active"]')
         expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('preview.read')
         expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('Cafeteria, Patienten')
-        row.locator('.ui-sem-actions > summary').click()
+        expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
         details = row.locator('.admin-api-key-details')
         expect(details.locator('summary')).to_have_attribute(
             'aria-label', 'Synthetischer Browserzugang: Details ein- oder ausklappen'
@@ -345,7 +345,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         if javascript:
             details.locator('summary').press('Escape')
             expect(page.get_by_role('tooltip')).not_to_be_visible()
-        row.locator('.ui-sem-actions > summary').press('Enter')
+        details.locator('summary').press('Enter')
         revoke = row.locator('form[action$="/revoke"]')
         trigger = revoke.locator('summary')
         confirm = revoke.get_by_role(
@@ -362,6 +362,14 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         expect(confirm).not_to_be_visible()
         expect(row).to_be_visible()
         assert posts == []
+        geometry = trigger.evaluate('''el => {
+            const b = el.getBoundingClientRect();
+            const hit = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
+            return {trigger: b.toJSON(), hit: {tag: hit?.tagName, className: hit?.className},
+                tooltips: [...document.querySelectorAll('[role="tooltip"]')].map(tip => ({
+                    box: tip.getBoundingClientRect().toJSON(), text: tip.textContent}))};
+        }''')
+        (API_EVIDENCE / f'revoke-reopen-{width}-js-{javascript}.json').write_text(json.dumps(geometry, indent=2))
         trigger.click()
         if javascript:
             page.once('dialog', lambda dialog: dialog.dismiss())

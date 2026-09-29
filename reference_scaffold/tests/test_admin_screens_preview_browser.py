@@ -21,6 +21,7 @@ from test_admin_workflow_routes import DATABASE_URL, _login, database_engine  # 
 from test_rendered_ui import browser, cafeteria_snapshot, patient_snapshot  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/card-visuals-0913'
 TARGETS = {
     '/cafeteria/heute/', '/cafeteria/wochenangebot/',
     '/patienten/heute/', '/patienten/wochenplan/',
@@ -34,7 +35,7 @@ def _capture_card_visuals(page, name: str) -> Path:
     root = Path(__file__).resolve().parents[2]
     sources = {name: hashlib.sha256((root / 'reference_scaffold/cafeteria/templates/admin' / name).read_bytes()).hexdigest()
                for name in ('screens.html', '_week_menu_card.html', 'cafeteria.html')}
-    folder = root / '.claude/evidence/card-visuals-0913' / hashlib.sha256(json.dumps(sources, sort_keys=True).encode()).hexdigest()[:12]
+    folder = EVIDENCE / hashlib.sha256(json.dumps(sources, sort_keys=True).encode()).hexdigest()[:12]
     folder.mkdir(parents=True, exist_ok=True)
     page.evaluate('document.fonts.ready')
     page.screenshot(path=str(folder / f'{name}.png'), full_page=True)

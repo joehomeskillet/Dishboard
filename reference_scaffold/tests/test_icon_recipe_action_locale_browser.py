@@ -86,7 +86,7 @@ def test_recipe_primary_action_uses_locale_and_native_target(
         assert response.status == 200
         row = page.locator('.recipe-row').filter(has=page.get_by_text(title, exact=True))
         expect(row).to_have_count(1)
-        primary = row.locator('.admin-row-actions > a')
+        primary = row.locator(f'.admin-row-actions > a[data-semantic="actions.{action}"]')
         expect(primary).to_have_count(1)
         expect(primary).to_have_attribute('href', destination)
         expect(primary).to_have_attribute('data-semantic', f'actions.{action}')
@@ -102,6 +102,9 @@ def test_recipe_primary_action_uses_locale_and_native_target(
         assert primary.get_attribute('title') is None
         assert row.locator('b').count() == 0  # Recipe metacharacters stay text, never markup.
         assert row.locator('.admin-row-actions > a[data-semantic="actions.edit"]').count() == int(editable)
+        expect(row.locator('[data-semantic="actions.open"]')).to_be_visible()
+        expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
+        expect(row.locator('[data-semantic="actions.snapshot"]')).to_have_count(int(editable))
         page.mouse.move(0, 0)
         for _ in range(60):
             page.keyboard.press('Tab')

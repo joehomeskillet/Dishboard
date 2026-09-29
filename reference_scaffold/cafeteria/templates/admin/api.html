@@ -51,9 +51,17 @@
                   {% else %}<span data-status="revoked">{{ label('Widerrufen', 'neutral', icon='lock', detail='Schlüssel widerrufen') }}</span>{% endif %}
                 </td>
                 <td data-label="Aktionen" class="admin-table-actions">
-                  <div class="admin-row-actions">
+                  <div class="admin-row-actions align-items-start" role="group" aria-label="{{ t('ui.action_group.object', object=key.label) }}">
+                    <details class="admin-compact-details admin-api-key-details">
+                      {{ icon_summary('ui.disclosure.details', object=key.label) }}
+                      <dl class="mb-0 mt-2">
+                        <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
+                        <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
+                        <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}{{ empty_value() }}{% endif %}</dd>
+                      </dl>
+                    </details>
                     {% if key.state == 'active' %}
-                    <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="d-inline" data-confirm="{{ t('api_key.revoke.confirm') }}">
+                    <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="col" data-confirm="{{ t('api_key.revoke.confirm') }}">
                       <input type="hidden" name="_csrf" value="{{ csrf }}">
                       <details class="admin-compact-details">
                         {{ icon_summary('actions.delete', aria_label=t('api_key.revoke.aria', name=key.label).unescape()) }}
@@ -62,19 +70,6 @@
                       </details>
                     </form>
                     {% endif %}
-                    <details class="ui-sem-actions">
-                      {{ icon_summary('actions.more', object=key.label) }}
-                      <div class="ui-sem-action-items">
-                        <details class="admin-compact-details admin-api-key-details">
-                          {{ icon_summary('ui.disclosure.details', object=key.label, show_text=true) }}
-                          <dl class="mb-0 mt-2">
-                            <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
-                            <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
-                            <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}{{ empty_value() }}{% endif %}</dd>
-                          </dl>
-                        </details>
-                      </div>
-                    </details>
                   </div>
                 </td>
               </tr>

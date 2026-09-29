@@ -1,15 +1,16 @@
 """MB2 keeps creation, row actions and native archive confirmation reachable."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
+import json
+import hashlib
 from playwright.sync_api import expect, sync_playwright
 
 from test_admin_ux_browser import admin_app, admin_engine, live_server  # noqa: F401
 from test_admin_workflow_routes import _login
 from test_master_data_routes import create
 from test_ui_route_inventory import _prepare_inventory_entities
+from test_admin_screens_preview_browser import screen_app, screen_server, database_engine  # noqa: F401
 
 
 @pytest.mark.parametrize('javascript', [True, False])
@@ -19,7 +20,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
     client, actor = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
     prepared = _prepare_inventory_entities(admin_app, admin_engine, actor)
     create(client, 'kategorien', name='MB2 Kategorie', code='MB2', sort_order='1')
-    evidence = Path(__file__).resolve().parents[2] / '.claude/evidence/icon-mb2-0926'
+    evidence = tmp_path
     evidence.mkdir(parents=True, exist_ok=True)
     cookie = client.get_cookie('session')
     with sync_playwright() as playwright:
@@ -42,7 +43,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     archive = row.locator('[data-semantic="actions.archive"]')
                     expect(archive).to_be_visible()
                     archive.click()
-                    page.locator('.component-secondary-actions > summary').click()
+                    expect(page.locator('.component-secondary-actions')).to_have_attribute('open', '')
                     form = page.locator('.component-secondary-actions form')
                     expect(form).to_have_attribute('method', 'post')
                     assert form.get_attribute('action').endswith('/archive')
@@ -53,7 +54,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     assert response.value.status == 303
                     page.locator('.component-secondary-actions > summary').click()
                     with page.expect_response(lambda response: response.request.method == 'POST') as response:
-                        page.locator('.component-secondary-actions [data-semantic="actions.activate"]').click()
+                        page.locator('.component-secondary-actions form [data-semantic="actions.activate"]').click()
                     assert response.value.status == 303
                     page.goto(f'/admin/{family}/komponenten')
                     page.locator('.admin-filter-more summary').click()
@@ -62,6 +63,8 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     page.locator('.page-header [data-semantic="actions.add"]').click()
                     expect(page.locator('#c-name')).to_be_visible()
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+
                     page.screenshot(path=str(tmp_path / f'{family}-{width}-{javascript}.png'), full_page=True)
                 operation_pages = {
                     'cookbooks': '/admin/kochbuecher',
@@ -74,6 +77,11 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     assert response.status == 200
                     expect(page.get_by_role('heading', level=1)).to_be_visible()
                     expect(page.locator('dl.admin-statusbar')).to_have_count(0)
+                    if name == 'cookbooks':
+                        expect(page.locator('.cookbook-list [data-semantic="actions.more"]')).to_have_count(0)
+                        for book in page.locator('.cookbook-list .admin-list-row').all():
+                            expect(book.locator('[data-semantic="actions.open"]')).to_be_visible()
+                            expect(book.locator('[data-semantic="actions.edit"]')).to_be_visible()
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                     page.screenshot(path=str(evidence / f'{name}-{width}-{javascript}.png'), full_page=True)
                 for kind in ('foods', 'units', 'categories', 'tags', 'storage_locations'):
@@ -93,3 +101,76 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                         expect(page.locator('#master-status')).to_have_attribute('method', 'post')
                         assert page.locator('#master-status [name="_form_context"]').input_value()
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+
+@pytest.mark.parametrize('role', ['Cafeteria.Admin', 'Cafeteria.Editor'])
+@pytest.mark.parametrize('width,javascript', [(1440, True), (390, False)])
+def test_direct_actions_across_wp3_surfaces(
+    screen_app, screen_server, database_engine, tmp_path, role, width, javascript,  # noqa: F811
+):
+    screen_app.config['LOCAL_AUTH_ENABLED'] = True
+    _, actor = _login(screen_app, database_engine, ['Cafeteria.Admin'])
+    prepared = _prepare_inventory_entities(screen_app, database_engine, actor)
+    client, _ = _login(screen_app, database_engine, [role])
+    cookie = client.get_cookie(screen_app.config['SESSION_COOKIE_NAME'])
+    assert cookie is not None
+    routes = {
+        'rezepte': '/admin/rezepte', 'kochbuecher': '/admin/kochbuecher',
+        'api': '/admin/api', 'components': '/admin/cafeteria/komponenten',
+        'patient-components': '/admin/patienten/komponenten',
+        'grundlagen': '/admin/grundlagen', 'screens': '/admin/screens',
+        'vorlagen': '/admin/vorlagen', 'weeks': '/admin/cafeteria/wochen',
+        'patient-weeks': '/admin/patienten/wochen', 'local_users': '/admin/benutzer',
+        **{endpoint.rsplit('.', 1)[1]: prepared['endpoint_paths'][endpoint]
+           for endpoint in (
+               'admin.recipe_view', 'admin.recipe_revisions', 'admin.component_detail',
+               'admin.dish_templates_list', 'admin.dish_template_edit',
+               'admin.shopping_lists_index', 'admin.shopping_list_detail',
+               'admin.inventory_home', 'admin.order_home',
+           )},
+    }
+    captures = []
+    with sync_playwright() as playwright:
+        with playwright.chromium.launch(args=['--no-sandbox']) as browser:
+            with browser.new_context(base_url=screen_server, java_script_enabled=javascript,
+                                     has_touch=width == 390, reduced_motion='reduce',
+                                     viewport={'width': width, 'height': 844 if width == 390 else 900}) as context:
+                context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': screen_server}])
+                page = context.new_page()
+                posts = []
+                page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
+                for name, path in routes.items():
+                    response = page.goto(path)
+                    if role == 'Cafeteria.Editor' and name in {'api', 'local_users'}:
+                        assert response.status == 403
+                        continue
+                    assert response.status == 200, (name, path, response.status)
+                    expect(page.locator('main [data-semantic="actions.more"]')).to_have_count(0)
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+                    actions = []
+                    for action in page.locator('main .admin-row-actions > .ui-sem-control:visible').all():
+                        label = action.get_attribute('aria-label')
+                        assert label, (name, action.evaluate('el => el.outerHTML'))
+                        expect(action).to_have_text('')
+                        expect(action).to_have_attribute('data-ui-tooltip', label)
+                        box = action.bounding_box()
+                        assert box['width'] >= (44 if width == 390 else 36) and box['height'] >= (44 if width == 390 else 36), (name, label, box)
+                        assert box['x'] >= 0 and box['x'] + box['width'] <= width + 1
+                        if not action.is_disabled():
+                            action.focus()
+                            expect(action).to_be_focused()
+                        href = action.get_attribute('href')
+                        if href and not href.startswith('#'):
+                            result = context.request.get(href)
+                            assert result.status == 200, (name, href, result.status)
+                        actions.append({'name': label, 'href': href, 'key': action.get_attribute('data-semantic')})
+                    page.mouse.move(0, 0)
+                    page.keyboard.press('Escape')
+                    screenshot = tmp_path / f'{name}-{role}-{width}.png'
+                    page.screenshot(path=str(screenshot), full_page=width != 390)
+                    captures.append({'surface': name, 'route': path, 'role': role,
+                                     'viewport': page.viewport_size, 'javascript': javascript, 'actions': actions,
+                                     'screenshot': screenshot.name,
+                                     'screenshot_sha256': hashlib.sha256(screenshot.read_bytes()).hexdigest()})
+                assert not posts
+    (tmp_path / 'surfaces.json').write_text(json.dumps(captures, ensure_ascii=False, indent=2))

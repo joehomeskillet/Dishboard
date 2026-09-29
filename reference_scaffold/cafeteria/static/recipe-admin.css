@@ -1,13 +1,29 @@
-/* Recipe lists use the shared admin table; opening one action menu stays in its row. */
-.dishboard-admin .recipe-list { table-layout: fixed; }
-.dishboard-admin .recipe-list thead th:nth-child(1) { width: 45%; }
-.dishboard-admin .recipe-list thead th:nth-child(2) { width: 15%; }
-.dishboard-admin .recipe-list thead th:nth-child(3) { width: 20%; }
-.dishboard-admin .recipe-list thead th:nth-child(4) { width: 20%; }
-.dishboard-admin .recipe-list .admin-row-actions { min-width: 0; align-items: flex-start; }
-.dishboard-admin .recipe-list .ui-sem-actions { min-width: 0; }
-.dishboard-admin .recipe-list .ui-sem-action-items { white-space: normal; }
-.dishboard-admin .recipe-list .ui-sem-actions > summary { display: flex; }
+/* Recipe lists use the shared responsive table and direct action geometry. */
+.recipe-list-card { container: recipe-list / inline-size; }
+/* Match the shared stacked table when the card, rather than the viewport, is narrow. */
+@container recipe-list (max-width: 767.98px) {
+  .dishboard-admin table.recipe-list,
+  .dishboard-admin .recipe-list :is(caption, tbody) { display: block; }
+  .dishboard-admin .recipe-list thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
+  }
+  .dishboard-admin .recipe-list tbody .recipe-row {
+    display: grid; grid-template-columns: minmax(0, 1fr); height: auto;
+    gap: var(--app-space-2); padding: var(--app-list-pad-y) var(--app-list-pad-x);
+    min-height: var(--app-list-row-min-height);
+    border-bottom: var(--app-list-line-width) solid var(--app-border);
+  }
+  .dishboard-admin .recipe-list tbody .recipe-row > :is(th, td) {
+    display: block; width: auto; min-width: 0; padding: 0; border: 0; white-space: normal;
+  }
+  .dishboard-admin .recipe-list tbody .recipe-row > :is(th, td):empty { display: none; }
+  .dishboard-admin .recipe-list .admin-row-actions { min-width: 0; flex-wrap: wrap; }
+  .dishboard-admin .recipe-list .admin-table-status .badge { white-space: normal; }
+  .dishboard-admin .recipe-list [data-label]::before {
+    content: attr(data-label); display: block;
+    color: var(--app-text-muted); font-weight: 600;
+  }
+}
 .dishboard-admin .admin-compact-toolbar[data-sticky-form="recipe-editor"] > a.ui-sem-control { min-height: var(--app-button-size); }
 .recipe-tag-options { display: grid; gap: var(--app-space-2); grid-template-columns: minmax(0, 1fr); }
 .recipe-image-thumb { width: calc(var(--app-space-6) * 4); height: calc(var(--app-space-6) * 4); object-fit: contain; }
