@@ -183,6 +183,17 @@
             placement: 'top', fallbackPlacements: ['bottom'],
             delay: {show: 0, hide: 150}, offset: [0, 0],
             container: link.closest('dialog') || document.body,
+            // Avoid body scroll feedback on reflow; leave room for Tabler's scrollbar gutter.
+            popperConfig: config => ({
+                ...config, strategy: 'fixed',
+                modifiers: [...config.modifiers, {
+                    name: 'preventOverflow',
+                    options: {
+                        rootBoundary: 'viewport',
+                        padding: parseFloat(getComputedStyle(link).getPropertyValue('--app-space-4')) || 0,
+                    },
+                }],
+            }),
             customClass: 'ui-sem-tooltip',
         });
     }
