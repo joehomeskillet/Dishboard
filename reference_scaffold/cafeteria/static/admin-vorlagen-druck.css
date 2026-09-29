@@ -23,7 +23,7 @@
   flex-wrap: wrap;
   overflow-x: hidden;
 }
-.output-area-tabs .nav-link { min-height: var(--app-space-12); }
+.output-area-tabs .nav-link { min-height: var(--app-space-12); margin-bottom: 0; }
 .output-print-actions,
 .output-print-actions.btn-list,
 .print-tpl-row,

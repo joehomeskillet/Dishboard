@@ -1,0 +1,7 @@
+/* Keep the copy button inside its own flex item, including without hover. */
+.swagger-ui .opblock .opblock-summary .view-line-link.copy-to-clipboard,
+.swagger-ui .opblock .opblock-summary:hover .view-line-link.copy-to-clipboard {
+  width: auto;
+  flex-shrink: 0;
+  margin-inline: var(--app-space-2);
+}

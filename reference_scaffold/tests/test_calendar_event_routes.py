@@ -117,7 +117,7 @@ def test_anlass_template_preserves_post_fields_and_shared_patterns() -> None:
     assert 'name="row_version"' in text
     assert 'name="_csrf"' in text
     assert 'status_items=event_status' in text
-    assert 'data-sticky-form="kitchen-event-form"' in text
+    assert 'data-sticky' not in text
     assert "icon_button('actions.save')" in text
     assert "icon_button('actions.cancel', href=url_for('admin.kitchen_calendar'))" in text
     assert 'disclosure_section(' in text

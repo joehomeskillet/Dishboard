@@ -48,7 +48,7 @@
   </form>
 </div>
 {% endif %}
-<nav class="shopping-filter btn-group mb-3" role="group" aria-label="Archivfilter">
+<nav class="shopping-filter d-flex gap-2 mb-3" role="group" aria-label="Archivfilter">
   {{ icon_button('status.active', href=url_for('admin.shopping_lists_index'), show_text=true, class=('active' if not include_archived else ''), attrs={'aria-current': true} if not include_archived else none) }}
   {{ icon_button('view.filter', href=url_for('admin.shopping_lists_index', archived='1'), text='Mit Archivierten', show_text=true, class=('active' if include_archived else ''), title='Archivierte Listen einschliessen', attrs={'aria-current': true} if include_archived else none) }}
 </nav>
