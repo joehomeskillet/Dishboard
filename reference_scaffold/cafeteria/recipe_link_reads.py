@@ -71,9 +71,15 @@ class RecipeChoicePage:
 
 @safe
 @require_capability('draft.read')
-def list_template_links(engine: Engine, *, include_archived: bool = False) -> tuple[TemplateLink, ...]:
+def list_template_links(
+    engine: Engine, *, include_archived: bool = False, search: str = '',
+    limit: int | None = None, offset: int = 0,
+) -> tuple[TemplateLink, ...]:
     if type(include_archived) is not bool:
         raise RecipeValidationError('Ungültiger Vorlagenfilter.')
+    reads.paging(PAGE_SIZE if limit is None else limit, offset, include_archived)
+    if not isinstance(search, str) or len(search) > 200 or '\x00' in search:
+        raise RecipeValidationError('Ungültige Vorlagensuche.')
     with reads.connection(engine) as (current, location):
         rows = current.execute(text('''SELECT d.public_id::text AS public_id,
             d.updated_at,d.active,d.title,d.description,d.profile_scope,d.accompaniment_default,
@@ -89,8 +95,10 @@ def list_template_links(engine: Engine, *, include_archived: bool = False) -> tu
             LEFT JOIN cafeteria.menu_types mt ON mt.id=d.menu_type_id
             LEFT JOIN cafeteria.recipes r ON r.id=d.recipe_id
             WHERE (:archived OR d.active) AND (d.recipe_id IS NULL OR r.location_id=:location)
-            ORDER BY lower(d.title),d.public_id'''),
-            {'location': location, 'archived': include_archived}).mappings()
+              AND strpos(lower(d.title),lower(:search))>0
+            ORDER BY lower(d.title),d.public_id LIMIT :limit OFFSET :offset'''),
+            {'location': location, 'archived': include_archived, 'search': search,
+             'limit': limit, 'offset': offset}).mappings()
         return tuple(TemplateLink(**row) for row in rows)
 
 

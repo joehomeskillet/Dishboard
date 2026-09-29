@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, empty_state, hint, label, empty_value, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, icon, empty_state, hint, label, empty_value, disclosure_section, pagination %}
 {% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem, row_actions, action_menu %}
 {% set workflow_nav = 'dish_templates' %}
 {% set scope_labels = {'common': 'Gemeinsam', 'patient': 'Patienten', 'staff_guest': 'Cafeteria'} %}
@@ -41,9 +41,9 @@
 {% call page_header('Gerichtvorlagen', description=('Vorlage bearbeiten · ' ~ row.title) if row else ('Vorlage anlegen' if editing else none), status_items=status_items) %}
   {% if editing %}
     {% if row and row.active and can_write %}{{ icon_button('actions.open', text='Einplanen', aria_label=row.title ~ ' als Menü einplanen', title=row.title ~ ' als Menü einplanen', href=url_for('admin.dish_template_plan', public_id=row.public_id)) }}{% endif %}
-    {{ icon_button('actions.back', text='Vorlagenliste', aria_label='Zur Vorlagenliste', title='Zur Vorlagenliste', href=url_for('admin.dish_templates_list'), icon_only=can_write, emphasis='secondary' if can_write else 'primary') }}
+    {{ icon_button('actions.back', text='Vorlagenliste', aria_label='Zur Vorlagenliste', title='Zur Vorlagenliste', href=url_for('admin.dish_templates_list', **list_args), icon_only=can_write, emphasis='secondary' if can_write else 'primary') }}
   {% elif can_write %}
-    {{ icon_button('actions.add', href=url_for('admin.dish_template_new')) }}
+    {{ icon_button('actions.add', href=url_for('admin.dish_template_new', **list_args)) }}
   {% else %}
     {{ icon_button('actions.back', text='Übersicht', href='/admin/', emphasis='primary') }}
   {% endif %}
@@ -60,7 +60,8 @@
 {% set filters %}
 <label class="form-check mb-0"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if include_archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label>
 {% endset %}
-{{ filter_bar_sem(url_for('admin.dish_templates_list'), filters=filters, active=include_archived) }}
+{% set active_filters = [{'label': 'Archivierte einschliessen', 'href': url_for('admin.dish_templates_list', q=template_search or none)}] if include_archived else [] %}
+{{ filter_bar_sem(url_for('admin.dish_templates_list'), search_value=template_search, filters=filters, active=template_search or include_archived, reset_url=(url_for('admin.dish_templates_list') if template_search or include_archived else none), active_filters=active_filters, maxlength=200) }}
 <p class="admin-list-meta">{{ 'Aktive und archivierte Gerichtvorlagen' if include_archived else 'Nur aktive Gerichtvorlagen' }}</p>
 {% set warnings = namespace(archived_recipes=0) %}
 {% for item in rows if item.recipe_public_id and not item.recipe_active %}{% set warnings.archived_recipes = warnings.archived_recipes + 1 %}{% endfor %}
@@ -82,7 +83,7 @@
         {% for item in rows %}
         <tr>
           <td data-label="Titel">
-            <a class="admin-list-primary d-inline-flex py-1" href="{{ url_for('admin.dish_template_edit', public_id=item.public_id) }}">{{ item.title }}</a>
+            <a class="admin-list-primary d-inline-flex py-1" href="{{ url_for('admin.dish_template_edit', public_id=item.public_id, **list_args) }}">{{ item.title }}</a>
             {% if item.recipe_public_id and not item.recipe_active %}<div class="admin-list-secondary">{{ label('Rezept archiviert', 'warning') }}</div>
             {% elif not item.recipe_public_id %}<div class="admin-list-secondary">Kein Rezept verknüpft</div>{% endif %}
           </td>
@@ -96,9 +97,14 @@
       </tbody>
     </table>
 </div>
+{% elif template_search or include_archived or page > 1 %}
+{% call empty_state('no_match', 'Keine passenden Gerichtvorlagen', 'Suche ändern oder zurücksetzen.') %}
+{{ icon_button('view.reset', href=url_for('admin.dish_templates_list'), emphasis='secondary') }}
+{% endcall %}
 {% else %}
 {{ empty_state('none', 'Noch keine Gerichtvorlagen', 'Eine Vorlage anlegen, um ein Rezept für die Wochenplanung bereitzuhalten.') }}
 {% endif %}
+{{ pagination(page, has_next, prev_url, next_url, 'Gerichtvorlagenseiten') }}
 {% elif row %}
 {% for item in rows if item.public_id == row.public_id %}{% call disclosure_section(title='Rezept und Verwendung', id='template-recipe-details') %}{{ recipe_state(item) }}{% endcall %}{% endfor %}
 {% endif %}
@@ -187,7 +193,7 @@
         {% if row.active %}<p class="ui-sem-consequence">Die Vorlage bleibt lesbar und erscheint nicht mehr in neuen Planungen.</p>{% endif %}
       {% endif %}
       <div class="admin-form-main">
-        {{ icon_button('actions.cancel', href=url_for('admin.dish_templates_list')) }}
+        {{ icon_button('actions.cancel', href=url_for('admin.dish_templates_list', **list_args)) }}
         {{ icon_button('actions.save', name='action', value='save') }}
       </div>
     </div>
