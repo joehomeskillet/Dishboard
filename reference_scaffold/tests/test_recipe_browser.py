@@ -98,7 +98,7 @@ def test_native_editor_rows_save_cancel_and_tabler(b3, master_server, browser, w
             # Icon-first: row actions keep an accessible name; visible text is not required.
             assert (control.get_attribute('aria-label') or control.inner_text() or '').strip()
             operation = parse_qs(urlsplit(control.get_attribute('formaction')).query)['row_action'][0]
-            symbol = {'add': 'plus', 'remove': 'trash', 'up': 'arrows-move', 'down': 'arrows-move'}[operation]
+            symbol = {'add': 'plus', 'remove': 'trash', 'up': 'arrow-up', 'down': 'arrow-down'}[operation]
             expect(control.locator('use')).to_have_attribute('href', sprite_url + '#tabler-' + symbol)
         page.get_by_role('heading', level=1).click()
         page.screenshot(path=str(tmp_path / f'recipe-editor-{width}-js{javascript}.png'), full_page=True)

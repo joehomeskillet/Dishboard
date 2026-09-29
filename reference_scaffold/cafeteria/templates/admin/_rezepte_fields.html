@@ -25,8 +25,8 @@
 {% if kind != 'images' and count < 64 %}
 {% set _ = items.append({'key': 'actions.add', 'aria_label': label ~ ' davor einfügen', 'emphasis': 'secondary', 'attrs': {'formnovalidate': true, 'formaction': url_for('admin.recipe_form_rows', action=action, recipe_id=recipe_id, row_kind=kind, row_action='add', row_index=index)}}) %}
 {% endif %}
-{% for operation, direction, blocked, reason in [('up', 'oben', index == 0, 'Bereits an erster Position.'), ('down', 'unten', index + 1 == count, 'Bereits an letzter Position.')] %}
-{% set _ = items.append({'key': 'actions.move', 'aria_label': label ~ ' nach ' ~ direction ~ ' verschieben', 'disabled_reason': reason if blocked else none, 'attrs': {'formnovalidate': true, 'formaction': url_for('admin.recipe_form_rows', action=action, recipe_id=recipe_id, row_kind=kind, row_action=operation, row_index=index)}}) %}
+{% for operation, blocked, reason in [('up', index == 0, 'Bereits an erster Position.'), ('down', index + 1 == count, 'Bereits an letzter Position.')] %}
+{% set _ = items.append({'key': 'actions.move_' ~ operation, 'disabled_reason': reason if blocked else none, 'attrs': {'formnovalidate': true, 'formaction': url_for('admin.recipe_form_rows', action=action, recipe_id=recipe_id, row_kind=kind, row_action=operation, row_index=index)}}) %}
 {% endfor %}
 {% set _ = items.append({'key': 'actions.delete', 'aria_label': label ~ ' entfernen', 'consequence_key': 'actions.delete', 'attrs': {'formnovalidate': true, 'formaction': url_for('admin.recipe_form_rows', action=action, recipe_id=recipe_id, row_kind=kind, row_action='remove', row_index=index)}}) %}
 {{ row_actions(items, object=label) }}

@@ -253,6 +253,28 @@
     "role": "neutral"
   },
   {
+    "key": "actions.move_up",
+    "category": "actions",
+    "ascii": "[UP]",
+    "icon": "arrow-up",
+    "label_key": "actions.move_up.label",
+    "tooltip_key": "actions.move_up.tooltip",
+    "aria_key": "actions.move_up.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
+    "key": "actions.move_down",
+    "category": "actions",
+    "ascii": "[DOWN]",
+    "icon": "arrow-down",
+    "label_key": "actions.move_down.label",
+    "tooltip_key": "actions.move_down.tooltip",
+    "aria_key": "actions.move_down.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
     "key": "actions.more",
     "category": "actions",
     "ascii": "[...]",

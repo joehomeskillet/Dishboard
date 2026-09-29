@@ -97,9 +97,14 @@ def test_week_actions_keep_publish_labels_and_native_contracts(
         ('_csrf', 'test-defaults'), ('week', '2026-08-31'), ('row_version', '3'),
     ]
     assert defaults.select_one('button')['data-semantic'] == 'actions.apply'
-    assert [item['aria-label'] for item in doc.select('.admin-week-more-menu .dropdown-item')] == [
+    direct = doc.select('.admin-week-controls [data-semantic="actions.export"], '
+                        '.admin-week-controls [data-semantic="actions.copy"], '
+                        '.admin-week-controls [data-semantic="actions.apply"]')
+    assert [item['aria-label'] for item in direct] == [
         'CSV exportieren', 'Vorwoche kopieren', 'Wochenvorgaben übernehmen',
     ]
+    assert not doc.select('.admin-week-more, [data-semantic="actions.more"]')
+    assert all(item.find_parent('details') is None for item in direct)
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
@@ -137,7 +142,7 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; no aliases for different business actions.
     assert len(seeds) == 187
-    assert len(registry) == 219
+    assert len(registry) == 221
     assert registry['status.archived'].category == 'status'
     assert registry['status.archived'].resolved_icon == 'archive'
     assert registry['status.archived'].role == 'neutral'
@@ -148,7 +153,9 @@ def test_registry_source_schema_and_frozen_resolution():
     for key, icon in {'actions.open_pdf': 'file-type-pdf',
                       'actions.snapshot': 'file-check',
                       'actions.create_template': 'circle-plus',
-                      'actions.open_template': 'template'}.items():
+                      'actions.open_template': 'template',
+                      'actions.move_up': 'arrow-up',
+                      'actions.move_down': 'arrow-down'}.items():
         assert registry[key].resolved_icon == icon
         assert registry[key].category == 'actions'
     assert registry['actions.print'].resolved_icon == 'printer'
@@ -180,6 +187,22 @@ def test_registry_source_schema_and_frozen_resolution():
         registry['actions.save'].role = 'danger'
     for row in read_json(ROOT / 'semantic_registry.json'):
         assert not {'label_de', 'label_en', 'label', 'tooltip', 'aria'} & row.keys()
+
+
+@pytest.mark.parametrize('locale,direction,label,object_name', [
+    ('de', 'up', 'Nach oben verschieben', 'Karotte nach oben verschieben'),
+    ('de', 'down', 'Nach unten verschieben', 'Karotte nach unten verschieben'),
+    ('en', 'up', 'Move up', 'Move Karotte up'),
+    ('en', 'down', 'Move down', 'Move Karotte down'),
+])
+def test_directional_action_names_and_icons(semantic_app, locale, direction, label, object_name):
+    semantic_app.config['UI_LOCALE'] = locale
+    key = 'actions.move_' + direction
+    for options, name in (({}, label), ({'object': 'Karotte'}, object_name)):
+        control = _p2c_action(semantic_app, key, **options).button
+        assert control['aria-label'] == control['data-ui-tooltip'] == name
+        assert control.get_text(strip=True) == ''
+        assert control.select_one('use')['href'].endswith('#tabler-arrow-' + direction)
 
 
 @pytest.mark.parametrize('mutation,match', [
@@ -1101,7 +1124,7 @@ def test_p4_recipe_context_labels_survive_en_and_keep_name(semantic_app, locale,
     ('rezepte_import.html', 'actions.back', 'Zu Rezepten', 'Zu Rezepten', 'arrow-left'),
     ('rezepte.html', 'actions.open_pdf', 'PDF öffnen', 'PDF öffnen · Stand 1 · Suppe', 'file-type-pdf'),
     ('rezepte.html', 'actions.history', 'Verlauf', 'Verlauf für Suppe', 'history'),
-    ('rezepte_editor.html', 'actions.activate', 'Aktivieren', 'Rezept aktivieren', 'circle-check'),
+    ('rezepte_editor.html', 'actions.activate', 'Aktivieren', 'Suppe aktivieren', 'circle-check'),
 ])
 def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key, text, aria, icon):
     """Exercise the actual action calls for all five judge findings."""
@@ -1113,6 +1136,11 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
     if template == 'rezepte.html':
         matching = re.findall(
             r'(\{% set actions = .*?\{\{ row_actions\(actions, object=item.payload.title\) \}\})',
+            source, re.S)
+        imports = "{% from 'ui/_semantic.html' import row_actions %}"
+    elif template == 'rezepte_editor.html' and key == 'actions.activate':
+        matching = re.findall(
+            r'(\{% set header_actions = .*?\{\{ row_actions\(header_actions, object=payload.title or t\(\x27recipe.recipe.label\x27\)\) \}\})',
             source, re.S)
         imports = "{% from 'ui/_semantic.html' import row_actions %}"
     else:
@@ -1127,13 +1155,15 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
     with semantic_app.test_request_context():
         html = render_template_string(
             imports + matching[0],
-            recipe=recipe, item=recipe, recipe_id='r1', can_write=False, token='token', batch=None,
+            recipe=recipe, item=recipe, recipe_id='r1', payload=recipe.payload, active=False,
+            can_write=key == 'actions.activate', token='token', batch=None,
             can_create_template=False,
-            links=SimpleNamespace(templates=(), latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
+            links={} if key == 'actions.activate' else SimpleNamespace(
+                templates=(), latest_revision=SimpleNamespace(public_id='v1', revision_number=1)))
     controls = BeautifulSoup(html, 'html.parser').select(f'a[data-semantic="{key}"], button[data-semantic="{key}"]')
     assert len(controls) == 1
     control = controls[0]
-    visible = text if template == 'rezepte_editor.html' else ''  # Spec §5.4.
+    visible = text if template == 'rezepte_editor.html' and key == 'actions.back' else ''  # Spec §5.4.
     assert (control.get_text(strip=True), control['aria-label']) == (visible, aria)
     assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
     assert control['data-ui-tooltip'] == aria
@@ -1214,11 +1244,12 @@ def test_p4_registry_visible_text_is_in_accessible_name(semantic_app, locale, mo
             "{% extends 'admin/rezepte_images.html' %}{% block sidebar %}{% endblock %}",
             recipe=recipe, token='token')
     editor_doc = BeautifulSoup(editor, 'html.parser')
-    for summary in editor_doc.select('.admin-compact-actions > summary'):
-        assert summary.get_text(strip=True) == ''
-        assert ('Weitere Aktionen' if locale == 'de' else 'More actions') in summary['aria-label']
-        assert summary['data-ui-tooltip'] == summary['aria-label']
-    _visible_word_in_name(editor_doc.select_one('a[data-semantic="data.image"]'), image)
+    assert not editor_doc.select('.admin-compact-actions, [data-semantic="actions.more"]')
+    image_control = editor_doc.select_one('a[data-semantic="data.image"]')
+    assert image_control.get_text(strip=True) == ''
+    assert image in image_control['aria-label'] and 'Suppe' in image_control['aria-label']
+    assert image_control['data-ui-tooltip'] == image_control['aria-label']
+    assert image_control.select_one('use')['href'].endswith('#tabler-photo')
     edit_control = editor_doc.select_one('button[data-recipe-toggle^="step-details"]')
     assert edit_control.get_text(strip=True) == ''
     assert edit in edit_control['aria-label']
