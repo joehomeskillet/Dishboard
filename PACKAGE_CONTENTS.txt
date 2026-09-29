@@ -1213,6 +1213,7 @@ reference_scaffold/cafeteria/templates/admin/grundlagen_unit.html
 reference_scaffold/cafeteria/templates/admin/grundlagen_vocabulary.html
 reference_scaffold/cafeteria/templates/admin/import_preview.html
 reference_scaffold/cafeteria/templates/admin/kalkulation.html
+reference_scaffold/cafeteria/templates/admin/kochbuch_ansicht.html
 reference_scaffold/cafeteria/templates/admin/kochbuch_editor.html
 reference_scaffold/cafeteria/templates/admin/kochbuecher.html
 reference_scaffold/cafeteria/templates/admin/kuechenkalender.html
@@ -1448,6 +1449,7 @@ reference_scaffold/tests/test_github_pages.py
 reference_scaffold/tests/test_icon_api_browser.py
 reference_scaffold/tests/test_icon_component_recipe_details_browser.py
 reference_scaffold/tests/test_icon_confirm_submitter_browser.py
+reference_scaffold/tests/test_icon_cookbook_view_browser.py
 reference_scaffold/tests/test_icon_disclosure_error_browser.py
 reference_scaffold/tests/test_icon_import_image_disclosures_browser.py
 reference_scaffold/tests/test_icon_m1_stammdaten_browser.py
