@@ -255,3 +255,26 @@ def test_unrelated_hover_does_not_consume_modal_escape(kind, width, tmp_path, fo
         page.screenshot(path=str(tmp_path / 'modal-after-escape.png'), full_page=True)
 
     _run_polish_check(markup, verify, width)
+
+
+@pytest.mark.parametrize('width', [390, 1440])
+def test_direct_action_preserves_owning_native_details_escape(width):
+    markup = MACROS + '''<details id="owner" open><summary>Inhaltsabschnitt</summary>
+        {{ more_actions([{'key':'actions.copy', 'type':'button', 'id':'copy'}]) }}
+        </details>''' + OTHER + TABLER
+
+    def verify(page):
+        owner = page.locator('#owner')
+        action = owner.locator('#copy')
+        action.focus()
+        expect(page.get_by_role('tooltip')).to_be_visible()
+        action.press('Escape')
+        expect(page.get_by_role('tooltip')).to_have_count(0)
+        expect(owner).to_have_attribute('open', '')
+        expect(action).to_be_focused()
+        action.press('Escape')
+        expect(owner).not_to_have_attribute('open', '')
+        expect(owner.locator('summary')).to_be_focused()
+        expect(page.locator('#other')).to_have_attribute('open', '')
+
+    _run_polish_check(markup, verify, width)

@@ -229,8 +229,8 @@
         const menu = event.target.closest('.ui-sem-actions[open], .admin-filter-more[open]');
         if (!menu) {
             // Direct groups have nothing to close; retain focus and unrelated details.
-            // Modal/dialog owners must still receive Escape after their tooltip closes.
-            if (!event.target.closest('.admin-row-actions') || event.target.closest('.modal, dialog')) return;
+            // Owning details and modals still receive Escape after their tooltip closes.
+            if (!event.target.closest('.admin-row-actions') || event.target.closest('.modal, dialog, details[open]')) return;
         } else {
             menu.open = false;
             focusAfterEscape(menu.querySelector(':scope > summary'));
