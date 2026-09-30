@@ -52,6 +52,7 @@ _WEEK_READS = set(('cafeteria patienten week_management week_review_get menu_col
 _TOKEN = re.compile(r'[0-9a-f]{48}')
 _TTL = 600
 _NAVIGATION_BUDGET = 8
+_OWNER_TOKEN_BUDGET = 16
 _BUDGET_TAKE = (
     "local n=redis.call('INCR',KEYS[1]); "
     "if redis.call('TTL',KEYS[1])<0 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end; "
@@ -191,6 +192,13 @@ def issue_return_token(target: str | None, notice: str = 'auth.required') -> str
             session.permanent = False
         owner = _owner()
     if owner is None:
+        return ''
+    # Keep the counter alive as long as the newest token, including across a busy window.
+    count = client.eval(
+        "local n=redis.call('INCR',KEYS[1]); redis.call('EXPIRE',KEYS[1],ARGV[1]); return n",
+        1, f'dishboard:login-navigation:count:{owner}', _TTL,
+    )
+    if not isinstance(count, int) or count > _OWNER_TOKEN_BUDGET:
         return ''
     token = secrets.token_hex(24)
     context = {'target': target, 'notice': notice, 'expires': int(time()) + _TTL}

@@ -279,8 +279,45 @@ def test_anonymous_gets_keep_a_short_navigation_budget(auth_app):
     store = app.extensions['cafeteria_rate_redis']
     keys = set(store.scan_iter(match='session:*'))
     keys.update(store.scan_iter(match='dishboard:login-navigation:*'))
-    assert len(keys) < 50 and len(keys) <= 17
+    # Eight sessions, tokens and owner counters, plus one shared IP budget.
+    assert len(keys) < 50 and len(keys) <= 25
     assert all(0 < store.ttl(key) <= 600 for key in keys)
     response = keeper.post('/auth/local', data=_csrf_payload(
         keeper, username='local.editor', password='Correct-Horse-2026!Battery') | {'return_token': token})
     assert response.status_code == 303 and response.location == '/admin/patienten?week=2026-09-28'
+
+
+def test_existing_owner_token_budget_keeps_login_available(auth_app, monkeypatch):
+    app, owner, issuer = auth_app
+    _provision(issuer, owner)
+    client = app.test_client()
+    responses = [client.get('/admin/patienten?week=2026-09-28') for _ in range(20)]
+    assert all(response.status_code == 302 for response in responses)
+    tokens = [token for response in responses for token in
+              parse_qs(urlsplit(response.location).query).get('return_token', [])]
+    assert len(tokens) == len(set(tokens)) == 16
+    assert all(response.location == '/auth/login' for response in responses[16:])
+    with client.session_transaction() as sess:
+        owner_id = sess['_eh_navigation']
+    store = app.extensions['cafeteria_rate_redis']
+    keys = set(store.scan_iter(match=f'dishboard:login-navigation:{owner_id}:*'))
+    assert len(keys) == 16
+    assert all(0 < store.ttl(key) <= 600 for key in keys)
+    counter = f'dishboard:login-navigation:count:{owner_id}'
+    assert 0 < store.ttl(counter) <= 600
+
+    app.config.update(LOCAL_AUTH_ENABLED=False, ENTRA_ENABLED=True, ENTRA_CLIENT_ID='eh-client',
+                      ENTRA_CLIENT_SECRET='test-only', ENTRA_TENANT_ID='eh-tenant')
+
+    class Provider:
+        def initiate_auth_code_flow(self, *, scopes, redirect_uri):
+            return {'state': 'budget-state', 'auth_uri': 'https://login.microsoftonline.com/test'}
+
+    monkeypatch.setattr(auth_routes, '_client', Provider)
+    started = client.get(responses[-1].location)
+    assert started.status_code == 302
+    assert started.location == 'https://login.microsoftonline.com/test'
+    app.config.update(LOCAL_AUTH_ENABLED=True, ENTRA_ENABLED=False)
+    response = client.post('/auth/local', data=_csrf_payload(
+        client, username='local.editor', password='Correct-Horse-2026!Battery'))
+    assert response.status_code == 303 and response.location == '/admin/cafeteria'
