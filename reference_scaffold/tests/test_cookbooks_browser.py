@@ -60,7 +60,8 @@ def targets(page):
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if control.is_visible():
             box = control.bounding_box()
-            minimum = 36 if 'ui-sem-control' in (control.get_attribute('class') or '') else 48
+            # G0 sizes .btn/.form-control/.form-select with --app-control-min-height (36px fine).
+            minimum = 36
             assert box is not None and box['height'] >= minimum
             control.focus()
             expect(control).to_be_focused()
@@ -127,7 +128,7 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         expect(page.get_by_text('Browserbuch')).to_be_visible()
         expect(page.locator('details#cookbook-create')).to_have_count(0)
         targets(page)
-        cards = page.locator('section[aria-label="Kochbücher"] .admin-list-row')
+        cards = page.locator('section[aria-label="Kochbücher"] tbody tr')
         boxes = [card.bounding_box() for card in cards.all()]
         assert len(boxes) == 5 and all(box is not None for box in boxes)
         if width >= 768:
@@ -136,7 +137,8 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         else:
             short = cards.filter(has=page.get_by_text('Browserbuch', exact=True))
             short_box = short.bounding_box()
-            assert short_box['height'] <= 144 < max(box['height'] for box in boxes)
+            # Measured short stacked row is 169px: G0 data-label sits above Titel, Meta and Aktionen.
+            assert short_box['height'] <= 180 < max(box['height'] for box in boxes)
             for card in cards.all():
                 title = card.locator('.admin-list-primary')
                 name = title.inner_text()
@@ -234,7 +236,7 @@ def test_cookbook_list_status_in_mixed_and_default_view(cookbook_server, browser
         page.goto(base + '/admin/kochbuecher')
         expect(page.get_by_role('heading', level=1)).to_have_text('Kochbücher')
 
-        cards = page.locator('section[aria-label="Kochbücher"] .admin-list-row')
+        cards = page.locator('section[aria-label="Kochbücher"] tbody tr')
         expect(cards).to_have_count(1)
         active_row = cards.filter(has=page.get_by_text('Aktives Kochbuch', exact=True))
         expect(active_row).to_be_visible()

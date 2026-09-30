@@ -42,7 +42,7 @@ def menu_session(request, browser, live_server, admin_app, admin_engine, tmp_pat
         response = page.goto(collection, wait_until='networkidle')
         assert response is not None and response.status == 200
         expect(page.locator('[name="q"]')).to_have_value(TITLE)
-        expect(page.locator('.profile-tabs [aria-current="true"]')).to_have_attribute(
+        expect(page.locator('.profile-tabs [aria-current="page"]')).to_have_attribute(
             'href', collection)
         page.locator(f'a[href*="/admin/{family}/menu?"]:visible').first.click()
         page.wait_for_load_state('networkidle')
@@ -191,7 +191,7 @@ def test_collection_return_context_expected_current_behavior(
             expected_query['page'] = ['1']
         assert parse_qs(returned.query) == expected_query
         expect(page.locator('[name="q"]')).to_have_value(TITLE)
-        expect(page.locator('.profile-tabs [aria-current="true"]')).to_have_attribute(
+        expect(page.locator('.profile-tabs [aria-current="page"]')).to_have_attribute(
             'href', evidence['collection'])
         evidence['filter_return'] = 'q and profile retained by cancel or browser history'
     else:

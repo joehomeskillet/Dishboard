@@ -79,7 +79,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     expect(page.locator('dl.admin-statusbar')).to_have_count(0)
                     if name == 'cookbooks':
                         expect(page.locator('.cookbook-list [data-semantic="actions.more"]')).to_have_count(0)
-                        for book in page.locator('.cookbook-list .admin-list-row').all():
+                        for book in page.locator('.cookbook-list tbody tr').all():
                             expect(book.locator('[data-semantic="actions.open"]')).to_be_visible()
                             expect(book.locator('[data-semantic="actions.edit"]')).to_be_visible()
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')

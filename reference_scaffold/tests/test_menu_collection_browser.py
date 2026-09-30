@@ -44,7 +44,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
             row_height = page.locator('[data-menu-list-id]').first.bounding_box()['height']
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             expect(page.locator('main .btn-primary')).to_have_count(1)
-            expect(page.locator('nav.profile-tabs a[aria-current="true"]')).to_have_text(
+            expect(page.locator('nav.profile-tabs a[aria-current="page"]')).to_have_text(
                 'Cafeteria' if family == 'cafeteria' else 'Patienten')
             expect(page.locator('#menu-review-summary')).to_contain_text('1 Menü: Prüfung offen')
             expect(page.locator('#menu-list .admin-table-status')).to_contain_text('Allergenprüfung offen')

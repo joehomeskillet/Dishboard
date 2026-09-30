@@ -30,7 +30,7 @@ PAGES = (
     # Locator-Nachzug Rezepte: Kartenliste → Tabelle. Name trägt admin-list-primary,
     # Ausbeute admin-list-meta. Entwurf steht nicht mehr als Sekundärzeile in jeder Zeile.
     ('Rezepte', '/admin/rezepte', 'table.recipe-list tbody tr', '.admin-list-primary', None, 'td.admin-list-meta'),
-    ('Kochbücher', '/admin/kochbuecher', '.admin-list-row', '.admin-list-name strong', '.admin-list-subtitle', '.admin-list-meta'),
+    ('Kochbücher', '/admin/kochbuecher', 'section.cookbook-list tbody tr', '.admin-list-name strong', '.admin-list-subtitle', '.admin-list-meta'),
     ('Zutaten', '/admin/grundlagen', '.admin-list-row', '.admin-list-name strong', '.admin-list-subtitle', None),
     ('Einheiten', '/admin/grundlagen?kind=units', '.admin-list-row', '.admin-list-primary', None, None),
     ('Kennzeichnungen', '/admin/grundlagen?kind=tags', '.admin-list-row', '.admin-list-primary', None, None),

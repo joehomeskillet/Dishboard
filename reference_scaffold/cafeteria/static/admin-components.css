@@ -36,7 +36,6 @@
 .component-markers .badge { max-width: 100%; overflow-wrap: anywhere; }
 .component-label-overflow summary { min-height: var(--app-space-12); display: flex; align-items: center; cursor: pointer; }
 .component-secondary-actions .card-title { font-size: var(--app-font-size-body); }
-.dishboard-admin #component-form.admin-compact-form > .card-header { justify-content: flex-end; }
 @media (min-width: 768px) {
   .component-allergens { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

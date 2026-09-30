@@ -1,8 +1,8 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import symbol %}
-{% from 'admin/_macros.html' import icon, page_header, profile_tabs, field, check, label as ui_label, empty_state %}
+{% from 'admin/_macros.html' import icon, page_header, profile_tabs, field, check, label as ui_label, empty_state, form_footer %}
 {% from 'admin/_country_select.html' import country_select, countries %}
-{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem, status_badge_sem %}
 {% set workflow_nav = 'components' %}
 {% set submitted = form_values|default({}) %}
 {% set errors = form_errors|default({}) %}
@@ -13,7 +13,6 @@
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week|default('') }}"{% endblock %}
 {% block page_header %}
 {% call page_header(t('navigation.components.label')) %}
-  {{ profile_tabs({'cafeteria': '/admin/cafeteria/komponenten', 'patienten': '/admin/patienten/komponenten'}, family) }}
   {{ icon_button('actions.add', href='#c-name', attrs={'data-error-link': '', 'aria-controls': 'create-component'}) }}
 {% endcall %}
 {% endblock %}
@@ -49,7 +48,7 @@
         </select>
       </div>
     </div>
-      <div class="component-filter-fields row g-2 align-items-end mt-2">
+      <div class="row g-2 align-items-end mt-2">
         <div class="col-12 col-md-6 col-xl-3">
           <label class="form-label" for="f-usage">Verwendung in Menüs</label>
           <select class="form-select" id="f-usage" name="usage">
@@ -91,7 +90,7 @@
       <p class="form-hint mt-2 mb-0" id="component-allergen-filter-hint">«Nicht erfasst» bedeutet keine bestätigte Allergenfreiheit.</p>
 {% endset %}
 <div class="row g-2 align-items-end">
-  <div class="col-12 col-md">{{ filter_bar_sem('/admin/' ~ family ~ '/komponenten', search_value=query|default(''), filters=component_filters, active=filtered, reset_url='/admin/' ~ family ~ '/komponenten', id='component', open=filtered) }}</div>
+  <div class="col-12 col-md">{{ filter_bar_sem('/admin/' ~ family ~ '/komponenten', search_value=query|default(''), filters=component_filters, active=filtered, reset_url='/admin/' ~ family ~ '/komponenten', id='component', open=filtered, segments=profile_tabs({'cafeteria': '/admin/cafeteria/komponenten', 'patienten': '/admin/patienten/komponenten'}, family)) }}</div>
   <div class="col-12 col-md-auto"><p id="component-result-count" class="admin-list-meta mb-3" role="status">{{ rows|length }} Treffer · {{ 'Aktiv' if selected_status == 'active' else 'Archiviert' if selected_status == 'archived' else 'Aktiv und archiviert' }}</p></div>
 </div>
 
@@ -109,17 +108,17 @@
           <th scope="row" class="component-row-name admin-list-primary" data-label="Name"><span class="admin-list-primary">{{ row.name }}</span>
             {% if row.food_name %}<div class="admin-list-secondary text-break">{{ row.food_name }}</div>{% endif %}
           </th>
-          <td class="category d-flex d-md-table-cell align-items-center gap-2" data-label="Kategorie">{{ ui_label(categories.get(row.category, row.category), 'category') }}</td>
+          <td class="category d-flex d-md-table-cell align-items-center gap-2" data-label="Kategorie">{% set category_name = categories.get(row.category, row.category) %}{{ ui_label(category_name, 'category') }}</td>
           <td class="component-markers" data-label="Herkunft / Kennzeichnungen">
             <div class="d-flex flex-wrap gap-1 align-items-center">
-              {% if row.labels %}{% for label in row.labels[:2] %}{{ ui_label(label.name|default(label.code), 'category') }}{% endfor %}{% endif %}
-              {% if row.labels|length > 2 %}<details class="component-label-overflow"><summary>+{{ row.labels|length - 2 }} <span class="visually-hidden">{{ t('actions.more.label') }}</span></summary><div>{% for label in row.labels[2:] %}{{ ui_label(label.name|default(label.code), 'category') }}{% endfor %}</div></details>{% endif %}
+              {% if row.labels %}{% for label in row.labels[:2] %}{% set marker_name = label.name|default(label.code) %}{{ ui_label(marker_name, 'category') }}{% endfor %}{% endif %}
+              {% if row.labels|length > 2 %}<details class="component-label-overflow"><summary>+{{ row.labels|length - 2 }} <span class="visually-hidden">{{ t('actions.more.label') }}</span></summary><div>{% for label in row.labels[2:] %}{% set marker_name = label.name|default(label.code) %}{{ ui_label(marker_name, 'category') }}{% endfor %}</div></details>{% endif %}
               {% if row.origin_country_code %}<span class="admin-list-meta">{{ symbol('countries', row.origin_country_code, true) }}{{ row.origin_country_code }}</span>{% else %}<span class="admin-list-meta">Nicht erfasst</span>{% endif %}
             </div>
             {% if row.profile_scope == 'common' %}<div class="admin-list-secondary">gemeinsam</div>{% endif %}
           </td>
           <td class="usage d-flex d-md-table-cell align-items-center gap-2" data-label="Verwendung">{{ row.usage_count }} {{ 'Gericht' if row.usage_count == 1 else 'Gerichte' }}</td>
-          {% if selected_status == 'all' %}<td class="component-status admin-table-status" data-label="Status">{{ ui_label('Aktiv' if row.active else 'archiviert', 'active' if row.active else 'neutral', icon=sem('status.active' if row.active else 'actions.archive').resolved_icon) }}</td>{% endif %}
+          {% if selected_status == 'all' %}<td class="component-status admin-table-status" data-label="Status">{{ status_badge_sem('status.active' if row.active else 'status.archived', status='active' if row.active else 'archived') }}</td>{% endif %}
           <td class="admin-table-actions" data-label="Aktionen">
             {{ row_actions([{'key': 'actions.edit' if row.active else 'actions.open', 'href': url_for('admin.component_detail', family=family, public_id=row.public_id, **({'from': 'components', 'q': query, 'status': selected_status, 'category': category or ''} if query or category or selected_status != 'active' else {}))}, {'key': 'actions.archive' if row.active else 'actions.activate', 'href': url_for('admin.component_detail', family=family, public_id=row.public_id, _anchor='component-status', **({'from': 'components', 'q': query, 'status': selected_status, 'category': category or ''} if query or category or selected_status != 'active' else {}))}], object=row.name) }}
           </td>
@@ -206,7 +205,8 @@
           </div>
           </div>
         </fieldset>
-      <div class="admin-form-footer"><div class="admin-form-main">{{ icon_button('actions.add', emphasis='secondary') }}</div></div>
+      {% set add_primary %}{{ icon_button('actions.add', emphasis='secondary') }}{% endset %}
+      {{ form_footer(add_primary, '/admin/' ~ family ~ '/komponenten') }}
     </form>
   </div>
 </details>

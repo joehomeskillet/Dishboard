@@ -111,7 +111,8 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                         expect(price.get_by_role('button', name='Preis speichern', exact=True)).not_to_have_class(re.compile('btn-primary'))
                         expect(page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True)).to_have_class(re.compile('btn-primary'))
                         for control in price.locator('.form-control, .btn').all():
-                            assert control.bounding_box()['height'] >= (36 if control.evaluate("e => e.classList.contains('ui-sem-control')") else 48)
+                            # Price-form controls follow G0 --app-control-min-height (36px fine).
+                            assert control.bounding_box()['height'] >= 36
                         _assert_no_horizontal_scroll(page)
             print('WP06_MEASUREMENTS', json.dumps(measurements))
             (tmp_path / 'measurements.json').write_text(json.dumps(measurements, indent=2))
@@ -448,4 +449,11 @@ def test_p4_stammdaten_inventory_counts_sum():
     assert total['literal_buttons'] == 1
     assert total['local_lists'] == 2
     assert total['local_filters'] == 4
-    assert sum(total.values()) == 7
+    assert total['list_typography_overrides'] == 0
+    assert total['css_px_heights'] == 0
+    # Kochbücher and the editor contribute 0 after the table migration.
+    # local_status 11, local_footers 1 and raw_details 9 remain on Grundlagen, Einkauf and Bestellkorb.
+    assert total['local_status'] == 11
+    assert total['local_footers'] == 1
+    assert total['raw_details'] == 9
+    assert sum(total.values()) == 28

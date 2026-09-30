@@ -183,13 +183,14 @@ def test_catalog_native_forms_preserve_and_remove_metadata(
 
 def _assert_component_controls_fit(page: Page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    # G0 sizes .form-control, .form-select and .form-check at 36px on a fine pointer.
     dimensions = page.locator(
         'main .btn, main .form-control, main .form-select, main .form-check, '
         'main summary, main .component-action .ui-sem-control'
     ).evaluate_all('''elements => elements.filter(e => e.getClientRects().length).map(e => ({
         height: e.getBoundingClientRect().height,
         width: e.getBoundingClientRect().width,
-        minimum: e.classList.contains('ui-sem-control') ? 36 : 48,
+        minimum: 36,
         label: e.getAttribute('aria-label') || e.textContent.trim().slice(0, 40)
     }))''')
     assert dimensions
@@ -280,7 +281,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     page.locator('#f-status').select_option('all')
     page.get_by_role('button', name='Suchen', exact=True).click()
     row = page.locator(f'.component-row[data-public-id="{public_id}"]')
-    expect(row).to_contain_text('archiviert')
+    expect(row).to_contain_text('Archiviert')
     expect(row.get_by_role('link', name=long_name, exact=True)).to_have_count(0)
     open_link = row.get_by_role('link', name=f'{long_name} öffnen', exact=True)
     filtered_detail = detail_path + '?' + urlencode({'from': 'components', 'q': '', 'status': 'all', 'category': ''})

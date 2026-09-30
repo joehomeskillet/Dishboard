@@ -45,7 +45,7 @@
   list-style: none;
   display: inline-flex;
   align-items: center;
-  min-height: 48px;
+  min-height: var(--app-control-min-height);
   min-width: 48px;
 }
 .dishboard-admin .menu-note-details summary::-webkit-details-marker {
@@ -81,7 +81,7 @@
 
 /* Action button sizing for 48px touch requirement */
 .dishboard-admin .week-action-primary {
-  min-height: 48px;
+  min-height: var(--app-control-min-height);
   display: inline-flex;
   align-items: center;
   justify-content: center;

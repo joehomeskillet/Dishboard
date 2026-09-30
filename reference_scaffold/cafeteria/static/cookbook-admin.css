@@ -3,6 +3,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
 }
+.cookbook-list > .admin-table { table-layout: fixed; width: 100%; min-width: 0; }
+.cookbook-list > .admin-table th:nth-child(1) { width: 58%; }
+.cookbook-list > .admin-table th:nth-child(2) { width: 14%; }
+.cookbook-list > .admin-table th:nth-child(3) { width: 12%; }
+.cookbook-list > .admin-table th:nth-child(4) { width: 16%; }
 .cookbook-list .admin-list-row { min-width: 0; }
 .cookbook-list .admin-list-name { min-width: 0; }
 .cookbook-list .admin-list-meta { white-space: nowrap; }
