@@ -1,5 +1,49 @@
 [
   {
+    "key": "recipe.template_archived",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "template",
+    "label_key": "recipe.template_archived.label",
+    "tooltip_key": "recipe.template_archived.tooltip",
+    "aria_key": "recipe.template_archived.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "week.slot_edit",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "edit",
+    "label_key": "week.slot_edit.label",
+    "tooltip_key": "week.slot_edit.tooltip",
+    "aria_key": "week.slot_edit.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "week.slot_add",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "plus",
+    "label_key": "week.slot_add.label",
+    "tooltip_key": "week.slot_add.tooltip",
+    "aria_key": "week.slot_add.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "week.slot_template",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "template",
+    "label_key": "week.slot_template.label",
+    "tooltip_key": "week.slot_template.tooltip",
+    "aria_key": "week.slot_template.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
     "key": "recipe.row_first_reason",
     "category": "recipe",
     "ascii": "[i]",

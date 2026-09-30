@@ -42,7 +42,7 @@
 {% set _ = actions.append({'key': 'actions.history', 'href': url_for('admin.recipe_revisions', recipe_id=item.public_id)}) %}
 {% if not links.latest_revision and can_write and item.active %}{% set _ = actions.append({'key': 'actions.snapshot', 'href': url_for('admin.recipe_revisions', recipe_id=item.public_id, _anchor='recipe-freeze')}) %}{% endif %}
 {% for template in links.templates %}
-{% set _ = actions.append({'key': 'actions.open_template', 'href': url_for('admin.dish_template_edit', public_id=template.public_id), 'object': template.title ~ (' · ' ~ t('status.archived.label').unescape()|lower if not template.active else '')}) %}
+{% set _ = actions.append({'key': 'actions.open_template', 'href': url_for('admin.dish_template_edit', public_id=template.public_id), 'object': template.title, 'aria_label': t('recipe.template_archived.label', object=template.title, status=t('status.archived.label').unescape()|lower) if not template.active else none}) %}
 {% else %}{% if can_create_template %}{% set _ = actions.append({'key': 'actions.create_template', 'href': url_for('admin.dish_template_new', recipe=item.public_id)}) %}{% endif %}{% endfor %}
 {{ row_actions(actions, object=item.payload.title) }}
 </td>

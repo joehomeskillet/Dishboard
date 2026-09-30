@@ -69,9 +69,9 @@
       </p>
       {% endif %}
       <div class="admin-week-card-action admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=slot_name) }}">
-        {{ icon_button(slot_action, href=cell.edit_url, object=cell.day_label ~ ', ' ~ cell.day_short ~ ', ' ~ cell.meal_label ~ ', ' ~ cell.option_label ~ ' – ' ~ slot_name, emphasis='secondary') }}
+        {{ icon_button(slot_action, href=cell.edit_url, object=slot_name, aria_label=t('week.slot_edit.label' if cell.title else 'week.slot_add.label', day=cell.day_label, date=cell.day_short, meal=cell.meal_label, option=cell.option_label, object=slot_name), emphasis='secondary') }}
         {% if cell.dish_template %}
-        {{ icon_button('actions.open_template', href=url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id), object=cell.day_label ~ ', ' ~ cell.day_short ~ ', ' ~ cell.meal_label ~ ', ' ~ cell.option_label ~ ' – ' ~ slot_name ~ ' · ' ~ cell.dish_template.title ~ (' (archiviert)' if not cell.dish_template.active else ''), class='admin-week-template') }}
+        {{ icon_button('actions.open_template', href=url_for('admin.dish_template_edit', public_id=cell.dish_template.public_id), object=cell.dish_template.title, aria_label=t('week.slot_template.label', day=cell.day_label, date=cell.day_short, meal=cell.meal_label, option=cell.option_label, object=slot_name, template=cell.dish_template.title, status=(' (' + t('status.archived.label').unescape()|lower + ')') if not cell.dish_template.active else ''), class='admin-week-template') }}
         {% endif %}
       </div>
       {% if family == 'cafeteria' and cell.title and admin_menu_images|default('show') != 'hide' %}
