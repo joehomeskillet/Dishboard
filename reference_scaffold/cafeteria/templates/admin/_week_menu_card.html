@@ -68,6 +68,9 @@
         {% endif %}
       </p>
       {% endif %}
+      {% if cell.dish_template %}
+      <p class="admin-list-secondary">Aus Vorlage «{{ cell.dish_template.title }}»{% if not cell.dish_template.active %} (archiviert){% endif %}</p>
+      {% endif %}
       <div class="admin-week-card-action admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=slot_name) }}">
         {{ icon_button(slot_action, href=cell.edit_url, object=cell.day_label ~ ', ' ~ cell.day_short ~ ', ' ~ cell.meal_label ~ ', ' ~ cell.option_label ~ ' – ' ~ slot_name, emphasis='secondary') }}
         {% if cell.dish_template %}
