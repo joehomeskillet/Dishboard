@@ -17,7 +17,7 @@
 {% endblock %}
 {% block content %}
 <div class="mb-3">{{ icon_button('actions.back', href=g.get('food_list_return') or url_for('admin.master_data_list', kind=query_kinds[kind])) }}</div>
-{{ errors() }}
+{% if error_purpose != 'preis' %}{{ errors() }}{% endif %}
 {% if not row %}<div class="alert alert-info" role="status">{{ icon('info-circle') }}<strong>Lagerort erforderlich:</strong> Mindestens ein Lagerort ist für jede Zutat Pflicht. Fehlt die Zuordnung, wird «Lagerort fehlt» angezeigt.</div>{% endif %}
 {% set core = 'stammdaten' if row else 'neu' %}
 {% if can_write %}
@@ -100,15 +100,19 @@
 <p>Kein Einkaufspreis erfasst. Fehlender Preis erscheint in Kalkulationen als unvollständig, nicht als 0.</p>
 {% endif %}
 {% if can_write %}
-{% call disclosure_section() %}
+{% call disclosure_section(has_error=error_purpose == 'preis') %}
 <form method="post" action="{{ url_for('admin.food_price_save', public_id=row.public_id) }}">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-{% if current.rev %}<input type="hidden" name="head_row_version" value="{{ current.rev.head_row_version }}">{% endif %}
+{% set price_values = values if error_purpose == 'preis' else {} %}
+{% if error_purpose == 'preis' %}
+<input type="hidden" name="head_row_version" value="{{ price_values.get('head_row_version', '') }}">
+<div class="alert alert-danger error-region" id="price-error" role="alert" tabindex="-1" data-focus-invalid autofocus>{{ error }} <a href="#unit_price" data-error-link>Preisangaben prüfen</a></div>
+{% elif current.rev %}<input type="hidden" name="head_row_version" value="{{ current.rev.head_row_version }}">{% endif %}
 <div class="row g-3">
-<div class="col-12 col-md-3"><label class="form-label" for="valid_from">Gültig ab</label><input class="form-control" type="date" id="valid_from" name="valid_from" required></div>
-<div class="col-12 col-md-3"><label class="form-label" for="valid_to">Gültig bis (exklusiv)</label><input class="form-control" type="date" id="valid_to" name="valid_to"></div>
-<div class="col-12 col-md-2"><label class="form-label" for="unit_price">CHF je Einheit</label><input class="form-control" id="unit_price" name="unit_price" required inputmode="decimal"></div>
-<div class="col-12 col-md-2"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="{{ row.base_unit.code if row.base_unit else 'KG' }}" required></div>
+<div class="col-12 col-md-3"><label class="form-label" for="valid_from">Gültig ab</label><input class="form-control" type="date" id="valid_from" name="valid_from" value="{{ price_values.get('valid_from', '') }}" required></div>
+<div class="col-12 col-md-3"><label class="form-label" for="valid_to">Gültig bis (exklusiv)</label><input class="form-control" type="date" id="valid_to" name="valid_to" value="{{ price_values.get('valid_to', '') }}"></div>
+<div class="col-12 col-md-2"><label class="form-label" for="unit_price">CHF je Einheit</label><input class="form-control" id="unit_price" name="unit_price" value="{{ price_values.get('unit_price', '') }}" required inputmode="decimal"{% if error_purpose == 'preis' %} aria-invalid="true" aria-describedby="price-error"{% endif %}></div>
+<div class="col-12 col-md-2"><label class="form-label" for="unit_code">Einheit</label><input class="form-control" id="unit_code" name="unit_code" value="{{ price_values.get('unit_code', row.base_unit.code if row.base_unit else 'KG') }}" required></div>
 <div class="col-12 col-md-2 d-flex align-items-end">{{ icon_button('actions.save', text='Preis speichern', emphasis='secondary') }}</div>
 </div>
 </form>
