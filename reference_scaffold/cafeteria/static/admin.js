@@ -308,8 +308,11 @@
             const target = e.submitter?.formTarget || form.target;
             if (target && target !== '_self') return;
             submittingForm = form;
-            // An iframe target or cancelled submit must not exempt the next navigation.
-            window.setTimeout(() => { submittingForm = null; }, 0);
+            // Native navigation may start after a timer task. Keep its exemption
+            // until beforeunload, but discard submissions cancelled by later listeners.
+            window.setTimeout(() => {
+                if (e.defaultPrevented) submittingForm = null;
+            }, 0);
         });
     });
 
