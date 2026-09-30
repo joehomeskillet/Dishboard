@@ -239,6 +239,7 @@
     const forms = document.querySelectorAll('form:not([data-dirty-tracking="off"])');
     const dirtyForms = new Set();
     const initialFormValues = new WeakMap();
+    const unsavedLabel = document.body.dataset.unsavedLabel;
     let submittingForm = null;
     const dirtyActionState = new Map();
 
@@ -262,6 +263,8 @@
         if (form.matches('[data-menu-editor]')) {
             const note = document.querySelector('[data-menu-editor-dirty-note]');
             note?.classList.toggle('is-dirty', dirty);
+            const status = note?.querySelector('[data-dirty-status]');
+            if (status) status.textContent = dirty ? unsavedLabel : '';
         }
         if (form.hasAttribute('data-dirty-form')) {
             let status = form.querySelector('[data-dirty-status]');
@@ -272,7 +275,7 @@
                 status.setAttribute('role', 'status');
                 form.append(status);
             }
-            status.textContent = dirty ? 'Nicht gespeichert' : '';
+            status.textContent = dirty ? unsavedLabel : '';
             status.hidden = !dirty;
         }
         updateDirtyState();
@@ -335,7 +338,7 @@
             (document.querySelector('main') || document.body).prepend(flashRegion);
         }
         if (flashRegion) {
-            flashRegion.textContent = isDirty ? 'Zuerst speichern' : '';
+            flashRegion.textContent = isDirty ? unsavedLabel : '';
             flashRegion.hidden = !isDirty;
         }
         if (!isDirty) {
