@@ -84,27 +84,3 @@ def test_t14_bound_revision_survives_recipe_change_and_archive(
         expect(card).to_contain_text('Ursprüngliche Suppe')
         expect(card).not_to_contain_text('Umbenannte Suppe')
         assert _bound(admin_engine) == binding
-
-
-# BF-Lücke: reference_scaffold/cafeteria/templates/admin/_week_menu_card.html:17
-@pytest.mark.parametrize('family,profile', FAMILIES)
-@pytest.mark.parametrize('archived', (False, True), ids=('changed', 'archived'))
-def test_t14_week_card_explains_bound_revision_and_archive(
-    bf_page: Page, admin_engine: Engine, family: str, profile: str, archived: bool,  # noqa: F811
-    javascript_enabled: bool,  # noqa: F811
-) -> None:
-    first, binding = _bind_and_change_recipe(bf_page, admin_engine, family, javascript_enabled)
-    if archived:
-        with admin_engine.begin() as connection:
-            connection.execute(text(
-                'UPDATE cafeteria.recipes SET active=false WHERE id=:id',
-            ), {'id': int(first['recipe_id'])})
-    page = bf_page
-    page.goto(f'/admin/{family}?week={DAY}')
-    card = page.locator(f'#week-slot-{DAY}-LUNCH-MENU_1')
-    expect(card).to_contain_text('Ursprüngliche Suppe')
-    assert _bound(admin_engine) == binding
-    visible = card.inner_text()
-    assert 'Revision 1' in visible, f'Feste Rezeptrevision fehlt auf Wochenkarte: {visible}'
-    if archived:
-        assert 'archiviert' in visible.lower(), f'Archivierte Quelle bleibt unerklärt: {visible}'

@@ -1,5 +1,5 @@
 {# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, can_publish, week_row_version, schedule_defaults_csrf. #}
-{% from 'ui/_semantic.html' import icon_button, sem_icon, row_actions, status_badge_sem %}
+{% from 'ui/_semantic.html' import icon_button, sem_icon, row_actions %}
 {% if status == 'live' %}
   {% set publish_label = 'Erneut veröffentlichen' %}
   {% set status_plain = 'Veröffentlicht · entspricht dem gespeicherten Stand' %}
@@ -32,8 +32,7 @@
 {% set csv_profile = 'patienten' if family == 'patienten' else 'cafeteria' %}
 
 {% macro overview_header(heading, description) %}
-  {% set dimension_chips %}{% if status == 'review_open' and draft is defined and draft.workflow_state|default('') != 'published' %}{{ status_badge_sem('publish.draft') }}{{ status_badge_sem('review.pending') }}{{ status_badge_sem('publish.unpublished') }}{% endif %}{% endset %}
-  {% call page_header(heading, (date_range ~ ' · KW ' ~ iso_week ~ ' · ' ~ status_short) ~ dimension_chips) %}
+  {% call page_header(heading, date_range ~ ' · KW ' ~ iso_week ~ ' · ' ~ status_short) %}
     {% if publish_blocked and status == 'review_open' %}
     {{ icon_button('actions.check', href='/admin/' ~ family ~ '/wochen/pruefung?week=' ~ week_value ~ '#week-review-form', aria_label='Offene Punkte prüfen', emphasis='primary') }}
     {% elif can_publish %}

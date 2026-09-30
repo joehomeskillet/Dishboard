@@ -5,7 +5,6 @@ from typing import Any
 
 from flask import abort, current_app, g, has_request_context, render_template, request, session, url_for
 from werkzeug.datastructures import MultiDict
-from werkzeug.exceptions import HTTPException
 
 from ..component_catalog_store import AdminScope
 from ..component_catalog_filters import ComponentFilters
@@ -133,57 +132,6 @@ def _lookup(draft: dict[str, Any] | None) -> dict[tuple[str, str, str], dict[str
     return cells
 
 
-def _bound_revision_index(draft: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
-    """Card hint only. A lookup failure leaves the binding text unchanged."""
-    if draft is None or not has_request_context():
-        return {}
-    wanted: list[str] = []
-    for day in draft.get('days') or []:
-        for service in day.get('services') or []:
-            rows = [
-                row for option in service.get('options') or []
-                for row in (option.get('assignments') or [])
-                if isinstance(row, dict)
-            ]
-            for row in rows:
-                revision = row.get('recipe_revision_public_id')
-                if isinstance(revision, str) and revision and revision not in wanted:
-                    wanted.append(revision)
-    if not wanted:
-        return {}
-    engine = current_app.extensions.get('cafeteria_db')
-    if engine is None or not hasattr(engine, 'connect'):
-        return {}
-    try:
-        page = list_recipe_choices(engine, wanted, RecipeChoiceQuery())
-    except (
-        RecipeUnavailableError, RecipeValidationError, RecipeNotFoundError,
-        TypeError, HTTPException,
-    ):
-        return {}
-    index: dict[str, dict[str, Any]] = {}
-    for choice in (*page.choices, *page.retained):
-        if choice.revision_number is None:
-            continue
-        index[str(choice.revision_public_id)] = {
-            'revision_number': choice.revision_number,
-            'archived': not bool(choice.recipe_active),
-        }
-    return index
-
-
-def _component_revision_hints(
-    components: list[object], assignments: object, index: dict[str, dict[str, Any]],
-) -> list[dict[str, Any] | None]:
-    rows = assignments if isinstance(assignments, list) else []
-    hints: list[dict[str, Any] | None] = []
-    for position, _component in enumerate(components):
-        row = rows[position] if position < len(rows) and isinstance(rows[position], dict) else None
-        revision = row.get('recipe_revision_public_id') if row else None
-        hints.append(index.get(revision) if isinstance(revision, str) and revision else None)
-    return hints
-
-
 def _cells(
     profile: str, family: str, week: date, draft: dict[str, Any] | None,
     versions: dict[tuple[str, str, str], int],
@@ -191,7 +139,6 @@ def _cells(
     week_courses: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     options = _lookup(draft)
-    revision_index = _bound_revision_index(draft)
     packed = week_courses or {}
     cells: list[dict[str, Any]] = []
     draft_services = {
@@ -211,7 +158,6 @@ def _cells(
             for option_code in MENU_TYPES:
                 option = options.get((day, meal, option_code), {})
                 option_exc = course_exceptions.get(option_code) or {}
-                components = list(option.get('components') or [])
                 cell: dict[str, Any] = {
                     'day': day, 'day_label': DAY_NAMES[offset],
                     'day_short': f'{service_day.day}. {MONTHS[service_day.month - 1]}',
@@ -221,10 +167,7 @@ def _cells(
                     'service_row_version': int(service.get('row_version', 0)),
                     'title': option.get('title', ''),
                     'dish_template': option.get('dish_template'),
-                    'components': components,
-                    'bound_revisions': _component_revision_hints(
-                        components, option.get('assignments') or [], revision_index,
-                    ),
+                    'components': list(option.get('components') or []),
                     'description': str(option.get('description') or ''),
                     'note': str(option.get('note') or ''),
                     'accompaniment_code': str(option.get('accompaniment_code') or 'none'),

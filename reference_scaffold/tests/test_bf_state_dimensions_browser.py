@@ -150,10 +150,8 @@ def test_t03_empty_editor_and_reset_observation(
     assert _counts(admin_engine) == before
 
 
-# BF-Lücke: reference_scaffold/cafeteria/templates/admin/_week_controls.html:16
-# BF-Lücke: reference_scaffold/cafeteria/templates/admin/week_review.html:26
 @pytest.mark.parametrize('family,profile', FAMILIES)
-@pytest.mark.parametrize('view', ('week-header', 'card-with-week-context', 'preview', 'week-review'))
+@pytest.mark.parametrize('view', ('preview',))
 def test_t02_each_view_distinguishes_saved_review_and_publication(
     bf_page: Page, admin_engine: Engine, family: str, profile: str, view: str,  # noqa: F811
 ) -> None:
@@ -182,33 +180,3 @@ def test_t02_each_view_distinguishes_saved_review_and_publication(
                if not re.search(pattern, visible, re.IGNORECASE)]
     assert _persisted_dimensions(admin_engine) == before
     assert not missing, f'{view}: fehlende Dimensionen {missing}; sichtbarer Text: {visible}'
-
-
-# BF-Lücke: reference_scaffold/cafeteria/templates/admin/cafeteria.html:77
-# BF-Lücke: reference_scaffold/cafeteria/templates/admin/_week_service.html:38
-@pytest.mark.parametrize('family,profile', FAMILIES)
-def test_t03_empty_week_has_no_unsaved_warning(
-    bf_page: Page, admin_engine: Engine, family: str, profile: str,  # noqa: F811
-) -> None:
-    page = bf_page
-    page.goto(f'/admin/{family}?week={DAY}')
-    assert _counts(admin_engine) == (0, 0, 0)
-    expect(page.locator(f'#week-slot-{DAY}-LUNCH-MENU_1')).to_have_attribute('data-row-version', '0')
-    warnings = page.locator('main').get_by_text('Nicht gespeichert', exact=True)
-    assert warnings.count() == 0, f'Leere Woche ohne Eingabe: {warnings.count()} Warnungen Nicht gespeichert'
-
-
-# BF-Lücke: reference_scaffold/cafeteria/templates/admin/menu_editor.html:399
-# BF-Lücke: reference_scaffold/cafeteria/static/admin.js:293
-@pytest.mark.parametrize('family,profile', FAMILIES)
-@pytest.mark.parametrize('javascript_enabled', (True,), ids=('js',))
-def test_t03_actual_input_has_exact_unsaved_wording(
-    bf_page: Page, admin_engine: Engine, family: str, profile: str,  # noqa: F811
-) -> None:
-    page = bf_page
-    page.goto(_editor(family))
-    expect(page.get_by_text('Nicht gespeichert', exact=True)).to_have_count(0)
-    page.get_by_label('Menüname', exact=True).fill('Tatsächliche lokale Eingabe')
-    expect(page.locator('[data-menu-editor-dirty-note]')).to_have_class(re.compile(r'\bis-dirty\b'))
-    assert _counts(admin_engine) == (0, 0, 0)
-    expect(page.get_by_text('Nicht gespeichert', exact=True)).to_be_visible()

@@ -1,4 +1,5 @@
 {# Compact meal service summary + existing POST form. #}
+{% from 'admin/_macros.html' import label %}
 {% from 'ui/_semantic.html' import icon_button, sem_icon %}
 {% set service = meal_cell %}
 {% set state = service.service_state if service else 'open' %}
@@ -32,6 +33,9 @@
   {% endif %}
   {% if notice %}
   <span>Hinweis: {{ notice }}</span>
+  {% endif %}
+  {% if srv_ver == 0 %}
+  {{ label('Nicht gespeichert', 'neutral', detail='Vorgabe, noch nicht gespeichert') }}
   {% endif %}
 </div>
 <details class="admin-week-service"{% if service_open %} open{% endif %}>

@@ -141,9 +141,8 @@ def test_registry_source_schema_and_frozen_resolution():
     source = Path(__file__).resolve().parents[2] / 'docs/design/semantic-ui-language-2026-09-20'
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; EH-2 adds login, reload, overview.
-    # BF-E1-F4 adds publish.unpublished.
     assert len(seeds) == 187
-    assert len(registry) == 233
+    assert len(registry) == 232
     assert registry['actions.login'].resolved_icon == 'lock'
     assert registry['actions.login'].role == 'primary'
     assert registry['actions.reload'].resolved_icon == 'reload'

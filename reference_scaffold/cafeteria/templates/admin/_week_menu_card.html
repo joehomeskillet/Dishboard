@@ -14,9 +14,7 @@
       {% if cell.components %}
       <div class="admin-week-components admin-list-secondary">
         {% for component in cell.components %}
-        {% set hints = cell.bound_revisions if cell.bound_revisions is defined else [] %}
-        {% set hint = hints[loop.index0] if loop.index0 < (hints|length) else none %}
-        <span>{{ component }}{% if hint and hint.revision_number is not none %} · Revision {{ hint.revision_number }}{% if hint.archived %} (archiviert){% endif %}{% endif %}</span>
+        <span>{{ component }}</span>
         {% endfor %}
       </div>
       {% endif %}
