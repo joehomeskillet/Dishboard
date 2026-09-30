@@ -33,7 +33,7 @@ def _as_of() -> date:
         try:
             return date.fromisoformat(raw)
         except ValueError as error:
-            raise CalendarEventValidationError('Stichtag ist ungültig.') from error
+            raise CalendarEventValidationError('Stichtag ist ungültig.', field='as_of') from error
     return effective_today()
 
 
@@ -97,27 +97,13 @@ def _posted_cost() -> dict[str, object]:
     }
 
 
-def _cost_field(error: BaseException) -> str:
-    lowered = str(error).casefold()
-    if 'isoformat' in lowered or 'stichtag' in lowered:
-        return 'as_of'
-    return 'revision_public_id'
-
-
-def _cost_message(error: BaseException) -> str:
-    raw = str(error)
-    if _cost_field(error) == 'as_of' and 'isoformat' in raw.casefold():
-        return 'Stichtag ist ungültig.'
-    return raw
-
-
 def _cost_error(error: BaseException, status: int, projection: dict | None) -> Response:
     posted = _posted_cost()
     response = make_response(render_template(
         'admin/kalkulation.html', family='cafeteria', profile='staff_guest',
         projection=projection, as_of=posted['as_of'], revision_public_id=posted['revision_public_id'],
         menu_revision_public_ids=posted['menu_revision_public_ids'], kind=posted['kind'],
-        field_errors={_cost_field(error): _cost_message(error)},
+        field_errors={getattr(error, 'field', None) or 'revision_public_id': str(error)},
     ), status)
     response.headers['Cache-Control'] = 'no-store'
     return response
@@ -129,11 +115,14 @@ def _project(prices: dict[str, str] | None = None):
     extras = [item.strip() for item in request.values.getlist('menu_revision_public_id') if item.strip()]
     chosen = prices if prices is not None else _price_map()
     as_of = _as_of()
-    try:
-        for public_id in (([revision] if revision else []) + extras if kind == 'menu' else [revision]):
+    fields = [('revision_public_id', revision)] if revision or kind != 'menu' else []
+    if kind == 'menu':
+        fields.extend(('menu_revision_public_id', item) for item in extras)
+    for field, public_id in fields:
+        try:
             UUID(public_id)
-    except ValueError as error:
-        raise CalendarEventValidationError('Rezeptrevision ist ungültig.') from error
+        except ValueError as error:
+            raise CalendarEventValidationError('Rezeptrevision ist ungültig.', field=field) from error
     if kind == 'menu':
         ids = ([revision] if revision else []) + extras
         return project_menu(_db(), ids, as_of, chosen)
@@ -190,7 +179,7 @@ def cost_confirm() -> Response:
         try:
             UUID(subject)
         except ValueError as error:
-            raise CalendarEventValidationError('Rezeptrevision ist ungültig.') from error
+            raise CalendarEventValidationError('Rezeptrevision ist ungültig.', field='revision_public_id') from error
         append_receipt(
             _db(), _scope(), kind=projection['kind'], subject_public_id=subject, payload=payload,
         )

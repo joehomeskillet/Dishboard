@@ -133,6 +133,50 @@ def test_inactive_article_keeps_basket_inputs(b3, adder):  # noqa: F811
     assert get_basket(ctx['engine'], ctx['location'], ctx['basket_id'])['lines'][0]['quantity'] == Decimal('2')
 
 
+@pytest.mark.parametrize('field,index,value,target', [
+    ('raw_quantity', 0, 'abc', 'line-raw-0'),
+    ('quantity', 1, 'abc', 'line-qty-new'),
+    ('raw_quantity', 1, '-1', 'line-raw-new'),
+    ('article_public_id', 1, 'invalid-uuid', 'line-article-new'),
+    ('row_version', 0, 'abc', 'basket-save'),
+])
+def test_basket_parse_error_targets_actual_field(b3, field, index, value, target):  # noqa: F811
+    ctx = _setup(b3)
+    path = ctx['basket']
+    form = OrderForms(ctx['client'].get(path).text).forms[path]
+    form.setlist('article_public_id', [ctx['article_id'], ctx['article_id']])
+    form.setlist('quantity', ['3.25', '4.5'])
+    form.setlist('raw_quantity', ['1.5', '2.5'])
+    values = form.getlist(field)
+    values[index] = value
+    form.setlist(field, values)
+    response = ctx['client'].post(path, data=form)
+    assert response.status_code == 400
+    assert f'id="{target}-error"' in response.text
+    assert f'href="#{target}"' in response.text
+    kept = OrderForms(response.text).forms[path]
+    for name in ('quantity', 'raw_quantity', 'article_public_id', 'row_version'):
+        assert kept.getlist(name) == form.getlist(name)
+
+
+@pytest.mark.parametrize('field,value,target,message', [
+    ('as_of', '2026-02-30', 'as_of', 'Stichtag ist ungültig.'),
+    ('as_of', 'not-a-date', 'as_of', 'Stichtag ist ungültig.'),
+    ('menu_revision_public_id', 'invalid-uuid', 'menu_revision_public_id', 'Rezeptrevision ist ungültig.'),
+])
+@pytest.mark.parametrize('endpoint', ['vorschau', 'beleg'])
+def test_cost_parse_error_targets_actual_field(b3, field, value, target, message, endpoint):  # noqa: F811
+    _, _, client, _ = b3
+    data = {'_csrf': 'b3-test-csrf', 'kind': 'menu', 'as_of': '2026-09-30',
+            'revision_public_id': '11111111-1111-4111-8111-111111111111', field: value}
+    response = client.post('/admin/kalkulation/' + endpoint, data=data)
+    assert response.status_code == 400
+    assert f'id="{target}-error"' in response.text
+    assert f'href="#{target}"' in response.text
+    assert message in response.text
+    assert f'value="{value}"' in response.text
+
+
 def _setup(b3):  # noqa: F811
     app, owner, client, actor = b3
     other = urlsplit(create(
@@ -170,214 +214,139 @@ def _forms(client, path: str):
     return Forms(response.get_data(as_text=True)).forms
 
 
-def _post(client, action: str, source: MultiDict, **overrides):
-    data = MultiDict(source)
-    for key, value in overrides.items():
-        data[key] = value
-    try:
-        return client.post(action, data=data), None
-    except Exception as error:
-        return None, error
-
-
-def _note(problems: list[str], label: str, ok: bool, detail: str) -> None:
-    if not ok:
-        problems.append(f'{label}: {detail}')
-
-
-def _html_forms(response):
-    return Forms(response.get_data(as_text=True)).forms
-
-
-def test_direct_posts_keep_inputs_and_reject_empty_quantities(b3, monkeypatch):  # noqa: F811
+@pytest.mark.parametrize('action,field,value,message', [
+    ('bewegung', 'quantity', '', 'Menge ist erforderlich.'),
+    ('bewegung', 'quantity', 'abc', 'Menge muss eine Zahl sein.'),
+    ('bewegung', 'quantity', '0', 'Menge muss positiv sein.'),
+    ('umbuchung', 'quantity', '', 'Menge ist erforderlich.'),
+    ('umbuchung', 'quantity', 'abc', 'Menge muss eine Zahl sein.'),
+    ('umbuchung', 'quantity', '0', 'Menge muss positiv sein.'),
+    ('zaehlung', 'counted_quantity', '', 'Menge ist erforderlich.'),
+    ('zaehlung', 'counted_quantity', '   ', 'Menge ist erforderlich.'),
+    ('zaehlung', 'counted_quantity', 'xyz', 'Menge muss eine Zahl sein.'),
+    ('zaehlung', 'counted_quantity', '-1', 'Zählmenge darf nicht negativ sein.'),
+])
+def test_direct_quantity_rejection_keeps_input(b3, action, field, value, message):  # noqa: F811
     ctx = _setup(b3)
-    client, owner, food_id = ctx['client'], ctx['owner'], ctx['food_id']
+    path = '/admin/lager/' + action
+    form = _forms(ctx['client'], ctx['lager'])[path]
+    form[field] = value
+    response = ctx['client'].post(path, data=form)
+    assert response.status_code == 400
+    assert Forms(response.text).forms[path][field] == value
+    assert message in response.text
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert _movements(ctx['owner']) == 0
+
+
+def test_inventory_insufficient_and_real_zero_are_distinct(b3):  # noqa: F811
+    ctx = _setup(b3)
+    client, owner = ctx['client'], ctx['owner']
     forms = _forms(client, ctx['lager'])
-    move, transfer, count = (
-        forms['/admin/lager/bewegung'], forms['/admin/lager/umbuchung'], forms['/admin/lager/zaehlung'],
-    )
-    problems: list[str] = []
+    transfer = forms['/admin/lager/umbuchung']
+    transfer['quantity'] = '1'
+    response = client.post('/admin/lager/umbuchung', data=transfer)
+    assert response.status_code == 409
+    assert Forms(response.text).forms['/admin/lager/umbuchung']['quantity'] == '1'
+    assert 'Bestand würde negativ.' in response.text and 'id="lager-more" open' in response.text
+    assert _movements(owner) == 0
+    move = forms['/admin/lager/bewegung']
+    move['quantity'] = '2'
+    assert client.post('/admin/lager/bewegung', data=move).status_code == 303
+    assert _stock(owner, ctx['food_id'], STORAGE_PUBLIC_ID) == Decimal('2')
+    count = _forms(client, ctx['lager'])['/admin/lager/zaehlung']
+    count['counted_quantity'] = ''
+    before = _movements(owner)
+    rejected = client.post('/admin/lager/zaehlung', data=count)
+    assert rejected.status_code == 400 and 'Menge ist erforderlich.' in rejected.text
+    assert _stock(owner, ctx['food_id'], STORAGE_PUBLIC_ID) == Decimal('2')
+    assert _movements(owner) == before
+    count['counted_quantity'] = '0'
+    assert client.post('/admin/lager/zaehlung', data=count).status_code == 303
+    assert _stock(owner, ctx['food_id'], STORAGE_PUBLIC_ID) == Decimal('0')
 
-    def reject(label: str, action: str, source: MultiDict, field: str, value: str,
-               message: str, status: int = 400):
-        before = _movements(owner)
-        response, error = _post(client, action, source, **{field: value} if field != 'counted_quantity'
-                                else {'counted_quantity': value})
-        if field == 'quantity' and action.endswith('/zaehlung'):
-            response, error = _post(client, action, source, counted_quantity=value)
-        if error is not None:
-            problems.append(f'{label}: raised {type(error).__name__}: {error}')
-            return
-        _note(problems, label, response.status_code == status,
-              f'status {response.status_code} body {response.get_data(as_text=True)[:240]}')
-        if response.status_code != status:
-            return
-        parsed = _html_forms(response)
-        kept = parsed[action].get(field if action.endswith('/zaehlung') or field != 'quantity' else 'quantity', '')
-        if action.endswith('/zaehlung'):
-            kept = parsed[action].get('counted_quantity', '')
-        elif field == 'quantity':
-            kept = parsed[action].get('quantity', '')
-        _note(problems, f'{label} value', kept == value, repr(kept))
-        text = response.get_data(as_text=True)
-        _note(problems, f'{label} message', message in text, 'missing message')
-        _note(problems, f'{label} store', response.headers.get('Cache-Control') == 'no-store',
-              response.headers.get('Cache-Control', ''))
-        _note(problems, f'{label} movements', _movements(owner) == before, str(_movements(owner)))
 
-    reject('empty move', '/admin/lager/bewegung', move, 'quantity', '', 'Menge ist erforderlich.')
-    reject('text move', '/admin/lager/bewegung', move, 'quantity', 'abc', 'Menge muss eine Zahl sein.')
-    reject('zero move', '/admin/lager/bewegung', move, 'quantity', '0', 'Menge muss positiv sein.')
-    reject('blank count', '/admin/lager/zaehlung', count, 'counted_quantity', '   ', 'Menge ist erforderlich.')
-    reject('text count', '/admin/lager/zaehlung', count, 'counted_quantity', 'xyz', 'Menge muss eine Zahl sein.')
-    reject('empty transfer', '/admin/lager/umbuchung', transfer, 'quantity', '', 'Menge ist erforderlich.')
-    reject('text transfer', '/admin/lager/umbuchung', transfer, 'quantity', 'abc', 'Menge muss eine Zahl sein.')
-    _note(problems, 'no stock yet', _stock(owner, food_id, STORAGE_PUBLIC_ID) == 0, 'stock changed')
-
-    response, error = _post(client, '/admin/lager/umbuchung', transfer, quantity='1')
-    if error is not None:
-        problems.append(f'insufficient transfer: {type(error).__name__}: {error}')
+@pytest.mark.parametrize('denial', ['csrf', 'permission'])
+def test_error_rerender_preserves_security_boundary(b3, monkeypatch, denial):  # noqa: F811
+    ctx = _setup(b3)
+    form = _forms(ctx['client'], ctx['lager'])['/admin/lager/bewegung']
+    form['quantity'] = '4'
+    if denial == 'csrf':
+        form['_csrf'] = 'wrong'
     else:
-        _note(problems, 'insufficient transfer', response.status_code == 409, str(response.status_code))
-        if response.status_code == 409:
-            page = response.get_data(as_text=True)
-            _note(problems, 'insufficient value', _html_forms(response)['/admin/lager/umbuchung']['quantity'] == '1',
-                  'quantity lost')
-            _note(problems, 'insufficient copy', 'Bestand würde negativ.' in page, 'missing copy')
-            _note(problems, 'insufficient open', 'id="lager-more" open' in page, 'disclosure closed')
-        _note(problems, 'insufficient stock', _movements(owner) == 0, str(_movements(owner)))
+        monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
+    response = ctx['client'].post('/admin/lager/bewegung', data=form)
+    assert response.status_code == (400 if denial == 'csrf' else 403)
+    assert 'id="lager-move-form"' not in response.text
+    assert _movements(ctx['owner']) == 0
 
-    booked, error = _post(client, '/admin/lager/bewegung', move, quantity='2')
-    if error is not None:
-        problems.append(f'receipt: {type(error).__name__}: {error}')
-    else:
-        _note(problems, 'receipt', booked.status_code == 303, str(booked.status_code))
-        _note(problems, 'receipt stock', _stock(owner, food_id, STORAGE_PUBLIC_ID) == Decimal('2'),
-              str(_stock(owner, food_id, STORAGE_PUBLIC_ID)))
-    forms = _forms(client, ctx['lager'])
-    count = forms['/admin/lager/zaehlung']
-    reject('empty count', '/admin/lager/zaehlung', count, 'counted_quantity', '', 'Menge ist erforderlich.')
-    _note(problems, 'empty count keeps two', _stock(owner, food_id, STORAGE_PUBLIC_ID) == Decimal('2'),
-          str(_stock(owner, food_id, STORAGE_PUBLIC_ID)))
-    zero, error = _post(client, '/admin/lager/zaehlung', count, counted_quantity='0')
-    if error is not None:
-        problems.append(f'zero count: {type(error).__name__}: {error}')
-    else:
-        _note(problems, 'zero count', zero.status_code == 303, str(zero.status_code))
-        _note(problems, 'zero stock', _stock(owner, food_id, STORAGE_PUBLIC_ID) == Decimal('0'),
-              str(_stock(owner, food_id, STORAGE_PUBLIC_ID)))
 
-    forged, error = _post(client, '/admin/lager/bewegung', move, quantity='4', _csrf='wrong')
-    if error is not None:
-        problems.append(f'csrf: {type(error).__name__}: {error}')
-    else:
-        _note(problems, 'csrf', forged.status_code == 400, str(forged.status_code))
-        _note(problems, 'csrf form', 'id="lager-move-form"' not in forged.get_data(as_text=True), 'form rendered')
-
-    basket = ctx['basket']
-    order_forms = OrderForms(client.get(basket).get_data(as_text=True)).forms
-    stale = MultiDict(order_forms[basket])
-    current = MultiDict(order_forms[basket])
+def test_basket_conflict_keeps_original_version_and_quantities(b3):  # noqa: F811
+    ctx = _setup(b3)
+    client, path = ctx['client'], ctx['basket']
+    stale = OrderForms(client.get(path).text).forms[path]
+    current = MultiDict(stale)
     current.setlist('quantity', ['3', ''])
-    saved = client.post(basket, data=current)
-    _note(problems, 'basket save', saved.status_code == 303, str(saved.status_code))
+    assert client.post(path, data=current).status_code == 303
     stale.setlist('quantity', ['9.5', ''])
-    conflict, error = None, None
-    try:
-        conflict = client.post(basket, data=stale)
-    except Exception as raised:
-        error = raised
-    if error is not None:
-        problems.append(f'basket conflict: {type(error).__name__}: {error}')
-    else:
-        _note(problems, 'basket conflict', conflict.status_code == 409, str(conflict.status_code))
-        if conflict.status_code == 409:
-            returned = OrderForms(conflict.get_data(as_text=True)).forms[basket]
-            _note(problems, 'basket value', returned.getlist('quantity')[0] == '9.5',
-                  repr(returned.getlist('quantity')))
-            _note(problems, 'basket version', returned['row_version'] == stale['row_version'],
-                  returned.get('row_version', ''))
-            _note(problems, 'basket copy', 'zwischenzeitlich' in conflict.get_data(as_text=True), 'missing copy')
-    stored = get_basket(ctx['engine'], ctx['location'], ctx['basket_id'])
-    _note(problems, 'basket unchanged', stored['lines'][0]['quantity'] == Decimal('3'),
-          str(stored['lines'][0]['quantity']))
-
-    demand = MultiDict(order_forms[basket + '/bedarf'])
-    demand['food_public_id'] = '11111111-1111-4111-8111-111111111111'
-    demand['need_quantity'] = 'abc'
-    demand_response, error = None, None
-    try:
-        demand_response = client.post(basket + '/bedarf', data=demand)
-    except Exception as raised:
-        error = raised
-    if error is not None:
-        problems.append(f'demand: {type(error).__name__}: {error}')
-    else:
-        _note(problems, 'demand', demand_response.status_code == 400, str(demand_response.status_code))
-        if demand_response.status_code == 400:
-            parsed = OrderForms(demand_response.get_data(as_text=True)).forms[basket + '/bedarf']
-            _note(problems, 'demand food', parsed['food_public_id'] == demand['food_public_id'],
-                  parsed.get('food_public_id', ''))
-            _note(problems, 'demand qty', parsed['need_quantity'] == 'abc', parsed.get('need_quantity', ''))
-            _note(problems, 'demand open', 'id="korb-weitere" open' in demand_response.get_data(as_text=True),
-                  'disclosure closed')
-
-    preview, error = None, None
-    try:
-        preview = client.post('/admin/kalkulation/vorschau', data={
-            '_csrf': 'b3-test-csrf', 'kind': 'prepared', 'revision_public_id': 'nicht-eine-uuid',
-            'as_of': '2026-09-17', 'menu_revision_public_id': 'extra-wert',
-        })
-    except Exception as raised:
-        error = raised
-    if error is not None:
-        problems.append(f'cost preview: {type(error).__name__}: {error}')
-    else:
-        body = preview.get_data(as_text=True)
-        _note(problems, 'cost preview', preview.status_code == 400, str(preview.status_code))
-        _note(problems, 'cost value', 'value="nicht-eine-uuid"' in body, 'uuid lost')
-        _note(problems, 'cost extra', 'value="extra-wert"' in body, 'extra lost')
-        _note(problems, 'cost kind', 'value="prepared" selected' in body, 'kind lost')
-        _note(problems, 'cost open', 'id="cost-options" open' in body, 'disclosure closed')
-
-    try:
-        ids = {
-            'actor': ctx['actor'].user_id, 'authz': ctx['actor'].authz_version,
-            'location': ctx['location'], 'storage': STORAGE_PUBLIC_ID,
-        }
-        recipe_food = create_food(ctx['engine'], ids, 'Kalkmehl', unit='G')
-        frozen = freeze(ctx['engine'], ids, create_recipe(ctx['engine'], ids, [recipe_food], name='Kalksuppe'))
-        first = client.post('/admin/kalkulation/beleg', data={
-            '_csrf': 'b3-test-csrf', 'kind': 'recipe', 'revision_public_id': frozen['public_id'],
-            'as_of': '2026-09-01', 'menu_revision_public_id': '',
-        })
-        _note(problems, 'cost confirm', first.status_code == 303, str(first.status_code))
-        second = client.post('/admin/kalkulation/beleg', data={
-            '_csrf': 'b3-test-csrf', 'kind': 'recipe', 'revision_public_id': frozen['public_id'],
-            'as_of': '2026-09-02', 'menu_revision_public_id': '',
-        })
-        body = second.get_data(as_text=True)
-        _note(problems, 'cost conflict', second.status_code == 409, str(second.status_code))
-        _note(problems, 'cost date', 'value="2026-09-02"' in body, 'date lost')
-        _note(problems, 'cost revision', frozen['public_id'] in body, 'revision lost')
-        _note(problems, 'cost conflict copy', 'anderem Inhalt' in body, 'missing copy')
-        with owner.connect() as connection:
-            receipts = connection.execute(text(
-                'SELECT count(*) FROM cafeteria.calculation_receipts')).scalar_one()
-        _note(problems, 'one receipt', receipts == 1, str(receipts))
-    except Exception as raised:
-        problems.append(f'cost conflict setup: {type(raised).__name__}: {raised}')
-
-    monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
-    denied, error = _post(client, '/admin/lager/bewegung', move, quantity='1')
-    if error is not None:
-        problems.append(f'forbidden: {type(error).__name__}: {error}')
-    else:
-        _note(problems, 'forbidden', denied.status_code == 403, str(denied.status_code))
-    assert problems == [], problems
+    response = client.post(path, data=stale)
+    assert response.status_code == 409
+    returned = OrderForms(response.text).forms[path]
+    assert returned.getlist('quantity') == ['9.5', '']
+    assert returned['row_version'] == stale['row_version']
+    assert 'zwischenzeitlich' in response.text
+    assert get_basket(ctx['engine'], ctx['location'], ctx['basket_id'])['lines'][0]['quantity'] == Decimal('3')
 
 
-def test_browser_keeps_error_inputs_with_and_without_javascript(b3):  # noqa: F811
+@pytest.mark.parametrize('food,quantity,target', [
+    ('11111111-1111-4111-8111-111111111111', 'abc', 'need_quantity'),
+    ('invalid-uuid', '3.25', 'demand_food'),
+])
+def test_demand_error_keeps_both_values(b3, food, quantity, target):  # noqa: F811
+    ctx = _setup(b3)
+    path = ctx['basket'] + '/bedarf'
+    form = OrderForms(ctx['client'].get(ctx['basket']).text).forms[path]
+    form['food_public_id'], form['need_quantity'] = food, quantity
+    response = ctx['client'].post(path, data=form)
+    assert response.status_code == 400
+    kept = OrderForms(response.text).forms[path]
+    assert kept['food_public_id'] == food and kept['need_quantity'] == quantity
+    assert f'id="{target}-error"' in response.text
+    assert 'id="korb-weitere" open' in response.text
+
+
+def test_cost_input_error_keeps_kind_revision_and_extra(b3):  # noqa: F811
+    _, _, client, _ = b3
+    response = client.post('/admin/kalkulation/vorschau', data={
+        '_csrf': 'b3-test-csrf', 'kind': 'prepared', 'revision_public_id': 'nicht-eine-uuid',
+        'as_of': '2026-09-17', 'menu_revision_public_id': 'extra-wert',
+    })
+    assert response.status_code == 400
+    assert 'value="nicht-eine-uuid"' in response.text and 'value="extra-wert"' in response.text
+    assert 'value="prepared" selected' in response.text and 'id="cost-options" open' in response.text
+
+
+def test_cost_receipt_conflict_keeps_inputs_without_second_receipt(b3):  # noqa: F811
+    ctx = _setup(b3)
+    ids = {'actor': ctx['actor'].user_id, 'authz': ctx['actor'].authz_version,
+           'location': ctx['location'], 'storage': STORAGE_PUBLIC_ID}
+    food = create_food(ctx['engine'], ids, 'Kalkmehl', unit='G')
+    frozen = freeze(ctx['engine'], ids, create_recipe(ctx['engine'], ids, [food], name='Kalksuppe'))
+    data = {'_csrf': 'b3-test-csrf', 'kind': 'recipe', 'revision_public_id': frozen['public_id'],
+            'as_of': '2026-09-01', 'menu_revision_public_id': ''}
+    assert ctx['client'].post('/admin/kalkulation/beleg', data=data).status_code == 303
+    data['as_of'] = '2026-09-02'
+    response = ctx['client'].post('/admin/kalkulation/beleg', data=data)
+    assert response.status_code == 409
+    assert 'value="2026-09-02"' in response.text and frozen['public_id'] in response.text
+    assert 'anderem Inhalt' in response.text
+    with ctx['owner'].connect() as connection:
+        assert connection.execute(text('SELECT count(*) FROM cafeteria.calculation_receipts')).scalar_one() == 1
+
+
+@pytest.mark.parametrize('javascript', [False, True], ids=['nojs', 'js'])
+@pytest.mark.parametrize('case', ['move', 'transfer', 'count', 'basket', 'cost', 'new_raw', 'inactive', 'cost_extra'])
+def test_browser_keeps_error_inputs_with_and_without_javascript(b3, javascript, case, tmp_path):  # noqa: F811
     ctx = _setup(b3)
     app, client = ctx['app'], ctx['client']
     server = make_server('127.0.0.1', 0, app, threaded=True)
@@ -385,49 +354,81 @@ def test_browser_keeps_error_inputs_with_and_without_javascript(b3):  # noqa: F8
     thread.start()
     cookie = client.get_cookie(app.config['SESSION_COOKIE_NAME'])
     origin = f'http://127.0.0.1:{server.server_port}'
-    problems: list[str] = []
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
             try:
-                for javascript in (False, True):
-                    label = 'js' if javascript else 'nojs'
-                    context = browser.new_context(
-                        viewport={'width': 1440, 'height': 900}, java_script_enabled=javascript,
-                        reduced_motion='reduce', locale='de-CH',
-                    )
+                with browser.new_context(viewport={'width': 1440, 'height': 900},
+                                         java_script_enabled=javascript, reduced_motion='reduce', locale='de-CH') as context:
                     context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': origin}])
                     page = context.new_page()
                     page.set_default_timeout(5000)
-                    _browser_case(problems, label, page, origin, ctx, client)
-                    context.close()
+
+                    def post_status(button):
+                        with page.expect_response(lambda item: item.request.method == 'POST') as caught:
+                            button.click()
+                        return caught.value.status
+
+                    if case in ('move', 'transfer', 'count'):
+                        assert page.goto(origin + ctx['lager']).status == 200
+                        if case == 'move':
+                            _move(page, origin, ctx, post_status)
+                        elif case == 'transfer':
+                            _transfer(page, post_status)
+                        else:
+                            page.locator('#lager-more > summary').click()
+                            _count(page, post_status)
+                    elif case == 'basket':
+                        _basket(page, origin, ctx, client, post_status)
+                    elif case == 'cost':
+                        _cost(page, origin, post_status)
+                    else:
+                        _review_browser_case(case, page, origin, ctx, post_status)
+                    for width, height in ((1440, 900), (390, 844)):
+                        page.set_viewport_size({'width': width, 'height': height})
+                        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+                        page.screenshot(path=str(tmp_path / f'{case}-{width}.png'), full_page=True)
+                    _narrow(page)
             finally:
                 browser.close()
     finally:
         server.shutdown()
         thread.join(timeout=5)
         server.server_close()
-    assert problems == [], problems
 
 
-def _browser_case(problems, label, page, origin, ctx, client) -> None:
-    def check(name, fn) -> None:
-        try:
-            fn()
-        except Exception as error:
-            problems.append(f'{label} {name}: {type(error).__name__}: {error}')
-
-    def post_status(button):
-        with page.expect_response(lambda item: item.request.method == 'POST', timeout=5000) as caught:
-            button.click()
-        return caught.value.status
-
-    check('move', lambda: _move(page, origin, ctx, post_status))
-    check('transfer', lambda: _transfer(page, post_status))
-    check('count', lambda: _count(page, post_status))
-    check('basket', lambda: _basket(page, origin, ctx, client, post_status))
-    check('cost', lambda: _cost(page, origin, post_status))
-    check('narrow', lambda: _narrow(page))
+def _review_browser_case(case, page, origin, ctx, post_status):
+    if case == 'cost_extra':
+        page.goto(origin + '/admin/kalkulation')
+        page.locator('#revision_public_id').fill('11111111-1111-4111-8111-111111111111')
+        page.locator('#kind').select_option('menu')
+        page.locator('#cost-options > summary').click()
+        page.locator('#menu_revision_public_id').fill('invalid-extra')
+        assert post_status(page.locator('main .btn-primary')) == 400
+        expect(page.locator('#menu_revision_public_id-error')).to_be_visible()
+        expect(page.locator('#menu_revision_public_id')).to_have_value('invalid-extra')
+        return
+    page.goto(origin + ctx['basket'])
+    version = page.locator('#basket-save [name="row_version"]').input_value()
+    if case == 'new_raw':
+        page.locator('#line-article-new').select_option(ctx['article_id'])
+        page.locator('#line-qty-new').fill('4.5')
+        page.locator('#line-raw-new').fill('abc')
+    else:
+        page.locator('#line-qty-0').fill('7.25')
+        with ctx['owner'].begin() as connection:
+            connection.execute(text('UPDATE cafeteria.supplier_articles SET active=false WHERE public_id=CAST(:id AS uuid)'),
+                               {'id': ctx['article_id']})
+    assert post_status(page.locator('#basket-save button[type="submit"]')) == 400
+    expect(page.locator('#basket-save [name="row_version"]')).to_have_value(version)
+    if case == 'new_raw':
+        expect(page.locator('#line-raw-new-error')).to_contain_text('Zahl')
+        expect(page.locator('#line-qty-new')).to_have_value('4.5')
+        expect(page.locator('#line-raw-new')).to_have_value('abc')
+        expect(page.locator('#line-article-new')).to_have_value(ctx['article_id'])
+    else:
+        expect(page.locator('#basket-save-error')).to_contain_text('Artikel nicht gefunden.')
+        expect(page.locator('#line-qty-0')).to_have_value('7.25')
 
 
 def _move(page, origin, ctx, post_status) -> None:
@@ -469,7 +470,8 @@ def _basket(page, origin, ctx, client, post_status) -> None:
     assert status == 409
     expect(page.locator('#line-qty-0')).to_have_value('7.25')
     expect(page.locator('form.order-basket-form input[name="row_version"]')).to_have_value(version)
-    expect(page.locator('#line-qty-0-error')).to_contain_text('zwischenzeitlich')
+    expect(page.locator('#basket-save-error')).to_contain_text('zwischenzeitlich')
+    expect(page.locator('#line-qty-0')).not_to_have_attribute('aria-invalid', 'true')
 
 
 def _cost(page, origin, post_status) -> None:

@@ -1,7 +1,8 @@
 """Order draft UI: catalog, basket, CSV download. No send."""
 from __future__ import annotations
 
-from decimal import InvalidOperation
+from decimal import Decimal, InvalidOperation
+from uuid import UUID
 
 from flask import Response, current_app, flash, g, make_response, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -33,33 +34,44 @@ def _actor() -> ActorExpectation:
     return ActorExpectation(g.auth_user.user_id, g.auth_user.authz_version)
 
 
-def _basket_message(error: BaseException) -> str:
-    if isinstance(error, InvalidOperation):
-        return 'Menge muss eine Zahl sein.'
-    raw = str(error)
-    lowered = raw.casefold()
-    if 'hexadecimal' in lowered or 'uuid' in lowered:
-        return 'Ungültige Kennung.'
+def _quantity(raw: str, field: str, *, raw_quantity: bool = False) -> str:
+    try:
+        number = Decimal(raw)
+    except InvalidOperation as error:
+        raise CalendarEventValidationError('Menge muss eine Zahl sein.', field=field) from error
+    if not number.is_finite():
+        raise CalendarEventValidationError('Menge muss eine Zahl sein.', field=field)
+    if raw_quantity and number < 0:
+        raise CalendarEventValidationError('Rohmenge darf nicht negativ sein.', field=field)
+    if not raw_quantity and number <= 0:
+        raise CalendarEventValidationError('Menge muss positiv sein.', field=field)
     return raw
 
 
-def _save_field(error: BaseException, message: str, has_lines: bool) -> str:
-    raw_id = 'line-raw-0' if has_lines else 'line-raw-new'
-    qty_id = 'line-qty-0' if has_lines else 'line-qty-new'
-    if 'rohmenge' in message.casefold():
-        return raw_id
-    if isinstance(error, InvalidOperation) and 'raw' in message.casefold():
-        return raw_id
-    return qty_id
+def _identifier(raw: str, field: str) -> str:
+    try:
+        return str(UUID(raw))
+    except ValueError as error:
+        raise CalendarEventValidationError('Ungültige Kennung.', field=field) from error
 
 
-def _demand_field(error: BaseException, message: str) -> str:
-    lowered = message.casefold()
-    if isinstance(error, InvalidOperation) or any(
-        token in lowered for token in ('rohmenge', 'zahl', 'positiv', 'negativ')
-    ):
-        return 'need_quantity'
-    return 'demand_food'
+def _posted_lines() -> list[dict[str, str]]:
+    codes = request.form.getlist('article_public_id')
+    qtys = request.form.getlist('quantity')
+    raws = request.form.getlist('raw_quantity')
+    width = max(len(codes), len(qtys), len(raws), 1)
+    lines = []
+    for index, (code, qty) in enumerate(zip(codes, qtys)):
+        if not code or not qty:
+            continue
+        suffix = 'new' if index == width - 1 else str(index)
+        item = {'article_public_id': _identifier(code, f'line-article-{suffix}'),
+                'quantity': _quantity(qty, f'line-qty-{suffix}')}
+        raw = raws[index] if index < len(raws) else ''
+        if raw:
+            item['raw_quantity'] = _quantity(raw, f'line-raw-{suffix}', raw_quantity=True)
+        lines.append(item)
+    return lines
 
 
 def _view_line(code: str, qty: str, raw: str, basket: dict, articles: tuple) -> dict[str, str]:
@@ -127,12 +139,11 @@ def _fail_basket(public_id: str, error: BaseException, status: int, *, demand: b
     except CalendarEventValidationError:
         return ('', 404)
     articles = list_articles(_db(), location, basket['supplier_public_id'])
-    message = _basket_message(error)
+    message = str(error)
     posted_lines, posted_adder = (None, None)
     if not demand:
         posted_lines, posted_adder = _split_posted(basket, articles)
-    has_lines = bool(posted_lines) or bool(basket['lines'])
-    field = _demand_field(error, message) if demand else _save_field(error, message, has_lines)
+    field = getattr(error, 'field', None) or ('basket-demand' if demand else 'basket-save')
     submitted = request.form.get('row_version') if 'row_version' in request.form else None
     return _render_basket(
         public_id, status=status, field_errors={field: message},
@@ -143,12 +154,12 @@ def _fail_basket(public_id: str, error: BaseException, status: int, *, demand: b
     )
 
 
-def _expected_version() -> int:
+def _expected_version(field: str = 'basket-save') -> int:
     raw = request.form.get('row_version') or '0'
     try:
         return int(raw)
     except ValueError as error:
-        raise ValueError('Ungültiger Bearbeitungsstand.') from error
+        raise CalendarEventValidationError('Ungültiger Bearbeitungsstand.', field=field) from error
 
 
 @bp.get('/bestellung')
@@ -207,25 +218,13 @@ def order_basket(public_id: str) -> WerkzeugResponse:
 @require_capability('draft.write')
 def order_basket_save(public_id: str) -> WerkzeugResponse:
     validate_csrf(request.form.get('_csrf'))
-    codes = request.form.getlist('article_public_id')
-    qtys = request.form.getlist('quantity')
-    raws = request.form.getlist('raw_quantity')
-    lines = []
-    for index, (code, qty) in enumerate(zip(codes, qtys)):
-        if not code or not qty:
-            continue
-        raw = raws[index] if index < len(raws) else ''
-        item = {'article_public_id': code, 'quantity': qty}
-        if raw:
-            item['raw_quantity'] = raw
-        lines.append(item)
     try:
         replace_basket_lines(
-            _db(), _scope(), public_id, expected_row_version=_expected_version(), lines=lines,
+            _db(), _scope(), public_id, expected_row_version=_expected_version(), lines=_posted_lines(),
         )
     except (CalendarEventConflictError, OrderBasketConflictError) as error:
         return _fail_basket(public_id, error, 409, demand=False)
-    except (OrderBasketError, CalendarEventValidationError, ValueError, InvalidOperation) as error:
+    except (OrderBasketError, CalendarEventValidationError) as error:
         return _fail_basket(public_id, error, 400, demand=False)
     flash('Korb gespeichert.')
     return redirect(url_for('admin.order_basket', public_id=public_id), 303)
@@ -237,14 +236,16 @@ def order_basket_from_demand(public_id: str) -> WerkzeugResponse:
     validate_csrf(request.form.get('_csrf'))
     foods = request.form.getlist('food_public_id')
     qtys = request.form.getlist('need_quantity')
-    demands = [{'food_public_id': food, 'quantity': qty} for food, qty in zip(foods, qtys) if food and qty]
     try:
+        demands = [{'food_public_id': _identifier(food, 'demand_food'),
+                    'quantity': _quantity(qty, 'need_quantity')}
+                   for food, qty in zip(foods, qtys) if food and qty]
         fill_from_demand(
-            _db(), _scope(), public_id, expected_row_version=_expected_version(), demands=demands,
+            _db(), _scope(), public_id, expected_row_version=_expected_version('basket-demand'), demands=demands,
         )
     except (CalendarEventConflictError, OrderBasketConflictError) as error:
         return _fail_basket(public_id, error, 409, demand=True)
-    except (OrderBasketError, CalendarEventValidationError, ValueError, InvalidOperation) as error:
+    except (OrderBasketError, CalendarEventValidationError) as error:
         return _fail_basket(public_id, error, 400, demand=True)
     flash('Bedarf in den Entwurfskorb übernommen. Rohmenge bleibt sichtbar; Gebinde sind gerundet.')
     return redirect(url_for('admin.order_basket', public_id=public_id), 303)
