@@ -99,7 +99,33 @@ def test_eh_t30_t31_t35_renderer_failure_has_one_safe_fallback(auth_app, monkeyp
     assert "default-src 'self'" in response.headers['Content-Security-Policy']
     assert response.headers['X-Request-ID'] in caplog.text
     assert 'RuntimeError' in caplog.text
-    assert 'SECRET' not in caplog.text and 'ATTACKER' not in caplog.text
+    assert 'ATTACKER' not in caplog.text
+    assert any(
+        record.name == 'cafeteria.errors' and record.exc_info and record.exc_info[0] is RuntimeError
+        for record in caplog.records)
+
+
+def test_unexpected_error_logs_traceback_without_request_data(auth_app, caplog):
+    app, _, _ = auth_app
+    marker = 'marker-exception'
+    query_name = 'secret-query-eh1c'
+    body_name = 'secret-body-eh1c'
+
+    @app.post('/eh-unexpected')
+    def explode():
+        raise RuntimeError(marker)
+
+    response = app.test_client().post(
+        f'/eh-unexpected?{query_name}=1', data={body_name: '1'})
+    text = response.get_data(as_text=True)
+    assert response.status_code == 500
+    assert marker not in text and query_name not in text and body_name not in text
+    assert query_name not in caplog.text and body_name not in caplog.text
+    logged = [
+        record for record in caplog.records
+        if record.name == 'cafeteria.errors' and record.exc_info and record.exc_info[0] is RuntimeError
+    ]
+    assert logged
 
 
 @pytest.mark.parametrize('stage', ('open_session', 'save_session'))

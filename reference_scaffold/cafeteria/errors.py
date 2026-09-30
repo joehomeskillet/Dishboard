@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import secrets
 from dataclasses import asdict, dataclass, field
@@ -251,11 +252,17 @@ def request_id() -> str:
     return value
 
 
+_LOG = logging.getLogger('cafeteria.errors')
+
+
 def _diagnose(event: str, error: Exception, status: int) -> None:
     try:
-        current_app.logger.warning('event=%s status=%s route=%s reference=%s exception=%s',
-            event, status, request.url_rule.rule if request.url_rule else 'unmatched',
-            request_id(), type(error).__name__)
+        route = request.url_rule.rule if request.url_rule else 'unmatched'
+        _LOG.warning(
+            'event=%s status=%s route=%s reference=%s exception=%s',
+            event, status, route, request_id(), type(error).__name__,
+            exc_info=(type(error), error, error.__traceback__),
+        )
     except Exception:
         # Diagnostics must not prevent the isolated fallback from reaching the caller.
         return
@@ -345,7 +352,7 @@ def render_error(error: HTTPException, *, code: str | None = None, minimal: bool
             else:
                 html = render_template('errors/page.html', error=payload)
         except Exception as renderer_error:
-            # One isolated fallback. Do not log exception text, URLs, cookies or submitted values.
+            # One isolated fallback. The traceback stays in the server log, not in the response.
             _diagnose('error.renderer_failed', renderer_error, view.http_status)
             html = _minimal(view)
         response.set_data(html)
