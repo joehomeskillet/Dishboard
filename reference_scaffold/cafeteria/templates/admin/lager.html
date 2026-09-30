@@ -9,11 +9,15 @@
 {{ page_header(t('navigation.stock.label')) }}
 {% endblock %}
 {% block content %}
+{% if field_errors['lager-selection'] %}
+{{ form_errors({'lager-selection': field_errors['lager-selection']}) }}
+<div class="invalid-feedback d-block field-error" id="lager-selection-error">{{ field_errors['lager-selection'] }}</div>
+{% endif %}
 {% if slots %}
 {% if uncaptured_count %}
 <p class="admin-list-secondary" role="status">Für {{ uncaptured_count }} {{ 'Zuordnung' if uncaptured_count == 1 else 'Zuordnungen' }} ist noch kein Bestand erfasst. Nicht erfasst bedeutet nicht 0.</p>
 {% endif %}
-<section class="lager-slots" aria-labelledby="lager-slots-heading">
+<section class="lager-slots" id="lager-selection" tabindex="-1" aria-labelledby="lager-slots-heading"{% if field_errors['lager-selection'] %} aria-describedby="lager-selection-error"{% endif %}>
   <h2 class="lager-section-title" id="lager-slots-heading">Zuordnungen</h2>
   <table class="table lager-table admin-table admin-table--stack">
     <thead><tr><th scope="col">Zutat</th><th scope="col">Lagerort</th><th scope="col">Bestand</th><th scope="col">Aktion</th></tr></thead>

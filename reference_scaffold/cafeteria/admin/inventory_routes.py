@@ -4,7 +4,6 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 from flask import current_app, flash, g, make_response, redirect, render_template, request, url_for
-from sqlalchemy.exc import NoResultFound
 from werkzeug.wrappers import Response
 
 from ..inventory_store import (
@@ -127,17 +126,20 @@ def _fail_inventory(form: str, error: BaseException, status: int) -> Response:
     message = _public_error(error)
     food = request.form.get('food_public_id') or ''
     storage = request.form.get('source_storage_public_id') or request.form.get('storage_public_id') or ''
+    field = getattr(error, 'field', None)
+    if field in ('food_public_id', 'storage_public_id'):
+        field = 'lager-selection'
+    elif field == 'unit_code':
+        field = _UNIT_FIELD[form]
     response = make_response(render_template(
         'admin/lager.html',
-        **_inventory_context(food, storage, _posted_values(form), {_inventory_field(form, message): message}, form),
+        **_inventory_context(food, storage, _posted_values(form), {field or _inventory_field(form, message): message}, form),
     ), status)
     response.headers['Cache-Control'] = 'no-store'
     return response
 
 
 def _reject_inventory(form: str, error: BaseException) -> Response:
-    if isinstance(error, NoResultFound):
-        return _fail_inventory(form, InventoryError('Einheit ist unbekannt.'), 400)
     status = 409 if isinstance(error, InventoryInsufficientError) else 400
     return _fail_inventory(form, error, status)
 
@@ -164,7 +166,7 @@ def inventory_move() -> Response:
             unit_code=request.form.get('unit_code') or 'KG',
             note=request.form.get('note') or None,
         )
-    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation, NoResultFound) as error:
+    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation) as error:
         return _reject_inventory('move', error)
     flash('Bewegung gebucht.')
     return _home_redirect()
@@ -183,7 +185,7 @@ def inventory_transfer() -> Response:
             quantity=_require_quantity(request.form.get('quantity')),
             unit_code=request.form.get('unit_code') or 'KG',
         )
-    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation, NoResultFound) as error:
+    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation) as error:
         return _reject_inventory('transfer', error)
     flash('Umbuchung gebucht.')
     return _home_redirect(
@@ -204,7 +206,7 @@ def inventory_count() -> Response:
             counted_quantity=_require_quantity(request.form.get('counted_quantity')),
             unit_code=request.form.get('unit_code') or 'KG',
         )
-    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation, NoResultFound) as error:
+    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation) as error:
         return _reject_inventory('count', error)
     if result['movement_public_id'] is None:
         flash('Zählung bestätigt, ohne Bewegung.')
