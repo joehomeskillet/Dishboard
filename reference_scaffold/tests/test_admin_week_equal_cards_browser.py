@@ -170,7 +170,8 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
                 if control.evaluate("el => el.matches('.ui-sem-control--icon-only')"):
                     assert box['width'] == box['height'] == 36
                 else:
-                    assert box['width'] >= 48 and box['height'] >= 48
+                    minimum = control.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+                    assert box['width'] >= minimum and box['height'] >= minimum
             page.locator('.admin-day-card, .patient-admin-day').last.screenshot(
                 path=str(tmp_path / f'{family}-equal-cards-{width}.png'),
             )

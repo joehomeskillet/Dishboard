@@ -149,7 +149,7 @@ def _controls(page: Page, family: str, *, component_rows: int | None = 2, requir
     else:
         expect(page.locator('#f-int')).to_have_count(0)
     sizes = page.locator('form[data-menu-editor] .btn, form[data-menu-editor] .form-control, form[data-menu-editor] .form-select').evaluate_all(
-        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height, e.classList.contains("ui-sem-control") ? 36 : 48])'
+        'es => es.filter(e => e.getClientRects().length).map(e => [e.id, e.getBoundingClientRect().height, parseFloat(getComputedStyle(e).getPropertyValue("--app-control-min-height"))])'
     )
     assert sizes and all(height >= minimum for _, height, minimum in sizes), sizes
     box = page.locator('.page-body > .container-xl')

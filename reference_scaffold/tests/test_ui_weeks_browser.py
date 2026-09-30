@@ -88,7 +88,7 @@ def _views(page: Page, tmp_path: Path, state: str, viewports=VIEWPORTS) -> None:
             'es => es.map(e => e.outerHTML)'
         ) == []
         assert page.locator('main :is(.btn, input:not([type=hidden]), textarea, summary):visible').evaluate_all(
-            "es => es.every(e => e.getBoundingClientRect().height >= (e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse)').matches ? 44 : 36) : 48))"
+            "es => es.every(e => e.getBoundingClientRect().height >= parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height')))"
         )
         clipped = page.locator('main :is(td, dd, p):visible').evaluate_all(r'''es => es.flatMap(e => {
             const s = getComputedStyle(e);

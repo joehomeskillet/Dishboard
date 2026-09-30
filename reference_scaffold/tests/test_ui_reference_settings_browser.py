@@ -50,7 +50,8 @@ def _create_context(playwright_browser: Browser, server_url: str, client, *, jav
     return context
 
 
-def _assert_no_overflow_and_min_targets(page, min_height: int = 44):
+def _assert_no_overflow_and_min_targets(page):
+    min_height = page.evaluate("parseFloat(getComputedStyle(document.body).getPropertyValue('--app-control-min-height'))")
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     for locator in page.locator('main :is(.btn, .form-select, .form-control)').all():
         if locator.is_visible():
@@ -121,7 +122,7 @@ def test_settings_normal_state_and_viewports(
         expect(page.locator('.display-preview .menu-photo')).to_have_count(1)
         expect(page.locator('#display-example')).to_have_value('Frisch zubereitet')
 
-        _assert_no_overflow_and_min_targets(page, min_height=44)
+        _assert_no_overflow_and_min_targets(page)
         page.screenshot(path=str(tmp_path / f'ref-settings-normal-{width}x{height}.png'), full_page=True)
 
 
@@ -358,7 +359,7 @@ def test_settings_zoom200_and_reduced_motion(
         page.set_viewport_size({'width': 640, 'height': 480})
         page.goto(PATH)
 
-        _assert_no_overflow_and_min_targets(page, min_height=44)
+        _assert_no_overflow_and_min_targets(page)
         expect(page.locator('h1.page-title')).to_be_visible()
         expect(page.locator('#display-settings-form')).to_be_visible()
         expect(page.locator('.display-preview')).to_be_visible()

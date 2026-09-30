@@ -60,7 +60,9 @@ def test_week_edit_add_and_header_use_shared_pointer_geometry(
                 assert (box['width'], box['height']) == (expected, expected), measurement
         for control in page.locator('.navbar-toggler:visible, .admin-nav:visible a').all():
             box = control.bounding_box()
-            assert box is not None and box['height'] >= 48
+            minimum = control.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+            assert minimum == expected
+            assert box is not None and box['height'] >= minimum
         label = f'patienten-{width}-js{javascript}-coarse{coarse}'
         page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True)
         (tmp_path / f'{label}.json').write_text(json.dumps(measurements, indent=2), encoding='utf-8')

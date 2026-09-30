@@ -493,5 +493,5 @@ def _narrow(page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     for control in page.locator('main :is(.btn, .form-control, .form-select):visible').all():
         box = control.bounding_box()
-        minimum = 36 if 'ui-sem-control' in (control.get_attribute('class') or '') else 48
+        minimum = control.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
         assert box is not None and box['height'] + 0.5 >= minimum
