@@ -9,8 +9,10 @@ from decimal import Decimal
 from threading import Thread
 from urllib.parse import urlsplit
 
+import pytest
 from playwright.sync_api import expect, sync_playwright
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 from werkzeug.datastructures import MultiDict
 from werkzeug.serving import make_server
 
@@ -24,6 +26,28 @@ from test_master_data_db import (  # noqa: F401
 )
 from test_master_data_routes import Forms, b3, create  # noqa: F401
 from test_order_admin import OrderForms
+
+
+@pytest.mark.parametrize('endpoint', ['vorschau', 'beleg'])
+@pytest.mark.parametrize('failure', [KeyError, ValueError, DBAPIError])
+def test_unexpected_cost_error_never_discloses_internal_text(b3, monkeypatch, endpoint, failure):  # noqa: F811
+    from cafeteria.admin import cost_routes
+
+    app, _, client, _ = b3
+    app.config['PROPAGATE_EXCEPTIONS'] = False
+
+    def fail(*args, **kwargs):
+        if failure is DBAPIError:
+            raise DBAPIError('private_sql_marker', {}, RuntimeError('private_driver_marker'))
+        raise failure('private_internal_marker')
+
+    monkeypatch.setattr(cost_routes, 'project_recipe', fail)
+    response = client.post('/admin/kalkulation/' + endpoint, data={
+        '_csrf': 'b3-test-csrf', 'kind': 'recipe',
+        'revision_public_id': '11111111-1111-4111-8111-111111111111', 'as_of': '2026-09-30',
+    })
+    assert 'private_' not in response.text
+    assert response.status_code == 500
 
 
 def _stock(owner, food_id: str, storage_id: str) -> Decimal:

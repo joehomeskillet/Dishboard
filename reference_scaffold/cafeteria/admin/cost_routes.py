@@ -5,10 +5,10 @@ from datetime import date
 from uuid import UUID
 
 from flask import current_app, flash, g, make_response, redirect, render_template, request, url_for
-from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
 
 from ..calculation_receipts import CalculationReceiptConflictError, append_receipt
+from ..calendar_event_store import CalendarEventValidationError
 from ..food_price_store import list_price_revisions
 from ..public.routes import effective_today
 from ..recipe_cost import project_menu, project_prepared, project_recipe
@@ -30,7 +30,10 @@ def _scope() -> ShoppingScope:
 def _as_of() -> date:
     raw = (request.values.get('as_of') or '').strip()
     if raw:
-        return date.fromisoformat(raw)
+        try:
+            return date.fromisoformat(raw)
+        except ValueError as error:
+            raise CalendarEventValidationError('Stichtag ist ungültig.') from error
     return effective_today()
 
 
@@ -126,6 +129,11 @@ def _project(prices: dict[str, str] | None = None):
     extras = [item.strip() for item in request.values.getlist('menu_revision_public_id') if item.strip()]
     chosen = prices if prices is not None else _price_map()
     as_of = _as_of()
+    try:
+        for public_id in (([revision] if revision else []) + extras if kind == 'menu' else [revision]):
+            UUID(public_id)
+    except ValueError as error:
+        raise CalendarEventValidationError('Rezeptrevision ist ungültig.') from error
     if kind == 'menu':
         ids = ([revision] if revision else []) + extras
         return project_menu(_db(), ids, as_of, chosen)
@@ -156,9 +164,7 @@ def cost_preview() -> Response:
             filled = _current_prices([item for item in foods if item])
             if filled:
                 projection = _project(filled)
-    except HTTPException:
-        raise
-    except Exception as error:
+    except CalendarEventValidationError as error:
         return _cost_error(error, 400, None)
     response = make_response(render_template(
         'admin/kalkulation.html', family='cafeteria', profile='staff_guest',
@@ -181,15 +187,16 @@ def cost_confirm() -> Response:
         projection = _project()
         payload = _serialize(projection)
         subject = (request.form.get('revision_public_id') or request.form.get('menu_revision_public_id') or '').strip()
-        UUID(subject)
+        try:
+            UUID(subject)
+        except ValueError as error:
+            raise CalendarEventValidationError('Rezeptrevision ist ungültig.') from error
         append_receipt(
             _db(), _scope(), kind=projection['kind'], subject_public_id=subject, payload=payload,
         )
-    except HTTPException:
-        raise
     except CalculationReceiptConflictError as error:
         return _cost_error(error, 409, projection)
-    except Exception as error:
+    except CalendarEventValidationError as error:
         return _cost_error(error, 400, projection)
     flash('Kalkulationsbeleg gespeichert.')
     return redirect(url_for('admin.cost_home'), 303)
