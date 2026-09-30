@@ -78,3 +78,18 @@ def test_t30_saved_edit_preview_and_public_outputs_keep_separate_revisions(
         assert connection.execute(text(
             'SELECT revision_code,snapshot_json FROM cafeteria.publication_revisions',
         )).all() == [published]
+
+
+# BF-Lücke: reference_scaffold/cafeteria/admin/workflow_routes.py:1120
+# BF-Lücke: reference_scaffold/cafeteria/templates/admin/preview.html:9
+@pytest.mark.parametrize('family,profile', FAMILIES)
+def test_t30_changed_published_week_identifies_preview_as_draft(
+    bf_page: Page, admin_app: Flask, admin_engine: Engine, family: str, profile: str,  # noqa: F811
+) -> None:
+    _edited_publication(admin_app, admin_engine, profile)
+    page = bf_page
+    page.goto(f'/admin/{family}/preview?week={DAY}')
+    expect(page.locator('.preview-grid')).to_contain_text('Geänderter Entwurfsteller')
+    # The persisted workflow can remain "published"; the displayed draft must be named.
+    # Fixture week title deliberately contains no "Entwurf", avoiding a false positive.
+    expect(page.locator('.preview-heading')).to_contain_text('Entwurf')
