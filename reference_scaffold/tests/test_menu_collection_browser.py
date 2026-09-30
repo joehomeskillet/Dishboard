@@ -116,12 +116,20 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
         print('WP04_REFERENCE', family, javascript, json.dumps(sanitized, ensure_ascii=False))
         print('WP04_METRICS', family, javascript, json.dumps(metrics), str(tmp_path))
         page.wait_for_load_state()
-        saved_review = page.locator('#review').inner_text()
+        # Saved values stay on the review block. The dirty note is local draft state.
+        persisted = page.locator(
+            '#review .card-header, #review .card-body > :not([data-menu-editor-dirty-note]), #review .card-footer',
+        )
+        saved_review = persisted.all_inner_texts()
         for code, selected in [('MILK', False), ('LUPIN', True), ('GLUTEN', False), ('GLUTEN', True)]:
             page.locator(f'[name="allergen_code"][value="{code}"]').set_checked(selected)
         page.locator('#allergen-lupin-presence').select_option('may_contain')
         expect(page.locator('#allergen-milk-presence')).to_be_enabled()
-        expect(page.locator('#review')).to_have_text(saved_review, use_inner_text=True)
+        expect(persisted).to_have_text(saved_review, use_inner_text=True)
+        if javascript:
+            note = page.locator('[data-menu-editor-dirty-note]')
+            expect(note).to_be_visible()
+            expect(note).to_contain_text('Nicht gespeichert')
         with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith('/menu')) as changed:
             page.get_by_role('button', name='Menü speichern', exact=True).click()
         submitted = parse_qs(changed.value.request.post_data, keep_blank_values=True)
