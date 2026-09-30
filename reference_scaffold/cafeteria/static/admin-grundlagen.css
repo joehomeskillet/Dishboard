@@ -14,28 +14,22 @@
   flex: none;
 }
 
-.grundlagen-filter > div {
-  min-width: 0;
-  flex: 1 1 10rem;
-}
-
-.grundlagen-filter-options > summary {
-  min-height: 3rem;
-  cursor: pointer;
-}
-
-.grundlagen-filter-fields {
+.grundlagen-master .admin-filter-profile {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--app-space-2);
 }
 
-.grundlagen-filter-fields > div {
+.grundlagen-master:not([data-kind="zutaten"]) .admin-filter-search {
+  display: none;
+}
+
+.grundlagen-master .admin-filter-slots > div {
   flex: 1 1 10rem;
   min-width: 0;
 }
 
-.grundlagen-filter .form-check,
 .grundlagen-choices .form-check {
   min-height: 3rem;
   display: flex;
@@ -56,37 +50,6 @@
   gap: var(--app-space-2);
 }
 
-details.card > summary.card-header {
-  min-height: 3rem;
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  align-items: center;
-}
-
-details.card > summary.card-header::-webkit-details-marker {
-  display: none;
-}
-
-details.card > summary.card-header::marker {
-  content: '';
-}
-
-details.card > summary.card-header .grundlagen-accordion-marker {
-  flex: none;
-  transition: transform 200ms cubic-bezier(.2, 0, 0, 1);
-}
-
-details.card[open] > summary.card-header .grundlagen-accordion-marker {
-  transform: rotate(90deg);
-}
-
-.grundlagen-list .nav-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 3rem;
-}
-
 .grundlagen-status {
   display: grid;
   gap: var(--app-space-3);
@@ -99,11 +62,5 @@ details.card[open] > summary.card-header .grundlagen-accordion-marker {
 @media (min-width: 48rem) {
   .grundlagen-status {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  details.card > summary.card-header .grundlagen-accordion-marker {
-    transition: none;
   }
 }

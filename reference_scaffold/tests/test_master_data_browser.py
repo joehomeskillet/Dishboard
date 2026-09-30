@@ -65,7 +65,10 @@ def targets(page):
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if control.is_visible():
             box = control.bounding_box()
-            minimum = control.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+            # G0 control height: 36px fine pointer, 44px coarse. Shared with recipe import.
+            coarse = control.evaluate(
+                "() => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
+            minimum = 44 if coarse else 36
             assert box is not None and box['height'] >= minimum
             control.focus()
             expect(control).to_be_focused()

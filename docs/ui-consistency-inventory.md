@@ -53,7 +53,7 @@ in den Quellen erhalten. `<family>` steht für `cafeteria` oder `patienten`.
 | Ansicht / Route | Muster, Rolle und Zustand | Tatsächliche Tests / Quelle |
 |---|---|---|
 | Bausteine: `/admin/<family>/komponenten` | UC-P1-A2: Spaltenköpfe Baustein, Kategorie, Herkunft / Kennzeichnungen, Verwendung, Aktionen. Statusspalte nur bei Filter „alle“ und mindestens einem archivierten Eintrag, Chip über `status_badge_sem`. UC-P1-A: `table.admin-table.admin-table--stack`, Profilumschalter im `filter_bar_sem`-Segment, Anlegefuss über `form_footer`. DEC-2/D3: Namen als Text; zwei Direktlinks Bearbeiten und Archivieren/Aktivieren, archivierte Einträge über Öffnen. Beide Profile, vorhandene Rollen, JS/No-JS. | `tests/test_component_catalog_browser.py`, `tests/test_component_filters_browser.py`, `tests/test_ui_korrektur_components_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
-| Zutaten: `/admin/grundlagen` und `/admin/grundlagen/<kind>/<public_id>` | DEC-2/D3: Namen als Text, Symbolaktion als Zugang; ohne Schreibrecht Öffnen, Statusaktionen nur mit Recht. Fünf Stammdatenarten, aktiv/archiviert. | `tests/test_master_data_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
+| Zutaten: `/admin/grundlagen` und `/admin/grundlagen/<kind>/<public_id>` | UC-P1-C: `filter_bar_sem` mit `segment_switch` (`aria-current="page"`), Status nur bei Archivfilter über `status_badge_sem`, Abschnitte über `disclosure_section`. DEC-2/D3: Namen als Text, Symbolaktion als Zugang; ohne Schreibrecht Öffnen, Statusaktionen nur mit Recht. Fünf Stammdatenarten, aktiv/archiviert. «Nicht erfasst» bleibt ungleich allergenfrei. | `tests/test_master_data_browser.py`, `tests/test_food_price_browser.py`, `tests/test_icon_m1_stammdaten_browser.py`, `tests/test_ingredient_footer_browser.py`; `reports/UC-P1-C-report.md`. |
 | Menüsammlung: `/admin/<family>/menues` | UC-P1-A2: Spalten Menü, Tag, Mahlzeit / Zuweisung, Bearbeiten. „Gespeicherter Prüfstand“ nur, wenn ein Prüf-, Archiv- oder Hinweiswert in der Statuszone steht. „Archivierte Woche“ nur als `status_badge_sem` dort, nicht unter dem Datum. UC-P1-A: Profilumschalter `profile_tabs` im Filterbalken (`aria-current="page"`). Liste/Karten bleiben dieselbe Seite (`role=tab`). DEC-2/D3: Textnamen und Bearbeiten-/Öffnen-Aktion; Admin/Editor/Publisher, aktiv/archiviert. | `tests/test_menu_collection_browser.py`; `reports/D3-report.md`. Folgeanpassungen: `tests/test_ui_korrektur_menus_browser.py`, `reports/R10-report.md`. |
 | Gerichtvorlagen: `/admin/gerichtvorlagen` | UC-P1-A2: Spalten Gerichtvorlage, Menüart, Geltungsbereich, Dazu, Planung. Statusspalte nur bei gemischtem Bestand oder archiviertem Rezept. „Rezept archiviert“ steht in der Statuszone über `status_badge_sem`; „Kein Rezept verknüpft“ bleibt unter dem Namen. Formularfuss `form_footer`. D4: wirksame Titelsuche, Archivfilter, Zurücksetzen und Paginierung mit erhaltenem `q`; Enter mit/ohne JS. | `tests/test_dish_template_browser.py`, `tests/test_dish_template_routes.py`, `tests/test_recipe_link_reads_db.py`; `reports/D4-report.md`, Abschnitte „Gerichtvorlagen-Browser komplett“ und „Routen-/Store-Regressionen“. |
 | Kochbücher: `/admin/kochbuecher` | UC-P1-A2: Spalten Kochbuch, Rezepte, Aktionen. Statusspalte nur bei gemischtem Bestand; dann Aktiv und Archiviert über `status_badge_sem`. Die Beschreibung bleibt Untertitel und ist kein Statuschip. `table.admin-table.admin-table--stack`, `list_row` entfällt. Direktlinks Öffnen und, für aktive schreibbare Bücher, Bearbeiten. | `tests/test_cookbooks_browser.py`, `tests/test_ui_korrektur_cookbooks_browser.py`, `tests/test_cookbook_routes.py`; `reports/D5-report.md`, `reports/D13-report.md`, Abschnitt „D13b — Korrigierter Auftrag“. |
@@ -1184,9 +1184,9 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/einkaufslisten.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/gerichtvorlage_einplanen.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/gerichtvorlagen.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/grundlagen.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| admin/grundlagen_food.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| admin/grundlagen_location_conflict.html | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/grundlagen.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/grundlagen_food.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/grundlagen_location_conflict.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/grundlagen_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/grundlagen_unit.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/grundlagen_vocabulary.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -1277,4 +1277,4 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | static/cookbook-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-document.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **TOTAL** | 93 | 46 | 6 | 1 | 31 | 14 | 20 |
+| **TOTAL** | 39 | 12 | 5 | 1 | 27 | 11 | 20 |

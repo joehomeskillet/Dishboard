@@ -91,9 +91,9 @@ def test_stammdaten_icon_actions_names_and_list_states(admin_app, admin_engine, 
                                 assert save.get_attribute('aria-label').endswith(' speichern')
                         else:
                             expect(page.locator('.grundlagen-list .card-header')).to_have_count(0)
-                            expect(page.locator('.grundlagen-filter summary')).to_have_count(1)
-                            expect(page.locator('.grundlagen-filter [data-semantic="view.filter"]')).to_have_count(1)
-                            expect(page.locator('.grundlagen-filter')).to_contain_text('Aktiv')
+                            expect(page.locator('.grundlagen-master .admin-filter-bar summary')).to_have_count(1)
+                            expect(page.locator('.grundlagen-master [data-semantic="view.filter"]')).to_have_count(1)
+                            expect(page.locator('.grundlagen-master')).to_contain_text('Aktiv')
                             expect(page.locator('.grundlagen-list .admin-list-status .admin-label')).to_have_count(0)
                             expect(page.locator('.grundlagen-list a.admin-list-primary, '
                                                 '.grundlagen-list .admin-list-primary a')).to_have_count(0)

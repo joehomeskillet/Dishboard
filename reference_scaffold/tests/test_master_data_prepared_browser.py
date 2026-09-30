@@ -113,9 +113,9 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         page.reload()
         expect(page.get_by_label('Zubereitung aus einem Rezept', exact=False)).to_have_value(preparation_choice(frozen))
         page.get_by_text('Rezeptauswahl', exact=True).click()
-        page.get_by_label('Festgeschriebenes Rezept suchen', exact=True).fill('Hummus')
+        page.get_by_role('searchbox', name='Suchen', exact=True).fill('Hummus')
         page.get_by_role('button', name='Suchen', exact=True).click()
-        expect(page.get_by_label('Festgeschriebenes Rezept suchen', exact=True)).to_have_value('Hummus')
+        expect(page.get_by_role('searchbox', name='Suchen', exact=True)).to_have_value('Hummus')
         expect(page.get_by_label('Zubereitung aus einem Rezept', exact=False)).to_have_value(preparation_choice(frozen))
         assert urlsplit(page.url).path == path and snapshot(owner) == before
         targets(page)

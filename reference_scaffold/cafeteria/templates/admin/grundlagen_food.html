@@ -1,6 +1,6 @@
 {% extends 'admin/grundlagen.html' %}
 {% from 'admin/_macros.html' import page_header, pagination, icon, disclosure_section, option_detail_group, hint, empty_value, form_footer %}
-{% from 'ui/_semantic.html' import icon_button %}
+{% from 'ui/_semantic.html' import icon_button, filter_bar_sem %}
 {% set workflow_nav = 'master_data' %}
 {% if error_purpose == 'preis' %}{% set error_field = 'unit_price' %}{% endif %}
 {% block title %}Zutat · Grundlagen{% endblock %}
@@ -22,14 +22,13 @@
 {% if not row %}<div class="alert alert-info" role="status">{{ icon('info-circle') }}<strong>Lagerort erforderlich:</strong> Mindestens ein Lagerort ist für jede Zutat Pflicht. Fehlt die Zuordnung, wird «Lagerort fehlt» angezeigt.</div>{% endif %}
 {% set core = 'stammdaten' if row else 'neu' %}
 {% if can_write %}
-<details class="card mb-4"{% if recipe_query or recipe_page > 1 %} open{% endif %}>{{ section_summary('Rezeptauswahl', 'search') }}
-<div class="card-body"><form method="get" action="{{ recipe_search_url }}">
-<div class="row g-3 align-items-end"><div class="col-12 col-lg-8"><label class="form-label" for="recipe_q">Festgeschriebenes Rezept suchen</label><div class="input-group"><span class="input-group-text">{{ icon('search') }}</span><input class="form-control" type="search" id="recipe_q" name="recipe_q" maxlength="200" value="{{ recipe_query }}"></div></div>
-<div class="col-12 col-lg-4">{{ icon_button('view.search') }}</div></div>
-{{ hint('Die Suche lädt den gespeicherten Stand. Ungespeicherte Änderungen vorher sichern.', 'recipe-search-save-hint', mode='inline') }}</form>
-{{ pagination(recipe_page, recipe_has_next, recipe_prev_url, recipe_next_url, 'Rezeptauswahlseiten') }}</div></details>
+{% call disclosure_section(title='Rezeptauswahl', variant='card', open=recipe_query or recipe_page > 1) %}
+{{ filter_bar_sem(recipe_search_url, search_name='recipe_q', search_value=recipe_query, search_id='recipe_q', maxlength=200, id='recipe-search') }}
+{{ hint('Die Suche lädt den gespeicherten Stand. Ungespeicherte Änderungen vorher sichern.', 'recipe-search-save-hint', mode='inline') }}
+{{ pagination(recipe_page, recipe_has_next, recipe_prev_url, recipe_next_url, 'Rezeptauswahlseiten') }}
+{% endcall %}
 {% endif %}
-{% if not row %}<details class="card mb-4" open>{{ section_summary('Zutat anlegen', 'plus') }}<div class="card-body">{% else %}<div class="card mb-4"><div class="card-header gap-2">{{ icon('components') }}<h2 class="card-title mb-0">Zutat</h2></div><div class="card-body">{% endif %}
+{% call disclosure_section(title='Zutat anlegen' if not row else 'Zutat', variant='card', open=true) %}
 {% if can_write %}<form id="food-core-form" class="admin-compact-form" method="post" data-dirty-form data-loading action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose=core) if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start(core) }}
 <div class="row g-3 mb-3">
@@ -76,7 +75,7 @@
 {{ hint('Speichert Stammdaten, Lagerorte und Zubereitung.' ~ (' Die folgenden Abschnitte haben eigene Speicheraktionen.' if row else ''), 'food-core-save-hint', mode='inline') }}
 </form>
 {% else %}<h3>{{ row.name if row else 'Keine Schreibberechtigung' }}</h3>{% if row %}<p>{{ row.base_unit.display_name }}{% if not row.base_unit.active %} (archiviert){% endif %} · {{ row.category.name if row.category else 'Keine Kategorie' }}{% if row.category and not row.category.active %} (archiviert){% endif %}</p><dl><dt>Dichte in g/ml</dt><dd>{{ row.density_g_per_ml if row.density_g_per_ml is not none else 'Nicht erfasst' }}</dd><dt>Stückgewicht in g</dt><dd>{{ row.piece_weight_g if row.piece_weight_g is not none else 'Nicht erfasst' }}</dd></dl><p>{{ row.note }}</p>{% endif %}{% endif %}
-</div>{% if not row %}</details>{% else %}</div>{% endif %}
+{% endcall %}
 {% if row %}
 <section class="card mb-4" aria-labelledby="food-price-title">
 <div class="card-header gap-2">{{ icon('coin') }}<h2 class="card-title mb-0" id="food-price-title">Einkaufspreis</h2></div>
@@ -123,19 +122,20 @@
 </div></section>
 {% endif %}
 {% if row %}
-<details class="card mb-4">{{ section_summary('Verknüpfungen', 'copy') }}<div class="card-body">
+{% call disclosure_section(title='Verknüpfungen', variant='card') %}
 <dl><dt>Lagerorte</dt><dd>{% for storage in row.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}Lagerort fehlt{% endfor %}</dd>
 <dt>Bestand</dt><dd>{% for storage in row.storage_locations %}<a href="{{ url_for('admin.inventory_home', food_public_id=row.public_id, storage_public_id=storage.public_id) }}">{{ icon('archive') }}{{ storage.name }}</a>
 {% if stock.get(storage.public_id) and stock[storage.public_id].captured %} · {{ stock[storage.public_id].label }}{% else %} · <span>Kein Bestand erfasst</span>{% endif %}{{ ', ' if not loop.last else '' }}{% else %}<span>Kein Bestand erfasst</span>{% endfor %}</dd><dt>Zubereitung</dt><dd>{% if row.prepared_recipe %}<a href="{{ url_for('admin.recipe_revision', recipe_id=row.prepared_recipe.recipe_public_id, revision_id=row.prepared_recipe.revision_public_id) }}">{{ icon('tools-kitchen-2', class='text-secondary') }}{{ row.prepared_recipe.title }} · Stand {{ row.prepared_recipe.revision_number }}</a><br>Ausbeute: {{ '{:f}'.format(row.prepared_recipe.yield_quantity) }} {{ row.prepared_recipe.yield_unit_code }}{% if not row.prepared_recipe.recipe_active %} · Rezept archiviert{% endif %}
-<br><a href="{{ url_for('admin.recipe_revisions', recipe_id=row.prepared_recipe.recipe_public_id) }}">{{ icon('history') }}Rezeptverlauf</a>{% else %}Keine Rezeptverknüpfung{% endif %}</dd></dl></div></details>
-<details class="card mb-4">{{ section_summary('Herkunft', 'file-import') }}<div class="card-body"><p>{{ 'Manuell erfasst' if row.source.kind == 'manual' else row.source.kind }}</p>{% for value in [row.source.reference, row.source.url, row.source.note, row.source.fetched_at] %}{% if value %}<p class="text-break">{{ value }}</p>{% endif %}{% endfor %}<p class="text-secondary">Ursprüngliche Herkunft bleibt erhalten.</p></div></details>
-<details class="card mb-4"{% if error_purpose == 'tags' or values.tag_public_ids %} open{% endif %}>{{ section_summary('Kennzeichnungen', 'clipboard-check') }}<div class="card-body grundlagen-choices">
+<br><a href="{{ url_for('admin.recipe_revisions', recipe_id=row.prepared_recipe.recipe_public_id) }}">{{ icon('history') }}Rezeptverlauf</a>{% else %}Keine Rezeptverknüpfung{% endif %}</dd></dl>
+{% endcall %}
+{% call disclosure_section(title='Herkunft', variant='card') %}<p>{{ 'Manuell erfasst' if row.source.kind == 'manual' else row.source.kind }}</p>{% for value in [row.source.reference, row.source.url, row.source.note, row.source.fetched_at] %}{% if value %}<p class="text-break">{{ value }}</p>{% endif %}{% endfor %}<p class="text-secondary">Ursprüngliche Herkunft bleibt erhalten.</p>{% endcall %}
+{% call disclosure_section(title='Kennzeichnungen', variant='card', open=error_purpose == 'tags' or values.tag_public_ids) %}<div class="grundlagen-choices">
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='tags') }}">{{ form_start('tags') }}
 {% for selected in values.tag_public_ids %}{% if selected not in tags|map(attribute='public_id')|list %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ selected }}" checked><span class="form-check-label">{{ selected }} (ungültige Auswahl, bitte entfernen)</span></label>{% endif %}{% endfor %}
 {% for tag in tags %}{% if tag.active or tag.public_id in values.tag_public_ids %}<label class="form-check"><input class="form-check-input" type="checkbox" name="tag_public_ids" value="{{ tag.public_id }}"{% if tag.public_id in values.tag_public_ids %} checked{% endif %}><span class="form-check-label">{{ tag.name }}{% if not tag.active %} (archiviert, vor dem Speichern ausdrücklich entfernen){% endif %}</span></label>{% endif %}{% else %}<p>Keine Kennzeichnungen vorhanden.</p>{% endfor %}
 <p class="form-hint">Ohne Auswahl werden alle zugeordneten Kennzeichnungen entfernt. Dies bestätigt keine Allergenprüfung.</p>{{ icon_button('actions.save', text='Kennzeichnen', emphasis='secondary') }}</form>
-{% else %}{% for tag in row.tags %}<p>{{ tag.name }}</p>{% else %}<p>Keine Kennzeichnungen zugeordnet.</p>{% endfor %}{% endif %}</div></details>
-<details class="card mb-4"{% if error_purpose == 'metadaten' or row.allergens or values.labels %} open{% endif %}>{{ section_summary('Allergene und Kostformen', 'alert-triangle') }}<div class="card-body">
+{% else %}{% for tag in row.tags %}<p>{{ tag.name }}</p>{% else %}<p>Keine Kennzeichnungen zugeordnet.</p>{% endfor %}{% endif %}</div>{% endcall %}
+{% call disclosure_section(title='Allergene und Kostformen', variant='card', open=error_purpose == 'metadaten' or row.allergens or values.labels) %}
 <p>Nur ausdrücklich bestätigte Angaben erfassen. Fehlende Angaben bedeuten nicht «frei von».</p>
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='metadaten') }}">{{ form_start('metadaten') }}
 {{ option_detail_group(allergens, submitted=values, field_prefix='allergen_', choices=[('contains', 'Enthält'), ('may_contain', 'Kann enthalten')], errors={error_field: error} if error and error_purpose == 'metadaten' else {}) }}
@@ -143,12 +143,12 @@
 {{ hint('Speichert die Allergene und Kostformen dieses Abschnitts. Die Allergenprüfung erfolgt separat.', 'food-meta-save-hint', mode='inline') }}
 {{ icon_button('actions.save', text='Angaben speichern', emphasis='secondary') }}</form>
 {% else %}{% for code, presence in row.allergens %}<p>{{ code }}: {{ 'Enthält' if presence == 'contains' else 'Kann enthalten' }}</p>{% endfor %}{% for label in row.labels %}<p>{{ label }}</p>{% endfor %}{% endif %}
-</div></details>
-<details class="card mb-4"{% if error_purpose == 'allergenpruefung' %} open{% endif %}>{{ section_summary('Allergenprüfung', 'circle-check' if row.allergen_review_status == 'checked' else 'clipboard-check') }}<div class="card-body">
+{% endcall %}
+{% call disclosure_section(title='Allergenprüfung', variant='card', open=error_purpose == 'allergenpruefung') %}
 <p>{{ 'Gespeicherte Allergenangaben wurden bestätigt.' if row.allergen_review_status == 'checked' else 'Gespeicherte Allergenangaben sind noch nicht bestätigt.' }} Eine leere Liste ist keine Frei-von-Angabe.</p>
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='allergenpruefung') }}">{{ form_start('allergenpruefung') }}
 {{ hint('Ändert nur den Prüfstatus der gespeicherten Allergenangaben. Änderungen in anderen Abschnitten vorher dort speichern.', 'food-review-hint', mode='inline') }}
-<input type="hidden" name="checked" value="{{ 'false' if row.allergen_review_status == 'checked' else 'true' }}">{% if row.allergen_review_status == 'checked' %}{{ icon_button('actions.undo', text='Prüfung aufheben', emphasis='secondary') }}{% else %}{{ icon_button('actions.confirm', text='Prüfung bestätigen', emphasis='secondary') }}{% endif %}</form>{% endif %}</div></details>
+<input type="hidden" name="checked" value="{{ 'false' if row.allergen_review_status == 'checked' else 'true' }}">{% if row.allergen_review_status == 'checked' %}{{ icon_button('actions.undo', text='Prüfung aufheben', emphasis='secondary') }}{% else %}{{ icon_button('actions.confirm', text='Prüfung bestätigen', emphasis='secondary') }}{% endif %}</form>{% endif %}{% endcall %}
 {% call disclosure_section() %}{{ status_summary() }}{{ status_actions() }}{% endcall %}
 {% endif %}
 {% endblock %}
