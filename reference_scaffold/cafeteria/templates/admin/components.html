@@ -98,14 +98,15 @@
   {% if rows %}
   {% set missing_origin = rows|rejectattr('origin_country_code')|list|length %}
   {% if missing_origin %}<p class="admin-list-secondary" role="status">Herkunft nicht erfasst: {{ missing_origin }} {{ 'Baustein' if missing_origin == 1 else 'Bausteine' }} in dieser Liste.</p>{% endif %}
+  {% set show_component_status = selected_status == 'all' and rows|rejectattr('active')|list %}
   <div class="card dishboard-component-results">
     <table class="table table-vcenter card-table dishboard-component-table admin-table admin-table--stack">
       <caption class="visually-hidden">Bausteine der aktuellen Suche</caption>
-      <thead><tr><th scope="col">Name</th><th scope="col">Kategorie</th><th scope="col">Herkunft / Kennzeichnungen</th><th scope="col">Verwendung</th>{% if selected_status == 'all' %}<th scope="col">Status</th>{% endif %}<th scope="col">Aktionen</th></tr></thead>
+      <thead><tr><th scope="col">Baustein</th><th scope="col">Kategorie</th><th scope="col">Herkunft / Kennzeichnungen</th><th scope="col">Verwendung</th>{% if show_component_status %}<th scope="col">Status</th>{% endif %}<th scope="col">Aktionen</th></tr></thead>
       <tbody>
         {% for row in rows %}
         <tr class="component-row gap-1" data-public-id="{{ row.public_id }}" data-active="{{ '1' if row.active else '0' }}">
-          <th scope="row" class="component-row-name admin-list-primary" data-label="Name"><span class="admin-list-primary">{{ row.name }}</span>
+          <th scope="row" class="component-row-name admin-list-primary" data-label="Baustein"><span class="admin-list-primary">{{ row.name }}</span>
             {% if row.food_name %}<div class="admin-list-secondary text-break">{{ row.food_name }}</div>{% endif %}
           </th>
           <td class="category d-flex d-md-table-cell align-items-center gap-2" data-label="Kategorie">{% set category_name = categories.get(row.category, row.category) %}{{ ui_label(category_name, 'category') }}</td>
@@ -118,7 +119,7 @@
             {% if row.profile_scope == 'common' %}<div class="admin-list-secondary">gemeinsam</div>{% endif %}
           </td>
           <td class="usage d-flex d-md-table-cell align-items-center gap-2" data-label="Verwendung">{{ row.usage_count }} {{ 'Gericht' if row.usage_count == 1 else 'Gerichte' }}</td>
-          {% if selected_status == 'all' %}<td class="component-status admin-table-status" data-label="Status">{{ status_badge_sem('status.active' if row.active else 'status.archived', status='active' if row.active else 'archived') }}</td>{% endif %}
+          {% if show_component_status %}<td class="component-status admin-table-status" data-label="Status">{{ status_badge_sem('status.active' if row.active else 'status.archived', status='active' if row.active else 'archived') }}</td>{% endif %}
           <td class="admin-table-actions" data-label="Aktionen">
             {{ row_actions([{'key': 'actions.edit' if row.active else 'actions.open', 'href': url_for('admin.component_detail', family=family, public_id=row.public_id, **({'from': 'components', 'q': query, 'status': selected_status, 'category': category or ''} if query or category or selected_status != 'active' else {}))}, {'key': 'actions.archive' if row.active else 'actions.activate', 'href': url_for('admin.component_detail', family=family, public_id=row.public_id, _anchor='component-status', **({'from': 'components', 'q': query, 'status': selected_status, 'category': category or ''} if query or category or selected_status != 'active' else {}))}], object=row.name) }}
           </td>

@@ -18,14 +18,15 @@
 {% endset %}
 {{ filter_bar_sem(url_for('admin.cookbooks_list'), search_name='q', search_value=search, filters=cookbook_filters, active=search or include_archived, reset_url=(url_for('admin.cookbooks_list') if search or include_archived else none), id='cookbook', maxlength=200) }}
 {% if rows %}
+{% set status_mixed = rows|rejectattr('active')|list %}
 <section class="cookbook-list" aria-label="Kochbücher">
   <table class="table table-vcenter card-table admin-table admin-table--stack">
     <caption class="visually-hidden">{{ t('navigation.cookbooks.label') }}</caption>
     <thead>
       <tr>
-        <th scope="col">Titel</th>
-        <th scope="col">Meta</th>
-        <th scope="col">Status</th>
+        <th scope="col">Kochbuch</th>
+        <th scope="col">Rezepte</th>
+        {% if status_mixed %}<th scope="col">Status</th>{% endif %}
         <th scope="col">Aktionen</th>
       </tr>
     </thead>
@@ -34,14 +35,14 @@
       {% set count = book.recipe_public_ids|length %}
       {% set editable = can_write and book.active %}
       <tr>
-        <td data-label="Titel">
+        <td data-label="Kochbuch">
           <div class="admin-list-name">
             <strong class="admin-list-primary">{{ book.name }}</strong>
             {% if book.description %}<div class="admin-list-subtitle admin-list-secondary" title="{{ book.description|truncate(160) }}">{{ book.description|truncate(160) }}</div>{% endif %}
           </div>
         </td>
-        <td class="admin-list-meta" data-label="Meta">{{ count }}{{ ' Rezept' if count == 1 else ' Rezepte' }}</td>
-        <td class="admin-list-status" data-label="Status">{%- if not book.active or include_archived -%}{{ status_badge_sem('status.active' if book.active else 'status.archived', status='active' if book.active else 'archived') }}{%- endif -%}</td>
+        <td class="admin-list-meta" data-label="Rezepte">{{ count }}{{ ' Rezept' if count == 1 else ' Rezepte' }}</td>
+        {% if status_mixed %}<td class="admin-list-status" data-label="Status">{%- if not book.active or include_archived -%}{{ status_badge_sem('status.active' if book.active else 'status.archived', status='active' if book.active else 'archived') }}{%- endif -%}</td>{% endif %}
         <td class="admin-table-actions" data-label="Aktionen">
           {% set items = [{'key': 'actions.open', 'href': url_for('admin.cookbook_view', cookbook_id=book.public_id), 'class': 'cookbook-row-action'}] %}
           {% if editable %}

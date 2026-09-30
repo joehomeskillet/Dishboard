@@ -428,7 +428,7 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
                 _assert_mobile_cards(listed['cards'])
                 short, long = (next(entry for entry in listed['cards'] if entry['name'] == name)
                                for name in ('Browserbuch', LONG_NAME))
-                # Measured short stacked row is 169px: G0 data-label sits above Titel, Meta and Aktionen.
+                # Measured short stacked row is 169px: G0 data-label sits above Kochbuch, Rezepte and Aktionen.
                 assert short['card']['height'] <= 180 < long['card']['height'], listed
                 assert short['countText'] == '1 Rezept' and long['countText'] == '0 Rezepte'
             if (width, height) == (1440, 900):
