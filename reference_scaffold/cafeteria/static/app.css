@@ -354,7 +354,7 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 
 /* Auth */
 .auth-shell { position: relative; display: flex; justify-content: center; align-items: flex-start; width: 100%; min-height: 100vh; padding: clamp(1.5rem, 4vw, 3rem) 1rem clamp(4.5rem, 10vw, 6rem); background: linear-gradient(160deg, var(--sh-teal-950) 0%, var(--sh-teal-800) 100%); }
-.auth-card { display: flex; flex-direction: column; width: 100%; max-width: 28rem; margin-top: 3rem; padding: 0; background: var(--sh-panel); border: 1px solid var(--sh-border); border-radius: var(--sh-radius-lg); box-shadow: var(--sh-shadow); overflow: hidden; }
+.auth-card { display: flex; flex-direction: column; width: 100%; max-width: 36rem; margin-top: 3rem; padding: 0; background: var(--sh-panel); border: 1px solid var(--sh-border); border-radius: var(--sh-radius-lg); box-shadow: var(--sh-shadow); overflow: hidden; }
 .auth-card-header { padding: 2rem 1.5rem 1.5rem; border-bottom: 1px solid var(--sh-border); }
 .auth-card-header .site-logo { display: inline-flex; align-items: center; min-width: 48px; min-height: 48px; margin: 0 0 1.25rem; }
 .auth-card-header .brand-logo { height: 40px; object-fit: contain; object-position: left center; }
@@ -369,7 +369,10 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .auth-input:hover { border-color: var(--sh-teal-700); }
 .auth-input:focus { outline: none; box-shadow: var(--sh-focus); }
 .auth-actions { display: flex; justify-content: flex-end; }
-.auth-submit { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 160px; min-height: 48px; padding: 0.75rem 1.5rem; border: none; border-radius: var(--sh-radius-sm); color: var(--sh-white); background: var(--sh-magenta); font-size: 1rem; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease-in-out; }
+.auth-submit { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: auto; min-width: 160px; min-height: 48px; padding: 0.75rem 1.5rem; border: none; border-radius: var(--sh-radius-sm); color: var(--sh-white); background: var(--sh-magenta); font-size: 1rem; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease-in-out; }
+.auth-submit .icon, .auth-status-icon .icon { display: block; width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
+.auth-status-icon { margin: 0 0 0.75rem; color: var(--sh-magenta); }
+.auth-product { margin: -0.5rem 0 0.75rem; color: var(--sh-ink-muted); font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .auth-submit:hover { background: var(--sh-teal-950); }
 .auth-submit:focus { outline: none; box-shadow: var(--sh-focus); }
 .auth-submit:active { background: var(--sh-teal-950); }
@@ -378,6 +381,8 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .auth-org-divider::before { content: ''; display: block; width: 100%; height: 1px; background: var(--sh-border); margin-bottom: 1rem; }
 .auth-org-link { display: block; min-height: 48px; padding: 0.75rem 1rem; text-align: center; color: var(--sh-ink); background: var(--sh-panel-soft); border: 1px solid var(--sh-border); border-radius: var(--sh-radius-sm); font-weight: 600; text-decoration: none; transition: all 0.15s ease-in-out; }
 .auth-org-link:hover { border-color: var(--sh-teal-700); background: var(--sh-teal-050); }
+.auth-org-primary { color: var(--sh-white); background: var(--sh-magenta); border-color: transparent; }
+.auth-org-primary:hover { color: var(--sh-white); background: var(--sh-teal-950); border-color: transparent; }
 .auth-org-link:focus { outline: none; box-shadow: var(--sh-focus); }
 .auth-card-footer { margin: 0; padding: 1rem 1.5rem; border-top: 1px solid var(--sh-border); background: var(--sh-panel-soft); text-align: center; color: var(--sh-ink-muted); font-size: 0.8125rem; }
 /* 48px link targets; the extra hit area is transparent padding, so text position and size stay. */
