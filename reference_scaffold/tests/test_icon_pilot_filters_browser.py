@@ -1,6 +1,8 @@
 """Shared recipe filtering keeps native queries, paging, roles and row context."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -16,6 +18,8 @@ from test_rendered_ui import browser  # noqa: F401
 
 
 def _assert_direct_actions(page, row, readonly, locale, javascript):
+    translations = Path(__file__).resolve().parents[1] / 'cafeteria' / 'translations' / f'{locale}.json'
+    no_revision_reason = json.loads(translations.read_text(encoding='utf-8'))['recipe.no_revision_reason.label']
     title = row.locator('.admin-list-primary').inner_text()
     group = row.get_by_role('group', name=(f'Aktionen für {title}' if locale == 'de'
                                          else f'Actions for {title}'), exact=True)
@@ -39,11 +43,11 @@ def _assert_direct_actions(page, row, readonly, locale, javascript):
         expect(action).to_have_accessible_name(name)
         if key == 'actions.open_pdf':
             expect(action).to_be_disabled()
-            expect(action).to_have_accessible_description('Noch kein gespeicherter Stand vorhanden')
+            expect(action).to_have_accessible_description(no_revision_reason)
             assert action.get_attribute('href') is None
             action = group.locator('.ui-sem-disabled')
             expect(action).to_have_accessible_name(name)
-            name += ': Noch kein gespeicherter Stand vorhanden'
+            name += f': {no_revision_reason}'
         else:
             assert action.get_attribute('href')
         expect(action).to_have_attribute('data-ui-tooltip', name)
