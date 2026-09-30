@@ -105,6 +105,7 @@ def create_database_engine(
     )
     return create_engine(
         database_url,
+        hide_parameters=True,
         pool_pre_ping=True,
         pool_size=pool_size,
         max_overflow=max_overflow,
@@ -279,7 +280,7 @@ def init_database(
     auth_issuer_password: str = '',
     seed_demo: bool = False,
 ) -> dict[str, Any]:
-    engine = create_engine(database_url, pool_pre_ping=True)
+    engine = create_engine(database_url, pool_pre_ping=True, hide_parameters=True)
     try:
         provision_database_roles(
             engine,

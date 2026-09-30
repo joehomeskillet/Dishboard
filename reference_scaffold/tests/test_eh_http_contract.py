@@ -128,6 +128,52 @@ def test_unexpected_error_logs_traceback_without_request_data(auth_app, caplog):
     assert logged
 
 
+@pytest.mark.parametrize('engine_kind', ('runtime', 'issuer', 'setup'))
+def test_dbapi_diagnostics_hide_bound_parameters(auth_app, caplog, monkeypatch, engine_kind):
+    import logging
+
+    from flask import request
+    from sqlalchemy import text
+    from sqlalchemy.exc import DBAPIError
+
+    from cafeteria import db
+
+    app, owner, issuer = auth_app
+    marker = 'private-bound-value-eh1d'
+    query = 'private-query-value-eh1d'
+    body = 'private-body-value-eh1d'
+
+    def fail_query(engine, **kwargs):
+        with engine.connect() as connection:
+            connection.execute(text('SELECT CAST(:value AS text), 1 / 0'),
+                               {'value': request.form['value']})
+
+    if engine_kind == 'setup':
+        monkeypatch.setattr(db, 'provision_database_roles', fail_query)
+
+    @app.post('/eh-db-parameters')
+    def fail_database():
+        if engine_kind == 'setup':
+            db.init_database(owner.url, '', '')
+        else:
+            fail_query(app.extensions['cafeteria_db'] if engine_kind == 'runtime' else issuer)
+        raise AssertionError('The database must reject division by zero')
+
+    response = app.test_client().post(
+        '/eh-db-parameters', query_string={'query': query}, data={'value': marker, 'body': body})
+    assert response.status_code == 503
+    assert response.headers['Cache-Control'] == 'no-store'
+    logged = [record for record in caplog.records if record.name == 'cafeteria.errors'
+              and record.exc_info and isinstance(record.exc_info[1], DBAPIError)]
+    assert logged
+    for record in logged:
+        rendered = logging.Formatter().format(record)
+        assert 'Traceback' in rendered
+        assert 'SQL parameters hidden' in rendered
+        assert all(value not in rendered for value in (marker, query, body))
+    assert all(value not in caplog.text and value not in response.text for value in (marker, query, body))
+
+
 @pytest.mark.parametrize('stage', ('open_session', 'save_session'))
 def test_eh_t31_session_outage_is_503_without_authentication(auth_app, monkeypatch, stage):
     app, _, _ = auth_app
