@@ -79,12 +79,22 @@ def _safe_error(page, response, status):
     if status == 404:
         expect(page.get_by_role('alert')).to_be_visible()
         expect(page.get_by_role('alert')).to_be_focused()
-    assert page.locator('form, input, textarea, [data-account-row]').count() == 0
+    assert page.locator('main form, main input, main textarea, [data-account-row]').count() == 0
+    # EH-04 keeps the admin frame, including its existing CSRF-protected logout.
+    for form in page.locator('form').all():
+        assert form.get_attribute('method').lower() == 'post'
+        assert form.get_attribute('action') == '/auth/logout'
+        assert form.locator('input:not([type=hidden]), textarea').count() == 0
+        assert form.locator('input[name="_csrf"]').input_value()
     assert 'Keine Einträge' not in page.locator('main').inner_text()
     for link in page.locator('main a').all():
         target = urlsplit(link.get_attribute('href'))
         assert not target.scheme and not target.netloc and not target.query and not target.fragment
         assert target.path in ('/auth/login', '/cafeteria/heute/')
+    page.keyboard.press('Tab')
+    expect(page.get_by_role('link', name='Zum Inhalt springen', exact=True)).to_be_focused()
+    page.keyboard.press('Enter')
+    expect(page.locator('main')).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.locator('main a').first).to_be_focused()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -161,9 +171,12 @@ def test_revoked_rights_require_reauthentication_then_show_forbidden(
         assert 'return_token=' in page.url
         page.get_by_label('Benutzername', exact=True).fill('bf.recovery')
         page.get_by_label('Passwort', exact=True).fill('Correct-Horse-2026!Battery')
-        page.get_by_role('button', name='Anmelden', exact=True).click()
-        expect(page).to_have_url(origin + '/admin/cafeteria')
-        _safe_error(page, page.goto('/admin/benutzer'), 403)
+        with page.expect_response(lambda response: response.request.method == 'GET'
+                                  and urlsplit(response.url).path == '/admin/benutzer') as denied:
+            page.get_by_role('button', name='Anmelden', exact=True).click()
+        page.wait_for_load_state()
+        expect(page).to_have_url(origin + '/admin/benutzer')
+        _safe_error(page, denied.value, 403)
         page.screenshot(path=str(tmp_path / f'forbidden-js{javascript}.png'))
         page.get_by_role('link', name='Zur Übersicht', exact=True).click()
         assert urlsplit(page.url).path == '/cafeteria/heute/'
