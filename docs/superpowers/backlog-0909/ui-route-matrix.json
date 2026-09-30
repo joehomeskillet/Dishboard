@@ -10525,7 +10525,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "4cf1e0e2c5fe31339c8ac9eab9eece6b85cca5893ffcedf4df5cff8aa872c21b",
+      "sha256": "5a164fad6e54380fa6f6a89e1b1745250719e060b7c7f0b1f3aff42cab73a27c",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10545,7 +10545,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "a255fdd56d737ce78a2f2ec208a8c5767783d3785fa9e422660e18fd14b70e9e",
+      "sha256": "23b7a549dfd9907be93727fd3b4f45886b80a3c656632629ad226225e97bdaac",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
