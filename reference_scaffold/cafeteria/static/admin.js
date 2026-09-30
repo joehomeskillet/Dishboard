@@ -238,12 +238,31 @@
     // 1. Dirty-Tracking
     const forms = document.querySelectorAll('form:not([data-dirty-tracking="off"])');
     const dirtyForms = new Set();
+    const initialFormValues = new WeakMap();
     let submittingForm = null;
     const dirtyActionState = new Map();
+
+    function formValues(form) {
+        return JSON.stringify(Array.from(form.elements)
+            .filter(control => control.name && control.matches('input, select, textarea')
+                && !['hidden', 'submit', 'button', 'reset', 'image'].includes(control.type))
+            .map(control => [control.name, control.type,
+                ['checkbox', 'radio'].includes(control.type) ? [control.value, control.checked]
+                    : control.multiple ? Array.from(control.selectedOptions, option => option.value)
+                        : control.value]));
+    }
+
+    function refreshFormDirty(form) {
+        setFormDirty(form, formValues(form) !== initialFormValues.get(form));
+    }
 
     function setFormDirty(form, dirty) {
         if (dirty) dirtyForms.add(form);
         else dirtyForms.delete(form);
+        if (form.matches('[data-menu-editor]')) {
+            const note = document.querySelector('[data-menu-editor-dirty-note]');
+            note?.classList.toggle('is-dirty', dirty);
+        }
         if (form.hasAttribute('data-dirty-form')) {
             let status = form.querySelector('[data-dirty-status]');
             if (!status) {
@@ -270,12 +289,15 @@
 
     forms.forEach(form => {
         if (form.method !== 'post') return;
+        // Compare after dependent controls and cancelled selections have settled.
         ['input', 'change'].forEach(type => form.addEventListener(type, () => {
-            setFormDirty(form, true);
+            queueMicrotask(() => refreshFormDirty(form));
         }));
         form.addEventListener('reset', event => {
             window.setTimeout(() => {
-                if (!event.defaultPrevented) setFormDirty(form, false);
+                if (event.defaultPrevented) return;
+                syncMetadataControls(form);
+                refreshFormDirty(form);
             }, 0);
         });
         form.addEventListener('submit', (e) => {
@@ -682,10 +704,6 @@
             syncComponentRow(row);
             syncTargetQuantityField(row, unitDisplayNames);
         });
-        const dirtyNote = document.querySelector('[data-menu-editor-dirty-note]');
-        const markReviewDirty = () => dirtyNote?.classList.add('is-dirty');
-        form.addEventListener('input', markReviewDirty);
-        form.addEventListener('change', markReviewDirty);
         form.addEventListener('input', (e) => {
             const row = e.target.closest('.component-row');
             if (!row) return;
@@ -960,6 +978,10 @@
                 focusAfterEscape(trigger);
             });
         }
+    });
+    // Enhancement may normalize controls; that rendered state is the baseline.
+    forms.forEach(form => {
+        if (form.method === 'post') initialFormValues.set(form, formValues(form));
     });
 })();
 
