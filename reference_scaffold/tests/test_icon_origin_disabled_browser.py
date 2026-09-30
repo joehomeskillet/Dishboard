@@ -53,4 +53,3 @@ def test_automatic_origin_removal_explains_lock_and_tracks_mode(editor_page, fam
             wrapper.focus()
             expect(wrapper).to_be_focused()
         assert not posts
-
