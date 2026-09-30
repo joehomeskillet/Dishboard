@@ -30,8 +30,14 @@
   <h1 id="eh-title" class="eh-title">{{ t(error.title_key) }}</h1>
   {% if error.plain_message %}
   <p class="eh-message">{{ error.plain_message }}</p>
-  {% elif error.message_key %}
-  <p class="eh-message">{{ t(error.message_key) }}</p>
+  {% elif error.message_key and error.mutation_state != 'unclear' %}
+  <p class="eh-message">{{ t(error.message_key, **params) }}</p>
+  {% endif %}
+  {% if params.detail %}
+  <p class="eh-message">{{ params.detail }}</p>
+  {% endif %}
+  {% if error.http_status == 401 and error.surface == 'form_post' %}
+  <p class="eh-message">{{ t('errors.auth_input_loss') }}</p>
   {% endif %}
   {% if params.limit %}
   <p class="eh-message">{{ t('errors.limit_known', limit=params.limit) }}</p>

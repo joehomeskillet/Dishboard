@@ -554,16 +554,27 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         monkeypatch.setattr('cafeteria.roles.load_user_authorization', unavailable)
         response = page.goto(origin + '/admin/benutzer', wait_until='networkidle')
         assert response.status == 503 and response.headers['cache-control'] == 'no-store'
-        expect(page.get_by_role('heading', name='Benutzerverwaltung nicht verfügbar')).to_be_visible()
+        expect(page.get_by_role('heading', name='Dienst vorübergehend nicht verfügbar')).to_be_visible()
+        expect(page.locator('[data-eh-frame="minimal"][data-error-code="SERVICE_UNAVAILABLE"]')).to_be_visible()
         assert 'SYNTHETIC-PRIVATE-ERROR' not in page.content()
         assert page.locator('[data-account-row]').count() == 0
         assert 'Noch keine lokalen Konten' not in page.locator('main').inner_text()
-        _layout(page)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        assert page.locator('main input:not([type=hidden])').evaluate_all(
+            'els=>els.every(el=>el.labels && el.labels.length>0)')
+        assert page.locator('[id]').evaluate_all('els=>new Set(els.map(el=>el.id)).size===els.length')
+        assert page.locator('[aria-describedby]').evaluate_all(
+            'els=>els.every(el=>el.getAttribute("aria-describedby").split(/\\s+/).every(id=>document.getElementById(id)))')
+        recovery = page.locator('main .eh-action')
+        assert recovery.count() > 0
+        assert recovery.evaluate_all('els=>els.every(el=>el.getBoundingClientRect().height >= 44)')
         _icons_and_focus(page)
         _screenshot(page, f'local-user-unavailable-{width}-{javascript}.png')
         post = page.request.post(origin + '/admin/benutzer', form={})
         assert post.status == 503
-        assert 'Der Abschluss der Kontoaktion konnte nicht bestätigt werden.' in post.text()
+        assert 'Es ist unklar, ob die Änderung gespeichert wurde.' in post.text()
+        assert 'SYNTHETIC-PRIVATE-ERROR' not in post.text()
+        assert 'location' not in post.headers
 
 
 @pytest.mark.parametrize('width,javascript', [(1440, True), (360, False)])
@@ -606,8 +617,17 @@ def test_roles_and_sessions_cannot_turn_denial_into_empty_state(live_accounts, b
         page = anonymous.new_page()
         for path in paths:
             response = page.goto(origin + path)
-            assert response.status == 401 and response.headers['cache-control'] == 'no-store'
+            assert response.status == 200 and response.headers['cache-control'] == 'no-store'
+            assert urlsplit(page.url).path == '/auth/local'
+            initial = response.request
+            while initial.redirected_from:
+                initial = initial.redirected_from
+            assert urlsplit(initial.url).path == path
+            assert initial.response().status == 302
+            expect(page.get_by_role('heading', name='Anmeldung erforderlich', exact=True)).to_be_visible()
+            expect(page.locator('[data-eh-frame="auth"]')).to_be_visible()
             assert page.locator('[data-account-row], #create-local-user').count() == 0
+            assert 'Noch keine lokalen Konten' not in page.locator('main').inner_text()
     with client.session_transaction() as state:
         actor = state['user']['id']
     with owner.begin() as connection:
@@ -622,7 +642,11 @@ def test_roles_and_sessions_cannot_turn_denial_into_empty_state(live_accounts, b
         for path in paths:
             response = page.goto(origin + path)
             assert response.status == 403 and response.headers['cache-control'] == 'no-store'
+            assert 'location' not in response.headers
+            expect(page.get_by_role('heading', name='Kein Zugriff', exact=True)).to_be_visible()
+            expect(page.locator('[data-eh-frame="admin"][data-error-code="AUTH_FORBIDDEN"]')).to_be_visible()
             assert page.locator('[data-account-row], #create-local-user').count() == 0
+            assert 'Noch keine lokalen Konten' not in page.locator('main').inner_text()
 
 
 def test_account_pages_use_real_browser_zoom_200(live_accounts, browser, tmp_path):

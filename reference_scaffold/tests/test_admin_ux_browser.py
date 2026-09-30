@@ -124,7 +124,7 @@ def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page,
     assert page.context.pages == [page]
     assert f'/admin/{family}?week={DAY}' in page.url
     assert publish_button.is_disabled()
-    assert page.get_by_text('Zuerst speichern', exact=True).first.is_visible()
+    assert page.get_by_text('Nicht gespeichert', exact=True).first.is_visible()
 
 
 def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask):  # noqa: F811

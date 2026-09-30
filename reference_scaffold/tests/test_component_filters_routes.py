@@ -42,7 +42,16 @@ def test_filter_get_keeps_values_count_and_legacy_archive_links(request, family)
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert '1 Treffer' in body
-    assert f'href="{created.headers["Location"]}"' in body
+    location = created.headers['Location']
+    listed = BeautifulSoup(body, 'html.parser')
+    row = listed.select_one(f'.component-row[data-public-id="{location.rsplit("/", 1)[-1]}"]')
+    assert row is not None
+    assert row.select_one('.component-row-name a') is None
+    detail = f'{location}?from=components&q=Kartoffel&status=active&category=side'
+    edit = row.select_one('a[data-semantic="actions.edit"]')
+    archive_action = row.select_one('a[data-semantic="actions.archive"]')
+    assert edit is not None and edit.get('href') == detail
+    assert archive_action is not None and archive_action.get('href') == f'{detail}#component-status'
     reset = BeautifulSoup(body, 'html.parser').select_one('a[data-semantic="view.reset"]')
     assert reset is not None and reset['href'] == path
     assert reset['aria-label'] == 'Zurücksetzen'

@@ -79,7 +79,7 @@
     {% if show_entra %}
     <div class="auth-org">
       {% if show_local %}<p class="auth-org-divider">oder</p>{% endif %}
-      <a href="{{ url_for('auth.login') }}" class="auth-org-link{% if not show_local %} auth-org-primary{% endif %}">Mit Organisationskonto anmelden</a>
+      <a href="{{ entra_login_url|default(url_for('auth.login', method='entra'), true) }}" class="auth-org-link{% if not show_local %} auth-org-primary{% endif %}">Mit Organisationskonto anmelden</a>
     </div>
     {% endif %}
     <p class="auth-card-footer">Konten werden von der Administration eingerichtet.</p>

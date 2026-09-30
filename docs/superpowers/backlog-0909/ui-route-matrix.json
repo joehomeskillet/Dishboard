@@ -18,7 +18,7 @@
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
     "route_count": 161,
-    "template_count": 100,
+    "template_count": 103,
     "html_route_count": 80,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
@@ -11919,7 +11919,7 @@
       "path": "auth/error.html",
       "kind": "page",
       "extends": [
-        "base.html"
+        "errors/page.html"
       ],
       "includes": [],
       "sha256": "fdaefae66ec51f5f0cf2812596fb22e9546c5544bc9fa27a3635d49ff32b4783",
@@ -11944,7 +11944,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "bcbcbba4a7d64e123042357638bffddf45fa351bf53eaeebc82b81790f186d30",
+      "sha256": "0d1cf7127ce6f226056a32ec672e14d9db7514cf4d4f5ff67acded9f5db9443a",
       "used_by_endpoints": [
         "auth.local_login"
       ],
@@ -11977,6 +11977,82 @@
         "M20"
       ],
       "current_visual_status": "not_run"
+    },
+    {
+      "path": "errors/_card.html",
+      "kind": "partial",
+      "extends": [],
+      "includes": [
+        "_brand_logo.html"
+      ],
+      "sha256": "190e73efcc75ea8d197e6129fe8771cbb98bdb9fe2ca335d7f46640604ab1bca",
+      "used_by_endpoints": [
+        "auth.callback",
+        "auth.local_login",
+        "auth.login"
+      ],
+      "owning_mp": "MP-UI-AUTH",
+      "density_mockups": [
+        "M01",
+        "M20"
+      ],
+      "current_visual_status": "not_run",
+      "context": "EH-2 Fehlerfamilie: auth/admin/minimal; Status 401/403/404/500/503. Browsernachweis mit synthetischen Templatekontexten, ohne produktive Fehlerhandler.",
+      "tests": [
+        "reference_scaffold/tests/test_eh_pages_browser.py"
+      ]
+    },
+    {
+      "path": "errors/minimal.html",
+      "kind": "layout",
+      "extends": [],
+      "includes": [
+        "errors/_card.html"
+      ],
+      "sha256": "61b8b15ace9ad6f83b25ded49aa7e24ae5e55d93f069a99f293bfcd9c489f9e4",
+      "used_by_endpoints": [
+        "auth.callback",
+        "auth.local_login",
+        "auth.login"
+      ],
+      "owning_mp": "MP-UI-AUTH",
+      "density_mockups": [
+        "M01",
+        "M20"
+      ],
+      "current_visual_status": "not_run",
+      "context": "EH-2 Fehlerfamilie: minimaler Rahmen ohne Admin-/Auth-Kontextprozessoren; Status 401/403/404/500/503. Browsernachweis mit synthetischen Templatekontexten, ohne produktive Fehlerhandler.",
+      "tests": [
+        "reference_scaffold/tests/test_eh_pages_browser.py"
+      ]
+    },
+    {
+      "path": "errors/page.html",
+      "kind": "page",
+      "extends": [
+        "admin/base_tabler.html",
+        "base.html",
+        "errors/minimal.html"
+      ],
+      "includes": [
+        "errors/_card.html"
+      ],
+      "sha256": "7e919e7e30791504d02761267db74a6a41ba12ce234fe8e3a37a485a220f870c",
+      "used_by_endpoints": [
+        "auth.callback",
+        "auth.local_login",
+        "auth.login"
+      ],
+      "owning_mp": "MP-UI-AUTH",
+      "density_mockups": [
+        "M01",
+        "M20"
+      ],
+      "current_visual_status": "not_run",
+      "context": "EH-2 Fehlerfamilie: Rahmenwahl auth/admin/minimal; Status 401/403/404/500/503. Browsernachweis mit synthetischen Templatekontexten, ohne produktive Fehlerhandler.",
+      "tests": [
+        "reference_scaffold/tests/test_eh_pages_browser.py"
+      ]
     },
     {
       "path": "public/base_public.html",

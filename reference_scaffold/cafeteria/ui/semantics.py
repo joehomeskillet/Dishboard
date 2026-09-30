@@ -131,7 +131,7 @@ _ERROR_FAMILY_KEYS = frozenset({
     'errors.UPLOAD_TOO_LARGE.message', 'errors.UPLOAD_TOO_LARGE.title',
     'errors.VALIDATION_FAILED.message', 'errors.VALIDATION_FAILED.title',
     'errors.VERSION_CONFLICT.message', 'errors.VERSION_CONFLICT.title',
-    'errors.code_label', 'errors.formats_known', 'errors.limit_known',
+    'errors.code_label', 'errors.auth_input_loss', 'errors.formats_known', 'errors.limit_known',
     'errors.mutation.not_started', 'errors.mutation.unclear', 'errors.reference',
     'errors.wait_known',
 })

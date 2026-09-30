@@ -583,6 +583,17 @@
     "role": "neutral"
   },
   {
+    "key": "status.unsaved",
+    "category": "status",
+    "ascii": "[!]",
+    "icon": "alert-triangle",
+    "label_key": "status.unsaved.label",
+    "tooltip_key": "status.unsaved.tooltip",
+    "aria_key": "status.unsaved.aria",
+    "icon_only_allowed": false,
+    "role": "warning"
+  },
+  {
     "key": "status.warning",
     "category": "status",
     "ascii": "[!]",
@@ -2561,17 +2572,6 @@
     "aria_key": "editing.not_created.aria",
     "icon_only_allowed": false,
     "role": "neutral"
-  },
-  {
-    "key": "status.unsaved",
-    "category": "status",
-    "ascii": "[i]",
-    "icon": "edit",
-    "label_key": "status.unsaved.label",
-    "tooltip_key": "status.unsaved.tooltip",
-    "aria_key": "status.unsaved.aria",
-    "icon_only_allowed": false,
-    "role": "warning"
   },
   {
     "key": "status.incomplete",

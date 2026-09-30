@@ -47,7 +47,7 @@ def test_unexpected_cost_error_never_discloses_internal_text(b3, monkeypatch, en
         'revision_public_id': '11111111-1111-4111-8111-111111111111', 'as_of': '2026-09-30',
     })
     assert 'private_' not in response.text
-    assert response.status_code == 500
+    assert response.status_code == (503 if failure is DBAPIError else 500)
 
 
 def _stock(owner, food_id: str, storage_id: str) -> Decimal:
