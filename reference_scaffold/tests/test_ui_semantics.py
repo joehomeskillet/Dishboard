@@ -142,7 +142,12 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; EH-2 adds login, reload, overview.
     assert len(seeds) == 187
-    assert len(registry) == 232
+    assert len(registry) == 233
+    assert registry['status.unsaved'].role == 'warning'
+    assert not registry['status.unsaved'].icon_only_allowed
+    for locale, expected in (('de', 'Nicht gespeichert'), ('en', 'Not saved')):
+        for suffix in ('label', 'tooltip', 'aria'):
+            assert load_locales()[locale][f'status.unsaved.{suffix}'] == expected
     assert registry['actions.login'].resolved_icon == 'lock'
     assert registry['actions.login'].role == 'primary'
     assert registry['actions.reload'].resolved_icon == 'reload'

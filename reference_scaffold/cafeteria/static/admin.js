@@ -42,7 +42,7 @@
             button.classList.add('admin-btn-loading');
         }, 0);
     });
-    window.addEventListener('pageshow', () => {
+    function resetLoadingForms() {
         loadingForms.forEach(({button, busy, spinner}) => {
             button.disabled = false;
             if (busy === null) button.removeAttribute('aria-busy');
@@ -50,7 +50,8 @@
             if (!spinner) button.classList.remove('admin-btn-loading');
         });
         loadingForms.clear();
-    });
+    }
+    window.addEventListener('pageshow', resetLoadingForms);
     // Native details remain usable without JS; enhancement never executes items.
     document.addEventListener('toggle', event => {
         const menu = event.target;
@@ -236,7 +237,49 @@
 
     // 1. Dirty-Tracking
     const forms = document.querySelectorAll('form:not([data-dirty-tracking="off"])');
-    let isDirty = false;
+    const dirtyForms = new Set();
+    const initialFormValues = new WeakMap();
+    const unsavedLabel = document.body.dataset.unsavedLabel;
+    let submittingForm = null;
+    const dirtyActionState = new Map();
+
+    function formValues(form) {
+        return JSON.stringify(Array.from(form.elements)
+            .filter(control => control.name && control.matches('input, select, textarea')
+                && !['hidden', 'submit', 'button', 'reset', 'image'].includes(control.type))
+            .map(control => [control.name, control.type,
+                ['checkbox', 'radio'].includes(control.type) ? [control.value, control.checked]
+                    : control.multiple ? Array.from(control.selectedOptions, option => option.value)
+                        : control.value]));
+    }
+
+    function refreshFormDirty(form) {
+        setFormDirty(form, formValues(form) !== initialFormValues.get(form));
+    }
+
+    function setFormDirty(form, dirty) {
+        if (dirty) dirtyForms.add(form);
+        else dirtyForms.delete(form);
+        if (form.matches('[data-menu-editor]')) {
+            const note = document.querySelector('[data-menu-editor-dirty-note]');
+            note?.classList.toggle('is-dirty', dirty);
+            const status = note?.querySelector('[data-dirty-status]');
+            if (status) status.textContent = dirty ? unsavedLabel : '';
+        }
+        if (form.hasAttribute('data-dirty-form')) {
+            let status = form.querySelector('[data-dirty-status]');
+            if (!status) {
+                status = document.createElement('p');
+                status.dataset.dirtyStatus = '';
+                status.className = 'text-warning small mb-0';
+                status.setAttribute('role', 'status');
+                form.append(status);
+            }
+            status.textContent = dirty ? unsavedLabel : '';
+            status.hidden = !dirty;
+        }
+        updateDirtyState();
+    }
 
     // Confirm before dirty-state clearing and the document's loading listener.
     document.querySelectorAll('form').forEach(form => {
@@ -248,65 +291,98 @@
     });
 
     forms.forEach(form => {
-        form.addEventListener('input', () => {
-            if (!isDirty) {
-                isDirty = true;
-                updateDirtyState();
-            }
-        });
-        form.addEventListener('change', () => {
-            if (!isDirty) {
-                isDirty = true;
-                updateDirtyState();
-            }
+        if (form.method !== 'post') return;
+        // Compare after dependent controls and cancelled selections have settled.
+        ['input', 'change'].forEach(type => form.addEventListener(type, () => {
+            queueMicrotask(() => refreshFormDirty(form));
+        }));
+        form.addEventListener('reset', event => {
+            window.setTimeout(() => {
+                if (event.defaultPrevented) return;
+                syncMetadataControls(form);
+                refreshFormDirty(form);
+            }, 0);
         });
         form.addEventListener('submit', (e) => {
-            if (!e.defaultPrevented) {
-                isDirty = false;
-            }
+            if (e.defaultPrevented) return;
+            const target = e.submitter?.formTarget || form.target;
+            if (target && target !== '_self') return;
+            submittingForm = form;
+            // Native navigation may start after a timer task. Keep its exemption
+            // until beforeunload, but discard submissions cancelled by later listeners.
+            window.setTimeout(() => {
+                if (e.defaultPrevented) submittingForm = null;
+            }, 0);
         });
     });
 
     window.addEventListener('beforeunload', (e) => {
-        if (isDirty) {
+        const unsaved = Array.from(dirtyForms).some(form => form !== submittingForm);
+        // A cancelled navigation keeps every original dirty state.
+        submittingForm = null;
+        if (unsaved) {
             e.preventDefault();
             e.returnValue = '';
+            // The native leave dialog can cancel navigation after submit was accepted.
+            window.setTimeout(resetLoadingForms, 0);
         }
     });
 
     function updateDirtyState() {
+        const isDirty = dirtyForms.size > 0;
         const previewLinks = document.querySelectorAll('a[href*="/preview"]');
         const publishForms = document.querySelectorAll('form[action*="/publish"]');
-        let flashRegion = document.querySelector('.flash-region');
-        if (!flashRegion && (previewLinks.length || publishForms.length)) {
+        let flashRegion = document.getElementById('admin-dirty-action-reason');
+        if (!flashRegion && isDirty && (previewLinks.length || publishForms.length)) {
             flashRegion = document.createElement('p');
+            flashRegion.id = 'admin-dirty-action-reason';
             flashRegion.className = 'flash-region';
+            flashRegion.setAttribute('role', 'status');
             (document.querySelector('main') || document.body).prepend(flashRegion);
         }
         if (flashRegion) {
-            if (!flashRegion.id) flashRegion.id = 'admin-dirty-action-reason';
-            flashRegion.textContent = 'Zuerst speichern';
+            flashRegion.textContent = isDirty ? unsavedLabel : '';
+            flashRegion.hidden = !isDirty;
+        }
+        if (!isDirty) {
+            dirtyActionState.forEach((state, control) => {
+                Object.entries(state.attrs).forEach(([name, value]) => {
+                    if (value === null) control.removeAttribute(name);
+                    else control.setAttribute(name, value);
+                });
+                const descriptions = (control.getAttribute('aria-describedby') || '').split(/\s+/)
+                    .filter(id => id && id !== 'admin-dirty-action-reason');
+                if (descriptions.length) control.setAttribute('aria-describedby', descriptions.join(' '));
+                else control.removeAttribute('aria-describedby');
+                control.classList.toggle('disabled', state.disabledClass);
+                control.removeEventListener('click', preventDefaultClick);
+            });
+            dirtyActionState.clear();
+            return;
         }
         const describe = control => {
+            if (!dirtyActionState.has(control)) dirtyActionState.set(control, {
+                attrs: Object.fromEntries(['aria-disabled', 'disabled']
+                    .map(name => [name, control.getAttribute(name)])),
+                disabledClass: control.classList.contains('disabled'),
+            });
             const ids = new Set((control.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
             ids.add(flashRegion.id);
             control.setAttribute('aria-describedby', Array.from(ids).join(' '));
         };
 
         previewLinks.forEach(link => {
-            link.setAttribute('aria-disabled', 'true');
             describe(link);
+            link.setAttribute('aria-disabled', 'true');
             link.classList.add('disabled');
             link.addEventListener('click', preventDefaultClick);
-            if (!link.classList.contains('ui-sem-control--icon-only')) link.textContent = 'Zuerst speichern';
         });
 
         publishForms.forEach(form => {
             const btn = form.querySelector('button[type="submit"]');
             if (btn) {
-                btn.setAttribute('disabled', 'true');
                 describe(btn);
-                if (!btn.classList.contains('ui-sem-control--icon-only')) btn.textContent = 'Zuerst speichern';
+                btn.setAttribute('disabled', 'true');
             }
         });
 
@@ -638,10 +714,6 @@
             syncComponentRow(row);
             syncTargetQuantityField(row, unitDisplayNames);
         });
-        const dirtyNote = document.querySelector('[data-menu-editor-dirty-note]');
-        const markReviewDirty = () => dirtyNote?.classList.add('is-dirty');
-        form.addEventListener('input', markReviewDirty);
-        form.addEventListener('change', markReviewDirty);
         form.addEventListener('input', (e) => {
             const row = e.target.closest('.component-row');
             if (!row) return;
@@ -848,17 +920,21 @@
         let releaseFrame = 0;
         const revealFocus = () => {
             const active = document.activeElement;
-            if (pointerId !== null || !form.contains(active) || stickyBar.contains(active)
-                || getComputedStyle(stickyBar).position !== 'sticky') return;
+            if (pointerId !== null || !form.contains(active)) return;
             const bar = stickyBar.getBoundingClientRect();
             const field = active.getBoundingClientRect();
-            if (stickyBar.dataset.stickyEdge === 'top') {
-                if (bar.top <= 0 && field.top < bar.bottom) {
-                    window.scrollBy(0, field.top - bar.bottom - 8);
-                }
-            } else if (bar.top < window.innerHeight && field.bottom > bar.top) {
-                window.scrollBy(0, field.bottom - bar.top + 8);
+            const style = getComputedStyle(active);
+            const gap = Math.max(parseFloat(style.getPropertyValue('--app-space-2')) || 0,
+                (parseFloat(style.outlineWidth) || 0) + Math.max(parseFloat(style.outlineOffset) || 0, 0));
+            let top = (viewport ? viewport.offsetTop : 0) + gap;
+            let bottom = top + (viewport ? viewport.height : window.innerHeight) - 2 * gap;
+            if (getComputedStyle(stickyBar).position === 'sticky' && !stickyBar.contains(active)) {
+                if (stickyBar.dataset.stickyEdge === 'top' && bar.top <= top) top = bar.bottom + gap;
+                else if (stickyBar.dataset.stickyEdge !== 'top' && bar.top < bottom) bottom = bar.top - gap;
             }
+            if (field.height > bottom - top) return;
+            const shift = field.bottom > bottom ? field.bottom - bottom : field.top < top ? field.top - top : 0;
+            if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
         };
         // Native focus changes between pointerdown and click must not move the target.
         document.addEventListener('pointerdown', (e) => {
@@ -912,6 +988,10 @@
                 focusAfterEscape(trigger);
             });
         }
+    });
+    // Enhancement may normalize controls; that rendered state is the baseline.
+    forms.forEach(form => {
+        if (form.method === 'post') initialFormValues.set(form, formValues(form));
     });
 })();
 

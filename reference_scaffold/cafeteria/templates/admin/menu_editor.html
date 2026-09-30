@@ -396,7 +396,7 @@
         {% if origin_conflict %}
         <div class="alert alert-danger error-region mb-0" role="alert">{{ icon('alert-triangle') }} {{ origin_conflict }}</div>
         {% endif %}
-        <p class="menu-editor-review-dirty-note mt-3 mb-0" data-menu-editor-dirty-note>Neue Eingaben zuerst speichern. Die Prüfung beschreibt den gespeicherten Stand, nicht diesen Entwurf.</p>
+        <p class="menu-editor-review-dirty-note mt-3 mb-0" data-menu-editor-dirty-note><span data-dirty-status role="status"></span> Die Prüfung beschreibt den gespeicherten Stand, nicht diesen Entwurf.</p>
       </div>
       {% if review_token %}
       <div class="card-footer menu-editor-review-actions">

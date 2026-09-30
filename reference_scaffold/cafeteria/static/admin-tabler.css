@@ -50,6 +50,12 @@
   color: var(--app-text); background: var(--app-bg);
   font-family: var(--app-font-body); line-height: var(--app-line-height-body);
 }
+@media (max-height: 600px) {
+  .dishboard-admin {
+    --app-form-footer-height: calc(var(--app-sem-control-touch-size) + 2 * var(--app-space-2));
+  }
+  .dishboard-admin :is(a, button, input, select, textarea) { scroll-margin-bottom: var(--app-form-footer-height); }
+}
 .dishboard-admin .page { min-width: 0; }
 .dishboard-admin .admin-main { min-width: 0; flex: 1 1 auto; }
 .dishboard-admin .admin-sidebar {
