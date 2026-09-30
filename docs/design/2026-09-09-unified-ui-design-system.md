@@ -193,6 +193,61 @@ sie begründen keine Rückkehr zu diesen ersetzten Vorgaben.
 - Fachliche Bedeutungen, Rollen, serverseitige Freigabesperren, CSRF und native
   Formularverträge bleiben unangetastet. Fehlend ist ungleich 0 oder allergenfrei.
 
+## Fehler- und Anmeldefamilie
+
+Gilt für Anmeldemaske, Anmeldefehler und die Vollseiten der stabilen Fehlercodes.
+Kurze Meldungen sind kein Arbeitsraster: die Karte bleibt fluid bei etwa 32–40 rem
+(`max-width: 36rem`) und wird nicht auf die volle Desktopbreite gestreckt.
+Farbe nur über vorhandene Tokens, Primäraktion über `--sh-magenta`.
+
+Rahmen je Kontext:
+
+- `auth`: leichter öffentlicher Rahmen, keine Sidebar, kein Benutzername, keine Rollen.
+- `admin`: bestehender Admin-Rahmen, wenn dessen Daten schon sicher vorliegen.
+- `minimal`: eigenständiges Dokument ohne Template-Vererbung und ohne Kontextprozessor.
+  Lokales CSS (`errors.css`, `tokens.css`) und das statische Logo. Kein `url_for`,
+  kein Session-Benutzer, kein Marken-Stylesheet.
+
+Begrenzte Textbutton-Ausnahme: die Wiederherstellungsaktionen Anmelden, Zur Übersicht
+und Neu laden zeigen Icon und kurze sichtbare Beschriftung. Das ist keine Rückkehr
+zu Textbuttons im Verwaltungsraster. Icon-Ausfall lässt die Beschriftung stehen.
+Neu laden ist ein sicheres GET, kein `location.reload()`. Code und Referenz bleiben
+klein und auswählbar. Bedienflächen mindestens 44 px. Ohne JavaScript und ohne CSS
+bleiben Titel, Erklärung und Aktionen lesbar. „Support“ nur, wenn ein Kontaktweg
+konfiguriert ist; im aktuellen Bestand gibt es keinen, deshalb fehlt die Aktion.
+
+```text
+Zielbild A – Anmeldemaske
++-------------------------------------------------------------+
+| [Vorhandenes Logo]              Menueplanung                 |
+|                         [LOCK]                              |
+|                    Anmeldung erforderlich                   |
+|        Bitte anmelden, um diesen Bereich zu oeffnen.        |
+| Benutzername / Passwort                                     |
+|                   [LOGIN  Anmelden]                         |
+| [Mit Organisationskonto anmelden]   nur wenn eingerichtet    |
++-------------------------------------------------------------+
+
+Zielbild B – kein Zugriff
++-------------------------------------------------------------+
+| [LOCK]  Kein Zugriff                                        |
+| Ihr Konto hat fuer diesen Bereich keine Berechtigung.       |
+| [HOME  Zur Uebersicht]                                      |
+| Fehler 403                       Referenz                    |
++-------------------------------------------------------------+
+
+Zielbild C – technischer Fehler
++-------------------------------------------------------------+
+| [ALERT]  Vorgang konnte nicht abgeschlossen werden          |
+| Bei der Verarbeitung ist ein Fehler aufgetreten.            |
+| [RELOAD  Neu laden]   [HOME  Zur Uebersicht]                |
+| Fehler 500                       Referenz                    |
++-------------------------------------------------------------+
+```
+
+Der öffentliche Ausgang der Anmeldemaske bleibt die beiden bestehenden Wochenlinks.
+Support aus Zielbild B der SDD wird nicht gezeichnet, solange kein Kontaktweg existiert.
+
 ## Auftraggeber-Entscheid 2026-09-20
 
 Gemäss Auftraggeber-Entscheid im Handoff (`docs/design/uiux-handoff-2026-09-20/`) werden folgende Regeln und Strukturen ersetzt bzw. präzisiert:

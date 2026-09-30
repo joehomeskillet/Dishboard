@@ -98,8 +98,12 @@ def test_empty_week_creation_and_error_retention(admin_app, admin_engine, live_s
             expect(empty_create).to_have_attribute('aria-expanded', 'true')
         page.get_by_label('Wochenbeginn (Montag)').fill('2026-09-01')
         page.get_by_label('Wochentitel', exact=True).fill('Eingabe behalten')
+        submit = page.get_by_role('button', name='Anlegen', exact=True)
+        expect(submit).to_be_enabled()
+        # No-JS reloads the whole shell. click() waits for that load inside its
+        # 30s budget, times out after the click, and aborts the POST.
         with page.expect_response(lambda r: r.request.method == 'POST') as posted:
-            page.get_by_role('button', name='Anlegen', exact=True).click()
+            submit.click(no_wait_after=True)
         assert posted.value.status == 400
         expect(page.locator('#new-week-error')).to_be_visible()
         expect(page.locator('#new-week-date')).to_be_visible()
@@ -171,22 +175,18 @@ def test_management_density_keyboard_and_native_actions(
                 expect(first.locator('.admin-table-status .admin-label')).to_have_class(re.compile(r'admin-status--neutral'))
                 expect(page.locator('.week-filter')).to_have_class(re.compile(r'admin-filter-bar'))
                 copy = first.get_by_role('link', name='Woche ab 21.09.2026 kopieren', exact=True)
-                expect(copy).to_be_hidden()
-                more = first.locator('summary')
-                more.focus()
+                expect(copy).to_be_visible()
+                expect(copy).to_have_text('')
+                expect(copy).to_have_attribute('data-semantic', 'actions.copy')
+                expect(first.locator('summary')).to_have_count(0)
+                copy.focus()
                 page.keyboard.press('Shift+Tab')
                 page.keyboard.press('Tab')
-                expect(more).to_be_focused()
-                assert more.evaluate('e => getComputedStyle(e).outlineStyle') == 'solid'
-                assert more.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
-                page.keyboard.press('Enter')
-                expect(copy).to_be_visible()
+                expect(copy).to_be_focused()
+                assert copy.evaluate('e => getComputedStyle(e).outlineStyle') == 'solid'
+                assert copy.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
                 preview = first.locator('a[href*="/preview?"]')
                 expect(preview).to_be_visible()
-                # The shared menu focuses its first action with JS; native details need Tab.
-                if not javascript:
-                    page.keyboard.press('Tab')
-                expect(copy).to_be_focused()
                 bad_targets = page.locator('main :is(.btn, summary):visible').evaluate_all('''es => es.flatMap(e => {
                     const r = e.getBoundingClientRect();
                     const min = e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse)').matches ? 44 : 36) : 48;
@@ -213,7 +213,6 @@ def test_management_density_keyboard_and_native_actions(
                 preview.click()
                 assert '/preview?week=' in page.url
                 page.goto(f'/admin/{family}/wochen')
-                rows.first.locator('summary').click()
                 rows.first.get_by_role('link', name='Woche ab 21.09.2026 kopieren', exact=True).click()
                 expect(page.locator('main')).to_have_attribute('data-source-week', str(WEEK + timedelta(weeks=3)))
                 expect(page.locator('main')).to_have_attribute('data-target-week', str(WEEK + timedelta(weeks=4)))

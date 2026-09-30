@@ -18,8 +18,8 @@ from test_rendered_ui import admin_app, admin_engine, browser
 
 __all__ = ['admin_app', 'admin_engine', 'browser', 'live_server']
 
-TITLE = 'Kartoffeln "Kräuter" & Gemüse'
-TEMPLATE = 'Vorlage "Küche" & Garten'
+TITLE = 'A & B "Kräuter" & Gemüse'
+TEMPLATE = 'A & B "Küche" & Garten'
 FORM_STATE = '''forms => forms.map(form => ({
     action: form.getAttribute('action'), method: form.getAttribute('method'),
     fields: [...new FormData(form)]
@@ -147,7 +147,8 @@ def test_week_template_menu_context_is_localized_distinct_and_native(
             card = page.locator(selector)
             details = card.locator('.admin-week-template')
             trigger = details
-            object_name = identity + ' · ' + TEMPLATE + (' (archiviert)' if archived else '')
+            archived_label = 'archiviert' if locale == 'de' else 'archived'
+            object_name = identity + ' · ' + TEMPLATE + (f' ({archived_label})' if archived else '')
             name = f'Gerichtvorlage für {object_name} öffnen' if locale == 'de' else f'Open dish template for {object_name}'
             # The direct link retains localized slot identity and its matching tooltip.
             expect(trigger).to_have_accessible_name(name)

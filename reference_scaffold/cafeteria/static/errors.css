@@ -1,0 +1,109 @@
+/* Error and sign-in family. Tokens only; the minimal frame loads this file
+   without app.css, so the shell has to stand on its own. */
+.eh-document {
+  margin: 0;
+  color: var(--sh-ink);
+  background: var(--sh-panel);
+  font-family: var(--sh-font);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.eh-skip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.eh-skip:focus {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1;
+  width: auto;
+  height: auto;
+  clip: auto;
+  overflow: visible;
+  padding: 0.5rem 1rem;
+  background: var(--sh-panel);
+  color: var(--sh-ink);
+  box-shadow: var(--sh-focus);
+}
+.eh-shell {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 100vh;
+  padding: 1rem;
+  background: linear-gradient(160deg, var(--sh-teal-950) 0%, var(--sh-teal-800) 100%);
+  color: var(--sh-ink);
+  font-family: var(--sh-font);
+}
+.eh-admin-slot { width: 100%; padding: 1rem 0 2rem; }
+.eh-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 36rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  overflow: visible;
+  color: var(--sh-ink);
+  background: var(--sh-panel);
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-lg);
+  font-family: var(--sh-font);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.eh-brand { margin: 0 0 1rem; }
+.eh-logo { display: block; width: auto; max-width: 100%; height: 2.5rem; object-fit: contain; object-position: left center; }
+.eh-product { margin: 0.5rem 0 0; color: var(--sh-ink-muted); font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.eh-status { margin: 0 0 0.75rem; color: var(--sh-magenta); }
+.eh-card .icon { display: block; width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
+.eh-title { margin: 0 0 0.5rem; font-size: clamp(1.625rem, 4vw, 1.875rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+.eh-message, .eh-mutation { margin: 0 0 1rem; font-size: 1rem; line-height: 1.5; }
+.eh-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; width: 100%; margin: 0 0 1rem; }
+.eh-action-form { margin: 0; }
+.eh-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--sh-border);
+  border-radius: var(--sh-radius-sm);
+  color: var(--sh-ink);
+  background: var(--sh-panel);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+}
+.eh-action-primary { border-color: transparent; color: var(--sh-white); background: var(--sh-magenta); }
+.eh-action:hover { border-color: var(--sh-teal-700); }
+.eh-action-primary:hover { border-color: transparent; color: var(--sh-white); background: var(--sh-teal-950); }
+.eh-action:focus { outline: none; box-shadow: var(--sh-focus); }
+.eh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+  color: var(--sh-ink-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.eh-reference, .eh-code { user-select: text; -webkit-user-select: text; }

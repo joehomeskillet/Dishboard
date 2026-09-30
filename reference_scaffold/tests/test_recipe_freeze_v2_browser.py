@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from urllib.parse import urlsplit
 
 import pytest
-from playwright.sync_api import expect
+from playwright.sync_api import Page, expect
 
 from cafeteria import recipe_store as store, master_data_store as masters
 from test_master_data_db import signed_in, STORAGE_PUBLIC_ID
@@ -16,6 +16,20 @@ from test_recipe_freeze_v2_routes import ready, revision_path, rename_food  # no
 from test_recipe_revision_routes import a3, b3, app_engine, pg16, installed_pg16, seeded_pg16  # noqa: F401
 from test_recipe_images_browser import recipe_server  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
+
+
+def focus_direct_history_link(page: Page, href: str) -> None:
+    link = page.locator('main').locator(f'a[href="{href}"]')
+    expect(link).to_have_count(1)
+    expect(link).to_be_visible()
+    expect(link.locator('xpath=ancestor::details')).to_have_count(0)
+    expect(link).to_have_attribute('data-semantic', 'actions.history')
+    assert 'ui-sem-control--icon-only' in (link.get_attribute('class') or '')
+    row = link.locator('xpath=ancestor::tr[1]')
+    expect(row.locator('.admin-list-primary a')).to_have_count(0)
+    assert row.locator('.admin-list-primary').inner_text().strip()
+    link.focus()
+    expect(link).to_be_focused()
 
 
 @pytest.fixture
@@ -111,11 +125,7 @@ def test_preview_and_list_are_native_readonly_with_exact_prepared_selection(prep
         if width in (1440, 390):
             assert page.goto(base + '/admin/rezepte').status == 200
             proof(page, tmp_path / f'freeze-list-{width}.png', expected_status=200, requests=methods.copy())
-            link = page.locator(f'main a[href="/admin/rezepte/{public_id}/revisionen"]')
-            link.locator('xpath=ancestor::details/summary').focus()
-            page.keyboard.press('Enter')
-            link.focus()
-            expect(link).to_be_focused()
+            focus_direct_history_link(page, f'/admin/rezepte/{public_id}/revisionen')
             with page.expect_navigation(wait_until='load'):
                 page.keyboard.press('Enter')
         else:
@@ -164,10 +174,7 @@ def test_native_freeze_conflict_keeps_original_until_explicit_reload(ready, reci
         assert page.locator('button[type="submit"]').count() == 0 and full_state(owner) == before
         proof(page, tmp_path / f'freeze-conflict-{width}.png', expected_status=409, requests=methods.copy())
         page.get_by_role('link', name='Aktuellen Stand bewusst neu laden', exact=True).click()
-        link = page.locator(f'main a[href="{revision_path(ready)}"]')
-        link.locator('xpath=ancestor::details/summary').focus()
-        page.keyboard.press('Enter')
-        link.focus()
+        focus_direct_history_link(page, revision_path(ready))
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         assert page.locator('input[name="_form_context"]').input_value() != original
@@ -225,10 +232,7 @@ def test_both_routes_reflow_at_native_chromium_200_percent_zoom(prepared_preview
             assert page.evaluate('innerWidth') == 720
             proof(page, tmp_path / 'freeze-list-native-200-percent.png', expected_status=200,
                   requests=methods.copy(), native_capture=True)
-            link = page.locator(f'main a[href="/admin/rezepte/{public_id}/revisionen"]')
-            link.locator('xpath=ancestor::details/summary').focus()
-            page.keyboard.press('Enter')
-            link.focus()
+            focus_direct_history_link(page, f'/admin/rezepte/{public_id}/revisionen')
             with page.expect_navigation(wait_until='load'):
                 page.keyboard.press('Enter')
             expect(page.get_by_role('heading', name='Zutatenstand prüfen', exact=True)).to_be_visible()

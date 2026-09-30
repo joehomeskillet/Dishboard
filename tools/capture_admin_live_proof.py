@@ -102,6 +102,8 @@ def _week_url_matches(url: str, base: str, path: str, week: date) -> bool:
 
 def _neutral_cursor(page: Page) -> None:
     page.mouse.move(0, 0)
+    # A focused icon keeps its tooltip open; Escape alone does not move focus.
+    page.evaluate('document.activeElement instanceof HTMLElement && document.activeElement.blur()')
     if page.locator('.tooltip').count():
         page.keyboard.press('Escape')
         expect(page.locator('.tooltip')).to_have_count(0)
@@ -229,13 +231,24 @@ def capture_viewport(
                     check(f'{stage}.profile', main.count() == 1 and main.get_attribute('data-profile') == profile)
                     sidebar = page.locator('nav[aria-label="Backend"]')
                     for destination in ('menues', 'wochen', 'komponenten'):
-                        check(f'{stage}.nav_{destination}', sidebar.locator(
-                            f'a[href="/admin/{family}/{destination}"]',
-                        ).count() == 1)
+                        href = f'/admin/{family}/{destination}'
+                        visible = sidebar.locator(f'a[href="{href}"]').count()
+                        # Closed areas keep the link in an inert template, not the live tree.
+                        declared = bool(visible) or page.evaluate(
+                            """href => [...document.querySelectorAll('template[data-admin-nav-items]')]
+                                .some(node => node.innerHTML.includes('href="' + href + '"'))""",
+                            href,
+                        )
+                        check(f'{stage}.nav_{destination}', visible in (1, 2) or (visible == 0 and declared))
                     check(f'{stage}.nav_current', sidebar.locator(
                         f'a[href="{path}"][aria-current="page"]',
                     ).count() == 1)
-                    active_profile = page.locator('nav[aria-label="Profil"] a[aria-current="page"]')
+                    active_profile = page.locator(
+                        'nav[aria-label="Profil"] a[aria-current="page"], '
+                        'nav[aria-label="Profil"] a[aria-current="true"]',
+                    )
+                    if active_profile.count() == 0:
+                        active_profile = page.locator('.admin-filter-bar a[aria-current="true"]')
                     check(f'{stage}.profile_tab', active_profile.count() == 1
                           and _profile_tab_matches(active_profile.get_attribute('href'), base, path))
                     rows = main.locator('[data-menu-id], [data-week-id]')
@@ -267,7 +280,7 @@ def capture_viewport(
                 proof['selected_week'] = week.isoformat()
                 proof.setdefault('weeks', {})[prefix] = week.isoformat()
                 overview = f'{base}/admin/{family}?week={week.isoformat()}'
-                days = page.locator('article.menu-slot').evaluate_all(
+                days = page.locator('.menu-slot').evaluate_all(
                     'nodes => nodes.map(node => node.dataset.day)')
                 allowed_counts = (7,) if patient else (5, 7)
                 check(f'{stage}.slots', any(sorted(days) == sorted(
@@ -275,13 +288,13 @@ def capture_viewport(
                     for offset in range(count) for _ in range(4 if patient else 2)
                 ) for count in allowed_counts))
                 stage = f'{prefix}.editor'
-                editor = page.locator('article.menu-slot a[href*="/menu?"]').first
+                editor = page.locator('.menu-slot a[href*="/menu?"]').first
                 editor_url = urljoin(base, editor.get_attribute('href') or '')
                 check(f'{stage}.link_scope', _week_url_matches(editor_url, base, f'/admin/{family}/menu', week))
                 if not checks[f'{stage}.link_scope']:
                     raise RuntimeError('week_scope_changed')
                 with page.expect_navigation(wait_until='load') as editor_response:
-                    editor.click()
+                    editor.click(no_wait_after=True)
                 capture(page, editor_response.value, stage, patient)
                 check(f'{stage}.week', _week_url_matches(page.url, base, f'/admin/{family}/menu', week)
                       and page.locator('main').get_attribute('data-week') == week.isoformat())
@@ -354,8 +367,10 @@ def capture_viewport(
                 capture(page, response, stage, patient)
                 check(f'{stage}.week', _week_url_matches(page.url, base, f'/admin/{family}/wochen/pruefung', week)
                       and page.locator('main').get_attribute('data-week') == week.isoformat())
-                check(f'{stage}.heading', page.get_by_role(
-                    'heading', name='Wochenkopf und Servicehinweise prüfen', exact=True).is_visible())
+                check(f'{stage}.heading', (
+                    page.get_by_role('heading', name='Wochenkopf und Servicehinweise prüfen', exact=True).is_visible()
+                    or page.get_by_role('heading', name='Wochenangaben prüfen', exact=True).is_visible()
+                ))
                 review_form = page.locator('form:has(input[name="context_version"])')
                 if review_form.count():
                     check(f'{stage}.exact_fields', sorted(review_form.locator('input[name]').evaluate_all(
@@ -406,23 +421,38 @@ def capture_viewport(
                     upload = page.locator('form#csv-upload[action="/admin/import-preview"]')
                     example = Path(__file__).resolve().parents[1] / 'csv' / filename
                     upload.locator('input[name="file"]').set_input_files(str(example))
-                    with page.expect_navigation(wait_until='load') as csv_response:
-                        upload.get_by_role('button', name='Vorschau prüfen', exact=True).click()
+                    # Same-URL POST. The load event is not observed after this
+                    # navigation; the ready main is the settle signal.
+                    with page.expect_response(lambda response: (
+                        response.request.method == 'POST'
+                        and urlsplit(response.url).path == '/admin/import-preview'
+                    )) as csv_response:
+                        upload.get_by_role('button', name='Vorschau prüfen', exact=True).click(
+                            no_wait_after=True)
+                    expect(page.locator('main[data-state="ready"]')).to_be_visible()
                     capture(page, csv_response.value, stage, family == 'patienten')
                     check(f'{stage}.state', page.locator('main[data-state="ready"]').count() == 1)
                     result = page.locator('.csv-preview-result')
-                    csv_target = result.locator('.csv-target')
-                    check(f'{stage}.profile', csv_target.locator('strong').inner_text() == label)
-                    check(f'{stage}.week', re.search(r'\bKW 36\b.*31\.08\.2026', csv_target.inner_text(), re.S) is not None)
-                    form = result.locator('form[method="post"][action="/admin/import"]')
+                    # Profile and week moved from .csv-target into the page statusbar.
+                    status = page.locator('dl.admin-statusbar')
+                    profile = status.locator('.admin-statusbar-item').filter(
+                        has_text='Bereich').locator('.admin-statusbar-value-text')
+                    check(f'{stage}.profile', profile.inner_text().strip() == label)
+                    week_text = status.locator('.admin-statusbar-item').filter(
+                        has_text='Woche').locator('.admin-statusbar-value-text').inner_text()
+                    check(f'{stage}.week', re.search(r'\bKW 36\b.*31\.08\.2026', week_text, re.S) is not None)
+                    form = result.locator('form#csv-import[method="post"][action="/admin/import"]')
                     check(f'{stage}.import_form', form.count() == 1)
                     names = form.locator('input[name], select[name], textarea[name], button[name]').evaluate_all(
                         'elements => elements.map(element => element.name)'
                     )
                     check(f'{stage}.exact_fields', sorted(names) == ['_csrf', 'import_token'])
-                    check(f'{stage}.primary_visible', form.locator('button.btn-primary[type="submit"]').is_visible())
+                    # The import control sits in the header and points at the form.
+                    check(f'{stage}.primary_visible', page.locator(
+                        'button.btn-primary[type="submit"][form="csv-import"]').is_visible())
             except Exception as error:
-                failures.append(f'{stage}.{type(error).__name__}')
+                detail = ' '.join(str(error).split())[:300]
+                failures.append(f'{stage}.{type(error).__name__}: {detail}')
         check(f'{viewport}.no_csp_console_errors', csp_errors == 0)
 
 

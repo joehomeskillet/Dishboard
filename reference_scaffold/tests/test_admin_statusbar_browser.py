@@ -5,7 +5,11 @@ from flask import render_template_string
 from playwright.sync_api import expect
 
 from test_admin_workflow_routes import database_engine  # noqa: F401
-from test_ui_master_components_browser import macro_site, touch_input  # noqa: F401
+from test_rendered_ui import browser as browser  # noqa: F401
+from test_ui_master_components_browser import (  # noqa: F401
+    macro_site as macro_site,
+    touch_input as touch_input,
+)
 
 
 def test_page_header_statusbar_semantics_variants_and_empty_values(macro_site):  # noqa: F811 - imported fixture

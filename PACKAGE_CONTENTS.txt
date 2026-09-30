@@ -824,6 +824,7 @@ reference_scaffold/cafeteria/static/api-docs.css
 reference_scaffold/cafeteria/static/api-docs.js
 reference_scaffold/cafeteria/static/app.css
 reference_scaffold/cafeteria/static/cookbook-admin.css
+reference_scaffold/cafeteria/static/errors.css
 reference_scaffold/cafeteria/static/fonts/Carlito-LICENSE.txt
 reference_scaffold/cafeteria/static/fonts/fira-sans-400.woff2
 reference_scaffold/cafeteria/static/fonts/fira-sans-500.woff2
@@ -1253,6 +1254,9 @@ reference_scaffold/cafeteria/templates/api/docs.html
 reference_scaffold/cafeteria/templates/auth/error.html
 reference_scaffold/cafeteria/templates/auth/local_login.html
 reference_scaffold/cafeteria/templates/base.html
+reference_scaffold/cafeteria/templates/errors/_card.html
+reference_scaffold/cafeteria/templates/errors/minimal.html
+reference_scaffold/cafeteria/templates/errors/page.html
 reference_scaffold/cafeteria/templates/public/base_public.html
 reference_scaffold/cafeteria/templates/public/cafeteria_today.html
 reference_scaffold/cafeteria/templates/public/cafeteria_week.html
@@ -1370,6 +1374,15 @@ reference_scaffold/tests/test_auth_live_hardening.py
 reference_scaffold/tests/test_auth_local_login_browser.py
 reference_scaffold/tests/test_auth_proxy_security.py
 reference_scaffold/tests/test_auth_routes.py
+reference_scaffold/tests/test_bf_error_paths_browser.py
+reference_scaffold/tests/test_bf_import_invalid_browser.py
+reference_scaffold/tests/test_bf_list_context_browser.py
+reference_scaffold/tests/test_bf_preview_public_output_browser.py
+reference_scaffold/tests/test_bf_progress_counters_browser.py
+reference_scaffold/tests/test_bf_relations_display_browser.py
+reference_scaffold/tests/test_bf_state_dimensions_browser.py
+reference_scaffold/tests/test_bf_text_spacing_forced_colors_browser.py
+reference_scaffold/tests/test_bf_time_number_browser.py
 reference_scaffold/tests/test_branding_browser.py
 reference_scaffold/tests/test_branding_cache.py
 reference_scaffold/tests/test_branding_header_browser.py
@@ -1438,6 +1451,7 @@ reference_scaffold/tests/test_dish_template_accompaniment_db.py
 reference_scaffold/tests/test_dish_template_browser.py
 reference_scaffold/tests/test_dish_template_import_db.py
 reference_scaffold/tests/test_dish_template_routes.py
+reference_scaffold/tests/test_eh_pages_browser.py
 reference_scaffold/tests/test_fhir_mapping.py
 reference_scaffold/tests/test_fhir_routes.py
 reference_scaffold/tests/test_food_legends_admin.py
@@ -1452,6 +1466,7 @@ reference_scaffold/tests/test_icon_api_browser.py
 reference_scaffold/tests/test_icon_component_recipe_details_browser.py
 reference_scaffold/tests/test_icon_confirm_submitter_browser.py
 reference_scaffold/tests/test_icon_cookbook_view_browser.py
+reference_scaffold/tests/test_icon_disabled_reasons_browser.py
 reference_scaffold/tests/test_icon_disclosure_error_browser.py
 reference_scaffold/tests/test_icon_editor_unsaved_return_browser.py
 reference_scaffold/tests/test_icon_import_image_disclosures_browser.py
@@ -1460,6 +1475,7 @@ reference_scaffold/tests/test_icon_mb2_stammdaten_browser.py
 reference_scaffold/tests/test_icon_menu_native_zoom_browser.py
 reference_scaffold/tests/test_icon_menu_unsaved_changes_browser.py
 reference_scaffold/tests/test_icon_native_summaries_browser.py
+reference_scaffold/tests/test_icon_origin_disabled_browser.py
 reference_scaffold/tests/test_icon_overlap_browser.py
 reference_scaffold/tests/test_icon_pilot_density_browser.py
 reference_scaffold/tests/test_icon_pilot_filter_contracts.py
@@ -1472,6 +1488,7 @@ reference_scaffold/tests/test_icon_recipe_editor_browser.py
 reference_scaffold/tests/test_icon_recipe_editor_loading_browser.py
 reference_scaffold/tests/test_icon_recipe_more_locale_browser.py
 reference_scaffold/tests/test_icon_recipe_scale_calm_browser.py
+reference_scaffold/tests/test_icon_role_action_matrix_browser.py
 reference_scaffold/tests/test_icon_screen_context_browser.py
 reference_scaffold/tests/test_icon_stack_empty_labels_browser.py
 reference_scaffold/tests/test_icon_template_calm_browser.py

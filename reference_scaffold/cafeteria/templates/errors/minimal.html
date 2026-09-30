@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="{{ ui_locale|default('de') }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% if error is mapping and error.title_key %}{{ t(error.title_key) }} · Südhang Menüplanung{% else %}Südhang Menüplanung{% endif %}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/tokens.css">
+  <link rel="stylesheet" href="/static/errors.css">
+</head>
+<body class="eh-document">
+  <a class="eh-skip" href="#main-content">Zum Inhalt springen</a>
+  {% block body %}
+  {% from 'errors/_card.html' import render_error with context %}
+  <main id="main-content" class="eh-shell" tabindex="-1">
+    {{ render_error(error) }}
+  </main>
+  {% endblock %}
+</body>
+</html>

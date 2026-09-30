@@ -1,5 +1,93 @@
 [
   {
+    "key": "menu.origin_auto_reason",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "menu.origin_auto_reason.label",
+    "tooltip_key": "menu.origin_auto_reason.tooltip",
+    "aria_key": "menu.origin_auto_reason.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "recipe.template_archived",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "template",
+    "label_key": "recipe.template_archived.label",
+    "tooltip_key": "recipe.template_archived.tooltip",
+    "aria_key": "recipe.template_archived.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "week.slot_edit",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "edit",
+    "label_key": "week.slot_edit.label",
+    "tooltip_key": "week.slot_edit.tooltip",
+    "aria_key": "week.slot_edit.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "week.slot_add",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "plus",
+    "label_key": "week.slot_add.label",
+    "tooltip_key": "week.slot_add.tooltip",
+    "aria_key": "week.slot_add.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "week.slot_template",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "template",
+    "label_key": "week.slot_template.label",
+    "tooltip_key": "week.slot_template.tooltip",
+    "aria_key": "week.slot_template.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "recipe.row_first_reason",
+    "category": "recipe",
+    "ascii": "[i]",
+    "icon": "arrow-up",
+    "label_key": "recipe.row_first_reason.label",
+    "tooltip_key": "recipe.row_first_reason.tooltip",
+    "aria_key": "recipe.row_first_reason.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "recipe.row_last_reason",
+    "category": "recipe",
+    "ascii": "[i]",
+    "icon": "arrow-down",
+    "label_key": "recipe.row_last_reason.label",
+    "tooltip_key": "recipe.row_last_reason.tooltip",
+    "aria_key": "recipe.row_last_reason.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "recipe.no_revision_reason",
+    "category": "recipe",
+    "ascii": "[i]",
+    "icon": "file-type-pdf",
+    "label_key": "recipe.no_revision_reason.label",
+    "tooltip_key": "recipe.no_revision_reason.tooltip",
+    "aria_key": "recipe.no_revision_reason.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
     "key": "actions.open_pdf",
     "category": "actions",
     "ascii": "[ACTION]",
@@ -326,6 +414,28 @@
     "label_key": "actions.refresh.label",
     "tooltip_key": "actions.refresh.tooltip",
     "aria_key": "actions.refresh.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
+    "key": "actions.login",
+    "category": "actions",
+    "ascii": "[LOGIN]",
+    "icon": "lock",
+    "label_key": "actions.login.label",
+    "tooltip_key": "actions.login.tooltip",
+    "aria_key": "actions.login.aria",
+    "icon_only_allowed": true,
+    "role": "primary"
+  },
+  {
+    "key": "actions.reload",
+    "category": "actions",
+    "ascii": "[RELOAD]",
+    "icon": "reload",
+    "label_key": "actions.reload.label",
+    "tooltip_key": "actions.reload.tooltip",
+    "aria_key": "actions.reload.aria",
     "icon_only_allowed": true,
     "role": "neutral"
   },
@@ -2065,6 +2175,17 @@
     "tooltip_key": "navigation.dashboard.tooltip",
     "aria_key": "navigation.dashboard.aria",
     "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "navigation.overview",
+    "category": "navigation",
+    "ascii": "[HOME]",
+    "icon": "home",
+    "label_key": "navigation.overview.label",
+    "tooltip_key": "navigation.overview.tooltip",
+    "aria_key": "navigation.overview.aria",
+    "icon_only_allowed": true,
     "role": "neutral"
   },
   {

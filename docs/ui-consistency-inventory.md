@@ -1199,9 +1199,12 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/week_management.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/week_review.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | api/docs.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| auth/error.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| auth/error.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | auth/local_login.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | base.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| errors/_card.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| errors/minimal.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| errors/page.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | public/base_public.html | 1 | 1 | 0 | 0 | 1 | 0 | 0 |
 | public/cafeteria_today.html | 2 | 1 | 1 | 0 | 1 | 0 | 0 |
 | public/cafeteria_week.html | 2 | 0 | 1 | 0 | 0 | 0 | 0 |

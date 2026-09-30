@@ -109,6 +109,34 @@ def load_registry(path: Path = ROOT / 'semantic_registry.json') -> Mapping[str, 
     return MappingProxyType(result)
 
 
+# EH-11 and the sign-in family. Explicit keys only: a prefix would let
+# `errors.AUTH_REQUIRED.title.extra` pass the orphan check.
+_ERROR_FAMILY_KEYS = frozenset({
+    'auth.error.title', 'auth.failed', 'auth.required.notice', 'auth.session_invalid.notice',
+    'auth.unavailable',
+    'errors.AUTH_FORBIDDEN.message', 'errors.AUTH_FORBIDDEN.title',
+    'errors.AUTH_REQUIRED.message', 'errors.AUTH_REQUIRED.title',
+    'errors.AUTH_SESSION_INVALID.message', 'errors.AUTH_SESSION_INVALID.title',
+    'errors.FORM_STALE.message', 'errors.FORM_STALE.title',
+    'errors.GATEWAY_ERROR.message', 'errors.GATEWAY_ERROR.title',
+    'errors.GATEWAY_TIMEOUT.message', 'errors.GATEWAY_TIMEOUT.title',
+    'errors.INTERNAL_ERROR.message', 'errors.INTERNAL_ERROR.title',
+    'errors.METHOD_NOT_ALLOWED.message', 'errors.METHOD_NOT_ALLOWED.title',
+    'errors.NETWORK_UNAVAILABLE.message', 'errors.NETWORK_UNAVAILABLE.title',
+    'errors.RATE_LIMITED.message', 'errors.RATE_LIMITED.title',
+    'errors.REQUEST_INVALID.message', 'errors.REQUEST_INVALID.title',
+    'errors.RESOURCE_NOT_FOUND.message', 'errors.RESOURCE_NOT_FOUND.title',
+    'errors.SERVICE_UNAVAILABLE.message', 'errors.SERVICE_UNAVAILABLE.title',
+    'errors.UNSUPPORTED_FORMAT.message', 'errors.UNSUPPORTED_FORMAT.title',
+    'errors.UPLOAD_TOO_LARGE.message', 'errors.UPLOAD_TOO_LARGE.title',
+    'errors.VALIDATION_FAILED.message', 'errors.VALIDATION_FAILED.title',
+    'errors.VERSION_CONFLICT.message', 'errors.VERSION_CONFLICT.title',
+    'errors.code_label', 'errors.formats_known', 'errors.limit_known',
+    'errors.mutation.not_started', 'errors.mutation.unclear', 'errors.reference',
+    'errors.wait_known',
+})
+
+
 def validate_locales(registry: Mapping[str, Semantic], locales: Mapping[str, Mapping[str, str]]) -> None:
     expected = {getattr(item, field) for item in registry.values()
                 for field in ('label_key', 'tooltip_key', 'aria_key')}
@@ -118,6 +146,7 @@ def validate_locales(registry: Mapping[str, Semantic], locales: Mapping[str, Map
                      'api_key.revoke.label', 'api_key.revoke.aria',
                      'api_key.revoke.confirm', 'api_key.revoke.consequence',
                      'menu.save_return.aria', 'recipe.pdf_open.label', 'recipe.pdf_open.aria'})
+    expected.update(_ERROR_FAMILY_KEYS)
     if 'de' not in locales:
         raise SemanticError('de: required primary locale missing')
     for locale, messages in locales.items():

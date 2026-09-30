@@ -13,6 +13,8 @@ import pytest
 from flask import Flask, redirect, render_template_string, request
 from werkzeug.serving import make_server
 
+from cafeteria.template_filters import register_template_filters
+from cafeteria.ui import register_ui
 from test_rendered_ui import browser  # noqa: F401
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -58,7 +60,10 @@ def test_explicit_saved_week_and_missing_week_keep_read_only_coverage(
 ):
     app = Flask(__name__, template_folder=str(ROOT / 'reference_scaffold/cafeteria/templates'),
                 static_folder=str(ROOT / 'reference_scaffold/cafeteria/static'), static_url_path='/static')
+    app.config.update(TESTING=True, UI_LOCALE='de')
     app.secret_key = 'synthetic-browser-fixture'
+    register_template_filters(app)
+    register_ui(app)
     visits = []
     saved_state = {'week': SAVED.isoformat(), 'state': 'draft'}
     before = dict(saved_state)

@@ -140,9 +140,23 @@ def test_registry_source_schema_and_frozen_resolution():
     registry = load_registry()
     source = Path(__file__).resolve().parents[2] / 'docs/design/semantic-ui-language-2026-09-20'
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
-    # P2c adds activate/apply/history; no aliases for different business actions.
+    # P2c adds activate/apply/history; EH-2 adds login, reload, overview.
     assert len(seeds) == 187
-    assert len(registry) == 237  # UC-G0: sixteen explicit state/component entries.
+    assert len(registry) == 248  # UC-G0: sixteen explicit state/component entries; DA/EH: eleven more.
+    assert registry['actions.login'].resolved_icon == 'lock'
+    assert registry['actions.login'].role == 'primary'
+    assert registry['actions.reload'].resolved_icon == 'reload'
+    assert registry['navigation.overview'].resolved_icon == 'home'
+    for key, category in {
+        'menu.origin_auto_reason': 'ui', 'recipe.template_archived': 'ui',
+        'week.slot_edit': 'ui', 'week.slot_add': 'ui', 'week.slot_template': 'ui',
+        'recipe.row_first_reason': 'recipe', 'recipe.row_last_reason': 'recipe',
+        'recipe.no_revision_reason': 'recipe',
+    }.items():
+        assert registry[key].category == category
+        assert registry[key].label_key == key + '.label'
+        assert registry[key].tooltip_key == key + '.tooltip'
+        assert registry[key].aria_key == key + '.aria'
     assert registry['status.archived'].category == 'status'
     assert registry['status.archived'].resolved_icon == 'archive'
     assert registry['status.archived'].role == 'neutral'

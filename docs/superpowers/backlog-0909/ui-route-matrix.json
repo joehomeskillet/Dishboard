@@ -10442,7 +10442,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "18a0483f00f29ec2400623627556364f0f3be845f57866903444192fbf55263a",
+      "sha256": "a1ba1ad601f1544d9afa0aabf5a862dad81cb29d36dfa046ed88c1c59aef213d",
       "used_by_endpoints": [
         "admin.recipe_edit",
         "admin.recipe_new",
@@ -10505,7 +10505,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "e2a293eb7cbee59b1ba0b59854e44c1b72a473c6940aad769e3e6f098c96c90c",
+      "sha256": "36d9553be60326043bdce73e203f46c475cf31b3686e5411ea58e6c5decec195",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -11397,7 +11397,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "4491ac5b9bc78d4367ef3f3430f2b7294e3ad94d1f2e1e7ac2e4aafb1833b51b",
+      "sha256": "ca183c7406c50b2c68491d3cc20ee916004ae0c682ebc46ed799cc32be681900",
       "used_by_endpoints": [
         "admin.menu_get"
       ],
@@ -11557,7 +11557,7 @@
         "admin/_macros.html",
         "admin/rezepte_ansicht.html"
       ],
-      "sha256": "82b1cc01a302a2bf381ced8f99aa11a167d19ed4dccc6c1e1b316cb82f91abf9",
+      "sha256": "0b9d066a6c651d309b56a15cd8038c5472d8990040e85ef9ab86e66f7cc554ef",
       "used_by_endpoints": [
         "admin.recipes_list"
       ],
@@ -11842,7 +11842,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "5fb7bd800e4068d1b0d2295b48c4f7a720e8bc86ac75ff8fd05316c37c7d1dc9",
+      "sha256": "e2a13868fbaf4205e69793326ac13bbab6075361eac32067180afb1f1a6b6181",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],
@@ -11922,7 +11922,7 @@
         "base.html"
       ],
       "includes": [],
-      "sha256": "6da82a00bb2184463f6d953290af5fd8089079341088e83c8a4ac297744a7d08",
+      "sha256": "fdaefae66ec51f5f0cf2812596fb22e9546c5544bc9fa27a3635d49ff32b4783",
       "used_by_endpoints": [
         "auth.callback",
         "auth.local_login",
@@ -11944,7 +11944,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "9ebd9ffd0f63dab3ea9f705c6ae6edc820bd4191c5f720173ba13d566cb186ed",
+      "sha256": "bcbcbba4a7d64e123042357638bffddf45fa351bf53eaeebc82b81790f186d30",
       "used_by_endpoints": [
         "auth.local_login"
       ],
@@ -12486,7 +12486,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "22bcdc2a70bf6a3425eee7af32be2a8cc6de88040cb9a49e0ad2fa5ff7d33ab0",
+      "sha256": "2bd45ff5eac028f95e2102a09e7836cac3986bb16987a7c642020fafe0c33447",
       "used_by_endpoints": [
         "admin.order_basket"
       ],
@@ -12501,7 +12501,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "22273d93487d0feb43c7af3628dedcfec5222e18c0d2489a363a5295697aafba",
+      "sha256": "a89561ad3b37d996376a1a6992dc31b8b82df0a1131b18ce24804dd8b5438c27",
       "used_by_endpoints": [
         "admin.cost_home",
         "admin.cost_preview"
@@ -12517,7 +12517,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "bb72460f8641594ba0e15dbe4d0421af721a4ed511b57b58e8931c928549cae8",
+      "sha256": "0cbeafd9e41201dc40d89b1c6ce428ed63bd95417b0ffc9b48f16b530fd8e017",
       "used_by_endpoints": [
         "admin.inventory_home"
       ],
@@ -12528,7 +12528,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "e60cd8073f640df273cf227d375fc65ada5eff954102b7e8eb90d7209c3d565e",
+      "sha256": "f91f4a1c8dd67b43dd51c6b04e5753e4ce330020df0e6c1d1dfeeaeefdb3bf08",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"

@@ -39,7 +39,11 @@ def test_mobile_logout_remains_reachable_without_javascript(site, database_engin
     page = context.new_page()
     try:
         _goto(page, '/admin/cafeteria')
-        expect(page.locator('noscript .admin-nav')).to_be_visible()
+        disclosure = page.locator('details.admin-nojs-nav')
+        expect(disclosure).to_be_visible()
+        expect(disclosure.locator('.admin-nav')).to_be_hidden()
+        disclosure.locator('summary').click()
+        expect(disclosure.locator('.admin-nav')).to_be_visible()
         form = page.locator('form.admin-logout-form:visible')
         expect(form).to_have_count(1)
         expect(form).to_have_attribute('method', 'post')
