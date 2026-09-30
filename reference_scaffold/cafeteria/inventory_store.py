@@ -15,9 +15,10 @@ from .shopping_list_reads import ShoppingScope
 
 
 class InventoryError(ValueError):
-    def __init__(self, message: str, *, field: str | None = None):
+    def __init__(self, message: str, *, field: str | None = None, value: str | None = None):
         super().__init__(message)
         self.field = field
+        self.value = value
 
 
 class InventoryInsufficientError(InventoryError):
@@ -71,7 +72,7 @@ def _ensure_account(connection, scope: ShoppingScope, food_public_id: str, stora
         'SELECT id FROM cafeteria.storage_locations WHERE public_id=CAST(:id AS uuid) AND location_id=:location'
     ), {'id': _uuid(storage_public_id), 'location': scope.location_id}).scalar_one_or_none()
     if storage is None:
-        raise InventoryError('Lagerort nicht gefunden.', field='storage_public_id')
+        raise InventoryError('Lagerort nicht gefunden.', field='storage_public_id', value=storage_public_id)
     snapshot = _unit_from_row(food)
     factors = {
         'density_g_per_ml': None if food['density_g_per_ml'] is None else str(food['density_g_per_ml']),

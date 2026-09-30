@@ -8,7 +8,7 @@ from flask import current_app, flash, g, make_response, redirect, render_templat
 from werkzeug.wrappers import Response
 
 from ..inventory_store import (
-    InventoryError, InventoryInsufficientError, balance, list_assigned_slots, post_count, post_movement, transfer,
+    InventoryError, InventoryInsufficientError, _sign_for, balance, list_assigned_slots, post_count, post_movement, transfer,
 )
 from ..recipe_reads import get_location
 from ..roles import require_capability
@@ -65,16 +65,20 @@ def _posted_values(form: str) -> dict[str, str | None]:
     return values
 
 
-def _require_quantity(raw: str | None) -> str:
+def _require_quantity(raw: str | None, *, count: bool = False) -> str:
     stripped = ('' if raw is None else str(raw)).strip()
     if not stripped:
-        raise InventoryError('Menge ist erforderlich.')
+        raise InventoryError('Menge ist erforderlich.', field='quantity')
     try:
         number = Decimal(stripped)
     except InvalidOperation as error:
-        raise InventoryError('Menge muss eine Zahl sein.') from error
+        raise InventoryError('Menge muss eine Zahl sein.', field='quantity') from error
     if not number.is_finite():
-        raise InventoryError('Menge muss eine Zahl sein.')
+        raise InventoryError('Menge muss eine Zahl sein.', field='quantity')
+    if count and number < 0:
+        raise InventoryError('Zählmenge darf nicht negativ sein.', field='quantity')
+    if not count and number <= 0:
+        raise InventoryError('Menge muss positiv sein.', field='quantity')
     return stripped
 
 
@@ -85,25 +89,20 @@ def _posted_id(field: str) -> str:
         raise InventoryError('Ungültige Kennung.', field=field) from error
 
 
-def _public_error(error: BaseException) -> str:
-    if isinstance(error, InvalidOperation):
-        return 'Menge muss eine Zahl sein.'
-    raw = str(error)
-    lowered = raw.casefold()
-    if 'hexadecimal' in lowered or 'uuid' in lowered:
-        return 'Ungültige Kennung.'
-    return raw
+def _movement_kind() -> str:
+    kind = request.form.get('kind') or 'receipt'
+    try:
+        _sign_for(kind, None)
+    except InventoryError as error:
+        raise InventoryError(str(error), field='kind') from error
+    return kind
 
 
-def _inventory_field(form: str, message: str) -> str:
-    lowered = message.casefold()
-    if 'verschieden' in lowered or 'ziel' in lowered:
-        return 'dest_storage_public_id'
-    if 'einheit' in lowered:
-        return _UNIT_FIELD[form]
-    if 'bewegungsart' in lowered or 'vorzeichen' in lowered:
-        return 'kind'
-    return _QUANTITY_FIELD[form]
+def _transfer_destination() -> str:
+    destination = _posted_id('dest_storage_public_id')
+    if destination == _posted_id('source_storage_public_id'):
+        raise InventoryError('Quelle und Ziel müssen verschieden sein.', field='dest_storage_public_id')
+    return destination
 
 
 def _inventory_context(food: str, storage: str, values: dict, field_errors: dict, error_form: str) -> dict:
@@ -131,7 +130,7 @@ def _inventory_context(food: str, storage: str, values: dict, field_errors: dict
 
 
 def _fail_inventory(form: str, error: BaseException, status: int) -> Response:
-    message = _public_error(error)
+    message = str(error)
     food = request.form.get('food_public_id') or ''
     storage = request.form.get('source_storage_public_id') or request.form.get('storage_public_id') or ''
     try:
@@ -141,21 +140,30 @@ def _fail_inventory(form: str, error: BaseException, status: int) -> Response:
         food = storage = ''
     values = _posted_values(form)
     field = getattr(error, 'field', None)
+    if form == 'transfer' and field == 'storage_public_id' and getattr(error, 'value', None) == values['dest_storage_public_id']:
+        field = 'dest_storage_public_id'
     if field in ('food_public_id', 'storage_public_id', 'source_storage_public_id'):
         field = 'lager-selection'
     elif field == 'dest_storage_public_id':
-        values['dest_storage_public_id'] = ''
+        try:
+            UUID(values['dest_storage_public_id'] or '')
+        except ValueError:
+            values['dest_storage_public_id'] = ''
     elif field == 'unit_code':
         field = _UNIT_FIELD[form]
+    elif field == 'quantity' or isinstance(error, InventoryInsufficientError):
+        field = _QUANTITY_FIELD[form]
     response = make_response(render_template(
         'admin/lager.html',
-        **_inventory_context(food, storage, values, {field or _inventory_field(form, message): message}, form),
+        **_inventory_context(food, storage, values, {field or _UNIT_FIELD[form]: message}, form),
     ), status)
     response.headers['Cache-Control'] = 'no-store'
     return response
 
 
 def _reject_inventory(form: str, error: BaseException) -> Response:
+    if isinstance(error, InvalidOperation):
+        error = InventoryError('Menge muss eine Zahl sein.', field='quantity')
     status = 409 if isinstance(error, InventoryInsufficientError) else 400
     return _fail_inventory(form, error, status)
 
@@ -177,12 +185,12 @@ def inventory_move() -> Response:
             _db(), _scope(),
             food_public_id=_posted_id('food_public_id'),
             storage_public_id=_posted_id('storage_public_id'),
-            kind=request.form.get('kind') or 'receipt',
+            kind=_movement_kind(),
             quantity=_require_quantity(request.form.get('quantity')),
             unit_code=request.form.get('unit_code') or 'KG',
             note=request.form.get('note') or None,
         )
-    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation) as error:
+    except (InventoryError, InvalidOperation) as error:
         return _reject_inventory('move', error)
     flash('Bewegung gebucht.')
     return _home_redirect()
@@ -197,11 +205,11 @@ def inventory_transfer() -> Response:
             _db(), _scope(),
             food_public_id=_posted_id('food_public_id'),
             source_storage_public_id=_posted_id('source_storage_public_id'),
-            dest_storage_public_id=_posted_id('dest_storage_public_id'),
+            dest_storage_public_id=_transfer_destination(),
             quantity=_require_quantity(request.form.get('quantity')),
             unit_code=request.form.get('unit_code') or 'KG',
         )
-    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation) as error:
+    except (InventoryError, InvalidOperation) as error:
         return _reject_inventory('transfer', error)
     flash('Umbuchung gebucht.')
     return _home_redirect(
@@ -219,10 +227,10 @@ def inventory_count() -> Response:
             _db(), _scope(),
             food_public_id=_posted_id('food_public_id'),
             storage_public_id=_posted_id('storage_public_id'),
-            counted_quantity=_require_quantity(request.form.get('counted_quantity')),
+            counted_quantity=_require_quantity(request.form.get('counted_quantity'), count=True),
             unit_code=request.form.get('unit_code') or 'KG',
         )
-    except (InventoryInsufficientError, InventoryError, ValueError, InvalidOperation) as error:
+    except (InventoryError, InvalidOperation) as error:
         return _reject_inventory('count', error)
     if result['movement_public_id'] is None:
         flash('Zählung bestätigt, ohne Bewegung.')
