@@ -50,6 +50,12 @@ _WEEK_READS = set(('cafeteria patienten week_management week_review_get menu_col
     'menu_get header_get service_get preview').split())
 _TOKEN = re.compile(r'[0-9a-f]{48}')
 _TTL = 600
+_NAVIGATION_BUDGET = 8
+_BUDGET_TAKE = (
+    "local n=redis.call('INCR',KEYS[1]); "
+    "if redis.call('TTL',KEYS[1])<0 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end; "
+    "return n"
+)
 
 
 @dataclass(frozen=True)
@@ -157,15 +163,31 @@ def login_context(token: str | None, *, consume: bool = False) -> dict:
     return context
 
 
+def _new_navigation_allowed(client) -> bool:
+    """Allow an existing browser or an authenticated session; cap new anonymous owners per IP."""
+    if session.get('user') is not None or _owner() is not None:
+        return True
+    from .auth.service import trusted_client_address
+    peers = tuple(current_app.config.get('TRUSTED_PROXY_PEERS', ()))
+    address = trusted_client_address(request.environ, request.remote_addr or 'unknown', peers)
+    digest = hashlib.sha256(address.encode()).hexdigest()
+    count = client.eval(_BUDGET_TAKE, 1, f'dishboard:login-navigation:budget:{digest}', _TTL)
+    return isinstance(count, int) and count <= _NAVIGATION_BUDGET
+
+
 def issue_return_token(target: str | None, notice: str = 'auth.required') -> str:
     target = safe_return_target(target) or '/admin/cafeteria'
     client = current_app.extensions.get('cafeteria_rate_redis')
     if client is None:
         # Without a server store, use the safe default; never put a target in a cookie or URL.
         return ''
+    if not _new_navigation_allowed(client):
+        return ''
     owner = _owner()
     if owner is None:
         session['_eh_navigation'] = secrets.token_hex(24)
+        if session.get('user') is None and session.permanent:
+            session.permanent = False
         owner = _owner()
     if owner is None:
         return ''
@@ -351,6 +373,29 @@ class FormStale(BadRequest):
     error_code = 'FORM_STALE'
 
 
+def _session_is_authenticated(sess) -> bool:
+    user = sess.get('user')
+    version = sess.get('authz_version')
+    return isinstance(user, dict) and type(user.get('id')) is int and type(version) is int
+
+
+def _cap_anonymous_session(delegate, sess) -> None:
+    if not sess or _session_is_authenticated(sess):
+        return
+    client = getattr(delegate, 'client', None)
+    store_id_for = getattr(delegate, '_get_store_id', None)
+    sid = getattr(sess, 'sid', None)
+    if client is None or not callable(store_id_for) or not sid:
+        return
+    try:
+        store_id = store_id_for(sid)
+        ttl = client.ttl(store_id)
+        if isinstance(ttl, int) and ttl > _TTL:
+            client.expire(store_id, _TTL)
+    except RedisError as error:
+        _diagnose('error.session_ttl', error, 503)
+
+
 class _SessionBoundary:
     """Handle Redis failures before dispatch or after response processing without replaying work."""
     def __init__(self, delegate):
@@ -368,7 +413,10 @@ class _SessionBoundary:
 
     def save_session(self, app, sess, response):
         try:
+            if sess and not _session_is_authenticated(sess) and sess.permanent:
+                sess.permanent = False
             self.delegate.save_session(app, sess, response)
+            _cap_anonymous_session(self.delegate, sess)
         except RedisError as error:
             _diagnose('error.session_save_failed', error, 503)
             fallback = render_error(ServiceUnavailable(), minimal=True)

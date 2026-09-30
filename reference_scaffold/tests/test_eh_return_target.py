@@ -259,3 +259,28 @@ def test_return_store_rejection_does_not_block_entra_login(auth_app, monkeypatch
     assert response.location.startswith('https://login.microsoftonline.com/')
     assert 'SERVICE_UNAVAILABLE' not in response.get_data(as_text=True)
     assert 'momentan nicht' not in response.get_data(as_text=True)
+
+
+def test_anonymous_gets_keep_a_short_navigation_budget(auth_app):
+    app, owner, issuer = auth_app
+    _provision(issuer, owner)
+    keeper = token = None
+    for index in range(50):
+        client = app.test_client()
+        response = client.get('/admin/patienten?week=2026-09-28')
+        assert response.status_code == 302
+        query = parse_qs(urlsplit(response.location).query)
+        if index < 8:
+            assert 'return_token' in query
+        else:
+            assert 'return_token' not in query
+        if index == 0:
+            keeper, token = client, query['return_token'][0]
+    store = app.extensions['cafeteria_rate_redis']
+    keys = set(store.scan_iter(match='session:*'))
+    keys.update(store.scan_iter(match='dishboard:login-navigation:*'))
+    assert len(keys) < 50 and len(keys) <= 17
+    assert all(0 < store.ttl(key) <= 600 for key in keys)
+    response = keeper.post('/auth/local', data=_csrf_payload(
+        keeper, username='local.editor', password='Correct-Horse-2026!Battery') | {'return_token': token})
+    assert response.status_code == 303 and response.location == '/admin/patienten?week=2026-09-28'
