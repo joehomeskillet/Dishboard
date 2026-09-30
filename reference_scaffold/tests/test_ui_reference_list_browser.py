@@ -9,6 +9,8 @@ from datetime import timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from test_eh_http_contract import assert_login_redirect
+
 import pytest
 from playwright.sync_api import Page, expect
 from sqlalchemy import text
@@ -483,13 +485,20 @@ def test_reference_access_and_error_responses_do_not_write(
             _capture(page, tmp_path, f'unavailable-503-{width}')
         assert _versions(database_engine) == before
     denied, _ = _login(app, database_engine, [])
+    monkeypatch.setitem(app.config, 'DEMO_MODE', False)
+    monkeypatch.setitem(app.config, 'LOCAL_AUTH_ENABLED', True)
+    monkeypatch.setitem(app.config, 'ENTRA_ENABLED', False)
     with _context(browser, origin, denied, javascript) as context:
         page = context.new_page()
         for width, height in ((1440, 900), (390, 844)):
             page.set_viewport_size({'width': width, 'height': height})
-            _goto(page, route, 401)
+            assert_login_redirect(page.request.get(route, max_redirects=0))
+            _goto(page, route, 200)
+            expect(page).to_have_url(origin + '/auth/local')
+            expect(page.locator('.auth-form')).to_be_visible()
+            expect(page.locator('.admin-sidebar')).to_have_count(0)
             assert 'Geschütztes Menü' not in page.locator('body').inner_text()
-            _capture(page, tmp_path, f'no-role-401-{width}')
+            _capture(page, tmp_path, f'no-role-login-{width}')
     assert _versions(database_engine) == before
 
 

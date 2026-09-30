@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from html.parser import HTMLParser
+from test_eh_http_contract import assert_login_redirect
 from html import unescape
 import re
 
@@ -211,7 +212,7 @@ def test_read_role_forbidden_writes_csrf_unknown_fields_and_missing_object(b3, m
     response = client.get(path)
     assert response.status_code == 200 and 'Stammdaten speichern' not in response.text
     assert client.post(path + '/stammdaten', data=data).status_code == 403
-    assert app.test_client().get('/admin/grundlagen').status_code == 401
+    assert_login_redirect(app.test_client().get('/admin/grundlagen'))
 
 
 @pytest.mark.parametrize('count', [0, 2])

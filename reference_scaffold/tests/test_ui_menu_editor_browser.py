@@ -313,7 +313,9 @@ def test_unauthorized_roles_have_no_menu_form(
         page.set_viewport_size({'width': width, 'height': height})
         response = page.goto(path)
         assert response is not None and response.status == status
-        expect(page.locator('form[data-menu-editor], button[type="submit"]')).to_have_count(0)
+        expect(page.locator('form[data-menu-editor]')).to_have_count(0)
+        expect(page.locator(f'form[action="/admin/{family}/menu"], '
+                            f'[formaction="/admin/{family}/menu"]')).to_have_count(0)
         assert page.context.request.post(
             f'/admin/{family}/menu',
             form={**tokens, 'title': 'Verboten', 'allergen_mode': 'manual', 'origin_mode': 'manual', 'label_mode': 'manual'},

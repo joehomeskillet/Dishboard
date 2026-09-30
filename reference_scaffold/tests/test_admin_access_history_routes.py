@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from test_eh_http_contract import assert_login_redirect
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
@@ -82,13 +83,13 @@ def test_route_denies_non_admin_and_anonymous_with_no_store(admin_account, role)
         version = connection.execute(text('SELECT authz_version FROM cafeteria.users WHERE id=:id'),
                                      {'id': actor}).scalar_one()
     stale = client.get(PATH)
-    assert stale.status_code == 401 and stale.headers['Cache-Control'] == 'no-store'
+    assert_login_redirect(stale)
     with client.session_transaction() as state:
         state['user'], state['authz_version'] = {'id': actor}, version
     denied = client.get(PATH)
     assert denied.status_code == 403 and denied.headers['Cache-Control'] == 'no-store'
     anonymous = app.test_client().get(PATH)
-    assert anonymous.status_code == 401 and anonymous.headers['Cache-Control'] == 'no-store'
+    assert_login_redirect(anonymous)
 
 
 @pytest.mark.parametrize('stage', ['authorization', 'history'])

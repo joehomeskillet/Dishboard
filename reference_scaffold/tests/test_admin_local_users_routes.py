@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from test_eh_http_contract import assert_login_redirect
 from datetime import datetime
 from uuid import uuid4
 
@@ -202,7 +203,7 @@ def test_last_local_admin_and_self_change_have_explicit_results(admin_account):
     assert response.status_code == 303 and response.headers['Location'] == '/auth/local'
     with own.session_transaction() as session:
         assert 'user' not in session
-    assert own.get('/admin/benutzer').status_code == 401
+    assert_login_redirect(own.get('/admin/benutzer'))
 
 
 def test_publisher_and_unknown_provider_do_not_gain_account_access(admin_account):
@@ -223,7 +224,7 @@ def test_publisher_and_unknown_provider_do_not_gain_account_access(admin_account
         session['authz_version'] = actor.authz_version
     for path in ('/admin/benutzer', '/admin/benutzer/neu', '/admin/benutzer/protokoll', f'/admin/benutzer/{target.public_id}'):
         assert client.get(path).status_code == 403
-        assert app.test_client().get(path).status_code == 401
+        assert_login_redirect(app.test_client().get(path))
     overview = client.get('/admin/cafeteria')
     assert overview.status_code == 200 and b'Benutzer &amp; Zugriff' not in overview.data
 

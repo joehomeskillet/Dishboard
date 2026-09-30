@@ -1,5 +1,6 @@
 """Invalid OAuth callbacks preserve existing Redis sessions without granting access."""
 from unittest.mock import Mock
+from test_eh_http_contract import assert_login_redirect, assert_login_success
 
 import pytest
 
@@ -18,9 +19,9 @@ def test_invalid_callback_keeps_only_existing_authorized_session(
     client = app.test_client()
     if authenticated:
         actor = _provision(issuer, owner)
-        assert client.post('/auth/local', data=_csrf_payload(
+        assert_login_success(client.post('/auth/local', data=_csrf_payload(
             client, username='local.editor', password='Correct-Horse-2026!Battery',
-        )).status_code == 302
+        )))
     else:
         actor = None
     provider = Mock()
@@ -69,7 +70,7 @@ def test_invalid_callback_keeps_only_existing_authorized_session(
     else:
         assert current_cookie is None
         assert not app.session_interface.client.exists(redis_key)
-        assert client.get('/admin/cafeteria').status_code == 401
+        assert_login_redirect(client.get('/admin/cafeteria'))
 
     recorded = events(owner)
     assert recorded[:len(before_events)] == before_events
@@ -89,9 +90,9 @@ def test_other_login_failures_still_revoke_existing_session(auth_app, monkeypatc
     app, owner, issuer = auth_app
     _provision(issuer, owner)
     client = app.test_client()
-    assert client.post('/auth/local', data=_csrf_payload(
+    assert_login_success(client.post('/auth/local', data=_csrf_payload(
         client, username='local.editor', password='Correct-Horse-2026!Battery',
-    )).status_code == 302
+    )))
     with client.session_transaction() as current:
         sid = current.sid
     cookie_name = app.config['SESSION_COOKIE_NAME']
@@ -121,7 +122,7 @@ def test_other_login_failures_still_revoke_existing_session(auth_app, monkeypatc
     replay = app.test_client(use_cookies=False).get('/admin/cafeteria', headers={
         'Cookie': f'{cookie_name}={original_cookie.value}',
     })
-    assert replay.status_code == 401
+    assert_login_redirect(replay)
     with client.session_transaction() as current:
         assert 'user' not in current
         assert 'authz_version' not in current
