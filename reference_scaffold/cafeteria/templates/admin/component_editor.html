@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import symbol %}
-{% from 'admin/_macros.html' import icon, page_header, field, select, check as checkbox, form_errors as error_summary, disclosure_section, hint %}
+{% from 'admin/_macros.html' import icon, page_header, field, select, check as checkbox, form_errors as error_summary, disclosure_section, hint, form_footer %}
 {% from 'ui/_semantic.html' import icon_summary, icon_button %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set workflow_nav = 'components' %}
@@ -13,7 +13,7 @@
 {% block page_header %}
 {{ page_header(t('navigation.components.label'), component.name, status_items=[
   {'label': t('admin.area.label'), 'value': 'Cafeteria' if family == 'cafeteria' else 'Patienten'},
-  {'label': 'Status', 'value': t('status.active.label') if component.active else 'archiviert', 'variant': 'neutral' if component.active else 'warning'},
+  {'label': 'Status', 'value': t('status.active.label') if component.active else t('status.archived.label'), 'variant': 'neutral'},
   {'label': 'Gültigkeit', 'value': 'gemeinsam' if component.profile_scope == 'common' else 'nur Cafeteria' if component.profile_scope == 'staff_guest' else 'nur Patienten'},
   {'label': 'Verwendung', 'value': 'verwendet in ' ~ component.usage_count ~ ' Gerichten'}
 ]) }}
@@ -29,10 +29,8 @@
 <form id="component-form" method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}" class="card admin-compact-form" data-loading>
   <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="row_version" value="{{ component.row_version }}">
-  <div class="card-header admin-compact-toolbar" data-sticky-form="component-form" data-sticky-edge="top">
-    {{ icon_button('actions.cancel', href=g.get('component_list_return') or url_for('admin.components_get', family=family)) }}
-    {{ icon_button('actions.save', object=component.name) }}
-  </div>
+  {% set save_primary %}{{ icon_button('actions.save', object=component.name) }}{% endset %}
+  {{ form_footer(save_primary, g.get('component_list_return') or url_for('admin.components_get', family=family), sticky=True, form_id='component-form') }}
   <div class="card-body">
     <div class="row g-3 mb-3">
       <div class="col-12 col-lg-4">{{ field('name', 'Name', value=submitted.get('name', component.name), id='c-name', required=true, error=errors.get('name')) }}</div>
@@ -118,10 +116,9 @@
     </fieldset>
   </div>
 </form>
-<details class="admin-compact-details mt-2">
-  <summary>{{ icon('info-circle') }}Wirkung zentraler Änderungen</summary>
+{% call disclosure_section(title='Wirkung zentraler Änderungen') %}
   <p>Sie ändern den Baustein im Katalog. Gespeicherte Menüzuordnungen werden dabei nicht neu gespeichert. Beim erneuten Speichern eines Menüs werden seine Katalogzuordnungen und automatisch übernommenen Angaben neu ermittelt; manuelle Angaben bleiben separat.</p>
-</details>
+{% endcall %}
 <details class="component-secondary-actions admin-compact-details mt-2">
   {{ icon_summary('actions.archive' if component.active else 'actions.activate', object=component.name) }}
   <div class="py-2">

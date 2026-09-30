@@ -107,34 +107,26 @@ def test_cookbook_view_order_and_entries(reading_book, browser, monkeypatch, tmp
         expect(page.locator('main')).to_contain_text('Beta')
 
         page.goto(base + '/admin/kochbuecher?archived=1')
-        row = page.locator('.admin-list-row').filter(has=page.get_by_text(BOOK_NAME, exact=True))
+        row = page.locator('section[aria-label="Kochbücher"] tbody tr').filter(has=page.get_by_text(BOOK_NAME, exact=True))
         expect(row.locator('.admin-list-primary a')).to_have_count(0)
-        primary = row.locator('.cookbook-row-action')
-        expect(primary).to_have_attribute('href', path if state == 'writer' else path + '/ansicht')
+        expect(row.locator('summary')).to_have_count(0)
+        view = row.get_by_role('link', name=f'{BOOK_NAME} öffnen', exact=True)
+        expect(view).to_be_visible()
+        expect(view).to_have_attribute('href', path + '/ansicht')
         if state == 'writer':
-            summary = row.locator('summary')
-            summary.focus()
-            page.keyboard.press('Enter')
-            view = row.get_by_role('link', name=f'{BOOK_NAME} öffnen', exact=True)
-            expect(view).to_be_visible()
-            if not javascript:
-                page.keyboard.press('Tab')
+            edit = row.get_by_role('link', name=f'{BOOK_NAME} bearbeiten', exact=True)
+            expect(edit).to_have_attribute('href', path + '?from=cookbooks&q=&archived=1&page=1')
+            view.focus()
             expect(view).to_be_focused()
             if javascript:
                 tooltip = page.get_by_role('tooltip', name=f'{BOOK_NAME} öffnen', exact=True)
                 expect(tooltip).to_be_visible()
                 page.keyboard.press('Escape')
                 expect(page.get_by_role('tooltip')).to_have_count(0)
-                expect(row.locator('details')).to_have_attribute('open', '')
-                expect(view).to_be_focused()
-                page.keyboard.press('Escape')
-                expect(summary).to_be_focused()
-                page.keyboard.press('Enter')
                 expect(view).to_be_focused()
             page.keyboard.press('Enter')
         else:
-            expect(row.locator('summary')).to_have_count(0)
-            primary.click()
+            view.click()
         expect(page).to_have_url(base + path + '/ansicht')
         page.goto(base + path)
         view = page.locator('.page-header').get_by_role('link', name=f'{BOOK_NAME} öffnen', exact=True)
@@ -194,7 +186,8 @@ def test_cookbook_view_english(reading_book, b3, monkeypatch):  # noqa: F811
     path = reading_book['path']
     response = client.get(path + '/ansicht')
     assert response.status_code == 200
-    assert '2 Rezepte' in response.text and 'Archiviert' in response.text
+    assert '2 Rezepte' in response.text
+    assert 'Archived' in response.text
     assert 'Ausbeute' in response.text and 'Recipes' in response.text
     assert f'aria-label="Edit {BOOK_NAME}"' in response.text
     for source in (path, '/admin/kochbuecher'):

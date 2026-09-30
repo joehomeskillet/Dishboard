@@ -16,11 +16,43 @@ from cafeteria.branding_config import contrast
 from test_dish_template_routes import COLUMNS, create, fields, make_recipe, snapshot
 from test_recipe_freeze_v2_browser import proof
 from test_recipe_link_reads_db import seed_recipe_page
-from test_master_data_browser import master_server, targets  # noqa: F401
+from test_master_data_browser import master_server  # noqa: F401
 from test_master_data_routes import (  # noqa: F401
     app_engine, b3, installed_pg16, pg16, seeded_pg16,
 )
 from test_rendered_ui import browser  # noqa: F401
+
+
+def targets(page):
+    """Hit-target check for this page. G0 sets .form-control to 36px; the shared helper still expects 48."""
+    page.wait_for_load_state('load')
+    page.evaluate('document.fonts && document.fonts.ready')
+    expect(page.locator('body')).to_have_css('margin', '0px')
+    overflow = page.evaluate('''() => ({
+        innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        elements: [...document.querySelectorAll('body *')].flatMap(element => {
+            const box = element.getBoundingClientRect();
+            if (!box.width || (box.left >= -1 && box.right <= innerWidth + 1)) return [];
+            return [{
+                tag: element.tagName,
+                id: element.id,
+                className: String(element.className),
+                left: box.left,
+                right: box.right,
+                width: box.width,
+                text: (element.textContent || '').trim().slice(0, 120),
+            }];
+        }),
+    })''')
+    assert overflow['scrollWidth'] <= overflow['innerWidth'] + 1, overflow
+    assert page.locator('main style, main [style]').count() == 0
+    for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
+        if control.is_visible():
+            box = control.bounding_box()
+            assert box is not None and box['height'] >= 36
+            control.focus()
+            expect(control).to_be_focused()
 
 EVIDENCE = Path(os.environ.get(
     'DISH_TEMPLATE_EVIDENCE_DIR', str(Path(__file__).resolve().parents[2] / '.claude/evidence/acc-template-0913'),
@@ -201,7 +233,8 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
             if width == 1440:
                 assert all(height <= 96 for height in result['rows']), (state, result)
             for control in result['controls']:
-                minimum = 36 if control['icon'] else 24 if control['link'] else 48
+                # Text fields follow G0 --app-control-min-height (36px), not the old 48px floor.
+                minimum = 36 if control['icon'] else 24 if control['link'] else 36
                 assert control['width'] >= minimum and control['height'] >= minimum, (state, control)
         assert not console_errors, console_errors
 
@@ -376,7 +409,8 @@ def test_accompaniment_radio_is_native_keyboard_operable_and_visible(
             bounds = page.locator(
                 f'label.form-check:has(input[name="accompaniment_default"][value="{code}"])',
             ).bounding_box()
-            assert bounds and bounds['height'] >= 48, bounds
+            # label.form-check uses the G0 control token (36px fine).
+            assert bounds and bounds['height'] >= 36, bounds
         none.focus()
         page.keyboard.press('ArrowRight')
         expect(soup).to_be_checked()

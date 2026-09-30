@@ -34,12 +34,12 @@ in den Quellen erhalten. `<family>` steht für `cafeteria` oder `patienten`.
 
 | Ansicht / Route | Muster, Rolle und Zustand | Tatsächliche Tests / Quelle |
 |---|---|---|
-| Bausteine: `/admin/<family>/komponenten` | DEC-2/D3: Namen als Text; Editor-Einstieg über Bearbeiten-Icon, archivierte Einträge über Öffnen. Beide Profile, vorhandene Rollen, JS/No-JS. | `tests/test_component_catalog_browser.py`, `tests/test_icon_pilot_density_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
+| Bausteine: `/admin/<family>/komponenten` | UC-P1-A: `table.admin-table.admin-table--stack`, Status nur `status_badge_sem`, Profilumschalter im `filter_bar_sem`-Segment, Anlegefuss über `form_footer`. DEC-2/D3: Namen als Text; zwei Direktlinks Bearbeiten und Archivieren/Aktivieren, archivierte Einträge über Öffnen. Beide Profile, vorhandene Rollen, JS/No-JS. | `tests/test_component_catalog_browser.py`, `tests/test_component_filters_browser.py`, `tests/test_ui_korrektur_components_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
 | Zutaten: `/admin/grundlagen` und `/admin/grundlagen/<kind>/<public_id>` | DEC-2/D3: Namen als Text, Symbolaktion als Zugang; ohne Schreibrecht Öffnen, Statusaktionen nur mit Recht. Fünf Stammdatenarten, aktiv/archiviert. | `tests/test_master_data_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
-| Menüsammlung: `/admin/<family>/menues` | DEC-2/D3: Textnamen und Bearbeiten-/Öffnen-Aktion, Liste und vorhandene Kartenansicht; Admin/Editor/Publisher, aktiv/archiviert. | `tests/test_menu_collection_browser.py`; `reports/D3-report.md`. Folgeanpassungen: `tests/test_ui_korrektur_menus_browser.py`, `reports/R10-report.md`. |
-| Gerichtvorlagen: `/admin/gerichtvorlagen` | D4: wirksame Titelsuche, Archivfilter, Zurücksetzen und Paginierung mit erhaltenem `q`; Enter mit/ohne JS. | `tests/test_dish_template_browser.py`, `tests/test_dish_template_routes.py`, `tests/test_recipe_link_reads_db.py`; `reports/D4-report.md`, Abschnitte „Gerichtvorlagen-Browser komplett“ und „Routen-/Store-Regressionen“. |
-| Kochbücher: `/admin/kochbuecher` | D5: normale aktive Liste ohne redundantes Aktiv-Badge/Strich; bei `archived=1` Aktiv und Archiviert unterscheidbar. D13b: Bearbeiten für aktive schreibbare Bücher, sonst Öffnen; Leseansicht bei Bedarf im Überlauf. | `tests/test_cookbooks_browser.py`, `tests/test_ui_korrektur_cookbooks_browser.py`, `tests/test_cookbook_routes.py`; `reports/D5-report.md`, `reports/D13-report.md`, Abschnitt „D13b — Korrigierter Auftrag“. |
-| Kochbuch-Leseansicht: `/admin/kochbuecher/<cookbook_id>/ansicht` | D13b/DEC-1: GET mit `draft.read`, geordnete Rezeptansichtslinks; Bearbeiten nur mit Recht. Writer/Reader/Archiv, JS/No-JS, Desktop/mobile fine/coarse. | `tests/test_icon_cookbook_view_browser.py`, `tests/test_ui_route_inventory.py`; `reports/D13-report.md`, Abschnitte „Endgültige Änderung“ und „Ergebnisübersicht“. |
+| Menüsammlung: `/admin/<family>/menues` | UC-P1-A: Profilumschalter `profile_tabs` im Filterbalken (`aria-current="page"`), Prüfstatus über `status_badge_sem`. Liste/Karten bleiben dieselbe Seite (`role=tab`). DEC-2/D3: Textnamen und Bearbeiten-/Öffnen-Aktion; Admin/Editor/Publisher, aktiv/archiviert. | `tests/test_menu_collection_browser.py`; `reports/D3-report.md`. Folgeanpassungen: `tests/test_ui_korrektur_menus_browser.py`, `reports/R10-report.md`. |
+| Gerichtvorlagen: `/admin/gerichtvorlagen` | UC-P1-A: Aktivstatus und „Rezept archiviert“ über `status_badge_sem` (Archiv neutral), Formularfuss `form_footer`. D4: wirksame Titelsuche, Archivfilter, Zurücksetzen und Paginierung mit erhaltenem `q`; Enter mit/ohne JS. | `tests/test_dish_template_browser.py`, `tests/test_dish_template_routes.py`, `tests/test_recipe_link_reads_db.py`; `reports/D4-report.md`, Abschnitte „Gerichtvorlagen-Browser komplett“ und „Routen-/Store-Regressionen“. |
+| Kochbücher: `/admin/kochbuecher` | UC-P1-A: `table.admin-table.admin-table--stack` mit Titel, Meta, Status, Aktionen; `list_row` entfällt. D5: normale aktive Liste ohne redundantes Aktiv-Badge/Strich; bei `archived=1` Aktiv und Archiviert unterscheidbar. Direktlinks Öffnen und, für aktive schreibbare Bücher, Bearbeiten. | `tests/test_cookbooks_browser.py`, `tests/test_ui_korrektur_cookbooks_browser.py`, `tests/test_cookbook_routes.py`; `reports/D5-report.md`, `reports/D13-report.md`, Abschnitt „D13b — Korrigierter Auftrag“. |
+| Kochbuch-Leseansicht: `/admin/kochbuecher/<cookbook_id>/ansicht` | UC-P1-A: Archivstatus über `status_badge_sem`. D13b/DEC-1: GET mit `draft.read`, geordnete Rezeptansichtslinks; Bearbeiten nur mit Recht. Writer/Reader/Archiv, JS/No-JS, Desktop/mobile fine/coarse. | `tests/test_icon_cookbook_view_browser.py`, `tests/test_ui_route_inventory.py`; `reports/D13-report.md`, Abschnitte „Endgültige Änderung“ und „Ergebnisübersicht“. |
 | Wochenplan: `/admin/cafeteria`, `/admin/patienten` | D7: Publish-Controls nur mit `publication.publish`, serverseitige Sperren bleiben erhalten (D6). D19: Titel/Kontext → gebündelte Prüfhinweise → weitere Hinweise/Raster. M45/M64: 36 px fine / mindestens 44 px coarse. | `tests/test_icon_publish_controls_role_browser.py`, `tests/test_icon_publish_guards_browser.py`, `tests/test_week_check_header_browser.py`, `tests/test_ui_korrektur_week_browser.py`; `reports/D6-report.md`, `reports/D7-report.md`, `reports/D19-report.md`. |
 | Rezepte: `/admin/rezepte` | D14: tatsächlich leere Zellen gestapelter Tabellen ohne Pseudolabel und Platzbedarf; gemischte Zustände bleiben sichtbar, Desktop-Tabelle bleibt erhalten. 390/1440 px, fine/coarse. | `tests/test_icon_stack_empty_labels_browser.py`, `tests/test_recipe_density_browser.py`, `tests/test_ui_korrektur_recipes_browser.py`; `reports/D14-report.md`, Abschnitt „Änderung und Abnahme“. |
 | Rezepteditor: `/admin/rezepte/neu`, `/admin/rezepte/<recipe_id>` | D15: Ausbeuteeinheit bei 360/390 px nicht abgeschnitten; bestehendes Desktop-Grid erhalten. | `tests/test_icon_recipe_editor_browser.py`, `tests/test_recipe_browser.py`; `reports/D15-report.md`. |
@@ -1150,13 +1150,13 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/branding_preview.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/cafeteria.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | admin/component_editor.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/components.html | 0 | 0 | 2 | 0 | 2 | 1 | 0 |
+| admin/components.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/copy.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/display_settings.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/einkaufsliste.html | 0 | 0 | 0 | 0 | 1 | 2 | 0 |
 | admin/einkaufslisten.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/gerichtvorlage_einplanen.html | 5 | 2 | 0 | 0 | 0 | 0 | 0 |
-| admin/gerichtvorlagen.html | 7 | 2 | 0 | 0 | 1 | 0 | 0 |
+| admin/gerichtvorlage_einplanen.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/gerichtvorlagen.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/grundlagen.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/grundlagen_food.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/grundlagen_location_conflict.html | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -1175,7 +1175,7 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/local_user_events.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/local_user_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/local_users.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/menu_collection.html | 5 | 0 | 0 | 2 | 1 | 0 | 0 |
+| admin/menu_collection.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/menu_editor.html | 15 | 4 | 0 | 1 | 3 | 1 | 0 |
 | admin/operations.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/patienten.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -1221,14 +1221,14 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | ui/_semantic.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-bestellung.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-branding.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| static/admin-components.css | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| static/admin-components.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-einkaufslisten.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-gerichtvorlagen.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-grundlagen.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-kalkulation.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-kitchen-calendar.css | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
 | static/admin-lager.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| static/admin-menu-collection.css | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| static/admin-menu-collection.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-menu-editor.css | 0 | 0 | 0 | 0 | 0 | 0 | 2 |
 | static/admin-nav.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/admin-preview.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -1247,4 +1247,4 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | static/cookbook-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-document.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **TOTAL** | 143 | 61 | 8 | 3 | 43 | 16 | 24 |
+| **TOTAL** | 126 | 57 | 6 | 1 | 40 | 15 | 20 |

@@ -125,7 +125,7 @@ def test_menu_note_icons_keep_content_profile_navigation_and_native_keyboard(
         for family, label in [('cafeteria', 'Cafeteria'), ('patienten', 'Patienten')]:
             assert page.goto(f'/admin/{family}/menues').status == 200
             page.screenshot(path=str(tmp_path / f'menu-initial-{family}-{width}-js{javascript}-{role}.png'), full_page=True)
-            expect(page.locator('nav.profile-tabs a[aria-current="true"]')).to_have_text(label)
+            expect(page.locator('nav.profile-tabs a[aria-current="page"]')).to_have_text(label)
             for view in ['list', 'cards']:
                 if javascript:
                     page.get_by_role('tab', name='Liste' if view == 'list' else 'Karten', exact=True).click()

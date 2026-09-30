@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, empty_state, pagination, status_badge, list_row %}
-{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem %}
+{% from 'admin/_macros.html' import page_header, empty_state, pagination %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem, status_badge_sem %}
 {% set workflow_nav = 'cookbooks' %}
 {% block title %}{{ t('navigation.cookbooks.label') }} · Menüplanung{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
@@ -19,19 +19,40 @@
 {{ filter_bar_sem(url_for('admin.cookbooks_list'), search_name='q', search_value=search, filters=cookbook_filters, active=search or include_archived, reset_url=(url_for('admin.cookbooks_list') if search or include_archived else none), id='cookbook', maxlength=200) }}
 {% if rows %}
 <section class="cookbook-list" aria-label="Kochbücher">
-  {% for book in rows %}
-  {% set count = book.recipe_public_ids|length %}
-  {% set editable = can_write and book.active %}
-  {% set actions %}
-  {% set items = [{'key': 'actions.open', 'href': url_for('admin.cookbook_view', cookbook_id=book.public_id), 'class': 'cookbook-row-action'}] %}
-  {% if editable %}
-  {% set _ = items.append({'key': 'actions.edit', 'href': url_for('admin.cookbook_edit', cookbook_id=book.public_id, **({'from': 'cookbooks', 'q': search, 'archived': '1' if include_archived else '0', 'page': page} if search or include_archived or page > 1 else {})), 'class': 'cookbook-row-action'}) %}
-  {% endif %}
-  {{ row_actions(items, object=book.name) }}
-  {% endset %}
-  {% set book_status = status_badge('archived') if not book.active else (status_badge('active') if include_archived else ' ') %}
-  {{ list_row(primary=book.name, secondary=book.description|truncate(160) if book.description else none, meta=(count ~ (' Rezept' if count == 1 else ' Rezepte')), status=book_status, actions=actions) }}
-  {% endfor %}
+  <table class="table table-vcenter card-table admin-table admin-table--stack">
+    <caption class="visually-hidden">{{ t('navigation.cookbooks.label') }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">Titel</th>
+        <th scope="col">Meta</th>
+        <th scope="col">Status</th>
+        <th scope="col">Aktionen</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for book in rows %}
+      {% set count = book.recipe_public_ids|length %}
+      {% set editable = can_write and book.active %}
+      <tr>
+        <td data-label="Titel">
+          <div class="admin-list-name">
+            <strong class="admin-list-primary">{{ book.name }}</strong>
+            {% if book.description %}<div class="admin-list-subtitle admin-list-secondary" title="{{ book.description|truncate(160) }}">{{ book.description|truncate(160) }}</div>{% endif %}
+          </div>
+        </td>
+        <td class="admin-list-meta" data-label="Meta">{{ count }}{{ ' Rezept' if count == 1 else ' Rezepte' }}</td>
+        <td class="admin-list-status" data-label="Status">{%- if not book.active or include_archived -%}{{ status_badge_sem('status.active' if book.active else 'status.archived', status='active' if book.active else 'archived') }}{%- endif -%}</td>
+        <td class="admin-table-actions" data-label="Aktionen">
+          {% set items = [{'key': 'actions.open', 'href': url_for('admin.cookbook_view', cookbook_id=book.public_id), 'class': 'cookbook-row-action'}] %}
+          {% if editable %}
+          {% set _ = items.append({'key': 'actions.edit', 'href': url_for('admin.cookbook_edit', cookbook_id=book.public_id, **({'from': 'cookbooks', 'q': search, 'archived': '1' if include_archived else '0', 'page': page} if search or include_archived or page > 1 else {})), 'class': 'cookbook-row-action'}) %}
+          {% endif %}
+          {{ row_actions(items, object=book.name) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 {{ pagination(page, has_next, prev_url, next_url, 'Kochbuchseiten') }}
 {% elif search %}

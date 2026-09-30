@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, empty_state, hint, label, empty_value, disclosure_section, pagination %}
-{% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem, row_actions %}
+{% from 'admin/_macros.html' import page_header, icon, empty_state, hint, empty_value, disclosure_section, pagination, form_footer %}
+{% from 'ui/_semantic.html' import icon_button, icon_label, filter_bar_sem, row_actions, status_badge_sem %}
 {% set workflow_nav = 'dish_templates' %}
 {% set scope_labels = {'common': 'Gemeinsam', 'patient': 'Patienten', 'staff_guest': 'Cafeteria'} %}
 {% set type_labels = {'MENU_1': 'Menü 1', 'VEGGIE': 'Vegetarisch'} %}
@@ -84,13 +84,13 @@
         <tr>
           <td data-label="Titel">
             <a class="admin-list-primary d-inline-flex py-1" href="{{ url_for('admin.dish_template_edit', public_id=item.public_id, **list_args) }}">{{ item.title }}</a>
-            {% if item.recipe_public_id and not item.recipe_active %}<div class="admin-list-secondary">{{ label('Rezept archiviert', 'warning') }}</div>
+            {% if item.recipe_public_id and not item.recipe_active %}<div class="admin-list-secondary">{{ status_badge_sem('status.archived', text='Rezept archiviert', status='archived') }}</div>
             {% elif not item.recipe_public_id %}<div class="admin-list-secondary">Kein Rezept verknüpft</div>{% endif %}
           </td>
           <td data-label="Menüart">{{ type_labels.get(item.menu_type_code, item.menu_type_code or '—') }}</td>
           <td data-label="Geltungsbereich">{{ scope_labels.get(item.profile_scope, item.profile_scope) }}</td>
           <td data-label="Dazu">{{ accompaniment_state(item) }}</td>
-          {% if include_archived %}<td class="admin-table-status" data-label="Aktivstatus">{{ label('Aktiv' if item.active else 'Archiviert', 'active' if item.active else 'neutral', icon=sem('status.active' if item.active else 'actions.archive').resolved_icon) }}</td>{% endif %}
+          {% if include_archived %}<td class="admin-table-status" data-label="Aktivstatus">{{ status_badge_sem('status.active' if item.active else 'status.archived', status='active' if item.active else 'archived') }}</td>{% endif %}
           {% if can_write %}<td class="admin-table-actions" data-label="Planung">{% if item.active %}{{ row_actions([{'key': 'actions.open', 'text': 'Einplanen', 'object': item.title, 'aria_label': item.title ~ ' als Menü einplanen', 'title': item.title ~ ' als Menü einplanen', 'href': url_for('admin.dish_template_plan', public_id=item.public_id)}]) }}{% endif %}</td>{% endif %}
         </tr>
         {% endfor %}
@@ -187,16 +187,14 @@
       </nav>
       {% endif %}
     </div>
-    <div class="admin-form-footer">
+    {% set archive_rare %}
       {% if row %}
         {{ row_actions([{'key': 'actions.archive' if row.active else 'actions.activate', 'object': row.title, 'class': 'btn-danger' if row.active else '', 'name': 'action', 'value': 'archive' if row.active else 'reactivate', 'attrs': {'data-confirm': 'Diese Vorlage archivieren?'} if row.active else {}}]) }}
         {% if row.active %}<p class="ui-sem-consequence">Die Vorlage bleibt lesbar und erscheint nicht mehr in neuen Planungen.</p>{% endif %}
       {% endif %}
-      <div class="admin-form-main">
-        {{ icon_button('actions.cancel', href=url_for('admin.dish_templates_list', **list_args)) }}
-        {{ icon_button('actions.save', name='action', value='save') }}
-      </div>
-    </div>
+    {% endset %}
+    {% set save_primary %}{{ icon_button('actions.save', name='action', value='save') }}{% endset %}
+    {{ form_footer(save_primary, url_for('admin.dish_templates_list', **list_args), rare=archive_rare if row else none) }}
   </form>
 </section>
 {% endif %}

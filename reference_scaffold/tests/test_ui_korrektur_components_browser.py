@@ -250,7 +250,8 @@ def test_components_zoom_200_percent_without_horizontal_scroll(catalog_page: Pag
                 assert page.evaluate('devicePixelRatio === 2 && innerWidth === 720')
                 _assert_component_controls_fit(page)
                 if route == 'komponente':
-                    expect(page.locator('[data-sticky-form]')).to_have_class('card-header admin-compact-toolbar is-static')
+                    # UC-P1-A: the editor save bar is form_footer. admin.js still adds is-static below 700px.
+                    expect(page.locator('[data-sticky-form]')).to_have_class('admin-form-footer is-static')
                 _shot(page, route, 'native-zoom-200', 720, 450)
 
 

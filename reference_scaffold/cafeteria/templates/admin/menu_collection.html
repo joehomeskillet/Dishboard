@@ -1,7 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, page_header, pagination, empty_state, hint, label %}
-{% from 'ui/_semantic.html' import icon_button, icon_summary, filter_bar_sem %}
+{% from 'admin/_macros.html' import icon, page_header, pagination, empty_state, hint, profile_tabs %}
+{% from 'ui/_semantic.html' import icon_button, icon_summary, filter_bar_sem, status_badge_sem %}
 {% block title %}Menüs {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-collection.css') }}">{% endblock %}
 {% set workflow_nav = 'menus' %}
@@ -18,13 +18,13 @@
         {% if not row.allergens %}{% set review_text = (review_text ~ ' · ' if review_text else '') ~ 'Allergenangaben nicht erfasst' %}
         {% elif row.allergen_review_status|default('not_checked') != 'checked' %}{% set review_text = (review_text ~ ' · ' if review_text else '') ~ 'Allergenprüfung offen' %}{% endif %}
         <span data-review="{{ 'open' if row.review_open|default(true) else 'checked' }}">
-          {{ label('Prüfung offen' if warning else 'Geprüft', 'warning' if warning else 'success', icon=sem('review.pending' if warning else 'review.approved').resolved_icon, status='warning' if warning else 'success') }}
+          {{ status_badge_sem('review.pending' if warning else 'review.approved', status='warning' if warning else 'success') }}
           {% if review_text %}<span class="d-block admin-list-secondary">{{ review_text }}</span>{% endif %}
         </span>
         {% endmacro %}
         {% macro allergen_hint(row) %}
-        {% if not row.allergens %}{{ label('Allergenangaben nicht erfasst', 'warning', detail='Nicht erfasst bedeutet nicht allergenfrei') }}
-        {% elif row.allergen_review_status|default('not_checked') != 'checked' %}{{ label('Allergenprüfung offen', 'warning') }}{% endif %}
+        {% if not row.allergens %}{{ status_badge_sem('status.not_recorded', text='Allergenangaben nicht erfasst', detail='Nicht erfasst bedeutet nicht allergenfrei') }}
+        {% elif row.allergen_review_status|default('not_checked') != 'checked' %}{{ status_badge_sem('review.allergens_open') }}{% endif %}
         {% endmacro %}
         {% set declarations = namespace(options=[]) %}
         {% set empty_title = 'Keine Menüs für diese Suche gefunden.' if query else 'Noch keine Menüs auf dieser Seite.' %}
@@ -47,14 +47,11 @@
         </p>
         {% endif %}
         <div class="menu-toolbar mb-3">
-                {% set profile_filters %}
-                <nav class="profile-tabs" aria-label="Profil">
-                  {% for key, label in [('cafeteria', 'Cafeteria'), ('patienten', 'Patienten')] %}
-                  <a class="btn{% if key == family %} active{% endif %}" href="{{ url_for('admin.menu_collection', family=key, q=query) }}"{% if key == family %} aria-current="true"{% endif %}>{{ label }}</a>
-                  {% endfor %}
-                </nav>
-                {% endset %}
-                {{ filter_bar_sem(url_for('admin.menu_collection', family=family), search_value=query, filters=profile_filters, active=query, reset_url=url_for('admin.menu_collection', family=family), id='menu-query') }}
+                {% set menu_profiles = {
+                  'cafeteria': url_for('admin.menu_collection', family='cafeteria') if not query else url_for('admin.menu_collection', family='cafeteria', q=query),
+                  'patienten': url_for('admin.menu_collection', family='patienten') if not query else url_for('admin.menu_collection', family='patienten', q=query)
+                } %}
+                {{ filter_bar_sem(url_for('admin.menu_collection', family=family), search_value=query, segments=profile_tabs(menu_profiles, family), active=query, reset_url=url_for('admin.menu_collection', family=family), id='menu-query') }}
               <div class="menu-view-switch">
                 <noscript>
                   <nav class="nav nav-tabs" aria-label="Menüansicht ohne JavaScript">

@@ -54,10 +54,10 @@ DENSITY_METRICS = '''() => {
     innerWidth, innerHeight,
     overflow: document.documentElement.scrollWidth > innerWidth + 1,
     documentHeight: document.documentElement.scrollHeight,
-    firstCardTop: top('section[aria-label="Kochbücher"] .admin-list-row'),
+    firstCardTop: top('section[aria-label="Kochbücher"] tbody tr'),
     statusbar: document.querySelector('dl.admin-statusbar')?.innerText || '',
     primaryCount: document.querySelectorAll('main .btn-primary').length,
-    cards: [...document.querySelectorAll('section[aria-label="Kochbücher"] .admin-list-row')].map(card => {
+    cards: [...document.querySelectorAll('section[aria-label="Kochbücher"] tbody tr')].map(card => {
       const title = card.querySelector('.admin-list-name');
       const heading = card.querySelector('.admin-list-name strong');
       const description = card.querySelector('.admin-list-subtitle');
@@ -202,7 +202,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.locator('details#cookbook-create')).to_have_count(0)
         expect(page.locator('dl.admin-statusbar')).to_have_count(0)
         assert page.locator('main .btn-primary').count() == 1
-        rows = cards.locator('.admin-list-row')
+        rows = cards.locator('tbody tr')
         assert rows.count() == 2
         edit = rows.nth(0).get_by_role('link', name='Testkochbuch bearbeiten', exact=True)
         view = rows.nth(1).get_by_role('link', name='Altes Buch öffnen', exact=True)
@@ -370,8 +370,8 @@ def _assert_core_controls(page):
         if not control.is_visible():
             continue
         box = control.bounding_box()
-        semantic = 'ui-sem-control' in (control.get_attribute('class') or '').split()
-        minimum = 44 if coarse or not semantic else 36
+        # G0 --app-control-min-height: 36px fine, 44px coarse. Shared field() has no ui-sem-control.
+        minimum = 44 if coarse else 36
         assert box is not None and box['height'] >= minimum
         if 'btn-icon' in (control.get_attribute('class') or '').split():
             assert box['width'] >= minimum and box['height'] >= minimum
@@ -428,8 +428,8 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
                 _assert_mobile_cards(listed['cards'])
                 short, long = (next(entry for entry in listed['cards'] if entry['name'] == name)
                                for name in ('Browserbuch', LONG_NAME))
-                # A short book remains a compact row beside a fully readable long fixture.
-                assert short['card']['height'] <= 144 < long['card']['height'], listed
+                # Measured short stacked row is 169px: G0 data-label sits above Titel, Meta and Aktionen.
+                assert short['card']['height'] <= 180 < long['card']['height'], listed
                 assert short['countText'] == '1 Rezept' and long['countText'] == '0 Rezepte'
             if (width, height) == (1440, 900):
                 assert listed['firstCardTop'] <= FIRST_CONTENT_LIMIT, listed
@@ -744,7 +744,8 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                     expect(page.get_by_text('1 Rezept', exact=True)).to_be_visible()
                     cards = page.evaluate(DENSITY_METRICS)['cards']
                     _assert_mobile_cards(cards)
-                    assert next(entry for entry in cards if entry['name'] == 'Zoombuch')['card']['height'] <= 144
+                    # Same stacked-row budget as the 390px list (measured 169.5px at zoom 2).
+                    assert next(entry for entry in cards if entry['name'] == 'Zoombuch')['card']['height'] <= 180
                 else:
                     expect(page.locator(f'form[action="{path}"]').get_by_role(
                         'button', name='Speichern', exact=True,
@@ -843,7 +844,7 @@ def test_p3_polish_cookbook_editor_primary_stack_hint(cookbook_server, browser):
         page.goto(cookbook_server['base'] + '/admin/kochbuecher')
         expect(page.locator('.admin-filter-bar').first).to_be_visible()
         expect(page.get_by_role('searchbox', name='Suchen', exact=True)).to_have_attribute('maxlength', '200')
-        expect(page.locator('.admin-list-row [data-semantic="actions.edit"]').first).to_be_visible()
+        expect(page.locator('section[aria-label="Kochbücher"] tbody tr [data-semantic="actions.edit"]').first).to_be_visible()
         page.goto(cookbook_server['base'] + path + '/status')
         page.get_by_role('button', name='Archivieren', exact=True).click()
         page.goto(cookbook_server['base'] + path)

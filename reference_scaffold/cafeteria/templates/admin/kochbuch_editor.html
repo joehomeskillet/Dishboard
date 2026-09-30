@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, form_footer, hint %}
-{% from 'ui/_semantic.html' import icon_button, sem_icon %}
+{% from 'ui/_semantic.html' import icon_button, sem_icon, status_badge_sem %}
 {% set workflow_nav = 'cookbooks' %}
 {% set creating = book is none %}
 {% set archived = book is not none and not book.active %}
@@ -49,7 +49,7 @@
     <div class="admin-compact-section-heading">
       <div class="d-flex flex-wrap align-items-center gap-2">
         <h2 id="cookbook-header-title">Kochbuchangaben</h2>
-        {% if book %}<span class="badge admin-status--{{ 'active' if book.active else 'neutral' }}" data-status="{{ 'active' if book.active else 'archived' }}">{{ icon('circle-check' if book.active else 'archive') }}<span>{{ 'Aktiv' if book.active else 'Archiviert' }}</span></span>{% endif %}
+        {% if book %}{{ status_badge_sem('status.active' if book.active else 'status.archived', status='active' if book.active else 'archived') }}{% endif %}
       </div>
     </div>
     {% if header_open %}
