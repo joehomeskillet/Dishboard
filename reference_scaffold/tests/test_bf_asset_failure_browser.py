@@ -11,7 +11,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
-from playwright.sync_api import Browser, Page, expect
+from playwright.sync_api import Browser, Page, Request, expect
 
 from test_admin_ux_browser import live_server, page_context
 from test_admin_workflow_routes import DAY
@@ -217,6 +217,53 @@ def test_sprite_present_keeps_icon_geometry(browser, live_server, page_context, 
         assert box is not None and abs(box['width'] - 36) < 0.6 and abs(box['height'] - 36) < 0.6
     finally:
         context.close()
+
+
+def _cache_directives(header: str) -> set[str]:
+    return {
+        part.split('=', 1)[0].strip().lower()
+        for part in header.split(',')
+        if part.strip()
+    }
+
+
+def test_sprite_probe_reuses_http_cache(browser, live_server, page_context) -> None:
+    storage = page_context.context.storage_state()
+    context = browser.new_context(
+        base_url=live_server, viewport={'width': 1440, 'height': 1100},
+        reduced_motion='reduce', storage_state=storage,
+    )
+    page = context.new_page()
+    phase = {'second': False}
+    sprite_requests: list[Request] = []
+
+    def record(request: Request) -> None:
+        if phase['second'] and 'tabler-icons.svg' in request.url:
+            sprite_requests.append(request)
+
+    page.on('request', record)
+    try:
+        assert page.goto('/admin/rezepte', wait_until='networkidle').status == 200
+        assert page.evaluate("() => document.documentElement.dataset.adminAssetFallback") == '1'
+        assert 'ui-asset-sprite-missing' not in (page.locator('html').get_attribute('class') or '')
+        phase['second'] = True
+        assert page.goto('/admin/rezepte', wait_until='networkidle').status == 200
+        assert page.evaluate("() => document.documentElement.dataset.adminAssetFallback") == '1'
+        assert 'ui-asset-sprite-missing' not in (page.locator('html').get_attribute('class') or '')
+        assert sprite_requests, 'second navigation did not request the sprite'
+        for request in sprite_requests:
+            directives = _cache_directives(request.all_headers().get('cache-control', ''))
+            assert 'no-store' not in directives and 'no-cache' not in directives, directives
+    finally:
+        context.close()
+
+    blocked = _open(browser, live_server, storage, 1440, 1100, False, True, images=True)
+    page = blocked.new_page()
+    try:
+        assert page.goto('/admin/rezepte', wait_until='load').status == 200
+        _ready(page, True)
+    finally:
+        blocked.close()
 
 
 def test_sprite_block_keeps_tab_order(browser, live_server, page_context) -> None:

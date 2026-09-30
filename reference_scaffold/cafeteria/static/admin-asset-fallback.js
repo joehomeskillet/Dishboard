@@ -28,7 +28,7 @@
   function probeSprite() {
     const url = spriteUrl();
     if (!url) return;
-    fetch(url, {credentials: 'same-origin', cache: 'no-store'}).then(response => {
+    fetch(url, {credentials: 'same-origin'}).then(response => {
       if (!response.ok) throw new Error('sprite');
       return response.text();
     }).then(text => {
