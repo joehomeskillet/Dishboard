@@ -197,7 +197,19 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(edit_link).to_have_attribute('href', f"/admin/{family}/komponenten/{component['public_id']}")
         expect(name).to_have_attribute('scope', 'row')
         expect(name.get_by_role('link')).to_have_count(0)
-        expect(row.get_by_role('link')).to_have_count(1)
+        expect(row.get_by_role('link')).to_have_count(2)
+        expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
+        archive_link = row.get_by_role('link', name=f"{component['name']} archivieren", exact=True)
+        expect(archive_link).to_have_attribute('data-semantic', 'actions.archive')
+        expect(archive_link).to_have_attribute(
+            'href', f"/admin/{family}/komponenten/{component['public_id']}#component-status",
+        )
+        for action in (edit_link, archive_link):
+            expect(action).to_be_visible()
+            expect(action).to_have_text('')
+            expect(action).to_have_attribute('data-ui-tooltip', action.get_attribute('aria-label'))
+            action.focus()
+            expect(action).to_be_focused()
         expect(edit_link).to_have_accessible_name(f"{component['name']} bearbeiten")
         expect(row.get_by_role('link', name=f"{component['name']} bearbeiten", exact=True)).to_have_attribute(
             'href', f"/admin/{family}/komponenten/{component['public_id']}",
