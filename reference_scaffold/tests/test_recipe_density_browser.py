@@ -174,13 +174,21 @@ def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, brows
         assert not posts and snapshot(owner) == before
         if javascript:
             expect(page.locator('[data-recipe-ingredient-summary]').first).to_have_text('Gruppe: Suppe · Notiz: Fein würfeln')
-        page.get_by_label('Mehr: Weitere Aktionen Zutat 1', exact=True).click()
-        for operation, label in [('up', 'Nach oben'), ('down', 'Nach unten')]:
+        expect(page.get_by_label('Mehr: Weitere Aktionen Zutat 1', exact=True)).to_have_count(0)
+        for operation, name in [('up', 'Zutat 1 nach oben verschieben'), ('down', 'Zutat 1 nach unten verschieben')]:
             control = page.locator(f'button[formaction*="row_action={operation}"]').first
             expect(control.locator('use')).to_have_attribute('href', f'/static/vendor/tabler-icons/tabler-icons.svg#tabler-arrow-{operation}')
-            expect(control.locator('span')).to_have_text(label)
-        expect(page.locator('[data-recipe-ingredient]').first.locator('button[formaction*="row_action=up"]')).to_have_count(0)
-        expect(page.locator('[data-recipe-ingredient]').last.locator('button[formaction*="row_action=down"]')).to_have_count(0)
+            expect(control).to_have_class(re.compile(r'ui-sem-control--icon-only'))
+            expect(control.locator('span')).to_have_count(0)
+            expect(control).to_have_accessible_name(name)
+        first_up = page.locator('[data-recipe-ingredient]').first.locator('button[formaction*="row_action=up"]')
+        last_down = page.locator('[data-recipe-ingredient]').last.locator('button[formaction*="row_action=down"]')
+        expect(first_up).to_have_count(1)
+        expect(first_up).to_be_disabled()
+        expect(page.locator('[data-recipe-ingredient]').first).to_contain_text('Bereits an erster Position.')
+        expect(last_down).to_have_count(1)
+        expect(last_down).to_be_disabled()
+        expect(page.locator('[data-recipe-ingredient]').last).to_contain_text('Bereits an letzter Position.')
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Zutat 1 nach unten verschieben', exact=True).click()
         expect(page.locator('[name="ingredients.1.ingredient_text"]')).to_be_focused()
@@ -189,13 +197,11 @@ def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, brows
         assert page.locator('[name="_form_context"]').input_value() == browser_context
         assert page.locator('[name="row_version"]').input_value() == original['row_version']
         assert snapshot(owner) == before
-        page.get_by_label('Mehr: Weitere Aktionen Zutat 2', exact=True).click()
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Zutat 2 davor einfügen', exact=True).click()
         expect(page.locator('[name="ingredients.1.ingredient_text"]')).to_be_focused()
         expect(page.locator('#ingredient-details-1')).to_have_attribute('open', '')
         page.locator('[name="ingredients.1.ingredient_text"]').fill('Neue Zutat')
-        page.get_by_label('Mehr: Weitere Aktionen Zutat 2', exact=True).click()
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Zutat 2 entfernen', exact=True).click()
         expect(page.locator('[name="ingredients.1.ingredient_text"]')).to_be_focused()
