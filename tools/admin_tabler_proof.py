@@ -68,7 +68,13 @@ def audit_tabler(page: Page, base: str, asset_status: dict[str, bool]) -> dict[s
         expect(toggle).to_have_attribute('aria-expanded', 'true')
         expect(nav).to_be_visible()
         result['nav_keyboard_expands'] = all(link.is_visible() for link in nav.locator('a').all())
-        toggle.press('Enter')
+        # Offcanvas moves focus onto the first link. A second Enter follows that
+        # link; Escape closes the panel without leaving the page. Collapse shells
+        # still toggle with Enter.
+        if toggle.get_attribute('data-bs-toggle') == 'offcanvas':
+            page.keyboard.press('Escape')
+        else:
+            toggle.press('Enter')
         expect(toggle).to_have_attribute('aria-expanded', 'false')
         expect(nav).not_to_be_visible()
         result['nav_keyboard_collapses'] = True
