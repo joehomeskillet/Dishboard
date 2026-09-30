@@ -114,3 +114,53 @@
 .dishboard-admin .admin-hint-trigger:active { background: var(--app-neutral-soft); }
 .dishboard-admin .admin-hint :is(.form-hint, p) { overflow-wrap: anywhere; }
 .dishboard-admin .admin-hint dialog:not(:modal) { position: static; margin: 0; }
+
+/* Sprite labels exist only while the probe has marked the document. Loaded sprites keep 36/44px. */
+html.ui-asset-sprite-missing .dishboard-admin .btn.ui-sem-control--icon-only {
+  width: var(--ui-control-size);
+  height: auto;
+  flex: 0 0 var(--ui-control-size);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--ui-control-size);
+  min-height: var(--ui-control-size);
+  max-width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: normal;
+}
+html.ui-asset-sprite-missing .dishboard-admin .ui-sem-control--icon-only > .icon {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: var(--app-space-1);
+  height: var(--app-space-1);
+  /* .btn .icon sets min-width to the 20px icon size and would keep the empty glyph. */
+  min-width: 0;
+  min-height: 0;
+  max-width: var(--app-space-1);
+  max-height: var(--app-space-1);
+  margin: 0;
+  flex: none;
+  overflow: hidden;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+html.ui-asset-sprite-missing .dishboard-admin .ui-sem-control--icon-only:not(.admin-btn-loading)::after {
+  content: attr(aria-label);
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  color: inherit;
+  font-size: var(--app-font-size-small);
+  line-height: var(--app-line-height-title);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+html.ui-asset-sprite-missing .dishboard-admin .ui-sem-control--icon-only:not([aria-label]):not(.admin-btn-loading)::after,
+html.ui-asset-sprite-missing .dishboard-admin .ui-sem-control--icon-only[aria-label=""]:not(.admin-btn-loading)::after {
+  content: attr(data-ui-tooltip);
+}
