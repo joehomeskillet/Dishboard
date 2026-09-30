@@ -66,14 +66,14 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                             if state == 'editor':
                                 expect(page.locator('.admin-statusbar')).to_be_visible()
                             else:
-                                expect(page.locator('.grundlagen-filter')).to_contain_text('Aktiv')
+                                expect(page.locator('.grundlagen-master')).to_contain_text('Aktiv')
                             if state == 'list':
                                 assert metric['row'] < 100
                                 row_min = page.evaluate(
                                     "() => getComputedStyle(document.querySelector('.grundlagen-list .admin-list-row')).minHeight",
                                 )
                                 assert row_min != '0px'
-                                expect(page.locator('[aria-label="Stammdatenbereiche"] .active')).to_have_attribute('aria-current', 'true')
+                                expect(page.locator('[aria-label="Stammdatenbereiche"] .active')).to_have_attribute('aria-current', 'page')
                             else:
                                 assert metric['height'] < (3337 if width == 360 else 2747 if width == 768 else 2188 if width == 1024 else 2041)
                                 name = page.get_by_label('Name', exact=True)
@@ -384,7 +384,7 @@ def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser)
         page.goto(base + '/admin/grundlagen')
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
         _assert_no_horizontal_scroll(page)
-        expect(page.locator('.grundlagen-filter')).to_contain_text('Aktiv')
+        expect(page.locator('.grundlagen-master')).to_contain_text('Aktiv')
         expect(page.locator('.grundlagen-list .badge.admin-status--active')).to_have_count(0)
         expect(page.locator('.grundlagen-list span.admin-list-primary')).to_have_text('Polish Zutat')
         expect(page.locator('.grundlagen-list span.admin-list-primary')).to_be_visible()
@@ -446,14 +446,21 @@ def test_p4_stammdaten_inventory_counts_sum():
     assert total['legacy_labels'] == 0
     assert total['wrong_icons'] == 0
     assert total['long_labels'] == 0
-    assert total['literal_buttons'] == 1
+    assert total['literal_buttons'] == 0
     assert total['local_lists'] == 2
-    assert total['local_filters'] == 4
+    assert total['local_filters'] == 2
     assert total['list_typography_overrides'] == 0
     assert total['css_px_heights'] == 0
-    # Kochbücher and the editor contribute 0 after the table migration.
-    # local_status 11, local_footers 1 and raw_details 9 remain on Grundlagen, Einkauf and Bestellkorb.
-    assert total['local_status'] == 11
-    assert total['local_footers'] == 1
-    assert total['raw_details'] == 9
-    assert sum(total.values()) == 28
+    # Alt: pin 28 (literal_buttons 1, local_filters 4, local_status 11,
+    # local_footers 1, raw_details 9, local_lists 2). On integrate/uc-0930
+    # Einkauf/Bestellung were already down, so the live sum before UC-P1-C
+    # was 17. Neu: Grundlagen, Zutat, Einheit and the conflict page contribute
+    # 0 after filter_bar_sem, status_badge_sem, disclosure_section and
+    # icon_button. Grund: the package acceptance lowers those counters and
+    # the pin must match inventory(). The remaining 4 are local_lists on
+    # einkaufsliste.html and kalkulation.html plus local_filters on
+    # einkaufsliste.html (P2-C, not edited here).
+    assert total['local_status'] == 0
+    assert total['local_footers'] == 0
+    assert total['raw_details'] == 0
+    assert sum(total.values()) == 4

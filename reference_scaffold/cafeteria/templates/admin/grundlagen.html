@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, disclosure_section, hint, list_row, label %}
-{% from 'ui/_semantic.html' import icon_label, icon_button, filter_trigger, row_actions %}
+{% from 'admin/_macros.html' import page_header, icon, pagination, empty_state, disclosure_section, hint, list_row, segment_switch %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem, status_badge_sem %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}{{ t('navigation.ingredients.label') }} · Menüplanung{% endblock %}
 {% block page_header %}
@@ -37,41 +37,38 @@
 {% elif kind == 'einheiten' and row.code in ['G', 'ML', 'STK'] %}<p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Diese Basiseinheit bleibt dauerhaft aktiv.</p>{% endif %}
 {% endif %}
 {% endmacro %}
-{% macro section_summary(title, symbol='chevron-right') %}
-<summary class="card-header gap-2">{{ icon(symbol) }}<span class="card-title mb-0">{{ title }}</span>{{ icon('chevron-right', class='ms-auto grundlagen-accordion-marker') }}</summary>
-{% endmacro %}
 {% block content %}
 {% set singular = {'zutaten': 'Zutat', 'einheiten': 'Einheit', 'kategorien': 'Kategorie', 'tags': 'Kennzeichnung', 'lagerorte': 'Lagerort'} %}
 {% if kind == 'lagerorte' %}{{ hint('Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.', 'storage-list-hint') }}{% endif %}
-<nav class="mb-3" aria-label="Stammdatenbereiche"><ul class="nav nav-pills">
-{% for key, label in kinds.items() %}<li class="nav-item"><a class="nav-link gap-1{% if key == kind %} active{% endif %}"{% if key == kind %} aria-current="true"{% endif %} href="{{ url_for('admin.master_data_list', kind=query_kinds[key]) }}">{{ icon(kind_icons[key]) }}{{ 'Kennzeichnungen' if key == 'tags' else label }}</a></li>{% endfor %}
-</ul></nav>
+{% set segment_links = [] %}
+{% for key, area_label in kinds.items() %}
+{% set _ = segment_links.append({'key': key, 'href': url_for('admin.master_data_list', kind=query_kinds[key]), 'label': icon(kind_icons[key]) ~ ('Kennzeichnungen' if key == 'tags' else area_label)}) %}
+{% endfor %}
 {% set filters_active = request.args.get('q') or request.args.get('category') or request.args.get('tag') or request.args.get('archived') == '1' %}
-<form class="admin-filter-bar mb-3 grundlagen-filter" method="get" action="{{ url_for('admin.master_data_list') }}" role="search">
-<input type="hidden" name="kind" value="{{ query_kinds[kind] }}">
-<span class="admin-list-meta">{{ 'Archivierte einschliessen' if request.args.get('archived') == '1' else t('status.active.label') }}</span>
-{% if kind == 'zutaten' %}
-<div><label class="form-label" for="q">Zutat suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ request.args.get('q', '') }}"></div>
-{% endif %}
 {% set filter_count = (1 if kind == 'zutaten' and request.args.get('category') else 0) + (1 if kind == 'zutaten' and request.args.get('tag') else 0) + (1 if request.args.get('archived') == '1' else 0) %}
-<details class="admin-compact-details admin-filter-more grundlagen-filter-options"{% if filters_active %} open{% endif %}>{{ filter_trigger(id='master-filter', count=filter_count, explicit=true) }}<div class="grundlagen-filter-fields">
+{% set segment_slot %}
+{{ segment_switch(segment_links, kind, label='Stammdatenbereiche') }}
+<span class="admin-list-meta">{{ 'Archivierte einschliessen' if request.args.get('archived') == '1' else t('status.active.label') }}</span>
+{% endset %}
+{% set filter_slot %}
+{% if kind == 'zutaten' %}<input type="hidden" name="kind" value="{{ query_kinds[kind] }}">{% endif %}
 {% if kind == 'zutaten' %}
-{% for field, label, choices in [('category', 'Kategorie', categories), ('tag', 'Kennzeichnung', tags)] %}
-<div><label class="form-label" for="{{ field }}">{{ label }}</label><select class="form-select" id="{{ field }}" name="{{ field }}"><option value="">Alle</option>
+{% for field, field_label, choices in [('category', 'Kategorie', categories), ('tag', 'Kennzeichnung', tags)] %}
+<div><label class="form-label" for="{{ field }}">{{ field_label }}</label><select class="form-select" id="{{ field }}" name="{{ field }}"><option value="">Alle</option>
 {% for choice in choices %}<option value="{{ choice.public_id }}"{% if request.args.get(field) == choice.public_id %} selected{% endif %}>{{ choice.name }}{% if not choice.active %} (archiviert){% endif %}</option>{% endfor %}
 </select></div>{% endfor %}{% endif %}
 <label class="form-check mb-0"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if request.args.get('archived') == '1' %} checked{% endif %}><span class="form-check-label">{{ icon('archive', class='text-secondary') }}Archivierte einschliessen</span></label>
-</div></details>
-{{ icon_button('view.search') }}
-{% if filters_active %}{{ icon_button('view.reset', href=url_for('admin.master_data_list', kind=query_kinds[kind])) }}{% endif %}
-</form>
+{% endset %}
+<div class="grundlagen-master" data-kind="{{ kind }}">
+{{ filter_bar_sem(url_for('admin.master_data_list'), search_name='q' if kind == 'zutaten' else 'kind', search_value=request.args.get('q', '') if kind == 'zutaten' else query_kinds[kind], search_id='q' if kind == 'zutaten' else 'kind-scope', maxlength=200 if kind == 'zutaten' else none, filters=filter_slot, segments=segment_slot, active=filters_active, open=filters_active, active_count=filter_count, reset_url=url_for('admin.master_data_list', kind=query_kinds[kind]) if filters_active else none, id='master-filter') }}
+</div>
 {% if kind == 'zutaten' %}{% set missing_storage = rows|rejectattr('storage_locations')|list|length %}
 {% if missing_storage %}<p class="admin-list-secondary" role="status">Lagerort fehlt: {{ missing_storage }} {{ 'Zutat' if missing_storage == 1 else 'Zutaten' }} in dieser Liste.</p>{% endif %}{% endif %}
 <div class="card grundlagen-list">
 {% for item in rows %}
 {% set primary %}<span class="admin-list-primary text-break">{{ item.display_name if kind == 'einheiten' else item.name }}</span>{% endset %}
 {% set secondary %}{% if kind == 'zutaten' %}{{ item.base_unit.display_name }} · {% for storage in item.storage_locations %}<a href="{{ url_for('admin.master_data_detail', kind='lagerorte', public_id=storage.public_id) }}">{{ storage.name }}</a>{{ ', ' if not loop.last else '' }}{% else %}{{ icon('alert-triangle', class='text-secondary') }}Lagerort fehlt{% endfor %}{% if item.prepared_recipe %}<div><a href="{{ url_for('admin.recipe_revision', recipe_id=item.prepared_recipe.recipe_public_id, revision_id=item.prepared_recipe.revision_public_id) }}">{{ icon('tools-kitchen-2', class='text-secondary') }}{{ item.prepared_recipe.title }} · Stand {{ item.prepared_recipe.revision_number }}</a></div>{% endif %}{% endif %}{% endset %}
-{% set status %}{% if request.args.get('archived') == '1' %}{{ label('Aktiv' if item.active else 'Archiviert', 'active' if item.active else 'neutral', icon='circle-check' if item.active else 'archive') }}{% endif %}{% endset %}
+{% set status %}{% if request.args.get('archived') == '1' %}{{ status_badge_sem('status.active' if item.active else 'status.archived', status='active' if item.active else 'archived') }}{% endif %}{% endset %}
 {% set actions %}
 {% set row_items = [{'key': 'actions.edit' if can_write and item.active else 'actions.open', 'href': url_for('admin.master_data_detail', kind=kind, public_id=item.public_id, **({'from': 'foods', 'q': request.args.get('q', ''), 'archived': request.args.get('archived', '0'), 'page': page} if kind == 'zutaten' and (request.args.get('q') or request.args.get('archived') == '1' or page > 1) else {}))}] %}
 {% if can_write and not (kind == 'einheiten' and item.code in ['G', 'ML', 'STK']) %}
