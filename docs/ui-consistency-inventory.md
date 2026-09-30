@@ -1114,7 +1114,7 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/_local_user_forms.html | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 | admin/_macros.html | 1 | 0 | 0 | 0 | 2 | 0 | 0 |
 | admin/_recipe_document.html | 2 | 1 | 0 | 0 | 5 | 0 | 0 |
-| admin/_recipe_template_selection.html | 10 | 6 | 0 | 0 | 1 | 3 | 0 |
+| admin/_recipe_template_selection.html | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
 | admin/_rezepte_fields.html | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_service_courses.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_week_controls.html | 6 | 2 | 0 | 0 | 2 | 0 | 0 |
@@ -1160,10 +1160,10 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/menu_editor.html | 15 | 4 | 0 | 1 | 3 | 1 | 0 |
 | admin/operations.html | 1 | 0 | 0 | 0 | 4 | 0 | 0 |
 | admin/patienten.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/preview.html | 3 | 3 | 0 | 0 | 1 | 0 | 0 |
-| admin/print_template_editor.html | 19 | 11 | 0 | 0 | 1 | 1 | 0 |
+| admin/preview.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
+| admin/print_template_editor.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/print_template_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/recipe_template_error.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| admin/recipe_template_error.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/rezepte.html | 4 | 2 | 0 | 0 | 1 | 1 | 0 |
 | admin/rezepte_ansicht.html | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
 | admin/rezepte_conflict.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -1173,10 +1173,10 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/rezepte_revision.html | 3 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/rezepte_revisionen.html | 2 | 1 | 0 | 0 | 3 | 0 | 0 |
 | admin/rezepte_scale.html | 2 | 0 | 0 | 0 | 1 | 0 | 0 |
-| admin/screen_template_assignment.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| admin/screen_template_assignment.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/screen_template_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/screens.html | 1 | 0 | 1 | 0 | 0 | 0 | 0 |
-| admin/vorlagen.html | 17 | 11 | 0 | 0 | 2 | 1 | 0 |
+| admin/screens.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/vorlagen.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/week_management.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/week_review.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | api/docs.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |

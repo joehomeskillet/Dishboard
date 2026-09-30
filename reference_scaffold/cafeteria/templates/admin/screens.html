@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, label as status_label %}
+{% from 'admin/_macros.html' import page_header, icon %}
 {% from 'ui/_semantic.html' import row_actions, status_badge_sem %}
 {% set workflow_nav = 'screens' %}
 {% set layout_variant = 'standard' %}
@@ -36,9 +36,8 @@
       <th scope="rowgroup" id="{{ screen_id }}-heading" data-label="Bildschirm">
         <span class="admin-list-primary" id="{{ screen_id }}-title">{{ label }} · {{ channel_label }}</span>
         {% if channel == 'public' %}
-        <p class="screen-status admin-list-secondary mb-0">
-          {% if assignments[output_profile].version == 0 %}{{ status_label('Vorgabe', 'neutral') }}{% else %}{{ status_badge_sem('status.active') }}{% endif %} Vorlage für Web-Wochenplan: <strong>{{ assignments[output_profile].template.name }}</strong>
-        </p>
+        <p class="screen-status mb-0">{% if assignments[output_profile].version == 0 %}{{ status_badge_sem('editing.not_created', text='Vorgabe') }}{% else %}{{ status_badge_sem('status.active') }}{% endif %} <strong>{{ assignments[output_profile].template.name }}</strong></p>
+        <p class="admin-list-secondary mb-0">Vorlage für Web-Wochenplan: {{ assignments[output_profile].template.name }}</p>
         {% endif %}
       </th>
       <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items, object=label ~ ' ' ~ channel_label) }}</td>

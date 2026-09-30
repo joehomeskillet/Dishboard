@@ -156,12 +156,12 @@
     "css_px_heights": 0
   },
   "admin/_recipe_template_selection.html": {
-    "literal_buttons": 10,
-    "long_labels": 6,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
-    "local_filters": 3,
+    "local_lists": 0,
+    "local_filters": 2,
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
@@ -754,8 +754,8 @@
     "css_px_heights": 0
   },
   "admin/preview.html": {
-    "literal_buttons": 3,
-    "long_labels": 3,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
     "local_lists": 1,
@@ -767,16 +767,16 @@
     "css_px_heights": 0
   },
   "admin/print_template_editor.html": {
-    "literal_buttons": 19,
-    "long_labels": 11,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 0,
     "local_filters": 1,
     "list_typography_overrides": 0,
-    "local_status": 1,
-    "local_footers": 1,
-    "raw_details": 9,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 5,
     "css_px_heights": 0
   },
   "admin/print_template_unavailable.html": {
@@ -793,8 +793,8 @@
     "css_px_heights": 0
   },
   "admin/recipe_template_error.html": {
-    "literal_buttons": 1,
-    "long_labels": 1,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
     "local_lists": 0,
@@ -923,8 +923,8 @@
     "css_px_heights": 0
   },
   "admin/screen_template_assignment.html": {
-    "literal_buttons": 1,
-    "long_labels": 1,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
     "local_lists": 0,
@@ -949,27 +949,27 @@
     "css_px_heights": 0
   },
   "admin/screens.html": {
-    "literal_buttons": 1,
+    "literal_buttons": 0,
     "long_labels": 0,
-    "legacy_labels": 1,
+    "legacy_labels": 0,
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
     "list_typography_overrides": 0,
-    "local_status": 1,
+    "local_status": 0,
     "local_footers": 0,
     "raw_details": 1,
     "css_px_heights": 0
   },
   "admin/vorlagen.html": {
-    "literal_buttons": 17,
-    "long_labels": 11,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 2,
+    "local_lists": 0,
     "local_filters": 1,
     "list_typography_overrides": 0,
-    "local_status": 5,
+    "local_status": 0,
     "local_footers": 0,
     "raw_details": 1,
     "css_px_heights": 0
@@ -1674,7 +1674,7 @@
     "local_status": 0,
     "local_footers": 0,
     "raw_details": 0,
-    "css_px_heights": 2
+    "css_px_heights": 0
   },
   "static/ui-semantic.css": {
     "literal_buttons": 0,

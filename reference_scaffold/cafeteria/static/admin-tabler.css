@@ -435,22 +435,22 @@
 .dishboard-admin .admin-filter-count:not([hidden]) { position: absolute; inset-block-start: 0; inset-inline-end: 0; background: var(--app-surface-soft); color: var(--app-text); border-radius: var(--app-radius-pill); font-size: var(--app-list-header-size); padding-inline: var(--app-space-1); }
 .dishboard-admin .admin-filter-chips { display: flex; flex-wrap: wrap; gap: var(--app-space-2); flex-basis: 100%; }
 .dishboard-admin .admin-filter-chip { gap: var(--app-space-1); font-size: var(--app-list-secondary-size); }
-.dishboard-admin :is(.admin-list-row, .print-tpl-row, .print-screen-row) {
+.dishboard-admin :is(.admin-list-row) {
   min-height: var(--app-list-row-min-height);
   padding: var(--app-list-pad-y) var(--app-list-pad-x);
   border-bottom: var(--app-list-line-width) solid var(--app-border);
   font-size: var(--app-list-font-size);
   box-shadow: none;
 }
-.dishboard-admin :is(.admin-list-row, .print-tpl-row, .print-screen-row):has(.admin-list-secondary, .admin-list-subtitle) { min-height: var(--app-list-row-two-line-height); }
+.dishboard-admin :is(.admin-list-row):has(.admin-list-secondary, .admin-list-subtitle) { min-height: var(--app-list-row-two-line-height); }
 .dishboard-admin :is(.admin-list, .cookbook-list, .recipe-list, .card:has(.admin-table, .admin-table--stack, .admin-list-row):where(:not(.card .card))) {
   border: var(--app-list-line-width) solid var(--app-border);
   border-radius: var(--app-list-radius); box-shadow: none;
 }
 /* The shared shell supplies the final edge, including semantic list wrappers. */
-.dishboard-admin .admin-list > :is(.admin-list-row, .print-tpl-row, .print-screen-row):last-child,
+.dishboard-admin .admin-list > :is(.admin-list-row):last-child,
 .dishboard-admin .admin-list > [role="listitem"]:last-child > .admin-list-row { border-bottom: 0; }
-.dishboard-admin :is(.admin-list-row, .print-tpl-row, .print-screen-row, .admin-table tbody tr):hover { background: var(--app-list-hover); }
+.dishboard-admin :is(.admin-list-row, .admin-table tbody tr):hover { background: var(--app-list-hover); }
 .dishboard-admin .admin-empty-value { color: var(--app-text-muted); }
 .dishboard-admin .admin-list-status { margin-inline-start: auto; }
 .dishboard-admin .admin-list-name { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
@@ -539,9 +539,9 @@
    Makromigration. !important schützt ihn auch vor Tabler-Utilities und später
    geladenem Modul-CSS; Tabellenköpfe, Labels, Icons und Bedienelemente behalten
    ihren Vertrag. */
-.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row),
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row),
 .dishboard-admin :is(.admin-table, .admin-table--stack) tbody :is(td, th),
-.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .admin-table, .admin-table--stack)
   :where(a, span, div, p, small, strong, b, em, i, time, code, h2, h3, h4, h5, h6):not(:where(thead *, .badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *, button, button *, summary, summary *, .form-control, .form-select)) {
   font-size: var(--app-list-meta-size) !important;
   font-family: var(--app-list-font-family) !important;
@@ -553,7 +553,7 @@
 .dishboard-admin :is(.admin-table, .admin-table--stack) tbody :is(th[scope="row"], td:first-child),
 .dishboard-admin :is(.admin-table, .admin-table--stack) tbody :where(th[scope="row"], td:first-child) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)),
 .dishboard-admin :is(.admin-table, .admin-table--stack) .admin-list-primary,
-.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row)
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row)
   :is(.admin-list-primary, .admin-list-name > strong, .recipe-list-name > h2, h3, h5, .card-title),
 .dishboard-admin .admin-users-row > div:first-child > strong,
 .dishboard-admin .admin-list-primary,
@@ -566,9 +566,9 @@
   color: var(--app-text) !important;
   font-style: normal !important;
 }
-.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .admin-table, .admin-table--stack)
   :is(.admin-list-secondary, .admin-list-subtitle, .admin-list-meta, .text-secondary, .print-tpl-meta),
-.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .print-tpl-row, .print-screen-row, .admin-table, .admin-table--stack)
+.dishboard-admin :is(.admin-list-row, .recipe-list-row, .admin-users-row, .admin-table, .admin-table--stack)
   :is(.admin-list-secondary, .admin-list-subtitle, .admin-list-meta, .text-secondary, .print-tpl-meta) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)),
 .dishboard-admin :is(.admin-list-secondary, .admin-list-meta),
 .dishboard-admin :is(.admin-list-secondary, .admin-list-meta) :where(a, span, strong, b, em, i, time, code):not(:where(.badge, .badge *, .admin-label, .admin-label *, .btn, .btn *, .icon, .icon *)) {

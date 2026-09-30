@@ -29,7 +29,7 @@
 /* Compact page head (M14): title row, one meta line, one toolbar, then the
    separate published-plan state. Core content follows without an admin wall. */
 .admin-preview .preview-heading {
-  margin: 0 0 var(--app-space-4);
+  margin: 0 0 var(--app-space-3);
 }
 
 .admin-preview .preview-title-row {
@@ -49,7 +49,7 @@
   color: var(--app-primary);
   background: var(--app-primary-soft);
   font-size: var(--app-font-size-small);
-  font-weight: 700;
+  font-weight: var(--app-list-primary-weight);
   letter-spacing: 0.06em;
 }
 
@@ -58,7 +58,7 @@
   color: var(--app-text);
   font-family: var(--app-font-heading);
   font-size: var(--app-font-size-h1);
-  font-weight: 700;
+  font-weight: var(--app-list-primary-weight);
   line-height: var(--app-line-height-h1);
 }
 
@@ -85,7 +85,7 @@
 
 .admin-preview .preview-saved {
   color: var(--app-text);
-  font-weight: 600;
+  font-weight: var(--app-label-font-weight);
 }
 
 .admin-preview .preview-context,
@@ -111,7 +111,7 @@
   color: var(--app-text);
   font-family: var(--app-font-heading);
   font-size: var(--app-font-size-title);
-  font-weight: 700;
+  font-weight: var(--app-list-primary-weight);
   line-height: var(--app-line-height-title);
 }
 
@@ -142,7 +142,7 @@
   background: var(--app-surface);
   text-decoration: none;
   font-size: var(--app-font-size-label);
-  font-weight: 600;
+  font-weight: var(--app-label-font-weight);
 }
 
 .admin-preview .preview-profiles a[aria-current="page"] {
@@ -158,8 +158,8 @@
   margin: 0;
 }
 
-.admin-preview .preview-links .btn,
-.admin-preview .preview-published .btn {
+.admin-preview .preview-links .btn:not(.ui-sem-control),
+.admin-preview .preview-published .btn:not(.ui-sem-control) {
   display: inline-flex;
   align-items: center;
   gap: var(--app-space-2);
@@ -170,14 +170,48 @@
   color: var(--app-text);
   background: var(--app-surface);
   font-size: var(--app-font-size-label);
-  font-weight: 600;
+  font-weight: var(--app-label-font-weight);
 }
 
-.admin-preview .btn .icon {
-  width: 20px;
-  height: 20px;
+/* Preview does not load admin-tabler.css, so unsized tabler sprites keep the
+   300px SVG default and spill past the right edge at 1440px. */
+.admin-preview .icon {
+  width: var(--app-sem-control-icon-size);
+  height: var(--app-sem-control-icon-size);
   flex: none;
 }
+
+.admin-preview .ui-sem-control--icon-only {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-preview .badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  vertical-align: middle;
+  gap: var(--app-label-gap);
+  min-height: var(--app-label-min-height);
+  padding: var(--app-label-pad-y) var(--app-label-pad-x);
+  border-radius: var(--app-label-radius);
+  color: var(--app-neutral-text);
+  background: var(--app-neutral-soft);
+  font-size: var(--app-label-font-size);
+  font-weight: var(--app-label-font-weight);
+  line-height: var(--app-label-line-height);
+  white-space: normal;
+}
+
+.admin-preview .badge .icon {
+  width: var(--app-label-icon-size);
+  height: var(--app-label-icon-size);
+}
+
+.admin-preview .admin-status--success { color: var(--app-success-text); background: var(--app-success-soft); }
+.admin-preview .admin-status--info { color: var(--app-info-text); background: var(--app-info-soft); }
+.admin-preview .admin-status--warning { color: var(--app-warning-text); background: var(--app-warning-soft); }
+.admin-preview .admin-status--active { color: var(--app-primary); background: var(--app-primary-soft); }
 
 .admin-preview .preview-links .btn.primary {
   color: var(--app-on-primary);
@@ -209,7 +243,7 @@
   color: var(--app-text);
   font-family: var(--app-font-heading);
   font-size: var(--app-font-size-body);
-  font-weight: 700;
+  font-weight: var(--app-list-primary-weight);
   line-height: var(--app-line-height-title);
 }
 

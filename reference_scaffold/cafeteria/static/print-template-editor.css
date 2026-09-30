@@ -13,7 +13,7 @@
   max-width: 100%;
   overflow-x: auto;
 }
-.output-area-tabs .nav-link { min-height: 44px; }
+.output-area-tabs .nav-link { min-height: var(--app-control-min-height); }
 .output-current-template { min-width: 0; }
 .output-current-template :is(.h3, p) { overflow-wrap: anywhere; }
 .output-area-panels:has(> .tab-pane:target) > .tab-pane.active:not(:target) { display: none; }
@@ -21,8 +21,8 @@
   display: block;
   opacity: 1;
 }
-.print-template-editor details > summary,
-.output-area-panels details > summary { min-height: 44px; }
+.print-template-editor details > summary:not(.ui-sem-control):not(.admin-hint-trigger),
+.output-area-panels details > summary:not(.ui-sem-control):not(.admin-hint-trigger) { min-height: var(--app-list-row-min-height); }
 .print-template-preview {
   display: block;
   width: 100%;

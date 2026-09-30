@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, page_header %}
+{% from 'admin/_macros.html' import page_header %}
+{% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% block title %}Vorschau · {{ area_names[profile] }}{% endblock %}
 {% block body_class %}dishboard-admin{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-preview.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-vorschau-bildschirme.css') }}">{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-preview.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-vorschau-bildschirme.css') }}">{% endblock %}
 {% block body %}
 {% set declarations = namespace(options=[]) %}
-{% set status_label = {'draft': 'Nicht veröffentlicht · Entwurf', 'ready': 'Nicht veröffentlicht · Bereit', 'published': 'Veröffentlicht', 'archived': 'Nicht veröffentlicht · Archiviert'}[state] %}
 <main class="admin-preview" id="main-content">
 <section data-preview="last-saved" data-workflow-state="{{ state }}" data-week="{{ week }}" data-profile="{{ profile }}">
   <header class="preview-heading">
   {% set preview_banner %}<div class="preview-banner" role="status">PREVIEW</div>{% endset %}
   {% set week_context %}<span class="preview-context">KW {{ week_iso|iso_week }} / {{ week.isocalendar().year }} · Woche ab <time datetime="{{ week_iso }}">{{ week_iso|date_long }}</time></span>{% endset %}
-  {% set saved_context %}<span class="preview-saved">Veröffentlichungsstand dieser Woche: {{ status_label }}</span>{% endset %}
+  {% set saved_context %}<span class="preview-saved">Veröffentlichungsstand dieser Woche: {% if state == 'draft' %}{{ status_badge_sem('publish.unpublished') }} · {{ status_badge_sem('publish.draft') }}{% elif state == 'ready' %}{{ status_badge_sem('publish.unpublished') }} · {{ status_badge_sem('publish.ready') }}{% elif state == 'published' %}{{ status_badge_sem('publish.published') }}{% else %}{{ status_badge_sem('publish.unpublished') }} · {{ status_badge_sem('status.archived') }}{% endif %}</span>{% endset %}
   {{ page_header('Vorschau · ' ~ area_names[profile], actions=preview_banner, status_items=[
     {'label': week_context, 'value': saved_context, 'variant': 'success' if state == 'published' else 'neutral'}
   ]) }}
@@ -22,8 +22,8 @@
       <a href="{{ url_for('admin.preview', family='patienten', week=week_iso) }}"{% if family == 'patienten' %} aria-current="page"{% endif %}>{{ area_names.patient }}</a>
     </nav>
     <p class="preview-links">
-      <a class="btn primary btn-primary" href="{{ url_for('admin.print_week', family=family, week=week_iso) }}">{{ icon('printer') }}PDF der gewählten Woche öffnen</a>
-      <a class="btn" href="{{ url_for('admin.' ~ family, week=week_iso) }}">{{ icon('arrow-left') }}Zurück zum Wochenplan</a>
+      {{ icon_button('actions.print', href=url_for('admin.print_week', family=family, week=week_iso), aria_label='PDF der gewählten Woche öffnen', emphasis='primary', class='primary') }}
+      {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=week_iso), aria_label='Zurück zum Wochenplan', show_text=true) }}
     </p>
   </div>
   <p class="preview-notice" role="note">Gewählter Stand: gespeicherte Woche KW {{ week_iso|iso_week }}, nicht automatisch der veröffentlichte Plan. Veröffentlichen bleibt ein eigener, bestätigter Schritt im Wochenplan.</p>
@@ -32,7 +32,7 @@
       <h2 id="preview-published-title">Veröffentlichter Plan</h2>
       <p>Eigener Datenstand des Bereichs, nicht automatisch diese gespeicherte Woche.</p>
     </div>
-    <a class="btn" href="/druck/{{ family }}/woche">{{ icon('printer') }}Veröffentlichten Plan drucken</a>
+    {{ icon_button('actions.print', href='/druck/' ~ family ~ '/woche', aria_label='Veröffentlichten Plan drucken') }}
   </aside>
 
   {% if draft.title %}
