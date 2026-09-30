@@ -176,3 +176,32 @@ def test_price_error_retains_inputs_opens_section_and_does_not_write(b3, master_
         assert snapshot(owner) == before
         with owner.connect() as connection:
             assert connection.execute(text('SELECT count(*) FROM cafeteria.food_purchase_price_revisions')).scalar_one() == 0
+
+
+@pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
+def test_restoring_week_values_keeps_action_permissions_and_live_descriptions(food_page, family):
+    page, owner, _ = food_page
+    assert page.goto(f'/admin/{family}?week=2026-08-31').status == 200
+    before = snapshot(owner)
+    title = _open(page, 'input[name="title"]')
+    original = title.input_value()
+    preview = page.locator('main a[href*="/preview"]').first
+    publish = page.locator('form[action*="/publish"] button[type="submit"]')
+    original_disabled = publish.is_disabled()
+    original_aria = preview.get_attribute('aria-disabled')
+    preview.hover()
+    tooltip = page.locator('.tooltip.show').last
+    expect(tooltip).to_be_visible()
+    tooltip_id = tooltip.get_attribute('id')
+    title.fill('BF vorübergehender Titel')
+    expect(preview).to_have_attribute('aria-disabled', 'true')
+    expect(publish).to_be_disabled()
+    page.mouse.move(0, 0)
+    expect(page.locator(f'#{tooltip_id}')).to_have_count(0)
+    title.fill(original)
+    expect(page.locator('#admin-dirty-action-reason')).to_be_hidden()
+    assert publish.is_disabled() == original_disabled
+    assert preview.get_attribute('aria-disabled') == original_aria
+    assert preview.evaluate('''el => (el.getAttribute('aria-describedby') || '').split(/\\s+/)
+        .filter(id => id && !document.getElementById(id))''') == []
+    assert snapshot(owner) == before

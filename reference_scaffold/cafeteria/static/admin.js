@@ -350,6 +350,10 @@
                     if (value === null) control.removeAttribute(name);
                     else control.setAttribute(name, value);
                 });
+                const descriptions = (control.getAttribute('aria-describedby') || '').split(/\s+/)
+                    .filter(id => id && id !== 'admin-dirty-action-reason');
+                if (descriptions.length) control.setAttribute('aria-describedby', descriptions.join(' '));
+                else control.removeAttribute('aria-describedby');
                 control.classList.toggle('disabled', state.disabledClass);
                 control.removeEventListener('click', preventDefaultClick);
             });
@@ -358,7 +362,7 @@
         }
         const describe = control => {
             if (!dirtyActionState.has(control)) dirtyActionState.set(control, {
-                attrs: Object.fromEntries(['aria-disabled', 'aria-describedby', 'disabled']
+                attrs: Object.fromEntries(['aria-disabled', 'disabled']
                     .map(name => [name, control.getAttribute(name)])),
                 disabledClass: control.classList.contains('disabled'),
             });
