@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, icon, disclosure_section, hint, label %}
+{% from 'admin/_macros.html' import page_header, select, icon, disclosure_section, hint %}
 {% from 'ui/_semantic.html' import icon_button, icon_label, sem_icon, status_badge_sem %}
 {% set workflow_nav = 'design' %}
 {% set layout_variant = 'standard' %}
@@ -93,7 +93,7 @@
     <div class="card-body py-2">
       <p class="brand-preview-meta mb-2" role="status">
         {{ selected.name }}
-        {% if selected_is_active %}{{ status_badge_sem('status.active') }}{% elif selected_revision.published %}{{ label('Früher aktiv', 'neutral', icon='history') }}{% else %}{{ label(t('publish.draft.label'), 'warning', icon='pencil') }}{% endif %}
+        {% if selected_is_active %}{{ status_badge_sem('status.active') }}{% elif selected_revision.published %}{{ status_badge_sem('status.inactive', text='Früher aktiv') }}{% else %}{{ status_badge_sem('publish.draft') }}{% endif %}
       </p>
       <iframe class="brand-preview-frame" src="{{ url_for('admin.branding_preview', revision=selected.id) }}" title="Markenvorschau {{ selected.name }}"></iframe>
       <div class="brand-preview-actions">
@@ -127,7 +127,7 @@
     {% for item in document.revisions|reverse %}
     <a class="list-group-item list-group-item-action brand-history-row{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id) }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
       <span class="brand-history-name">{{ item.name }}</span>
-      {% if item.id == document.active_revision %}{{ status_badge_sem('status.active') }}{% elif item.published %}{{ label('Früher aktiv', 'neutral', icon='history') }}{% else %}{{ label(t('publish.draft.label'), 'warning', icon='pencil') }}{% endif %}
+      {% if item.id == document.active_revision %}{{ status_badge_sem('status.active') }}{% elif item.published %}{{ status_badge_sem('status.inactive', text='Früher aktiv') }}{% else %}{{ status_badge_sem('publish.draft') }}{% endif %}
     </a>
     {% endfor %}
   </div>
