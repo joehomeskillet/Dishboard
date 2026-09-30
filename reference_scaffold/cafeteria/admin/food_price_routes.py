@@ -21,9 +21,13 @@ def food_price_save(public_id: str) -> Response:
     head_version = request.form.get('head_row_version') or None
     yield_raw = request.form.get('yield_factor') or None
     try:
+        expected_head_version = int(head_version) if head_version else None
+    except ValueError:
+        return _price_error(public_id, MasterDataValidationError('Der Formularstand ist ungültig.'))
+    try:
         append_price_revision(
             forms.engine(), actor, public_id,
-            expected_head_version=int(head_version) if head_version else None,
+            expected_head_version=expected_head_version,
             intervals=[{
                 'valid_from': request.form.get('valid_from') or '',
                 'valid_to': request.form.get('valid_to') or None,
@@ -32,11 +36,18 @@ def food_price_save(public_id: str) -> Response:
                 'yield_factor': yield_raw or None,
             }],
         )
-    except (MasterDataValidationError, MasterDataConflictError, ValueError) as error:
-        flash(str(error))
-        return redirect(url_for('admin.master_data_detail', kind='zutaten', public_id=public_id), 303)
+    except (MasterDataValidationError, MasterDataConflictError) as error:
+        return _price_error(public_id, error)
     flash('Einkaufspreis gespeichert.')
     return redirect(url_for('admin.master_data_detail', kind='zutaten', public_id=public_id), 303)
+
+
+def _price_error(public_id: str, error: Exception) -> Response:
+    from .master_data_routes import get_row, render_detail
+
+    response = render_detail('zutaten', get_row('zutaten', public_id), error=error, purpose='preis')
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 def load_food_prices(engine, public_id: str):
