@@ -187,8 +187,15 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
     page.locator('.menu-slot').last.scroll_into_view_if_needed()
     controls = page.locator('.admin-week-controls')
     assert controls.evaluate('element => getComputedStyle(element).position') == 'static'
-    expect(controls).not_to_be_in_viewport()
-    controls.scroll_into_view_if_needed()
+    # Empty weeks no longer carry false "Nicht gespeichert" labels, so a tall
+    # viewport may not scroll the static controls fully out of view.
+    can_clear = controls.evaluate('''element => {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      return max + 1 >= element.offsetTop + element.offsetHeight;
+    }''')
+    if can_clear:
+        expect(controls).not_to_be_in_viewport()
+    page.evaluate('window.scrollTo(0, 0)')
     _assert_layout(page, height)
     if state == 'ready':
         _capture(page, 'after', family, 'sticky', width)

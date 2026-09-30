@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from 'admin/_macros.html' import page_header, empty_state, list_row, label, empty_value %}
-{% from 'ui/_semantic.html' import icon_button %}
+{% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenprüfung · {{ area_names[profile] }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-week-tabler.css') }}">{% endblock %}
@@ -25,6 +25,9 @@
   <p class="mb-1">{{ label('Noch zu prüfen', 'warning', status='review_open') }}</p>
   <p class="mb-0">Für den gespeicherten Wochenkopf und seine Ausgabeangaben liegt keine gültige Prüfung vor. Nach Änderungen ist eine erneute Prüfung erforderlich.</p>
 </div>
+{% endif %}
+{% if publication_key is defined and publication_key %}
+<p>{{ status_badge_sem(publication_key) }}</p>
 {% endif %}
 <p data-week-review-intro>Prüfen Sie den gespeicherten Wochenkopf und alle Ausgabeangaben. Die Menüs werden einzeln geprüft. Eine Bestätigung veröffentlicht noch keinen Wochenplan.</p>
 <section class="card mb-3 admin-compact-section" aria-labelledby="week-heading">
