@@ -5,6 +5,7 @@ from datetime import date
 from uuid import UUID
 
 from flask import current_app, flash, g, make_response, redirect, render_template, request, url_for
+from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Response
 
 from ..calculation_receipts import CalculationReceiptConflictError, append_receipt
@@ -82,6 +83,43 @@ def _serialize(projection: dict) -> dict:
     return payload
 
 
+def _posted_cost() -> dict[str, object]:
+    return {
+        'kind': request.form.get('kind') or 'recipe',
+        'revision_public_id': request.form.get('revision_public_id') if 'revision_public_id' in request.form else '',
+        'as_of': request.form.get('as_of') if 'as_of' in request.form else '',
+        'menu_revision_public_ids': [
+            item for item in request.form.getlist('menu_revision_public_id') if item.strip()
+        ],
+    }
+
+
+def _cost_field(error: BaseException) -> str:
+    lowered = str(error).casefold()
+    if 'isoformat' in lowered or 'stichtag' in lowered:
+        return 'as_of'
+    return 'revision_public_id'
+
+
+def _cost_message(error: BaseException) -> str:
+    raw = str(error)
+    if _cost_field(error) == 'as_of' and 'isoformat' in raw.casefold():
+        return 'Stichtag ist ungültig.'
+    return raw
+
+
+def _cost_error(error: BaseException, status: int, projection: dict | None) -> Response:
+    posted = _posted_cost()
+    response = make_response(render_template(
+        'admin/kalkulation.html', family='cafeteria', profile='staff_guest',
+        projection=projection, as_of=posted['as_of'], revision_public_id=posted['revision_public_id'],
+        menu_revision_public_ids=posted['menu_revision_public_ids'], kind=posted['kind'],
+        field_errors={_cost_field(error): _cost_message(error)},
+    ), status)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 def _project(prices: dict[str, str] | None = None):
     kind = request.values.get('kind') or 'recipe'
     revision = (request.values.get('revision_public_id') or '').strip()
@@ -118,9 +156,10 @@ def cost_preview() -> Response:
             filled = _current_prices([item for item in foods if item])
             if filled:
                 projection = _project(filled)
+    except HTTPException:
+        raise
     except Exception as error:
-        flash(str(error))
-        return redirect(url_for('admin.cost_home'), 303)
+        return _cost_error(error, 400, None)
     response = make_response(render_template(
         'admin/kalkulation.html', family='cafeteria', profile='staff_guest',
         projection=projection,
@@ -137,6 +176,7 @@ def cost_preview() -> Response:
 @require_capability('masterdata.write')
 def cost_confirm() -> Response:
     validate_csrf(request.form.get('_csrf'))
+    projection = None
     try:
         projection = _project()
         payload = _serialize(projection)
@@ -145,11 +185,11 @@ def cost_confirm() -> Response:
         append_receipt(
             _db(), _scope(), kind=projection['kind'], subject_public_id=subject, payload=payload,
         )
+    except HTTPException:
+        raise
     except CalculationReceiptConflictError as error:
-        flash(str(error))
-        return redirect(url_for('admin.cost_home'), 303)
+        return _cost_error(error, 409, projection)
     except Exception as error:
-        flash(str(error))
-        return redirect(url_for('admin.cost_home'), 303)
+        return _cost_error(error, 400, projection)
     flash('Kalkulationsbeleg gespeichert.')
     return redirect(url_for('admin.cost_home'), 303)

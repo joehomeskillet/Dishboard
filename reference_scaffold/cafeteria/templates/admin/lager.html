@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, hint, icon, label %}
+{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, hint, icon, label, form_errors %}
 {% from 'ui/_semantic.html' import icon_button, row_actions %}
 {% set workflow_nav = 'inventory' %}
 {% set uncaptured_count = slots|rejectattr('captured')|list|length %}
@@ -36,6 +36,7 @@
 {% if selected %}
 <section class="lager-move" aria-labelledby="lager-move-heading">
   <h2 class="lager-section-title" id="lager-move-heading">Zugang / Abgang · {{ selected.food_name }} · {{ selected.storage_name }}</h2>
+  {% if error_form == 'move' %}{{ form_errors(field_errors) }}{% endif %}
   <form method="post" action="{{ url_for('admin.inventory_move') }}" class="lager-form" id="lager-move-form" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
@@ -43,28 +44,35 @@
     <div class="lager-form-grid admin-option-grid">
       <div>
         <label class="form-label" for="kind">Art</label>
-        <select class="form-select" id="kind" name="kind">
-          <option value="receipt">Zugang</option>
-          <option value="issue">Abgang</option>
-          <option value="correction">Korrektur</option>
+        <select class="form-select{% if field_errors.kind %} is-invalid{% endif %}" id="kind" name="kind"{% if field_errors.kind %} aria-invalid="true" aria-describedby="kind-error" autofocus{% endif %}>
+          <option value="receipt"{% if values.kind == 'receipt' %} selected{% endif %}>Zugang</option>
+          <option value="issue"{% if values.kind == 'issue' %} selected{% endif %}>Abgang</option>
+          <option value="correction"{% if values.kind == 'correction' %} selected{% endif %}>Korrektur</option>
+          {% if values.kind not in ('receipt', 'issue', 'correction') %}
+          <option value="{{ values.kind }}" selected>{{ values.kind }}</option>
+          {% endif %}
         </select>
+        {% if field_errors.kind %}<div class="invalid-feedback d-block field-error" id="kind-error">{{ field_errors.kind }}</div>{% endif %}
       </div>
       <div>
         <label class="form-label" for="quantity">Menge</label>
-        <input class="form-control" id="quantity" name="quantity" required>
+        <input class="form-control{% if field_errors.quantity %} is-invalid{% endif %}" id="quantity" name="quantity" value="{{ values.quantity }}" required{% if field_errors.quantity %} aria-invalid="true" aria-describedby="quantity-error" autofocus{% endif %}>
+        {% if field_errors.quantity %}<div class="invalid-feedback d-block field-error" id="quantity-error">{{ field_errors.quantity }}</div>{% endif %}
       </div>
       <div>
         <label class="form-label" for="unit_code">Einheit</label>
-        <input class="form-control" id="unit_code" name="unit_code" value="{{ unit_code }}" required>
+        <input class="form-control{% if field_errors.unit_code %} is-invalid{% endif %}" id="unit_code" name="unit_code" value="{{ values.unit_code if values.unit_code is not none else unit_code }}" required{% if field_errors.unit_code %} aria-invalid="true" aria-describedby="unit_code-error" autofocus{% endif %}>
+        {% if field_errors.unit_code %}<div class="invalid-feedback d-block field-error" id="unit_code-error">{{ field_errors.unit_code }}</div>{% endif %}
       </div>
     </div>
     <div class="lager-form-actions">{{ icon_button('actions.save') }}</div>
   </form>
 </section>
 
-{% call disclosure_section(title='Weitere Optionen', id='lager-more') %}
+{% call disclosure_section(title='Weitere Optionen', id='lager-more', has_error=error_form == 'transfer' or error_form == 'count') %}
 <section class="lager-transfer" aria-labelledby="lager-transfer-heading">
   <h2 class="lager-section-title" id="lager-transfer-heading">Umbuchung</h2>
+  {% if error_form == 'transfer' %}{{ form_errors(field_errors) }}{% endif %}
   <form method="post" action="{{ url_for('admin.inventory_transfer') }}" class="lager-form" id="lager-transfer-form" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
@@ -72,21 +80,31 @@
     <div class="lager-form-grid admin-option-grid">
       <div>
         <label class="form-label" for="dest_storage_public_id">Nach Lagerort</label>
-        <select class="form-select" id="dest_storage_public_id" name="dest_storage_public_id" required>
+        <select class="form-select{% if field_errors.dest_storage_public_id %} is-invalid{% endif %}" id="dest_storage_public_id" name="dest_storage_public_id" required{% if field_errors.dest_storage_public_id %} aria-invalid="true" aria-describedby="dest_storage_public_id-error" autofocus{% endif %}>
           {% for dest_id, dest_name in dests %}
             {% if dest_id != selected.storage_public_id %}
-            <option value="{{ dest_id }}">{{ dest_name }}</option>
+            <option value="{{ dest_id }}"{% if values.dest_storage_public_id == dest_id %} selected{% endif %}>{{ dest_name }}</option>
             {% endif %}
           {% endfor %}
+          {% set known_dest = namespace(found=false) %}
+          {% for dest_id, dest_name in dests %}
+            {% if dest_id == values.dest_storage_public_id %}{% set known_dest.found = true %}{% endif %}
+          {% endfor %}
+          {% if values.dest_storage_public_id and not known_dest.found %}
+          <option value="{{ values.dest_storage_public_id }}" selected>{{ values.dest_storage_public_id }}</option>
+          {% endif %}
         </select>
+        {% if field_errors.dest_storage_public_id %}<div class="invalid-feedback d-block field-error" id="dest_storage_public_id-error">{{ field_errors.dest_storage_public_id }}</div>{% endif %}
       </div>
       <div>
         <label class="form-label" for="transfer_qty">Menge</label>
-        <input class="form-control" id="transfer_qty" name="quantity" required>
+        <input class="form-control{% if field_errors.transfer_qty %} is-invalid{% endif %}" id="transfer_qty" name="quantity" value="{{ values.transfer_quantity }}" required{% if field_errors.transfer_qty %} aria-invalid="true" aria-describedby="transfer_qty-error" autofocus{% endif %}>
+        {% if field_errors.transfer_qty %}<div class="invalid-feedback d-block field-error" id="transfer_qty-error">{{ field_errors.transfer_qty }}</div>{% endif %}
       </div>
       <div>
         <label class="form-label" for="transfer_unit">Einheit</label>
-        <input class="form-control" id="transfer_unit" name="unit_code" value="{{ unit_code }}" required>
+        <input class="form-control{% if field_errors.transfer_unit %} is-invalid{% endif %}" id="transfer_unit" name="unit_code" value="{{ values.transfer_unit if values.transfer_unit is not none else unit_code }}" required{% if field_errors.transfer_unit %} aria-invalid="true" aria-describedby="transfer_unit-error" autofocus{% endif %}>
+        {% if field_errors.transfer_unit %}<div class="invalid-feedback d-block field-error" id="transfer_unit-error">{{ field_errors.transfer_unit }}</div>{% endif %}
       </div>
     </div>
     <div class="lager-form-actions">{{ icon_button('actions.move', emphasis='secondary') }}</div>
@@ -95,6 +113,7 @@
 
 <section class="lager-count" aria-labelledby="lager-count-heading">
   <h2 class="lager-section-title" id="lager-count-heading">Zählung</h2>
+  {% if error_form == 'count' %}{{ form_errors(field_errors) }}{% endif %}
   <form method="post" action="{{ url_for('admin.inventory_count') }}" class="lager-form" id="lager-count-form" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="food_public_id" value="{{ selected.food_public_id }}">
@@ -102,11 +121,13 @@
     <div class="lager-form-grid admin-option-grid">
       <div>
         <label class="form-label" for="counted_quantity">Gezählte Menge</label>
-        <input class="form-control" id="counted_quantity" name="counted_quantity" required>
+        <input class="form-control{% if field_errors.counted_quantity %} is-invalid{% endif %}" id="counted_quantity" name="counted_quantity" value="{{ values.counted_quantity }}" required{% if field_errors.counted_quantity %} aria-invalid="true" aria-describedby="counted_quantity-error" autofocus{% endif %}>
+        {% if field_errors.counted_quantity %}<div class="invalid-feedback d-block field-error" id="counted_quantity-error">{{ field_errors.counted_quantity }}</div>{% endif %}
       </div>
       <div>
         <label class="form-label" for="count_unit">Einheit</label>
-        <input class="form-control" id="count_unit" name="unit_code" value="{{ unit_code }}" required>
+        <input class="form-control{% if field_errors.count_unit %} is-invalid{% endif %}" id="count_unit" name="unit_code" value="{{ values.count_unit if values.count_unit is not none else unit_code }}" required{% if field_errors.count_unit %} aria-invalid="true" aria-describedby="count_unit-error" autofocus{% endif %}>
+        {% if field_errors.count_unit %}<div class="invalid-feedback d-block field-error" id="count_unit-error">{{ field_errors.count_unit }}</div>{% endif %}
       </div>
     </div>
     <div class="lager-form-actions">{{ icon_button('actions.confirm', emphasis='secondary') }}</div>
