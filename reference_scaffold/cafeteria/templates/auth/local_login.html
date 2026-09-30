@@ -1,23 +1,50 @@
 {% extends "base.html" %}
 {% from '_brand_logo.html' import brand_logo %}
-{% block title %}Lokale Anmeldung · Südhang Menüplanung{% endblock %}
+{% set method_map = methods if methods is mapping else none %}
+{% set show_local = method_map.local if method_map is not none else true %}
+{% set show_entra = method_map.entra if method_map is not none else config.ENTRA_ENABLED %}
+{% block title %}{% if notice_key == 'auth.required' %}{{ t('errors.AUTH_REQUIRED.title') }}{% elif notice_key == 'auth.session_invalid' %}{{ t('errors.AUTH_SESSION_INVALID.title') }}{% else %}Anmelden{% endif %} · Südhang Menüplanung{% endblock %}
 {% block body %}
-<main id="main-content" class="auth-shell" tabindex="-1">
+<main id="main-content" class="auth-shell" tabindex="-1" data-eh-frame="auth">
   <section class="auth-card" aria-labelledby="local-login-title">
     <div class="auth-card-header">
       <a class="site-logo" href="{{ url_for('public.cafeteria_today') }}">
         {{ brand_logo(brand, 'site-logo-img') }}
       </a>
+      {% if notice_key %}
+      <p class="auth-product">Menüplanung</p>
+      <p class="auth-status-icon" aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-lock"></use></svg></p>
+      {% endif %}
+      {% if notice_key == 'auth.required' -%}
+      <h1 id="local-login-title">{{ t('errors.AUTH_REQUIRED.title') }}</h1>
+      {%- elif notice_key == 'auth.session_invalid' -%}
+      <h1 id="local-login-title">{{ t('errors.AUTH_SESSION_INVALID.title') }}</h1>
+      {%- else -%}
       <h1 id="local-login-title">Anmelden</h1>
+      {%- endif %}
+      {% if notice_key == 'auth.required' %}
+      <p class="auth-lead">{{ t('auth.required.notice') }}</p>
+      {% elif notice_key == 'auth.session_invalid' %}
+      <p class="auth-lead">{{ t('auth.session_invalid.notice') }}</p>
+      {% elif not show_local and not show_entra %}
+      <p class="auth-lead">{{ t('auth.unavailable') }}</p>
+      {% else %}
       <p class="auth-lead">Küchenbereich – für von der Administration eingerichtete Konten.</p>
+      {% endif %}
     </div>
-    {% if error %}
+    {% if error_key %}
+    <div class="auth-alert" role="alert" tabindex="-1" autofocus>{{ t(error_key) }}</div>
+    {% elif error %}
     <div class="auth-alert" role="alert" tabindex="-1" autofocus>
       {{ error }}
     </div>
     {% endif %}
+    {% if show_local %}
     <form method="post" action="{{ url_for('auth.local_login') }}" class="auth-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if return_token %}
+      <input type="hidden" name="return_token" value="{{ return_token }}">
+      {% endif %}
       <div class="auth-field">
         <label for="username">Benutzername</label>
         <input
@@ -28,7 +55,7 @@
           autocapitalize="none"
           spellcheck="false"
           required
-          {% if not error %}autofocus{% endif %}
+          {% if not error and not error_key %}autofocus{% endif %}
           value="{{ username or '' }}"
           class="auth-input">
       </div>
@@ -43,13 +70,16 @@
           class="auth-input">
       </div>
       <div class="auth-actions">
-        <button type="submit" class="auth-submit">Anmelden</button>
+        <button type="submit" class="auth-submit"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-lock"></use></svg><span>Anmelden</span></button>
       </div>
     </form>
-    {% if config.ENTRA_ENABLED %}
+    {% elif return_token %}
+    <input type="hidden" name="return_token" value="{{ return_token }}">
+    {% endif %}
+    {% if show_entra %}
     <div class="auth-org">
-      <p class="auth-org-divider">oder</p>
-      <a href="{{ url_for('auth.login') }}" class="auth-org-link">Mit Organisationskonto anmelden</a>
+      {% if show_local %}<p class="auth-org-divider">oder</p>{% endif %}
+      <a href="{{ url_for('auth.login') }}" class="auth-org-link{% if not show_local %} auth-org-primary{% endif %}">Mit Organisationskonto anmelden</a>
     </div>
     {% endif %}
     <p class="auth-card-footer">Konten werden von der Administration eingerichtet.</p>

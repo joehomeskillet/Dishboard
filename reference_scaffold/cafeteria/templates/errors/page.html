@@ -1,0 +1,38 @@
+{% extends 'admin/base_tabler.html' if error is mapping and error.frame == 'admin' else 'errors/minimal.html' if error is mapping and error.frame == 'minimal' else 'base.html' %}
+{% from 'errors/_card.html' import render_error with context %}
+{% set ns = namespace(payload=none) %}
+{% if error is mapping %}
+{% set ns.payload = error %}
+{% else %}
+{% set ns.payload = {
+  'code': '',
+  'http_status': none,
+  'title_key': 'auth.error.title',
+  'message_key': '',
+  'message_params': {},
+  'request_id': '',
+  'recovery': [{
+    'semantic': 'navigation.overview',
+    'label_key': 'navigation.overview.label',
+    'href': '/cafeteria/heute/',
+    'method': 'get',
+    'primary': true
+  }],
+  'frame': 'auth',
+  'mutation_state': '',
+  'plain_message': message|default('')
+} %}
+{% endif %}
+{% block title %}{{ t(ns.payload.title_key) }} · Südhang Menüplanung{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='errors.css') }}">{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='errors.css') }}">{% endblock %}
+{% block body %}
+<main id="main-content" class="eh-shell" tabindex="-1">
+  {{ render_error(ns.payload) }}
+</main>
+{% endblock %}
+{% block content %}
+<div class="eh-admin-slot">
+  {{ render_error(ns.payload) }}
+</div>
+{% endblock %}

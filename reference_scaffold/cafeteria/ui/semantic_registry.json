@@ -418,6 +418,28 @@
     "role": "neutral"
   },
   {
+    "key": "actions.login",
+    "category": "actions",
+    "ascii": "[LOGIN]",
+    "icon": "lock",
+    "label_key": "actions.login.label",
+    "tooltip_key": "actions.login.tooltip",
+    "aria_key": "actions.login.aria",
+    "icon_only_allowed": true,
+    "role": "primary"
+  },
+  {
+    "key": "actions.reload",
+    "category": "actions",
+    "ascii": "[RELOAD]",
+    "icon": "reload",
+    "label_key": "actions.reload.label",
+    "tooltip_key": "actions.reload.tooltip",
+    "aria_key": "actions.reload.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
     "key": "actions.undo",
     "category": "actions",
     "ascii": "[U]",
@@ -2153,6 +2175,17 @@
     "tooltip_key": "navigation.dashboard.tooltip",
     "aria_key": "navigation.dashboard.aria",
     "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "navigation.overview",
+    "category": "navigation",
+    "ascii": "[HOME]",
+    "icon": "home",
+    "label_key": "navigation.overview.label",
+    "tooltip_key": "navigation.overview.tooltip",
+    "aria_key": "navigation.overview.aria",
+    "icon_only_allowed": true,
     "role": "neutral"
   },
   {

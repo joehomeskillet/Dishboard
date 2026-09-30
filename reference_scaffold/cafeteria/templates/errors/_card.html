@@ -1,0 +1,81 @@
+{% from '_brand_logo.html' import brand_logo %}
+{% macro render_error(error) -%}
+{% set frame = error.frame if error.frame else 'auth' %}
+{% set params = error.message_params if error.message_params is mapping else {} %}
+{% set actions = recovery if recovery is defined and recovery is not none else (error.recovery if error.recovery else []) %}
+{% set status_icons = {
+  'AUTH_REQUIRED': 'lock',
+  'AUTH_SESSION_INVALID': 'lock',
+  'AUTH_FORBIDDEN': 'lock',
+  'RESOURCE_NOT_FOUND': 'search',
+  'RATE_LIMITED': 'clock',
+  'NETWORK_UNAVAILABLE': 'wifi-off',
+  'INTERNAL_ERROR': 'alert-triangle',
+  'SERVICE_UNAVAILABLE': 'alert-triangle',
+  'GATEWAY_ERROR': 'alert-triangle',
+  'GATEWAY_TIMEOUT': 'alert-triangle'
+} %}
+{% set code = error.code or '' %}
+{% set status_icon = status_icons[code] if code in status_icons else 'alert-circle' %}
+<section class="eh-card" data-eh-frame="{{ frame }}" data-error-code="{{ error.code or '' }}" aria-labelledby="eh-title">
+  <div class="eh-brand">
+    {% if frame != 'minimal' and brand is defined and brand %}
+    {{ brand_logo(brand, 'eh-logo') }}
+    {% else %}
+    <img class="eh-logo" src="/static/img/suedhang-logo.png" srcset="/static/img/suedhang-logo@2x.png 2x" width="205" height="40" alt="Klinik Südhang">
+    {% endif %}
+    <p class="eh-product">Menüplanung</p>
+  </div>
+  <p class="eh-status" aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/vendor/tabler-icons/tabler-icons.svg#tabler-{{ status_icon }}"></use></svg></p>
+  <h1 id="eh-title" class="eh-title">{{ t(error.title_key) }}</h1>
+  {% if error.plain_message %}
+  <p class="eh-message">{{ error.plain_message }}</p>
+  {% elif error.message_key %}
+  <p class="eh-message">{{ t(error.message_key) }}</p>
+  {% endif %}
+  {% if params.limit %}
+  <p class="eh-message">{{ t('errors.limit_known', limit=params.limit) }}</p>
+  {% endif %}
+  {% if params.formats %}
+  <p class="eh-message">{{ t('errors.formats_known', formats=params.formats) }}</p>
+  {% endif %}
+  {% if params.wait %}
+  <p class="eh-message">{{ t('errors.wait_known', wait=params.wait) }}</p>
+  {% endif %}
+  {% if error.mutation_state == 'not_started' %}
+  <p class="eh-mutation">{{ t('errors.mutation.not_started') }}</p>
+  {% elif error.mutation_state == 'unclear' %}
+  <p class="eh-mutation">{{ t('errors.mutation.unclear') }}</p>
+  {% endif %}
+  {% if actions %}
+  <div class="eh-actions">
+    {% for action in actions %}
+    {% set semantic = sem(action.semantic) %}
+    {% set label_key = action.label_key if action.label_key else semantic.label_key %}
+    {% if (action.method or 'get')|lower == 'post' %}
+    <form class="eh-action-form" method="post" action="{{ action.href }}">
+      {% if csrf_token is defined %}
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      {% endif %}
+      <button type="submit" class="eh-action{% if action.primary %} eh-action-primary{% endif %}" data-semantic="{{ action.semantic }}">
+        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/vendor/tabler-icons/tabler-icons.svg#tabler-{{ semantic.resolved_icon }}"></use></svg>
+        <span class="eh-action-label">{{ t(label_key) }}</span>
+      </button>
+    </form>
+    {% else %}
+    <a class="eh-action{% if action.primary %} eh-action-primary{% endif %}" href="{{ action.href }}" data-semantic="{{ action.semantic }}">
+      <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/vendor/tabler-icons/tabler-icons.svg#tabler-{{ semantic.resolved_icon }}"></use></svg>
+      <span class="eh-action-label">{{ t(label_key) }}</span>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if error.http_status or error.request_id %}
+  <p class="eh-meta">
+    {% if error.http_status %}<span class="eh-code">{{ t('errors.code_label') }} {{ error.http_status }}</span>{% endif %}
+    {% if error.request_id %}<span class="eh-reference">{{ t('errors.reference') }} {{ error.request_id }}</span>{% endif %}
+  </p>
+  {% endif %}
+</section>
+{%- endmacro %}
