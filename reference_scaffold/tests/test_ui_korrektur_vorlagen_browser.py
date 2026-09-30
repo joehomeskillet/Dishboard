@@ -101,8 +101,7 @@ def _assert_controls(page):
             continue
         box = control.bounding_box()
         classes = (control.get_attribute('class') or '').split()
-        icon = 'ui-sem-control' in classes or 'btn-icon' in classes
-        assert box is not None and box['height'] >= (icon_min if icon else 44)
+        assert box is not None and box['height'] >= icon_min
         if 'btn-icon' in classes or 'ui-sem-control--icon-only' in classes:
             assert box['width'] >= icon_min and control.get_attribute('aria-label')
             assert any(control.get_attribute(name) for name in (

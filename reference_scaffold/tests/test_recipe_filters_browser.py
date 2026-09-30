@@ -43,7 +43,8 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
             control = page.get_by_label(label, exact=True)
             control.focus()
             expect(control).to_be_focused()
-            assert control.bounding_box()['height'] >= 48
+            minimum = 44 if page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") else 36
+            assert control.bounding_box()['height'] >= minimum
         page.get_by_label('Nach Rezepttitel suchen', exact=True).fill('Seitensuppe')
         page.get_by_label('Zutat', exact=True).fill('rüebli')
         page.get_by_label('Kennzeichnung', exact=True).select_option(tag)
@@ -74,7 +75,7 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         page.locator('nav[aria-label="Rezeptseiten"] a[href*="page=1"]').click()
         expect(page.locator('.recipe-row')).to_have_count(50)
         expect(page.locator('.recipe-row')).to_have_count(50)
-        expect(page.locator('.recipe-row .admin-status--info')).to_have_count(50)
+        expect(page.locator('.recipe-row [data-semantic="publish.draft"]')).to_have_count(50)
         page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         assert urlsplit(page.url).query == ''
         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_value('')

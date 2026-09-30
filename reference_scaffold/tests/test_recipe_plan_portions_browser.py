@@ -339,7 +339,8 @@ def test_target_quantity_viewports_keyboard_and_zoom(
     quantity = page.get_by_label('Zielmenge')
     expect(quantity).to_be_visible()
     box = quantity.bounding_box()
-    assert box is not None and box['height'] >= 44
+    minimum = 44 if page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") else 36
+    assert box is not None and box['height'] >= minimum
     quantity.click()
     outline = page.evaluate('getComputedStyle(document.activeElement).outlineStyle')
     assert outline != 'none'

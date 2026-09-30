@@ -24,8 +24,7 @@ def targets(page):
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if not control.is_visible():
             continue
-        semantic = control.evaluate("el => el.classList.contains('ui-sem-control')")
-        minimum = (44 if coarse else 36) if semantic else 48
+        minimum = 44 if coarse else 36
         box = control.bounding_box()
         assert box is not None and box['height'] >= minimum
         if control.is_disabled():

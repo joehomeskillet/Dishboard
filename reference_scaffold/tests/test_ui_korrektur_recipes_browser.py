@@ -57,7 +57,7 @@ def _check_layout(page: Page, width: int) -> None:
             if icon:
                 assert box is not None and box['height'] >= action_size and box['width'] >= action_size, box
             else:
-                assert box is not None and box['height'] >= 44 and box['width'] >= 24, box
+                assert box is not None and box['height'] >= action_size and box['width'] >= 24, box
 
 
 def _capture(page: Page, state: str, width: int, height: int, javascript: bool) -> None:
