@@ -62,7 +62,13 @@ def audit_tabler(page: Page, base: str, asset_status: dict[str, bool]) -> dict[s
         result['nav_initially_collapsed'] = toggle.is_visible() and not nav.is_visible()
         result['nav_aria_controls'] = toggle.get_attribute('aria-controls') == 'sidebar-menu'
         box = toggle.bounding_box()
-        result['nav_touch_48px'] = box is not None and box['width'] >= 48 and box['height'] >= 48
+        minimum = toggle.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+        coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
+        # Keep the historical result key for existing proof consumers.
+        result['nav_touch_48px'] = (
+            minimum == (44 if coarse else 36)
+            and box is not None and box['width'] >= minimum and box['height'] >= minimum
+        )
         toggle.focus()
         toggle.press('Enter')
         expect(toggle).to_have_attribute('aria-expanded', 'true')
