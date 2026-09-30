@@ -102,14 +102,53 @@ def assignment_state(assigned: Sequence[str]) -> tuple[list[tuple[str, str]], di
     return options, forms.signed_labels(assigned, recipes), rows
 
 
+def _last_occupied_page(probe: Callable[[int], bool], requested: int) -> int:
+    low, high, last = 1, requested - 1, 1
+    while low <= high:
+        mid = (low + high) // 2
+        if probe(mid):
+            last = mid
+            low = mid + 1
+        else:
+            high = mid - 1
+    return last
+
+
+def _cookbook_page_url(page: int, include_archived: bool, search: str) -> str:
+    return url_for(
+        'admin.cookbooks_list', archived='1' if include_archived else None, q=search or None, page=page,
+    )
+
+
+def _clamped_cookbook_page(page: int, include_archived: bool, search: str, rows: list) -> int:
+    if page <= 1 or rows:
+        return page
+    if search:
+        found = [
+            book for book in collect(store.list_cookbooks, include_archived=include_archived)
+            if search.casefold() in book.name.casefold()
+        ]
+        last = 1 if not found else (len(found) + PAGE - 1) // PAGE
+    else:
+        last = _last_occupied_page(lambda candidate: bool(store.list_cookbooks(
+            db(), include_archived=include_archived, limit=1, offset=(candidate - 1) * PAGE,
+        )), page)
+    return last if last < page else page
+
+
 def render_list(page: int, include_archived: bool, search: str) -> Response:
     rows, has_next = listed_cookbooks(page, include_archived, search)
+    target = _clamped_cookbook_page(page, include_archived, search, rows)
+    # In-place: a redirect would rewrite the page query on a D20 return URL.
+    if target != page:
+        rows, has_next = listed_cookbooks(target, include_archived, search)
+        page = target
     return make_response(render_template(
         'admin/kochbuecher.html', family='cafeteria', profile='staff_guest',
         rows=rows, page=page, has_next=has_next, search=search, include_archived=include_archived,
         can_write=can_write(),
-        prev_url=url_for('admin.cookbooks_list', archived='1' if include_archived else None, q=search or None, page=page - 1),
-        next_url=url_for('admin.cookbooks_list', archived='1' if include_archived else None, q=search or None, page=page + 1),
+        prev_url=_cookbook_page_url(page - 1, include_archived, search),
+        next_url=_cookbook_page_url(page + 1, include_archived, search),
     ))
 
 
