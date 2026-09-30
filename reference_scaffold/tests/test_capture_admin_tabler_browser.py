@@ -66,7 +66,7 @@ def test_complete_read_only_live_capture_on_real_tabler_fixture(
         page = context.new_page()
         response = page.goto(live_server + '/admin/patienten/menues')
         assert response is not None and response.status == 200
-        action = page.locator('[data-admin-icon-action]').first
+        action = page.locator('[data-ui-tooltip]:visible').first
         action.hover()
         expect(page.locator('.tooltip.show')).to_have_count(1)
         styled = page.locator('[style]').evaluate_all('''nodes => nodes.map(node => ({
