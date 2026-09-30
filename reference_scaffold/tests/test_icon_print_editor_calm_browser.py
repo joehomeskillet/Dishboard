@@ -171,7 +171,7 @@ def test_print_editor_context_disclosures_and_native_archive(
         expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
         more = _toggle(page, '[data-template-copy]', javascript)
         expect(page.locator('[data-template-activation]')).to_contain_text('Aktive Druckvorlage')
-        expect(page.locator('[data-template-versions] > summary')).to_contain_text('Versionen')
+        expect(page.locator('#template-versions > summary')).to_contain_text('Versionen')
         assert page.locator('main form').evaluate_all('forms => forms.map(f => [...new FormData(f)])') == before
         _capture(page, tmp_path / f'{prefix}-opened.png', zoom)
         # Defer only presentation mismatches so RED captures the complete native flow.

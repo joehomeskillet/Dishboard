@@ -45,8 +45,12 @@ def test_p3_editor_pages_polish(editor_app, editor_server, database_engine, brow
             print('P3_METRICS', name, width, javascript, json.dumps(metrics))
             assert metrics['width'] <= width + 1
             expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-            # These editors use native lists/grids, not desktop tables or duplicate mobile DOM.
-            expect(page.locator('main table')).to_have_count(0)
+            # Vorlagen lists are admin-table. The other editors stay list/grid markup.
+            if name == 'vorlagen':
+                assert page.locator('main table').count() > 0
+                assert page.locator('main table:not(.admin-table)').count() == 0
+            else:
+                expect(page.locator('main table')).to_have_count(0)
             if name == 'menu' and not javascript:
                 for row in page.locator('.menu-editor-component-row').all():
                     legend = row.locator(':scope > legend').bounding_box()
@@ -142,7 +146,10 @@ def _targets(page):
         if control.is_visible():
             box = control.bounding_box()
             classes = control.get_attribute('class') or ''
-            minimum = 36 if 'ui-sem-control' in classes else 48
+            # G0 sets form fields to --app-control-min-height (36px, fine pointer).
+            # The 48px floor remains for legacy text buttons.
+            field = 'form-control' in classes or 'form-select' in classes
+            minimum = 36 if 'ui-sem-control' in classes or field else 48
             assert box is not None and box['height'] >= minimum
             if 'ui-sem-control--icon-only' not in classes:
                 assert control.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 16
@@ -225,8 +232,8 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         page.get_by_label('Vorlage', exact=True).select_option('standard')
         page.get_by_role('button', name='Woche öffnen', exact=True).click()
         page.keyboard.press('Escape')
-        page.locator('details[data-template-versions] > summary').click()
-        restore = page.locator('details[data-template-versions] button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]')
+        page.locator('#template-versions > summary').click()
+        restore = page.locator('#template-versions button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]')
         expect(restore).to_be_visible()
         restore.click()
         expect(page.get_by_role('heading', name='PDF-Vorschau · Version 3', exact=True)).to_be_visible()
