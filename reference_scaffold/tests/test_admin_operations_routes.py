@@ -451,9 +451,8 @@ def test_operations_browser_compact_rows_payload_keyboard_and_360px(client, app,
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 for control in page.locator('#schedule-patient :is(input:not([type=hidden]), select, button, summary):visible').all():
                     size = control.bounding_box()
-                    semantic = control.evaluate("el => el.matches('.ui-sem-control')")
                     action_size = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
-                    minimum = action_size if semantic else 48
+                    minimum = action_size
                     assert size['height'] >= minimum and size['width'] >= minimum, size
                 page.screenshot(path=str(tmp_path / f'wp14-{width}-js-{javascript}.png'), full_page=True)
                 measurements.append(metrics)

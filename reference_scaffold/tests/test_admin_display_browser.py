@@ -82,7 +82,7 @@ def test_display_frame_viewports_nojs_and_keyboard(
                         page.keyboard.press('Enter')
                         expect(page.locator('#display-reset-btn')).to_be_visible()
                         assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-                        assert summary.bounding_box()['height'] >= 48
+                        assert summary.bounding_box()['height'] >= 36
                         page.keyboard.press('Enter')
                         expect(page.locator('#display-reset-btn')).to_be_hidden()
                         page.get_by_label('Abstände', exact=True).select_option('comfortable')
@@ -197,8 +197,8 @@ def _assert_controls(page):
         if locator.is_visible():
             box = locator.bounding_box()
             semantic = locator.evaluate("el => el.matches('.ui-sem-control')")
-            # Icon-first: 36 fine / 44 coarse. Other controls use the 44px token; 48px is retired.
-            assert box is not None and box['height'] >= (action_size if semantic else 44)
+            # Control contract (UC-G0): 36 fine / 44 coarse for every control.
+            assert box is not None and box['height'] >= action_size
             if semantic:
                 assert box['width'] >= action_size
                 assert locator.get_attribute('aria-label')

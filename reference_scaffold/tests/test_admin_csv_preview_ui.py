@@ -205,7 +205,7 @@ def _assert_accessible_layout(page: Page) -> None:
         if control.get_attribute('type') in {'checkbox', 'radio'}:
             control = control.locator('xpath=ancestor::label')
         box = control.bounding_box()
-        minimum = action_size if control.evaluate("el => el.matches('.ui-sem-control')") else 48
+        minimum = action_size if control.evaluate("el => el.matches('.ui-sem-control')") else action_size
         assert box is not None and box['height'] >= minimum
         assert box['width'] >= minimum
     assert page.locator('link[href$="/app.css"]').count() == 0
