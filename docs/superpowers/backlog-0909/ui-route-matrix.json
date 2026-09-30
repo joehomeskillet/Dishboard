@@ -11944,7 +11944,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "bcbcbba4a7d64e123042357638bffddf45fa351bf53eaeebc82b81790f186d30",
+      "sha256": "0d1cf7127ce6f226056a32ec672e14d9db7514cf4d4f5ff67acded9f5db9443a",
       "used_by_endpoints": [
         "auth.local_login"
       ],
@@ -11985,7 +11985,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "69b3ea36c494e971ec9b673778fb900de56fa1b1761f72053d21062603845e5e",
+      "sha256": "190e73efcc75ea8d197e6129fe8771cbb98bdb9fe2ca335d7f46640604ab1bca",
       "used_by_endpoints": [
         "auth.callback",
         "auth.local_login",

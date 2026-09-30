@@ -740,6 +740,7 @@ reference_scaffold/cafeteria/database_roles.py
 reference_scaffold/cafeteria/db.py
 reference_scaffold/cafeteria/dish_template_store.py
 reference_scaffold/cafeteria/display_settings.py
+reference_scaffold/cafeteria/errors.py
 reference_scaffold/cafeteria/fhir/__init__.py
 reference_scaffold/cafeteria/fhir/mapping.py
 reference_scaffold/cafeteria/fhir/routes.py
@@ -1380,6 +1381,7 @@ reference_scaffold/tests/test_bf_list_context_browser.py
 reference_scaffold/tests/test_bf_preview_public_output_browser.py
 reference_scaffold/tests/test_bf_progress_counters_browser.py
 reference_scaffold/tests/test_bf_relations_display_browser.py
+reference_scaffold/tests/test_bf_session_rights_browser.py
 reference_scaffold/tests/test_bf_state_dimensions_browser.py
 reference_scaffold/tests/test_bf_text_spacing_forced_colors_browser.py
 reference_scaffold/tests/test_bf_time_number_browser.py
@@ -1451,7 +1453,10 @@ reference_scaffold/tests/test_dish_template_accompaniment_db.py
 reference_scaffold/tests/test_dish_template_browser.py
 reference_scaffold/tests/test_dish_template_import_db.py
 reference_scaffold/tests/test_dish_template_routes.py
+reference_scaffold/tests/test_eh_http_contract.py
+reference_scaffold/tests/test_eh_integration_browser.py
 reference_scaffold/tests/test_eh_pages_browser.py
+reference_scaffold/tests/test_eh_return_target.py
 reference_scaffold/tests/test_fhir_mapping.py
 reference_scaffold/tests/test_fhir_routes.py
 reference_scaffold/tests/test_food_legends_admin.py
