@@ -255,10 +255,11 @@ def test_screen_actions_keep_real_coarse_pointer_geometry(
     try:
         assert page.goto('/admin/screens', wait_until='networkidle').status == 200
         assert page.evaluate("matchMedia('(pointer: coarse)').matches && matchMedia('(any-pointer: coarse)').matches")
-        controls = page.locator('.screen-card .ui-sem-control--icon-only:visible')
+        controls = page.locator('.screen-card .admin-row-actions a:visible')
         expect(controls).to_have_count(12)
-        geometry = controls.evaluate_all('elements => elements.map(el => ({name: el.getAttribute("aria-label"), width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height}))')
-        assert all(item['width'] == item['height'] == 44 for item in geometry)
+        expect(page.locator('.screen-card .ui-sem-control--icon-only')).to_have_count(0)
+        geometry = controls.evaluate_all('elements => elements.map(el => ({name: el.getAttribute("aria-label"), text: el.innerText.trim(), width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height}))')
+        assert all(item['text'] and item['height'] == 44 and item['width'] >= 44 for item in geometry)
         for menu in page.locator('.screen-card .admin-row-actions').all():
             expect(menu.locator('details, summary')).to_have_count(0)
             for action in menu.locator('a').all():

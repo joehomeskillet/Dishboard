@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, label as status_label %}
-{% from 'ui/_semantic.html' import row_actions, status_badge_sem %}
+{% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% set workflow_nav = 'screens' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Bildschirme · Menüplanung{% endblock %}
@@ -23,13 +23,13 @@
   {% set output_profile = 'staff_guest' if endpoint == 'cafeteria' else 'patient' %}
   {% set periods = [('day', 'Tagesplan', endpoint ~ '_' ~ day_suffix), ('week', assignments[output_profile].template.name ~ (' · Vorgabe' if assignments[output_profile].version == 0 else ' · aktiv') if channel == 'public' else 'Wochenplan ohne Bilder', endpoint ~ '_week')] %}
   {% if channel == 'public' %}{% set periods = periods + [('week-no-images', 'Wochenplan ohne Bilder', endpoint ~ '_week_without_images')] %}{% endif %}
-  {% set row = namespace(items=[{'key': 'actions.open', 'href': url_for(channel ~ '.' ~ periods[0][2]), 'aria_label': label ~ ' ' ~ channel_label ~ ' Tagesplan öffnen'}]) %}
+  {% set screen_actions = namespace(items=[{'key': 'actions.open', 'href': url_for(channel ~ '.' ~ periods[0][2]), 'aria_label': label ~ ' ' ~ channel_label ~ ' Tagesplan öffnen', 'text': 'Tagesplan'}]) %}
   {% for period, period_label, target in periods[1:] %}
     {% set short = 'Ohne Bilder' if period == 'week-no-images' else ('Wochenplan' if 'Wochenplan' in period_label else 'Öffnen') %}
-    {% set row.items = row.items + [{'key': 'actions.open', 'href': url_for(channel ~ '.' ~ target), 'aria_label': label ~ ' ' ~ channel_label ~ ' ' ~ period_label ~ ' öffnen', 'text': short}] %}
+    {% set screen_actions.items = screen_actions.items + [{'key': 'actions.open', 'href': url_for(channel ~ '.' ~ target), 'aria_label': label ~ ' ' ~ channel_label ~ ' ' ~ period_label ~ ' öffnen', 'text': short}] %}
   {% endfor %}
   {% if channel == 'public' %}
-    {% set row.items = row.items + [{'key': 'actions.edit', 'href': url_for('admin.screen_template_assignment', family='cafeteria' if endpoint == 'cafeteria' else 'patienten'), 'aria_label': label ~ ' Vorlage zuweisen', 'text': 'Zuweisen'}] %}
+    {% set screen_actions.items = screen_actions.items + [{'key': 'actions.edit', 'href': url_for('admin.screen_template_assignment', family='cafeteria' if endpoint == 'cafeteria' else 'patienten'), 'aria_label': label ~ ' Vorlage zuweisen', 'text': 'Zuweisen'}] %}
   {% endif %}
   <tbody class="screen-card"{% if loop.first %} id="screens-{{ 'cafeteria' if endpoint == 'cafeteria' else 'patienten' }}"{% endif %} aria-labelledby="{{ screen_id }}-title">
     <tr>
@@ -41,7 +41,7 @@
         </p>
         {% endif %}
       </th>
-      <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items, object=label ~ ' ' ~ channel_label) }}</td>
+      <td class="admin-table-actions" data-label="Aktionen"><div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=label ~ ' ' ~ channel_label) }}">{% for item in screen_actions.items %}{{ icon_button(item.key, href=item.href, aria_label=item.aria_label, text=item.text, show_text=true) }}{% endfor %}</div></td>
     </tr>
     <tr>
       <td colspan="2" headers="{{ screen_id }}-heading">
