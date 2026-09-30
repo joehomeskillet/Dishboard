@@ -63,6 +63,23 @@ def _stock(owner, food_id: str, storage_id: str) -> Decimal:
     return Decimal(str(value))
 
 
+@pytest.mark.parametrize('field,value,message,target', [
+    ('food_public_id', '11111111-1111-4111-8111-111111111111', 'Lebensmittel nicht gefunden.', 'lager-selection'),
+    ('storage_public_id', '11111111-1111-4111-8111-111111111111', 'Lagerort nicht gefunden.', 'lager-selection'),
+    ('unit_code', 'MISSING', 'Einheit ist unbekannt.', 'unit_code'),
+])
+def test_missing_inventory_reference_has_its_own_error(b3, field, value, message, target):  # noqa: F811
+    ctx = _setup(b3)
+    form = _forms(ctx['client'], ctx['lager'])['/admin/lager/bewegung']
+    form['quantity'] = '3.25'
+    form[field] = value
+    response = ctx['client'].post('/admin/lager/bewegung', data=form)
+    assert response.status_code == 400
+    assert message in response.text
+    assert f'id="{target}-error"' in response.text
+    assert _movements(ctx['owner']) == 0
+
+
 def _movements(owner) -> int:
     with owner.connect() as connection:
         return int(connection.execute(text(
