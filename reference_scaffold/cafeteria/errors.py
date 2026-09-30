@@ -165,7 +165,11 @@ def bind_entra_flow(token: str, flow: dict) -> None:
     if not context:
         raise ServiceUnavailable()
     context['flow'] = flow
-    current_app.extensions['cafeteria_rate_redis'].hset(_flow_key(), token, json.dumps(context))
+    updated = current_app.extensions['cafeteria_rate_redis'].eval(
+        "if redis.call('HEXISTS',KEYS[1],ARGV[1]) == 0 then return 0 end; "
+        "redis.call('HSET',KEYS[1],ARGV[1],ARGV[2]); return 1", 1, _flow_key(), token, json.dumps(context))
+    if not updated:
+        raise ServiceUnavailable()
 
 
 def consume_entra_flow(state: str | None) -> tuple[dict, dict]:
@@ -198,7 +202,7 @@ def _diagnose(event: str, error: Exception, status: int) -> None:
             request_id(), type(error).__name__)
     except Exception:
         # Diagnostics must not prevent the isolated fallback from reaching the caller.
-        pass
+        return
 
 
 def error_view(error: HTTPException, *, code: str | None = None) -> ErrorView:
@@ -294,7 +298,8 @@ def authentication_required(*, invalid: bool = False) -> Response:
     from werkzeug.exceptions import Unauthorized
     g.eh_auth_state = 'invalid' if invalid else 'anonymous'
     g.eh_mutation_state = 'not_started'
-    if surface(request) == 'html' and request.method in ('GET', 'HEAD') and request.blueprint == 'admin':
+    if (surface(request) == 'html' and request.method in ('GET', 'HEAD')
+            and request.blueprint == 'admin' and 'auth.login' in current_app.view_functions):
         token = issue_return_token(request.full_path.rstrip('?'), 'auth.session_invalid' if invalid else 'auth.required')
         login_url = url_for('auth.login', return_token=token) if token else url_for('auth.login')
         response = redirect(login_url, code=302)

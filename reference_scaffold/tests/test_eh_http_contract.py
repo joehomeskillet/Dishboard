@@ -10,6 +10,20 @@ from redis.exceptions import RedisError
 from test_auth_routes import auth_app, _csrf_payload, _provision  # noqa: F401
 
 
+def test_eh_t01_app_without_login_endpoint_denies_without_broken_redirect():
+    from flask import Blueprint, Flask
+    from cafeteria.roles import require_capability
+    app = Flask(__name__)
+    admin = Blueprint('admin', __name__, url_prefix='/admin')
+    @admin.get('/private')
+    @require_capability('draft.read')
+    def private():
+        raise AssertionError('Anonymous caller must not reach protected work')
+    app.register_blueprint(admin)
+    response = app.test_client().get('/admin/private')
+    assert response.status_code == 401 and 'Location' not in response.headers
+
+
 def test_eh_t01_t22_anonymous_reads_redirect_but_posts_never_replay(auth_app):
     app, _, _ = auth_app
     client = app.test_client()

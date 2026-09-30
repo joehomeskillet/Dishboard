@@ -4,8 +4,10 @@ from urllib.parse import parse_qs, urlsplit
 
 import secrets
 
+import pytest
 from sqlalchemy import text
 from requests.exceptions import ConnectionError
+from werkzeug.exceptions import ServiceUnavailable
 
 from cafeteria.auth import routes as auth_routes
 
@@ -184,3 +186,19 @@ def test_eh_t03_flow_storage_is_bounded_expiring_and_excludes_client_form_values
     response = client.post('/auth/local', data=_csrf_payload(
         client, username='local.editor', password='Correct-Horse-2026!Battery') | {'return_token': tokens[0]})
     assert response.status_code == 303 and response.location == '/admin/cafeteria'
+
+
+def test_eh_t03_flow_binding_cannot_resurrect_consumed_context(auth_app, monkeypatch):
+    from cafeteria import errors
+    app, _, _ = auth_app
+    with app.test_request_context():
+        token = errors.issue_return_token('/admin/patienten')
+        context = errors.login_context(token)
+        store = app.extensions['cafeteria_rate_redis']
+        key = errors._flow_key()
+        # Model expiry/consumption after validation but before attaching the provider flow.
+        store.delete(key)
+        monkeypatch.setattr(errors, 'login_context', lambda token: context)
+        with pytest.raises(ServiceUnavailable):
+            errors.bind_entra_flow(token, {'state': 'test-state'})
+        assert store.exists(key) == 0
