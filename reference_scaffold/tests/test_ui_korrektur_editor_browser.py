@@ -190,10 +190,18 @@ def test_a09_add_move_remove_keeps_visual_payload_order(editor_page, family: str
     rows.last.locator('[data-component-kind-option][value="text"]').check()
     rows.last.locator('[name="component_text"]').fill('Dritte Beilage')
     rows.last.get_by_role('button', name='Bestätigen').click()
-    expect(rows.last.locator('[data-move-row="up"]')).not_to_be_visible()
-    rows.last.locator('summary').click()
+    expect(rows.last.locator('details, summary')).to_have_count(0)
+    for direction, name in (('up', 'Nach oben'), ('down', 'Nach unten')):
+        move = rows.last.locator(f'[data-move-row="{direction}"]')
+        expect(move).to_be_visible()
+        expect(move).to_have_text('')
+        expect(move).to_have_accessible_name(name)
+        expect(move).to_have_attribute('data-ui-tooltip', name)
+        expect(move).to_have_attribute('data-semantic', f'actions.move_{direction}')
+        expect(move.locator('use')).to_have_attribute(
+            'href', f'/static/vendor/tabler-icons/tabler-icons.svg#tabler-arrow-{direction}',
+        )
     rows.last.get_by_role('button', name='Nach oben').click()
-    rows.first.locator('summary').click()
     rows.first.get_by_role('button', name='Löschen').click()
 
     expect(rows).to_have_count(2)
