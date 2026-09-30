@@ -424,7 +424,12 @@ def test_reference_states_and_viewports(
         cdp.detach()
         destination = page.locator('#menu-cards [data-semantic="actions.edit"]').get_attribute('href')
         assert urlsplit(destination).path == f'/admin/{family}/menu'
-        assert set(parse_qs(urlsplit(destination).query)) == {'week', 'day', 'meal', 'option'}
+        query = parse_qs(urlsplit(destination).query, keep_blank_values=True)
+        assert set(query) == {'week', 'day', 'meal', 'option', 'from', 'q', 'page'}
+        assert query['from'] == ['menus']
+        assert query['q'] == ['Pouletbrust']
+        assert query['page'] == ['1']
+        assert all(query[key] for key in ('week', 'day', 'meal', 'option'))
         page.locator('#menu-cards [data-semantic="actions.edit"]').click()
         expect(page.locator('input[name="title"]')).to_have_value('Pouletbrust an Kräutersauce')
         assert not errors, errors

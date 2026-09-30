@@ -249,7 +249,7 @@ def test_view_print_latest_revision_is_distinct_from_current_draft(a3, monkeypat
         assert result.status_code == 200
         assert f'href="{second.location}/druck.pdf"' in result.text
         if suffix:
-            assert 'aria-label="PDF öffnen"' in result.text
+            assert 'aria-label="PDF öffnen · Stand 2 · Nur im Entwurf"' in result.text
             assert 'Neuester gespeicherter Stand 2' in result.text
         else:
             assert 'aria-label="PDF öffnen · Stand 2 · Nur im Entwurf"' in result.text
@@ -261,7 +261,7 @@ def test_view_print_latest_revision_is_distinct_from_current_draft(a3, monkeypat
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
     revisions = client.get(path + '/revisionen')
     assert revisions.status_code == 200
-    assert revisions.text.count('data-semantic="actions.print"') == 2
+    assert revisions.text.count('data-semantic="actions.open_pdf"') == 2
     for number in (1, 2):
         assert f'aria-label="PDF von Stand {number} öffnen"' in revisions.text
     for suffix in ('/ansicht', '/revisionen', second.location.removeprefix(path)):

@@ -51,7 +51,7 @@
                 {% for template in group %}
                 {% set latest = template.revisions[-1] %}
                 {% set active = template.id == catalog.document.active_template %}
-                <li class="print-tpl-row admin-list-row" data-template-id="{{ template.id }}"{% if active %} data-current-template{% endif %}>
+                <li class="print-tpl-row" data-template-id="{{ template.id }}"{% if active %} data-current-template{% endif %}>
                   <div class="print-tpl-name">
                     <h3 class="admin-list-primary text-break mb-0">{{ catalog.active.name if active else latest.name }}</h3>
                     <p class="admin-list-secondary print-tpl-meta mb-0">Version {{ catalog.active.id if active else latest.id }}{% if not active %} · Entwurf{% endif %}</p>
@@ -109,7 +109,7 @@
       <ul class="admin-list list-unstyled">
         {% for item in recipe_catalog.document.templates %}
         {% set latest = item.revisions[-1] %}
-        <li class="print-tpl-row admin-list-row" data-template-id="{{ item.id }}">
+        <li class="print-tpl-row" data-template-id="{{ item.id }}">
           <div class="print-tpl-name">
             <h3 class="admin-list-primary text-break mb-0">{{ recipe_catalog.active.name if item.id == recipe_catalog.document.active_template else latest.name }}</h3>
             <p class="admin-list-secondary print-tpl-meta mb-0">Revision {{ recipe_catalog.active.id if item.id == recipe_catalog.document.active_template else latest.id }}{% if item.id != recipe_catalog.document.active_template %} · Entwurf{% endif %}</p>
@@ -156,7 +156,7 @@
       {% if loop.first %}
       {% set row.items = row.items + [{'key': 'actions.edit', 'href': url_for('admin.screen_template_assignment', family=screen_family), 'aria_label': area_names[choice.profile] ~ ' · Wochenvorlage zuordnen', 'text': 'Zuordnen'}] %}
       {% endif %}
-      <div class="print-screen-row admin-list-row" role="listitem">
+      <div class="print-screen-row" role="listitem">
         <span class="admin-list-primary admin-list-name">{{ area_names[choice.profile] }} · {{ choice.name }}</span>
         <div>{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_label('Nicht aktiv', 'neutral') }}{% endif %}</div>
         <div class="admin-list-actions">{{ row_actions(row.items, object=area_names[choice.profile] ~ ' · ' ~ choice.name) }}</div>

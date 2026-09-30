@@ -21,7 +21,9 @@
   .dishboard-admin .recipe-list .admin-table-status .badge { white-space: normal; }
   .dishboard-admin .recipe-list [data-label]::before {
     content: attr(data-label); display: block;
-    color: var(--app-text-muted); font-weight: 600;
+    /* ponytail: Farbe und Gewicht stehen in admin-tabler.css auf
+       .admin-table--stack [data-label]::before (Viewport ≤767.98px).
+       Eine schmale Karte bei breiterem Viewport erbt die Zellenfarbe. */
   }
 }
 .dishboard-admin .admin-compact-toolbar[data-sticky-form="recipe-editor"] > a.ui-sem-control { min-height: var(--app-button-size); }
