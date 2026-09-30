@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 import secrets
+from dataclasses import asdict, replace
 from urllib.parse import quote
 
-import msal
-from flask import Blueprint, abort, current_app, redirect, render_template, request, session, url_for
+import msal  # type: ignore[import-untyped]
+from flask import Blueprint, abort, current_app, g, redirect, render_template, request, session, url_for
 from redis.exceptions import RedisError
 from requests.exceptions import RequestException  # type: ignore[import-untyped]
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.wrappers import Response
+from werkzeug.exceptions import ServiceUnavailable, default_exceptions
 
 from ..db import demo_user, upsert_entra_user
 from ..roles import ROLE_CAPABILITIES
 from ..security import validate_csrf
+from ..errors import (
+    bind_entra_flow, consume_entra_flow, error_view, issue_return_token, login_context,
+    render_error, safe_return_target,
+)
 from .access_events import AccessEventUnavailable, record_access_event
 from .service import (
     AuthorizationState,
@@ -33,20 +39,52 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')
 _MAX_PROVIDER_SID_LENGTH = 255
 
 
+def _return_token() -> str:
+    source = request.form if request.method == 'POST' else request.args
+    values = source.getlist('return_token')
+    return values[0] if len(values) == 1 and len(values[0]) == 48 else ''
+
+
+def _login_page(*, error_key: str | None = None, username: str = '', status: int = 200):
+    token = _return_token()
+    context = login_context(token)
+    methods = {'local': bool(current_app.config.get('LOCAL_AUTH_ENABLED')),
+               'entra': bool(current_app.config.get('ENTRA_ENABLED'))}
+    message = {'auth.failed': 'Anmeldung fehlgeschlagen.',
+               'errors.RATE_LIMITED.message': 'Anmeldung fehlgeschlagen. Bitte kurz warten und erneut versuchen.'}.get(error_key or '')
+    return render_template('auth/local_login.html', error=message, error_key=error_key,
+        username=username[:LOGIN_USERNAME_MAX_LENGTH], notice_key=context.get('notice'),
+        return_token=token if context else '', methods=methods,
+        entra_login_url=url_for('auth.login', method='entra', return_token=token if context else '')), status
+
+
 def _login_failure(
     provider: str, reason: str, status: int, username: str = '', *, clear_session: bool = True,
-) -> tuple[str, int]:
+) -> Response | tuple[str, int]:
+    token = _return_token()
+    context = getattr(g, 'eh_login_context', None) or login_context(token)
+    navigation = session.get('_eh_navigation') if safe_return_target(context.get('target')) else None
     if clear_session:
         session.clear()
+        if navigation:
+            session['_eh_navigation'] = navigation
     action = 'auth.login.unavailable' if reason == 'unavailable' else 'auth.login.rejected'
     try:
         record_access_event(provider, action, reason)
     except AccessEventUnavailable:
         status = 503
-    message = 'Anmeldung vorübergehend nicht verfügbar.' if status == 503 else 'Anmeldung fehlgeschlagen.'
+    if status == 503:
+        return render_error(ServiceUnavailable())
     if provider == 'local':
-        return render_template('auth/local_login.html', error=message, username=username), status
-    return render_template('auth/error.html', message=message), status
+        key = 'errors.RATE_LIMITED.message' if status == 429 else 'auth.failed'
+        return _login_page(error_key=key, username=username, status=status)
+    # Provider errors stay on a stable page; retry requires an explicit user action.
+    view = replace(error_view(default_exceptions[status]()),
+                   title_key='auth.failed', message_key='auth.failed', frame='auth')
+    return render_template('auth/error.html', message='Anmeldung fehlgeschlagen.',
+                           error=asdict(view), error_key='auth.failed', methods={
+                               'local': bool(current_app.config.get('LOCAL_AUTH_ENABLED')),
+                               'entra': bool(current_app.config.get('ENTRA_ENABLED'))}), status
 
 
 def _login_accepted(provider: str, identity: AuthorizationState, **claims: str) -> Response | tuple[str, int]:
@@ -55,14 +93,16 @@ def _login_accepted(provider: str, identity: AuthorizationState, **claims: str) 
     except AccessEventUnavailable:
         return _login_failure(provider, 'unavailable', 503)
     try:
-        _establish_session(identity.user_id, identity.display_name, identity.authz_version,
-                           provider=provider, **claims)
+        context = getattr(g, 'eh_login_context', None)
+        if context is None:
+            context = login_context(_return_token(), consume=True)
+        target = _establish_session(identity.user_id, identity.display_name, identity.authz_version,
+                                    navigation=context, provider=provider, **claims)
     except RedisError:
         session.clear()
         current_app.logger.warning('Authentication session establishment unavailable.')
-        message = 'Anmeldung vorübergehend nicht verfügbar.'
-        return render_template('auth/error.html', message=message), 503
-    return redirect(url_for('admin.cafeteria'))
+        return render_error(ServiceUnavailable())
+    return redirect(safe_return_target(target) or url_for('admin.cafeteria'), code=303)
 
 
 def _clear_session_for_logout(action: str) -> None:
@@ -86,7 +126,11 @@ def _clear_session_for_logout(action: str) -> None:
         return
 
 
-def _establish_session(user_id: int, display_name: str, authz_version: int, **claims: str) -> None:
+def _establish_session(user_id: int, display_name: str, authz_version: int, *,
+                       navigation: dict | None = None, **claims: str) -> str | None:
+    target = safe_return_target((navigation or {}).get('target'))
+    # Carry only checked navigation ownership, never old auth, CSRF or submitted values.
+    owner = session.get('_eh_navigation') if target else None
     session.clear()
     session['_regenerate'] = True
     regenerate = getattr(current_app.session_interface, 'regenerate', None)
@@ -96,6 +140,9 @@ def _establish_session(user_id: int, display_name: str, authz_version: int, **cl
     session['user'] = {'id': user_id, 'name': display_name, **claims}
     session['authz_version'] = authz_version
     session.permanent = True
+    if owner:
+        session['_eh_navigation'] = owner
+    return safe_return_target(target)
 
 
 def _client() -> msal.ConfidentialClientApplication:
@@ -110,28 +157,42 @@ def _client() -> msal.ConfidentialClientApplication:
 @bp.get('/login')
 def login():
     cfg = current_app.config
+    user, version = session.get('user'), session.get('authz_version')
+    if request.args.get('method') != 'entra' and isinstance(user, dict) and type(user.get('id')) is int and type(version) is int:
+        authorization = load_user_authorization(current_app.extensions['cafeteria_db'], user['id'])
+        if authorization is not None and authorization.authz_version == version:
+            context = login_context(_return_token(), consume=True)
+            return redirect(safe_return_target(context.get('target')) or url_for('admin.cafeteria'), code=303)
     if cfg['DEMO_MODE']:
         demo = demo_user(current_app.extensions['cafeteria_db'])
         authorization = load_user_authorization(current_app.extensions['cafeteria_db'], demo['id'])
         if authorization is None:
-            return render_template('auth/error.html', message='Demo-Benutzer ist nicht aktiv.'), 503
-        _establish_session(
+            return render_error(ServiceUnavailable())
+        target = _establish_session(
             authorization.user_id,
             authorization.display_name,
             authorization.authz_version,
             oid='demo-user',
             tid='demo-tenant',
             provider=authorization.auth_provider,
+            navigation=login_context(_return_token(), consume=True),
         )
-        return redirect(url_for('admin.cafeteria'))
+        return redirect(safe_return_target(target) or url_for('admin.cafeteria'), code=303)
+    token = _return_token()
+    if cfg.get('LOCAL_AUTH_ENABLED', False) and request.args.get('method') != 'entra':
+        return redirect(url_for('auth.local_login', **({'return_token': token} if login_context(token) else {})))
     if not cfg.get('ENTRA_ENABLED', False):
-        if cfg.get('LOCAL_AUTH_ENABLED', False):
-            return redirect(url_for('auth.local_login'))
-        return render_template('auth/error.html', message='Keine Anmeldung konfiguriert.'), 503
+        return render_error(ServiceUnavailable())
     if not cfg['ENTRA_TENANT_ID'] or not cfg['ENTRA_CLIENT_ID'] or not cfg['ENTRA_CLIENT_SECRET']:
-        return render_template('auth/error.html', message='Entra-Konfiguration ist unvollständig.'), 503
-    flow = _client().initiate_auth_code_flow(scopes=[], redirect_uri=cfg['APP_PUBLIC_BASE_URL'] + url_for('auth.callback'))
-    session['auth_flow'] = flow
+        return render_error(ServiceUnavailable())
+    if not login_context(token):
+        token = issue_return_token(None)
+    g.eh_login_context = login_context(token)
+    try:
+        flow = _client().initiate_auth_code_flow(scopes=[], redirect_uri=cfg['APP_PUBLIC_BASE_URL'] + url_for('auth.callback'))
+        bind_entra_flow(token, flow)
+    except (RequestException, ValueError, RedisError):
+        return _login_failure('entra', 'unavailable', 503)
     return redirect(flow['auth_uri'])
 
 
@@ -140,7 +201,7 @@ def local_login():
     if not current_app.config.get('LOCAL_AUTH_ENABLED', False):
         abort(404)
     if request.method == 'GET':
-        return render_template('auth/local_login.html')
+        return _login_page()
 
     username = request.form.get('username', '')
     password = request.form.get('password', '')
@@ -203,7 +264,12 @@ def local_login():
 def callback():
     if not current_app.config.get('ENTRA_ENABLED', False):
         abort(404)
-    flow = session.pop('auth_flow', None)
+    states = request.args.getlist('state')
+    flow, context = consume_entra_flow(states[0] if len(states) == 1 else None)
+    if not flow:
+        # Pre-upgrade flows retain MSAL's own state validation and never carry return URLs.
+        flow = session.pop('auth_flow', None)
+    g.eh_login_context = context
     if not flow:
         return _login_failure('entra', 'flow', 400, clear_session=False)
     try:
