@@ -3,7 +3,7 @@
 Gepinnt: **@tabler/core 1.5.0** und **@tabler/icons 3.46.0**, beide MIT.
 Die maschinenlesbare Paketdefinition und Lockdatei `tabler.lock.json` enthält
 Quell-URLs, Versionen, npm-SHA-512-Integrität, SHA-256 aller Quellen und Ausgaben
-sowie die geordnete Auswahl von 28 Icons. Keine `latest`-Abhängigkeit.
+sowie die geordnete Auswahl von 147 Icons. Keine `latest`-Abhängigkeit.
 
 ## Reproduzieren
 
