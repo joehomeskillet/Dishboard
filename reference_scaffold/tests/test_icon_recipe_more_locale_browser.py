@@ -72,7 +72,8 @@ def test_recipe_direct_actions_geometry_and_native_navigation(
             assert max(box['y'] for box in boxes) - min(box['y'] for box in boxes) <= 1
         pdf = row.locator('[data-semantic="actions.open_pdf"]')
         expect(pdf).to_be_disabled()
-        expect(pdf).to_have_accessible_description('Noch kein gespeicherter Stand vorhanden')
+        expect(pdf).to_have_accessible_description(
+            'Noch kein gespeicherter Stand vorhanden' if locale == 'de' else 'No saved revision available yet')
         expect(pdf).not_to_have_attribute('href', '.*')
         page.mouse.move(0, 0)
         page.screenshot(path=str(tmp_path / f'rezepte-publisher-{locale}-{width}.png'))
@@ -152,7 +153,8 @@ def test_recipe_more_actions_use_localized_names_and_exact_revision(
             actions.append((history + '#recipe-freeze', '', snapshot_name, 'actions.snapshot', 'file-check'))
             unavailable = items.locator('[data-semantic="actions.open_pdf"]')
             expect(unavailable).to_be_disabled()
-            expect(unavailable).to_have_accessible_description('Noch kein gespeicherter Stand vorhanden')
+            expect(unavailable).to_have_accessible_description(
+                'Noch kein gespeicherter Stand vorhanden' if locale == 'de' else 'No saved revision available yet')
         actions.append((history, words[1], history_name, 'actions.history', 'history'))
         for index, (href, _label, name, key, glyph) in enumerate(actions):
             link = items.locator(f'a[href="{href}"]')
@@ -230,12 +232,16 @@ def test_recipe_template_associations_have_distinct_native_actions(
     for index in range(count):
         name = f'Vorlage {index + 1} mit langem Namen'
         path = create_template(client, title=name, recipe_public_id=public_id)
+        name = 'A & B · ' + name
         archived = index == 2
         if archived:
             name += ' "Kräuter" & Gemüse'
-            data = template_fields(client, path)
-            data['title'] = name
-            assert client.post(path, data=data).status_code == 303
+        # The shared creation helper matches unescaped names in HTML. Rename through
+        # the native form so every association still exercises the raw ampersand.
+        data = template_fields(client, path)
+        data['title'] = name
+        assert client.post(path, data=data).status_code == 303
+        if archived:
             data = template_fields(client, path)
             data['action'] = 'archive'
             assert client.post(path, data=data).status_code == 303

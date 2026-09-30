@@ -188,10 +188,48 @@ def test_menu_capture_dismisses_item_tooltip_before_closing_menu(width, tmp_path
         assert _values(form) == before and navigations == []
         page.keyboard.press('Escape')
         expect(menu).to_be_visible()
-        expect(item).to_be_focused()
+        expect(page.locator('#other > summary')).to_be_focused()
         expect(page.get_by_role('tooltip')).to_have_count(0)
-        expect(page.locator('#other')).to_have_attribute('open', '')
+        expect(page.locator('#other')).not_to_have_attribute('open', '')
         assert _values(form) == before and navigations == []
+
+    _run_polish_check(markup, verify, width)
+
+
+@pytest.mark.parametrize('width', [390, 1440])
+@pytest.mark.parametrize('kind', ['details', 'filter', 'dropdown'])
+def test_direct_action_escape_reaches_foreign_disclosure(kind, width):
+    if kind == 'dropdown':
+        foreign = '''<div class="dropdown">
+            <button id="trigger" type="button" data-bs-toggle="dropdown">Auswahl</button>
+            <div id="foreign" class="dropdown-menu"><button class="dropdown-item">Eintrag</button></div>
+            </div>'''
+    else:
+        foreign = '''<details id="foreign" class="%s"><summary id="trigger">Filter</summary>
+            <input name="foreign-note" value="Unverändert"></details>''' % (
+                'admin-filter-more' if kind == 'filter' else '')
+    markup = MACROS + foreign + '''{{ more_actions([
+        {'key': 'actions.copy', 'type': 'button', 'id': 'copy'}]) }}''' + TABLER
+
+    def verify(page):
+        foreign = page.locator('#foreign')
+        page.locator('#trigger').click()
+        action = page.locator('#copy')
+        action.focus()
+        expect(page.get_by_role('tooltip')).to_be_visible()
+        action.press('Escape')
+        expect(page.get_by_role('tooltip')).to_have_count(0)
+        if kind == 'dropdown':
+            expect(foreign).to_be_visible()
+        else:
+            expect(foreign).to_have_attribute('open', '')
+        action.press('Escape')
+        if kind == 'dropdown':
+            expect(foreign).to_be_hidden()
+        else:
+            expect(foreign).not_to_have_attribute('open', '')
+            expect(foreign.locator('input')).to_have_value('Unverändert')
+        expect(page.locator('#trigger')).to_be_focused()
 
     _run_polish_check(markup, verify, width)
 

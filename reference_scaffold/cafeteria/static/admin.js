@@ -227,14 +227,9 @@
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
         const menu = event.target.closest('.ui-sem-actions[open], .admin-filter-more[open]');
-        if (!menu) {
-            // Direct groups have nothing to close; retain focus and unrelated details.
-            // Owning details and modals still receive Escape after their tooltip closes.
-            if (!event.target.closest('.admin-row-actions') || event.target.closest('.modal, dialog, details[open]')) return;
-        } else {
-            menu.open = false;
-            focusAfterEscape(menu.querySelector(':scope > summary'));
-        }
+        if (!menu) return;
+        menu.open = false;
+        focusAfterEscape(menu.querySelector(':scope > summary'));
         event.preventDefault();
         event.stopImmediatePropagation();
     }, true);
@@ -504,6 +499,15 @@
             });
             form.querySelectorAll('.origin-row input, .origin-row select, .origin-row button, [data-add-row="origins-list"]').forEach(control => {
                 control.disabled = !manual('origin');
+                const wrapper = control.closest('.ui-sem-disabled');
+                const reason = wrapper?.nextElementSibling?.querySelector('[data-disabled-reason]');
+                if (reason) {
+                    reason.hidden = !control.disabled;
+                    control.setAttribute('aria-disabled', String(control.disabled));
+                    wrapper.tabIndex = control.disabled ? 0 : -1;
+                    wrapper.dataset.uiTooltip = control.getAttribute('aria-label') +
+                        (control.disabled ? ': ' + reason.textContent : '');
+                }
             });
             form.querySelectorAll('[data-mode-badge]').forEach(badge => {
                 badge.textContent = manual(badge.dataset.modeBadge) ? 'manuell festgelegt' : 'automatisch geerbt';

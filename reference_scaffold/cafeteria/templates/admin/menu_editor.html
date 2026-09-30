@@ -173,8 +173,8 @@
                   <div class="menu-editor-row-actions">
                     {{ row_actions([
                       {'key': 'actions.edit', 'type': 'button', 'object': 'Baustein', 'attrs': {'data-edit-row': true}},
-                      {'key': 'actions.move', 'type': 'button', 'text': 'Nach oben', 'attrs': {'data-move-row': 'up'}},
-                      {'key': 'actions.move', 'type': 'button', 'text': 'Nach unten', 'attrs': {'data-move-row': 'down'}},
+                      {'key': 'actions.move_up', 'type': 'button', 'text': 'Nach oben', 'attrs': {'data-move-row': 'up'}},
+                      {'key': 'actions.move_down', 'type': 'button', 'text': 'Nach unten', 'attrs': {'data-move-row': 'down'}},
                       {'key': 'actions.delete', 'type': 'button', 'object': 'Baustein', 'consequence_key': 'actions.delete', 'attrs': {'data-remove-row': true}}
                     ]) }}
                   </div>
@@ -279,7 +279,7 @@
                   </div>
                 </div>
                 <div class="menu-editor-row-actions mt-2">
-                  {{ row_actions([{'key': 'actions.delete', 'type': 'button', 'consequence_key': 'actions.delete', 'attrs': {'data-remove-row': true, 'disabled': is_auto['origin']}}], object='Herkunft') }}
+                  {{ row_actions([{'key': 'actions.delete', 'type': 'button', 'consequence_key': 'actions.delete', 'disabled_reason': t('menu.origin_auto_reason.label').unescape(), 'disabled_reason_active': is_auto['origin'], 'attrs': {'data-remove-row': true, 'disabled': is_auto['origin']}}], object='Herkunft') }}
                 </div>
               </div>
             </fieldset>

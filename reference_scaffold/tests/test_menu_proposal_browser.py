@@ -138,6 +138,7 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
         expect(page.get_by_role('heading', name='Menüs', exact=True)).to_be_visible()
         expect(page.locator('.page-header')).to_contain_text('Neues Menü aus Vorlage «Rösti»')
         expect(page.get_by_label('Menüname', exact=True)).to_have_value('Rösti')
+        expect(page.locator('#template-reference').get_by_text('Aus Vorlage «Rösti»', exact=True)).to_be_visible()
         expect(page.locator('[name="recipe_revision_public_id"]')).to_have_value(revision['public_id'])
         expect(page.get_by_text('Vorgeschlagen: Stand 1', exact=False)).to_be_visible()
         assert page.locator('[name="row_version"]').input_value() == '0'
@@ -158,9 +159,21 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
         assert saved['row_version'] == ['0']
         assert saved['recipe_revision_public_id'] == [revision['public_id']]
         expect(page.get_by_text('Menü «Rösti für den Wochenplan» aus Vorlage «Rösti»', exact=False)).to_be_visible()
-        template_link = page.get_by_text('Aus Vorlage «Rösti»', exact=True)
-        template_link.locator('xpath=ancestor::details[1]').locator('summary').click()
+        card = page.locator(f'#week-slot-{DAY}-LUNCH-MENU_1')
+        template_name = ('Gerichtvorlage für Montag, 31. August, Mittag, Menü 1 – '
+                         'Rösti für den Wochenplan · Rösti öffnen')
+        template_link = card.get_by_role('link', name=template_name, exact=True)
         expect(template_link).to_be_visible()
+        expect(template_link).to_have_text('')
+        expect(template_link).to_have_attribute('data-ui-tooltip', template_name)
+        expect(template_link).to_have_attribute('data-semantic', 'actions.open_template')
+        expect(template_link).to_have_attribute('href', f'/admin/gerichtvorlagen/{template["public_id"]}')
+        after_save = stored_state(admin_engine)
+        template_link.focus()
+        expect(template_link).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page).to_have_url(live_server + f'/admin/gerichtvorlagen/{template["public_id"]}')
+        assert stored_state(admin_engine) == after_save
         assert failures == []
     finally:
         context.close()
