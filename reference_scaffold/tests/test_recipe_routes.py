@@ -349,5 +349,11 @@ def test_list_loads_one_bound_link_projection_and_reader_has_no_write_actions(b3
         assert f'href="{first}"' not in result.text
         assert 'Vorlage anlegen</a>' not in result.text
         assert 'name="_form_context"' not in result.text
-        assert 'Drucken' in result.text
+        assert f'href="{first}/revisionen"' in result.text
+        if path == '/admin/rezepte':
+            assert f'href="{first}/ansicht"' in result.text
+            assert 'data-semantic="actions.open_pdf"' in result.text
+            assert 'Noch kein gespeicherter Stand vorhanden' in result.text
+        else:
+            assert 'Zum Drucken zuerst einen Stand festhalten' in result.text
     assert snapshot(owner) == before
