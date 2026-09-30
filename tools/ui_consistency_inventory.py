@@ -18,7 +18,8 @@ TEMPLATES = ROOT / 'reference_scaffold/cafeteria/templates'
 BASELINE = ROOT / 'reference_scaffold/tests/ui_consistency_baseline.json'
 REPORT = ROOT / 'docs/ui-consistency-inventory.md'
 CATEGORIES = ('literal_buttons', 'long_labels', 'legacy_labels', 'wrong_icons',
-              'local_lists', 'local_filters', 'list_typography_overrides')
+              'local_lists', 'local_filters', 'list_typography_overrides',
+              'local_status', 'local_footers', 'raw_details', 'css_px_heights')
 STATIC = TEMPLATES.parent / 'static'
 JINJA = re.compile(r'{#.*?#}|{%.*?%}|{{.*?}}', re.S)
 TOKEN = re.compile(r'JINJATOKEN(\d+)END')
@@ -103,11 +104,24 @@ def canonical_icons():
 
 
 def count_template(source, icons=None, shared=False, messages=None):
-    parser = TemplateParser(source)
+    parser = TemplateParser(re.sub(r'<!--.*?-->', '', source, flags=re.S))
     counts = dict.fromkeys(CATEGORIES, 0)
     icons = canonical_icons() if icons is None else icons
     if messages is None:
         messages = json.loads((ROOT / 'reference_scaffold/cafeteria/translations/de.json').read_text())
+    if not shared:
+        # Count legacy calls, including imported aliases; category labels retain
+        # their distinct meaning and are not status-migration candidates.
+        aliases = {'status_badge', 'status', 'label'}
+        for expression in parser.expressions:
+            if expression.startswith('{%') and 'import' in expression:
+                aliases.update(re.findall(r'\b(?:status_badge|status|label)\s+as\s+(\w+)', expression))
+        calls = re.compile(r'\b(?:' + '|'.join(sorted(aliases)) + r')\s*\(([^)]*)\)')
+        for expression in parser.expressions:
+            if expression.startswith('{{'):
+                counts['local_status'] += sum(
+                    not re.search(r"['\"]category['\"]", match[1])
+                    for match in calls.finditer(expression))
 
     def known_label(match):
         expression = match.group()
@@ -122,6 +136,11 @@ def count_template(source, icons=None, shared=False, messages=None):
         raw = parser.restore(node.source())
         literal = ' '.join(TOKEN.sub('', node.text()).split())
         visible = ' '.join(JINJA.sub(known_label, parser.restore(node.text())).split())
+        if not shared:
+            counts['local_status'] += any(
+                c in {'badge', 'admin-label'} or c.startswith('admin-status--') for c in classes)
+            counts['local_footers'] += 'admin-form-footer' in classes
+            counts['raw_details'] += node.tag == 'details'
         if node.tag in {'a', 'button', 'summary'} and 'btn' in classes:
             counts['literal_buttons'] += bool(literal)
             counts['long_labels'] += len(visible) > 18 or len(visible.split()) > 2
@@ -203,16 +222,27 @@ def list_typography_overrides(source):
     return hits
 
 
+def css_px_heights(source):
+    """Count literal min-height declarations, excluding media queries and text."""
+    masked = re.sub(r'/\*.*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'',
+                    '', source, flags=re.S)
+    return len(re.findall(r'[;{]\s*min-height\s*:\s*\d+(?:\.\d+)?px\b', masked, re.I))
+
+
 def inventory(templates=TEMPLATES, static=STATIC):
     icons = canonical_icons()
     current = {p.relative_to(templates).as_posix(): count_template(
-                p.read_text(), icons, shared=p.relative_to(templates).as_posix() == 'admin/_macros.html')
+                p.read_text(), icons, shared=p.relative_to(templates).as_posix() in {
+                    'admin/_macros.html', 'ui/_semantic.html'})
             for p in sorted(templates.rglob('*.html'))}
     paths = set(static.glob('admin-*.css')) | set(static.glob('recipe-*.css'))
     paths |= set(static.glob('cookbook-admin.css'))
+    paths |= set(static.glob('ui-semantic.css'))
+    paths |= set(static.glob('print-template-editor.css'))
     for path in sorted(paths):
         current['static/' + path.name] = dict.fromkeys(CATEGORIES, 0) | {
-            'list_typography_overrides': len(list_typography_overrides(path.read_text()))}
+            'list_typography_overrides': len(list_typography_overrides(path.read_text())),
+            'css_px_heights': css_px_heights(path.read_text())}
     return current
 
 
@@ -230,6 +260,9 @@ def markdown(current):
              'Nullzeilen bleiben erhalten, damit jede Quelle erfasst ist.', '',
              'Kategorien: literale Buttons, lange Labels (>2 Wörter oder >18 Zeichen), alte Labels,',
              'abweichende Icons, lokale Listen/Tabellen, lokale Filter/Suchformulare.',
+             '`local_status`: rohe Badges/Statusklassen und alte status_badge/status/label-Aufrufe (inkl. Aliase, ohne Kategorie-Labels).',
+             '`local_footers`: rohe admin-form-footer; `raw_details`: native details ausserhalb gemeinsamer Makros.',
+             '`css_px_heights`: min-height-Pixeldeklarationen in den erfassten Styles, keine Mediaqueries.',
              '`list_typography_overrides` zählt font-size, font-weight und color in Listen-/Tabellenregeln',
              'von admin-*.css, cookbook-admin.css und recipe-*.css, einschliesslich zentralem admin-tabler.css.',
              'Diese Quellenzählung unterscheidet bewusst nicht zwischen wirksamen und überstimmten Regeln.', '',
@@ -252,9 +285,11 @@ def main():
         if BASELINE.exists():
             baseline = json.loads(BASELINE.read_text())
             # Einmalige Aufnahme einer neuen Kategorie; bestehende Zahlen bleiben geschützt.
-            if not any('list_typography_overrides' in row for row in baseline.values()):
-                for name, counts in current.items():
-                    baseline.setdefault(name, {})['list_typography_overrides'] = counts['list_typography_overrides']
+            for category in ('list_typography_overrides', 'local_status', 'local_footers',
+                             'raw_details', 'css_px_heights'):
+                if not any(category in row for row in baseline.values()):
+                    for name, counts in current.items():
+                        baseline.setdefault(name, {})[category] = counts[category]
             failures = regressions(current, baseline)
             if failures:
                 parser.error('Baseline cannot increase:\n' + '\n'.join(failures))

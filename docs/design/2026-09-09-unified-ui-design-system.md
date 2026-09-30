@@ -24,6 +24,112 @@ Desktop: eine kompakte Symbolreihe, soweit der Platz reicht. Schmale Oberfläche
 
 Fachliche Informationen, notwendige Warnungen, Berechtigungen und Schutzschritte bleiben erhalten. Sicherheitsbestätigungen dürfen lesbaren Text enthalten. Echte Auswahl-, Filter-, Navigations- und Detailkomponenten bleiben von dieser Regel unberührt, solange sie keine generische Aktionssammlung verstecken.
 
+## Grundmuster (UC-G0, 2026-09-30)
+
+Dieser Komponentenvertrag konkretisiert die SDD UI-CONSISTENCY vom 2026-09-30
+und BF-01/BF-02. Für gemeinsame Steuergrößen und Listenform ersetzt er ältere,
+widersprechende Größenangaben weiter unten. Direkte Symbolaktionen, fachliche
+Unterschiede, Warnungen, Rollen, CSRF/CAS und native Formularwege bleiben erhalten.
+G0 liefert die Grundlage; P1/P2 migrieren die Seiten. Ein neuer Baustein ist kein
+Nachweis, dass sämtliche Seiten bereits migriert sind.
+
+| Muster | Verbindliche gemeinsame Komponente und Inhalt |
+|---|---|
+| Homogene Objektliste | `table.admin-table.admin-table--stack`; Titel, Meta, Status, Aktionen in dieser Reihenfolge; echte Spaltenköpfe, Zelllabels beim Stapeln, 1-px-Trenner. `list_row` ist deprecated; bestehende Klassen bleiben bis zur Migration erhalten. |
+| Kompakte Objektkarte | Tabler-Card nur bei fachlich begründeter Kartenstruktur; Titel, 1–3 Kerninformationen, explizite Statusangaben und `row_actions`. Keine zweite Form für homogene Objektlisten. |
+| Detail/Edit | `page_header(title, ..., back=..., segments=...)`, native Formularfelder, `form_footer(primary, cancel_url, secondary=..., danger=...)`. Sensible Aktionen getrennt, bestehender Sticky-Vertrag D21/D24. |
+| Planung/Slot | Tages-/Slotkopf, Erfassungsstand, planbare Einheiten, direkte Slot-Aktionen, sekundärer Kontext. Leerer Slot bedeutet „nicht angelegt/geplant“, nicht „ungespeicherte Eingabe“. |
+| Filter/Toolbar | `filter_bar_sem(..., segments=...)`; Suche, Filter, aktive Filter, Reset. `segment_switch(links, current, label=...)` nimmt `{key, label, href}`-Einträge. Native Navigationslinks mit `aria-current="page"`, keine ARIA-Tabs. `profile_tabs` ist ein Adapter darauf. |
+| Empty/Info/Status | `empty_state(..., compact=true)` bzw. `empty_state_sem(..., compact=true)` als kompakte Zeile mit direkter Primäraktion. `notice(text, kind='info')` nutzt `role="note"`; Warnung/Fehler (`warning`/`error`) behalten `role="alert"` und ihre Bedeutung. Status ausschließlich über `status_badge_sem`. |
+| Sekundärer Abschnitt | `disclosure_section(..., variant='card')` oder Standardvariante: native Details, gemeinsamer Chevron, Titel und Abstand. `has_error`/`has_content` öffnen serverseitig; der bestehende Clientvertrag öffnet ungültige Felder. Keine Pflichtinformation oder Standardaktion verstecken. |
+
+Slots enthalten vorhandene Makroausgabe; keine ungesicherten fremden HTML-Inhalte.
+`page_header` besitzt genau eine Signatur. Sein `status_items`-Slot zeigt ausdrücklich
+gelieferte Kontextwerte, einschließlich null als Zahl; er berechnet keine Zustände.
+Die ungenutzte zweite Kopfkomponente `status_bar` entfällt. `label` bleibt der
+interne Renderer, `status_badge`/`status` bleiben vorläufige Adapter für vorhandene
+fachliche Zuordnungen. Kategorie- und Herkunftslabels werden nicht zu Status erklärt.
+
+### Statusdimensionen und Belege
+
+`status_badge_sem(key, detail=...)` rendert sichtbaren lokalisierten Text, ein Symbol
+und die Dimension als `data-status-dimension`. Farbe unterstützt die Bedeutung.
+Der Aufrufer liefert einen belegten Zustand; weder der Renderer noch fehlende
+Fehler erzeugen einen positiven Status. Details und fachliche Warnungen bleiben
+erreichbar. Es gibt keine Pflicht, fünf Badges gleichzeitig zu zeigen.
+
+| Dimension | Explizite Registry-Schlüssel |
+|---|---|
+| Existenz/Bearbeitung | `editing.not_created`, `publish.draft` (bestehender Schlüssel für Entwurf), `status.unsaved` |
+| Speichervorgang | `save.saving`, `save.saved`, `save.failed`, `save.unknown` |
+| Fachliche Prüfung | `review.unchecked`, `review.pending`, `status.incomplete`, `status.not_recorded`, `review.approved`; fachliche Prüfgründe wie `review.allergens_open` bleiben spezifisch |
+| Veröffentlichung | `publish.unpublished`, `publish.published`, `publish.changed` |
+| Lebenszyklus | `status.active`, `status.inactive`, `status.archived`, `status.unavailable` |
+| Eigenständiger Hinweis | `status.warning`, `status.error`; keine implizite Aussage über andere Dimensionen |
+
+Gespeichert bedeutet weder geprüft noch veröffentlicht. Aktiv bedeutet weder
+geprüft noch veröffentlicht. „Geprüft“ gilt nur für den konkret geprüften Datenstand.
+„Archiviert“ ist neutral. Nicht erfasst bedeutet weder null Bestand noch allergenfrei.
+Eine ältere Veröffentlichung kann neben neueren unveröffentlichten Änderungen
+bestehen. Solche fachlichen Unterschiede bleiben getrennt sichtbar.
+
+### Geometrie und Zuständigkeit
+
+`--app-control-min-height` ist die einzige gemeinsame Steuergröße: 36 px bei
+feinem, 44 px bei grobem Zeiger. `--app-button-size`, die bisherigen semantischen
+Größenaliase sowie Buttons, Inputs und Selects lesen diesen Wert. Inhalt und Zoom
+dürfen Elemente vergrößern. Die Abstandsleiter ist 4/8/12/16/24/32 px; historische
+40/48-px-Tokens für Zeilenhöhen sind keine zusätzliche Abstandsleiter. Fokusrahmen
+und zugängliches visuelles Verbergen sind keine Inhaltsabstände.
+
+Sidebar-Selektoren liegen ausschließlich in `admin-nav.css`; Farben kommen weiter
+aus den gemeinsamen Tokens. Semantische Tabellen behalten ihre eigenen
+inhaltlichen Mindestzeilenhöhen. Öffentliche Ausgabe und Markenpalette bleiben
+außerhalb dieser Änderung.
+
+### ASCII-Zielbilder aus der SDD
+
+```text
+[Titel der Seite]                         [Primäraktion]
+[Kurzbeschreibung oder Kontext]
+[optionale Status-/Filter-/Bereichsleiste]
+
+[Suche__________________________] [Filter] [Bereich A] [Bereich B] [Aktiv]
+12 Treffer
+
+│ Titel / Name            Metadaten            Status      Aktionen  │
+│ Unterinfo / Kontext     Zusatzinfo           Badge       ◁ ✎ ⎙ ⧉   │
+
+│ Montag, 28. September           0 von 4 Menükarten      Entwurf │
+│ Mittag                          Zeiten nicht eingetragen        │
+│ Menü 1            [Kein Gericht]                         [+]    │
+│ Vegetarisch       [Kein Gericht]                         [+]    │
+│ Suppe             [nicht geplant]                        [+]    │
+│ Dessert           [nicht geplant]                        [+]    │
+│ Aktionen: [Planen] [Bearbeiten]                                 │
+
+[← Zurück]
+[Titel]
+[Status] [Kontext] [weitere Hinweise]
+┌ Stammdaten ─ Name | Basiseinheit | Kategorie ; Lagerorte [x] [ ] [ ] ┐
+┌ Weitere Angaben ─ aufklappbar, wenn sekundär ┐
+                                          [Abbrechen] [Speichern]
+```
+
+Aktionswörter in den Skizzen bezeichnen die gemeinsamen Symbolaktionen;
+Navigation, Fachtexte und Sicherheitsbestätigungen behalten sichtbaren Text.
+
+### Migrationsratchet
+
+`tools/ui_consistency_inventory.py` zählt zusätzlich `local_status` (rohe Badges
+und alte Status-/Labelaufrufe einschließlich Importaliasen, ohne explizite
+Kategorie-Labels), `local_footers` (rohe `admin-form-footer`), `raw_details`
+(Details außerhalb der gemeinsamen Makros) und `css_px_heights`
+(Pixeldeklarationen, keine Mediaqueries). Es handelt sich um statische Hinweise,
+nicht um Beweise für Fachsemantik oder gerenderte Zustände. G0 initialisiert die
+neuen Obergrenzen; P1/P2 senken sie durch die zugewiesenen Migrationen. Bestehende
+Obergrenzen dürfen nicht still steigen. Browserprüfungen bleiben verbindlich.
+
 ## Vorrang der Icon-first-Spezifikation vom 2026-09-26
 
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Das folgende Budget „Hauptaktion plus Überlauf“ und D17 „Weitere Aktionen für …“ als Normalfall sind abgelöst. Icon-first, 36/44-px-Ziele, Listenanatomie, Sticky-Vertrag, Rückkehrkontext, Prüfhinweise und fehlend ≠ 0/allergenfrei bleiben erhalten.

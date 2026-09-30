@@ -6,7 +6,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "_food_symbols.html": {
     "literal_buttons": 0,
@@ -15,7 +19,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "_menu_image.html": {
     "literal_buttons": 0,
@@ -24,7 +32,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "_menu_metadata.html": {
     "literal_buttons": 0,
@@ -33,7 +45,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/_area_tabs.html": {
     "literal_buttons": 0,
@@ -42,7 +58,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/_country_select.html": {
     "literal_buttons": 0,
@@ -51,7 +71,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/_course_editor.html": {
     "literal_buttons": 0,
@@ -60,7 +84,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 1,
+    "raw_details": 3,
+    "css_px_heights": 0
   },
   "admin/_course_line.html": {
     "literal_buttons": 1,
@@ -69,7 +97,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/_course_recipe_search.html": {
     "literal_buttons": 0,
@@ -78,7 +110,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/_local_user_forms.html": {
     "literal_buttons": 0,
@@ -87,7 +123,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/_macros.html": {
     "literal_buttons": 1,
@@ -96,7 +136,11 @@
     "wrong_icons": 0,
     "local_lists": 2,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/_recipe_document.html": {
     "literal_buttons": 2,
@@ -105,7 +149,11 @@
     "wrong_icons": 0,
     "local_lists": 5,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 2,
+    "css_px_heights": 0
   },
   "admin/_recipe_template_selection.html": {
     "literal_buttons": 10,
@@ -114,7 +162,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 3,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 3,
+    "css_px_heights": 0
   },
   "admin/_rezepte_fields.html": {
     "literal_buttons": 1,
@@ -123,7 +175,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/_service_courses.html": {
     "literal_buttons": 0,
@@ -132,7 +188,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/_week_controls.html": {
     "literal_buttons": 6,
@@ -141,7 +201,11 @@
     "wrong_icons": 0,
     "local_lists": 2,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 2,
+    "css_px_heights": 0
   },
   "admin/_week_menu_card.html": {
     "literal_buttons": 1,
@@ -150,7 +214,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 2,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/_week_service.html": {
     "literal_buttons": 0,
@@ -159,7 +227,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/_week_settings.html": {
     "literal_buttons": 0,
@@ -168,7 +240,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/_workflow_sidebar.html": {
     "literal_buttons": 1,
@@ -177,7 +253,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/access_history.html": {
     "literal_buttons": 3,
@@ -186,7 +266,11 @@
     "wrong_icons": 1,
     "local_lists": 1,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/api.html": {
     "literal_buttons": 4,
@@ -195,7 +279,11 @@
     "wrong_icons": 0,
     "local_lists": 3,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 4,
+    "local_footers": 0,
+    "raw_details": 4,
+    "css_px_heights": 0
   },
   "admin/base_tabler.html": {
     "literal_buttons": 0,
@@ -204,7 +292,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/bestellung.html": {
     "literal_buttons": 0,
@@ -213,7 +305,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/bestellung_korb.html": {
     "literal_buttons": 0,
@@ -222,7 +318,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 1,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/branding_editor.html": {
     "literal_buttons": 3,
@@ -231,7 +331,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 4,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/branding_preview.html": {
     "literal_buttons": 0,
@@ -240,7 +344,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/cafeteria.html": {
     "literal_buttons": 1,
@@ -249,7 +357,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/component_editor.html": {
     "literal_buttons": 0,
@@ -258,7 +370,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 2,
+    "css_px_heights": 0
   },
   "admin/components.html": {
     "literal_buttons": 0,
@@ -267,7 +383,11 @@
     "wrong_icons": 0,
     "local_lists": 2,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 4,
+    "local_footers": 1,
+    "raw_details": 2,
+    "css_px_heights": 0
   },
   "admin/copy.html": {
     "literal_buttons": 0,
@@ -276,7 +396,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/display_settings.html": {
     "literal_buttons": 0,
@@ -285,7 +409,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 1,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/einkaufsliste.html": {
     "literal_buttons": 0,
@@ -294,7 +422,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 2,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 7,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/einkaufslisten.html": {
     "literal_buttons": 0,
@@ -303,7 +435,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/gerichtvorlage_einplanen.html": {
     "literal_buttons": 5,
@@ -312,7 +448,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 1,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/gerichtvorlagen.html": {
     "literal_buttons": 7,
@@ -321,7 +461,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 2,
+    "local_footers": 1,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/grundlagen.html": {
     "literal_buttons": 0,
@@ -330,7 +474,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/grundlagen_food.html": {
     "literal_buttons": 0,
@@ -339,7 +487,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 7,
+    "css_px_heights": 0
   },
   "admin/grundlagen_location_conflict.html": {
     "literal_buttons": 1,
@@ -348,7 +500,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/grundlagen_unavailable.html": {
     "literal_buttons": 0,
@@ -357,7 +513,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/grundlagen_unit.html": {
     "literal_buttons": 0,
@@ -366,7 +526,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/grundlagen_vocabulary.html": {
     "literal_buttons": 0,
@@ -375,7 +539,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/import_preview.html": {
     "literal_buttons": 2,
@@ -384,7 +552,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/kalkulation.html": {
     "literal_buttons": 0,
@@ -393,7 +565,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 3,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/kochbuch_editor.html": {
     "literal_buttons": 0,
@@ -402,7 +578,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/kochbuecher.html": {
     "literal_buttons": 0,
@@ -411,7 +591,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/kuechenkalender.html": {
     "literal_buttons": 3,
@@ -420,7 +604,11 @@
     "wrong_icons": 0,
     "local_lists": 2,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/kuechenkalender_anlass.html": {
     "literal_buttons": 0,
@@ -429,7 +617,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 1,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/lager.html": {
     "literal_buttons": 0,
@@ -438,7 +630,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/local_user_create.html": {
     "literal_buttons": 1,
@@ -447,7 +643,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/local_user_editor.html": {
     "literal_buttons": 5,
@@ -456,7 +656,11 @@
     "wrong_icons": 1,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 3,
+    "local_footers": 0,
+    "raw_details": 4,
+    "css_px_heights": 0
   },
   "admin/local_user_events.html": {
     "literal_buttons": 2,
@@ -465,7 +669,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/local_user_unavailable.html": {
     "literal_buttons": 1,
@@ -474,7 +682,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/local_users.html": {
     "literal_buttons": 2,
@@ -483,7 +695,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 3,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/menu_collection.html": {
     "literal_buttons": 5,
@@ -492,7 +708,11 @@
     "wrong_icons": 2,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 3,
+    "local_footers": 0,
+    "raw_details": 2,
+    "css_px_heights": 0
   },
   "admin/menu_editor.html": {
     "literal_buttons": 15,
@@ -501,7 +721,11 @@
     "wrong_icons": 1,
     "local_lists": 3,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 3,
+    "css_px_heights": 0
   },
   "admin/operations.html": {
     "literal_buttons": 1,
@@ -510,7 +734,11 @@
     "wrong_icons": 0,
     "local_lists": 4,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 2,
+    "local_footers": 0,
+    "raw_details": 8,
+    "css_px_heights": 0
   },
   "admin/patienten.html": {
     "literal_buttons": 0,
@@ -519,7 +747,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/preview.html": {
     "literal_buttons": 3,
@@ -528,7 +760,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/print_template_editor.html": {
     "literal_buttons": 19,
@@ -537,7 +773,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 1,
+    "raw_details": 9,
+    "css_px_heights": 0
   },
   "admin/print_template_unavailable.html": {
     "literal_buttons": 0,
@@ -546,7 +786,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/recipe_template_error.html": {
     "literal_buttons": 1,
@@ -555,7 +799,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/rezepte.html": {
     "literal_buttons": 4,
@@ -564,7 +812,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 3,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/rezepte_ansicht.html": {
     "literal_buttons": 4,
@@ -573,7 +825,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/rezepte_conflict.html": {
     "literal_buttons": 0,
@@ -582,7 +838,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/rezepte_editor.html": {
     "literal_buttons": 9,
@@ -591,7 +851,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 4,
+    "css_px_heights": 0
   },
   "admin/rezepte_images.html": {
     "literal_buttons": 2,
@@ -600,7 +864,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/rezepte_import.html": {
     "literal_buttons": 4,
@@ -609,7 +877,11 @@
     "wrong_icons": 0,
     "local_lists": 2,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 8,
+    "local_footers": 1,
+    "raw_details": 3,
+    "css_px_heights": 0
   },
   "admin/rezepte_revision.html": {
     "literal_buttons": 3,
@@ -618,7 +890,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/rezepte_revisionen.html": {
     "literal_buttons": 2,
@@ -627,7 +903,11 @@
     "wrong_icons": 0,
     "local_lists": 3,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/rezepte_scale.html": {
     "literal_buttons": 2,
@@ -636,7 +916,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/screen_template_assignment.html": {
     "literal_buttons": 1,
@@ -645,7 +929,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/screen_template_unavailable.html": {
     "literal_buttons": 0,
@@ -654,7 +942,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/screens.html": {
     "literal_buttons": 1,
@@ -663,7 +955,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/vorlagen.html": {
     "literal_buttons": 17,
@@ -672,7 +968,11 @@
     "wrong_icons": 0,
     "local_lists": 2,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 5,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
   },
   "admin/week_management.html": {
     "literal_buttons": 0,
@@ -681,7 +981,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 1,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 2,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "admin/week_review.html": {
     "literal_buttons": 1,
@@ -690,7 +994,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 3,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "api/docs.html": {
     "literal_buttons": 0,
@@ -699,7 +1007,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "auth/error.html": {
     "literal_buttons": 1,
@@ -708,7 +1020,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "auth/local_login.html": {
     "literal_buttons": 0,
@@ -717,7 +1033,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "base.html": {
     "literal_buttons": 0,
@@ -726,7 +1046,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/base_public.html": {
     "literal_buttons": 1,
@@ -735,7 +1059,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/cafeteria_today.html": {
     "literal_buttons": 2,
@@ -744,7 +1072,11 @@
     "wrong_icons": 0,
     "local_lists": 1,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/cafeteria_week.html": {
     "literal_buttons": 2,
@@ -753,7 +1085,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/legend.html": {
     "literal_buttons": 0,
@@ -762,7 +1098,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/patient_today.html": {
     "literal_buttons": 2,
@@ -771,7 +1111,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/patient_week.html": {
     "literal_buttons": 2,
@@ -780,7 +1124,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 1,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/print_cafeteria_week.html": {
     "literal_buttons": 0,
@@ -789,7 +1137,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/print_patient_week.html": {
     "literal_buttons": 0,
@@ -798,7 +1150,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "public/unavailable.html": {
     "literal_buttons": 0,
@@ -807,7 +1163,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "signage/base_signage.html": {
     "literal_buttons": 0,
@@ -816,7 +1176,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "signage/cafeteria_closed.html": {
     "literal_buttons": 0,
@@ -825,7 +1189,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "signage/cafeteria_day.html": {
     "literal_buttons": 0,
@@ -834,7 +1202,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "signage/cafeteria_week.html": {
     "literal_buttons": 0,
@@ -843,7 +1215,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "signage/patient_day.html": {
     "literal_buttons": 0,
@@ -852,7 +1228,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "signage/patient_week.html": {
     "literal_buttons": 0,
@@ -861,7 +1241,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "signage/unavailable.html": {
     "literal_buttons": 0,
@@ -870,7 +1254,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "ui/_semantic.html": {
     "literal_buttons": 0,
@@ -879,7 +1267,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-bestellung.css": {
     "literal_buttons": 0,
@@ -888,7 +1280,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-branding.css": {
     "literal_buttons": 0,
@@ -897,7 +1293,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-components.css": {
     "literal_buttons": 0,
@@ -906,7 +1306,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 1
+    "list_typography_overrides": 1,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-einkaufslisten.css": {
     "literal_buttons": 0,
@@ -915,7 +1319,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 2
+    "list_typography_overrides": 2,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-gerichtvorlagen.css": {
     "literal_buttons": 0,
@@ -924,7 +1332,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-grundlagen.css": {
     "literal_buttons": 0,
@@ -933,7 +1345,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-kalkulation.css": {
     "literal_buttons": 0,
@@ -942,7 +1358,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-kitchen-calendar.css": {
     "literal_buttons": 0,
@@ -951,7 +1371,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 1
+    "list_typography_overrides": 1,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 2
   },
   "static/admin-lager.css": {
     "literal_buttons": 0,
@@ -960,7 +1384,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-menu-collection.css": {
     "literal_buttons": 0,
@@ -969,7 +1397,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 1
+    "list_typography_overrides": 1,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 3
   },
   "static/admin-menu-editor.css": {
     "literal_buttons": 0,
@@ -978,7 +1410,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 2
+    "list_typography_overrides": 2,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-nav.css": {
     "literal_buttons": 0,
@@ -987,7 +1423,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-preview.css": {
     "literal_buttons": 0,
@@ -996,7 +1436,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-screens.css": {
     "literal_buttons": 0,
@@ -1005,7 +1449,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-settings-benutzer.css": {
     "literal_buttons": 0,
@@ -1014,7 +1462,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-settings-bereiche.css": {
     "literal_buttons": 0,
@@ -1023,7 +1475,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-settings-darstellung.css": {
     "literal_buttons": 0,
@@ -1032,7 +1488,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-settings-import.css": {
     "literal_buttons": 0,
@@ -1041,7 +1501,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-settings-schnittstellen.css": {
     "literal_buttons": 0,
@@ -1050,7 +1514,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-tabler.css": {
     "literal_buttons": 0,
@@ -1059,7 +1527,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 17
+    "list_typography_overrides": 17,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-vorlagen-druck.css": {
     "literal_buttons": 0,
@@ -1068,7 +1540,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-vorschau-bildschirme.css": {
     "literal_buttons": 0,
@@ -1077,7 +1553,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/admin-week-tabler.css": {
     "literal_buttons": 0,
@@ -1086,7 +1566,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 1
   },
   "static/admin-wochenplan-kern.css": {
     "literal_buttons": 0,
@@ -1095,7 +1579,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 3
   },
   "static/admin-wochenuebersicht.css": {
     "literal_buttons": 0,
@@ -1104,7 +1592,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/cookbook-admin.css": {
     "literal_buttons": 0,
@@ -1113,7 +1605,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/recipe-admin.css": {
     "literal_buttons": 0,
@@ -1122,7 +1618,11 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   },
   "static/recipe-document.css": {
     "literal_buttons": 0,
@@ -1131,6 +1631,62 @@
     "wrong_icons": 0,
     "local_lists": 0,
     "local_filters": 0,
-    "list_typography_overrides": 0
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
+  },
+  "admin/_week_check_summary.html": {
+    "literal_buttons": 0,
+    "long_labels": 0,
+    "legacy_labels": 0,
+    "wrong_icons": 0,
+    "local_lists": 0,
+    "local_filters": 0,
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 1,
+    "css_px_heights": 0
+  },
+  "admin/kochbuch_ansicht.html": {
+    "literal_buttons": 0,
+    "long_labels": 0,
+    "legacy_labels": 0,
+    "wrong_icons": 0,
+    "local_lists": 0,
+    "local_filters": 0,
+    "list_typography_overrides": 0,
+    "local_status": 2,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
+  },
+  "static/print-template-editor.css": {
+    "literal_buttons": 0,
+    "long_labels": 0,
+    "legacy_labels": 0,
+    "wrong_icons": 0,
+    "local_lists": 0,
+    "local_filters": 0,
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 2
+  },
+  "static/ui-semantic.css": {
+    "literal_buttons": 0,
+    "long_labels": 0,
+    "legacy_labels": 0,
+    "wrong_icons": 0,
+    "local_lists": 0,
+    "local_filters": 0,
+    "list_typography_overrides": 0,
+    "local_status": 0,
+    "local_footers": 0,
+    "raw_details": 0,
+    "css_px_heights": 0
   }
 }
