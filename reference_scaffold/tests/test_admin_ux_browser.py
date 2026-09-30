@@ -262,8 +262,11 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
     page.locator('[data-add-row="components-list"]').click()
     added = page.locator('#components-list .component-row').last
     added.locator('[data-finish-row]').click()
-    added.locator('summary').click()
-    added.get_by_role('button', name='Löschen').click()
+    expect(added.locator('details, summary')).to_have_count(0)
+    remove = added.get_by_role('button', name='Baustein löschen', exact=True)
+    expect(remove).to_be_visible()
+    expect(remove).to_have_text('')
+    remove.click()
     page.locator('[data-add-row="components-list"]').click()
     for index, (ingredient, country) in enumerate((('Rind', 'CH'), ('Kartoffel', 'DE'))):
         if index:
@@ -272,8 +275,11 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
         page.locator('[name="origin_country_code"]').nth(index).select_option(country)
     page.locator('[data-add-row="origins-list"]').click()
     added_origin = page.locator('#origins-list .origin-row').last
-    added_origin.locator('details > summary').click()
-    added_origin.locator('[data-remove-row]').click()
+    expect(added_origin.locator('details, summary')).to_have_count(0)
+    remove_origin = added_origin.get_by_role('button', name='Herkunft löschen', exact=True)
+    expect(remove_origin).to_be_visible()
+    expect(remove_origin).to_have_text('')
+    remove_origin.click()
     page.locator('[data-add-row="origins-list"]').click()
     for code, presence in (('MILK', 'may_contain'), ('GLUTEN', 'contains')):
         checkbox = page.locator(f'[name="allergen_code"][value="{code}"]')
