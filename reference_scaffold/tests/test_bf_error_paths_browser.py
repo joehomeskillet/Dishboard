@@ -112,6 +112,27 @@ def _location(owner) -> int:
             'SELECT id FROM cafeteria.locations WHERE active')).scalar_one())
 
 
+@pytest.mark.parametrize('adder', [False, True])
+def test_inactive_article_keeps_basket_inputs(b3, adder):  # noqa: F811
+    ctx = _setup(b3)
+    client, path = ctx['client'], ctx['basket']
+    form = OrderForms(client.get(path).text).forms[path]
+    if adder:
+        form.setlist('article_public_id', [ctx['article_id'], ctx['article_id']])
+    form.setlist('quantity', ['7.25', '4.5' if adder else ''])
+    form.setlist('raw_quantity', ['1.5', '3.5' if adder else ''])
+    with ctx['owner'].begin() as connection:
+        connection.execute(text('UPDATE cafeteria.supplier_articles SET active=false WHERE public_id=CAST(:id AS uuid)'),
+                           {'id': ctx['article_id']})
+    response = client.post(path, data=form)
+    assert response.status_code == 400
+    assert 'Artikel nicht gefunden.' in response.text
+    kept = OrderForms(response.text).forms[path]
+    for field in ('article_public_id', 'quantity', 'raw_quantity', 'row_version'):
+        assert kept.getlist(field) == form.getlist(field)
+    assert get_basket(ctx['engine'], ctx['location'], ctx['basket_id'])['lines'][0]['quantity'] == Decimal('2')
+
+
 def _setup(b3):  # noqa: F811
     app, owner, client, actor = b3
     other = urlsplit(create(

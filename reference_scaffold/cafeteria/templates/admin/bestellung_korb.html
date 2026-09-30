@@ -46,6 +46,9 @@
 <td data-label="Artikel"><select class="form-select" name="article_public_id">
 <option value="">{{ t('actions.add_existing.label') }}</option>
 {% for row in articles %}<option value="{{ row.public_id }}"{% if adder is not none and adder.article_public_id == row.public_id|string %} selected{% endif %}>{{ row.name }}</option>{% endfor %}
+{% if adder is not none and adder.article_public_id and adder.article_public_id not in articles|map(attribute='public_id')|map('string')|list %}
+<option value="{{ adder.article_public_id }}" selected>Artikel nicht verfügbar</option>
+{% endif %}
 </select></td>
 <td data-label="Bestellmenge"><input class="form-control{% if errors['line-qty-new'] %} is-invalid{% endif %}" id="line-qty-new" name="quantity"{% if adder is not none %} value="{{ adder.quantity }}"{% endif %} placeholder="Menge"{% if errors['line-qty-new'] %} aria-invalid="true" aria-describedby="line-qty-new-error" autofocus{% endif %}>
 {% if errors['line-qty-new'] %}<div class="invalid-feedback d-block field-error" id="line-qty-new-error">{{ errors['line-qty-new'] }}</div>{% endif %}</td>
