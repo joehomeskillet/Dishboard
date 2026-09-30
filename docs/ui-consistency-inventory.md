@@ -928,6 +928,20 @@ Diese Quellenzählung unterscheidet bewusst nicht zwischen wirksamen und überst
 Aktualisieren: `rtk python3 tools/ui_consistency_inventory.py --update-baseline`.
 Bestehende Obergrenzen dürfen nur sinken; neue Dateien starten bei null.
 
+## UC-P2-D: Benutzer & Zugriff, Einstellungen, API (2026-09-30)
+
+| Route | Rolle / Zustand | Muster | Test |
+|---|---|---|---|
+| `/admin/benutzer` | Admin (`users.manage`); lesbar/nur lesen | 1 Liste + Segmentschalter Kontostatus im Kopf, Verlaufslinks als Kopfaktionen | `test_admin_local_users_browser`, `test_ui_korrektur_users_browser` |
+| `/admin/benutzer/<id>`, `/neu` | Admin; Fehler öffnet den betroffenen Abschnitt | 3 Detail/Edit, `disclosure_section(card)` je Rollen/Passwort/Zustand/Anlegen | `test_ui_korrektur_users_browser` |
+| `/admin/benutzer/zugriffsverlauf` | Admin | 1 Tabelle; Filter noch lokales Formular (G0-Nachtrag `filter_bar` ohne Suche) | `test_admin_access_history_browser` |
+| `/admin/api` | Admin; Schlüssel aktiv/abgelaufen/widerrufen | 1 Tabelle + Status über `status_badge_sem`; Anlegen/Technik als Kartenabschnitt | `test_admin_api_page`, `test_ui_korrektur_tools_browser`, `test_icon_api_browser` |
+| `/admin/bereiche-zeiten` | Admin | 3, Editoren als Kartenabschnitt, Hinweisfeld als Icon-Zusammenfassung | `test_ui_korrektur_ops_browser`, `test_admin_operations_browser`, `test_admin_operations_routes` |
+| `/admin/design/darstellung`, `/admin/design/marke`, `/admin/import-preview` | Admin | 3; Reset-Abschnitt über `disclosure_section`; Marken-Status über Registry | `test_admin_display_browser`, `test_branding_browser`, `test_admin_csv_preview_ui` |
+
+Ratchet der Paketdateien (statische Zählung): `raw_details` 20 → 4, `local_status` 17 → 3, `local_filters` 2 → 1,
+`local_lists` 4 (unverändert, unter dem Paketziel), `local_footers` 1. Keine Baseline angehoben.
+
 ## Release 18 R1: Rezeptaktionen und Regressionen (2026-09-27)
 
 ### Fortsetzung 2026-09-28: API-Schlüssel und Listenmessung
@@ -1111,7 +1125,7 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/_course_editor.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_course_line.html | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_course_recipe_search.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| admin/_local_user_forms.html | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
+| admin/_local_user_forms.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_macros.html | 1 | 0 | 0 | 0 | 2 | 0 | 0 |
 | admin/_recipe_document.html | 2 | 1 | 0 | 0 | 5 | 0 | 0 |
 | admin/_recipe_template_selection.html | 10 | 6 | 0 | 0 | 1 | 3 | 0 |
@@ -1122,12 +1136,12 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/_week_service.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_week_settings.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_workflow_sidebar.html | 1 | 0 | 0 | 0 | 1 | 0 | 0 |
-| admin/access_history.html | 3 | 1 | 0 | 1 | 1 | 1 | 0 |
-| admin/api.html | 4 | 1 | 0 | 0 | 3 | 0 | 0 |
+| admin/access_history.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| admin/api.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/base_tabler.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/bestellung.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/bestellung_korb.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/branding_editor.html | 3 | 2 | 1 | 0 | 1 | 0 | 0 |
+| admin/branding_editor.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/branding_preview.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/cafeteria.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | admin/component_editor.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -1144,21 +1158,21 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/grundlagen_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/grundlagen_unit.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/grundlagen_vocabulary.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/import_preview.html | 2 | 2 | 0 | 0 | 1 | 0 | 0 |
+| admin/import_preview.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/kalkulation.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/kochbuch_editor.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/kochbuecher.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/kuechenkalender.html | 3 | 0 | 0 | 0 | 2 | 1 | 0 |
 | admin/kuechenkalender_anlass.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/lager.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/local_user_create.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
-| admin/local_user_editor.html | 5 | 4 | 0 | 1 | 0 | 0 | 0 |
-| admin/local_user_events.html | 2 | 1 | 0 | 0 | 1 | 0 | 0 |
-| admin/local_user_unavailable.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
-| admin/local_users.html | 2 | 0 | 1 | 0 | 1 | 1 | 0 |
+| admin/local_user_create.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/local_user_editor.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/local_user_events.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/local_user_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/local_users.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/menu_collection.html | 5 | 0 | 0 | 2 | 1 | 0 | 0 |
 | admin/menu_editor.html | 15 | 4 | 0 | 1 | 3 | 1 | 0 |
-| admin/operations.html | 1 | 0 | 0 | 0 | 4 | 0 | 0 |
+| admin/operations.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/patienten.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/preview.html | 3 | 3 | 0 | 0 | 1 | 0 | 0 |
 | admin/print_template_editor.html | 19 | 11 | 0 | 0 | 1 | 1 | 0 |
@@ -1228,4 +1242,4 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | static/cookbook-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-document.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **TOTAL** | 167 | 74 | 11 | 5 | 52 | 17 | 24 |
+| **TOTAL** | 143 | 61 | 8 | 3 | 43 | 16 | 24 |
