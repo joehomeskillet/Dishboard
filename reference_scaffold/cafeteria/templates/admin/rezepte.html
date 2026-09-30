@@ -38,7 +38,7 @@
 {% if can_write and item.active %}{% set _ = actions.append({'key': 'actions.edit', 'href': url_for('admin.recipe_edit', recipe_id=item.public_id, **({'from': 'recipes', 'q': query, 'archived': '1' if archived else '0', 'page': page} if query or archived or page > 1 else {}))}) %}{% endif %}
 {% if links.latest_revision %}
 {% set _ = actions.append({'key': 'actions.open_pdf', 'href': url_for('admin.recipe_revision_pdf', recipe_id=item.public_id, revision_id=links.latest_revision.public_id), 'aria_label': t('recipe.pdf_open.aria', revision=links.latest_revision.revision_number, name=item.payload.title)}) %}
-{% else %}{% set _ = actions.append({'key': 'actions.open_pdf', 'type': 'button', 'disabled_reason': 'Noch kein gespeicherter Stand vorhanden'}) %}{% endif %}
+{% else %}{% set _ = actions.append({'key': 'actions.open_pdf', 'type': 'button', 'disabled_reason': t('recipe.no_revision_reason.label').unescape()}) %}{% endif %}
 {% set _ = actions.append({'key': 'actions.history', 'href': url_for('admin.recipe_revisions', recipe_id=item.public_id)}) %}
 {% if not links.latest_revision and can_write and item.active %}{% set _ = actions.append({'key': 'actions.snapshot', 'href': url_for('admin.recipe_revisions', recipe_id=item.public_id, _anchor='recipe-freeze')}) %}{% endif %}
 {% for template in links.templates %}

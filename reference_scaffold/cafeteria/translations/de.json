@@ -1,4 +1,13 @@
 {
+  "recipe.row_first_reason.label": "Bereits an erster Position.",
+  "recipe.row_first_reason.tooltip": "Bereits an erster Position.",
+  "recipe.row_first_reason.aria": "Bereits an erster Position.",
+  "recipe.row_last_reason.label": "Bereits an letzter Position.",
+  "recipe.row_last_reason.tooltip": "Bereits an letzter Position.",
+  "recipe.row_last_reason.aria": "Bereits an letzter Position.",
+  "recipe.no_revision_reason.label": "Noch kein gespeicherter Stand vorhanden",
+  "recipe.no_revision_reason.tooltip": "Noch kein gespeicherter Stand vorhanden",
+  "recipe.no_revision_reason.aria": "Noch kein gespeicherter Stand vorhanden",
   "actions.open_pdf.label": "PDF öffnen",
   "actions.open_pdf.tooltip": "PDF öffnen",
   "actions.open_pdf.aria": "PDF öffnen",

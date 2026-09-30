@@ -1,5 +1,38 @@
 [
   {
+    "key": "recipe.row_first_reason",
+    "category": "recipe",
+    "ascii": "[i]",
+    "icon": "arrow-up",
+    "label_key": "recipe.row_first_reason.label",
+    "tooltip_key": "recipe.row_first_reason.tooltip",
+    "aria_key": "recipe.row_first_reason.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "recipe.row_last_reason",
+    "category": "recipe",
+    "ascii": "[i]",
+    "icon": "arrow-down",
+    "label_key": "recipe.row_last_reason.label",
+    "tooltip_key": "recipe.row_last_reason.tooltip",
+    "aria_key": "recipe.row_last_reason.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "recipe.no_revision_reason",
+    "category": "recipe",
+    "ascii": "[i]",
+    "icon": "file-type-pdf",
+    "label_key": "recipe.no_revision_reason.label",
+    "tooltip_key": "recipe.no_revision_reason.tooltip",
+    "aria_key": "recipe.no_revision_reason.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
     "key": "actions.open_pdf",
     "category": "actions",
     "ascii": "[ACTION]",

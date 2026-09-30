@@ -1,4 +1,13 @@
 {
+  "recipe.row_first_reason.label": "Already at the first position.",
+  "recipe.row_first_reason.tooltip": "Already at the first position.",
+  "recipe.row_first_reason.aria": "Already at the first position.",
+  "recipe.row_last_reason.label": "Already at the last position.",
+  "recipe.row_last_reason.tooltip": "Already at the last position.",
+  "recipe.row_last_reason.aria": "Already at the last position.",
+  "recipe.no_revision_reason.label": "No saved revision available yet",
+  "recipe.no_revision_reason.tooltip": "No saved revision available yet",
+  "recipe.no_revision_reason.aria": "No saved revision available yet",
   "actions.open_pdf.label": "Open PDF",
   "actions.open_pdf.tooltip": "Open PDF",
   "actions.open_pdf.aria": "Open PDF",
