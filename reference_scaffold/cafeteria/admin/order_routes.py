@@ -121,8 +121,6 @@ def _render_basket(
 
 
 def _fail_basket(public_id: str, error: BaseException, status: int, *, demand: bool) -> WerkzeugResponse:
-    if isinstance(error, CalendarEventValidationError) and 'nicht gefunden' in str(error).casefold():
-        return ('', 404)
     location = get_location(_db())
     try:
         basket = get_basket(_db(), location, public_id)
