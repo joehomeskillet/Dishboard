@@ -1,7 +1,7 @@
 """Native Tabler recipe list/editor consuming the frozen R1/A1 contracts."""
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 import re
 from typing import Any
 
@@ -140,6 +140,18 @@ def _get_editor(recipe_id=None, *, confirmation=False):
                           confirmation=confirmation, choices=choice_rows)
 
 
+def _last_occupied_page(probe: Callable[[int], bool], requested: int) -> int:
+    low, high, last = 1, requested - 1, 1
+    while low <= high:
+        mid = (low + high) // 2
+        if probe(mid):
+            last = mid
+            low = mid + 1
+        else:
+            high = mid - 1
+    return last
+
+
 @bp.get('/rezepte')
 @protected
 def recipes_list():
@@ -156,6 +168,18 @@ def recipes_list():
     text_query = request.args.get('text', '')
     rows = store.list_recipes(_engine(), search=query, ingredient=ingredient, tag=tag, text_search=text_query,
                              include_archived=archived == '1', limit=51, offset=(page - 1) * 50)
+    # In-place: a redirect would rewrite the page query on a D20 return URL.
+    if page > 1 and not rows:
+        last = _last_occupied_page(lambda candidate: bool(store.list_recipes(
+            _engine(), search=query, ingredient=ingredient, tag=tag, text_search=text_query,
+            include_archived=archived == '1', limit=1, offset=(candidate - 1) * 50,
+        )), page)
+        if last < page:
+            page = last
+            rows = store.list_recipes(
+                _engine(), search=query, ingredient=ingredient, tag=tag, text_search=text_query,
+                include_archived=archived == '1', limit=51, offset=(page - 1) * 50,
+            )
     tags = [(row.public_id, row.name + (' · archiviert' if not row.active else ''))
             for row in _all(masters.list_vocabulary, 'tag')]
     if tag and tag not in {key for key, _ in tags}:

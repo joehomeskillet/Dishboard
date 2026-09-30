@@ -167,17 +167,40 @@ def render_location_conflict(kind: str, purpose: str, public_id: str | None) -> 
     ), 409)
 
 
+def _last_occupied_page(probe: Callable[[int], bool], requested: int) -> int:
+    low, high, last = 1, requested - 1, 1
+    while low <= high:
+        mid = (low + high) // 2
+        if probe(mid):
+            last = mid
+            low = mid + 1
+        else:
+            high = mid - 1
+    return last
+
+
+def _master_rows(kind: str, options: dict[str, Any]):
+    if kind == 'zutaten':
+        return store.list_foods(forms.engine(), **options)
+    if kind == 'einheiten':
+        return store.list_units(forms.engine(), **options)
+    return store.list_vocabulary(forms.engine(), forms.VOCABULARY[kind], **options)
+
+
 @bp.get('/grundlagen')
 @protected
-def master_data_list() -> str:
+def master_data_list() -> str | Response:
     kind, page, options = forms.list_arguments()
-    if kind == 'zutaten':
-        rows = store.list_foods(forms.engine(), **options)
-    elif kind == 'einheiten':
-        rows = store.list_units(forms.engine(), **options)
-    else:
-        rows = store.list_vocabulary(forms.engine(), forms.VOCABULARY[kind], **options)
+    rows = _master_rows(kind, options)
     filters: dict[str, Any] = {key: value for key, value in request.args.items() if key != 'page'}
+    # In-place: a redirect would rewrite the page query on a D20 return URL.
+    if page > 1 and not rows:
+        last = _last_occupied_page(lambda candidate: bool(_master_rows(
+            kind, {**options, 'limit': 1, 'offset': (candidate - 1) * 50},
+        )), page)
+        if last < page:
+            page = last
+            rows = _master_rows(kind, {**options, 'offset': (page - 1) * 50})
     allowed = capabilities()
     return render_template('admin/grundlagen.html', family='cafeteria', profile='staff_guest',
         kind=kind, kinds=forms.KINDS, query_kinds=forms.QUERY_KINDS, rows=rows[:50], page=page, has_next=len(rows) > 50,

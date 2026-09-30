@@ -55,11 +55,35 @@ def find_weeks(engine: Engine, scope: AdminScope, page: int = 1) -> tuple[list[d
     return rows, len(result) > PAGE_SIZE
 
 
+def count_weeks(engine: Engine, scope: AdminScope) -> int:
+    with engine.connect() as connection:
+        if resolve_single_active_location_connection(connection) != scope.location_id:
+            raise ComponentCatalogConfigurationError('Der aktive Standort wurde geändert.')
+        total = connection.execute(text('''
+            SELECT count(*)
+            FROM cafeteria.menu_weeks w
+            JOIN cafeteria.offer_profiles p ON p.id=w.profile_id
+            WHERE w.location_id=:location_id AND p.code=:profile_code
+        '''), {
+            'location_id': scope.location_id, 'profile_code': scope.profile_code,
+        }).scalar_one()
+        if resolve_single_active_location_connection(connection) != scope.location_id:
+            raise ComponentCatalogConfigurationError('Der aktive Standort wurde geändert.')
+    return int(total)
+
+
 def _render_weeks(
     family: str, profile: str, scope: AdminScope, page: int = 1,
     values: dict[str, str] | None = None, error: str | None = None,
-) -> str:
+) -> str | Response:
     rows, has_next = _call(lambda: find_weeks(_db(), scope, page))
+    # In-place: a redirect would rewrite the page query. week_create passes values, so its error page stays.
+    if page > 1 and not rows and error is None and values is None:
+        total = _call(lambda: count_weeks(_db(), scope))
+        last = 1 if total <= 0 else (total + PAGE_SIZE - 1) // PAGE_SIZE
+        if last < page:
+            page = last
+            rows, has_next = _call(lambda: find_weeks(_db(), scope, page))
     today = effective_today()
     next_monday = today + timedelta(days=7 - today.weekday())
     allowed = capabilities()
@@ -77,7 +101,7 @@ def _render_weeks(
 
 @bp.get('/<any(cafeteria, patienten):family>/wochen')
 @require_capability('draft.read')
-def week_management(family: str) -> str:
+def week_management(family: str) -> str | Response:
     profile = profile_from_endpoint(family)
     _reject_override()
     raw_page = request.args.get('page', '1')
