@@ -1,7 +1,7 @@
 /* Recipe lists use the shared responsive table and direct action geometry. */
 .recipe-list-card { container: recipe-list / inline-size; }
-/* Match the shared stacked table when the card, rather than the viewport, is narrow. */
-@container recipe-list (max-width: 767.98px) {
+/* Stack small cards; medium cards keep the shared compact table layout. */
+@container recipe-list (max-width: 575.98px) {
   .dishboard-admin table.recipe-list,
   .dishboard-admin .recipe-list :is(caption, tbody) { display: block; }
   .dishboard-admin .recipe-list thead {

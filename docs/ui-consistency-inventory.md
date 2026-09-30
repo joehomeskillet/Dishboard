@@ -1,5 +1,22 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## DA-WP5b — kombinierte Direktaktionen, 2026-09-30
+
+Die folgenden Nachprüfungen betreffen die kombinierte DA-Linie. Vollständige
+62-Dateien-Abnahme, Zwischenfehler, Quellcode-Hashes und Reviewstatus stehen in
+`.claude/state/claude-session-2026-09-29/reports/DA-WP5b-report.md` des
+Worktrees `icon-first-r18`; Einzelbelege unter `audit/DA/WP5b/` daneben.
+Diese Tabelle dokumentiert die gezielten erfolgreichen Nachprüfungen und ist
+keine Merge- oder Deploymentfreigabe.
+
+| Route | Rolle / Zustand / Muster | Tatsächliche Nachprüfung |
+|---|---|---|
+| `/admin/<family>/menu` | Beide Profile, bearbeitbare Menüzeilen und Validierungsfehler; geklonte Aktionsbeschreibungen haben eindeutige IDs und bleiben der eigenen Zeile zugeordnet. | `test_admin_menu_editor_browser.py`: 20 passed; vorhandene Fehler-, Fokus-, Klon- und Größenprüfungen erhalten, lokale Beschreibungszuordnung ergänzt. |
+| `/admin/rezepte/neu`, `/admin/rezepte/<recipe_id>` | Publisher mit Schreibrecht, reine Leserechte und Archivzustand; Zutaten, Schritte und Bilder nutzen getrennte Auf-/Ab-Symbole. Randpositionen bleiben nativ deaktiviert mit Grund; JS/No-JS, 1440 fein / 390 grob. | `test_icon_recipe_editor_browser.py`: 18 passed; `test_recipe_browser.py`: 12 passed; `test_ui_semantics.py`: 288 passed einschließlich DE/EN und Objektbezug. |
+| `/admin/rezepte` | Suche und aktive Entwürfe, JS/No-JS, 360/768/1024/1440 px; kleine Karten stapeln, mittelbreite Karten erhalten die kompakte Tabelle. Alle Aktionen bleiben direkt sichtbar. | `test_recipe_search_browser.py`: 7 passed mit unveränderten Höhen- und Überlaufgrenzen. Schmale Desktop-Karten und DE/EN werden zusätzlich durch `test_icon_recipe_more_locale_browser.py` geprüft; Ergebnis im Abschlussreport. |
+| Rezepteditor, Bilder, Verlauf, Mengen und Archivbestätigung | Publisher sowie reine Leserechte; direkte objektbezogene Links, native Navigation, unveränderter Datenbankzustand und keine unerwarteten POSTs. | `test_recipe_navigation_browser.py`: 7 passed; `test_ui_korrektur_recipes_browser.py`: 2 passed; `test_icon_confirm_submitter_browser.py`: 24 passed einschließlich Abbruch und Bestätigung nativer Schreibaktionen. |
+| `/admin/vorlagen` und Vorlageneditoren | Vorhandene Schreibrechte und Archivzustände; konkrete Kopier-/Lebenszyklusaktionen, native Validierung und geschlossene Formularabschnitte. | `test_ui_korrektur_vorlagen_browser.py`: 29 passed; keine Rückkehr zu generischen Mehr-Menüs. |
+
 ## Abschlussstand Icon-first-Migration (H18, korrigiert durch H18b)
 
 Quellenstand: 2026-09-29, Dokumentkorrektur auf `21bfc4cb`. Die unten genannten
