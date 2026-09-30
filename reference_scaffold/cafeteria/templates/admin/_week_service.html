@@ -36,7 +36,7 @@
 </div>
 <details class="admin-week-service"{% if service_open %} open{% endif %}>
 <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.edit" data-ui-tooltip="Ausgabeangaben ändern" aria-label="Ausgabeangaben ändern">{{ sem_icon('actions.edit') }}</summary>
-  <form method="post" action="/admin/{{ family }}/service" class="card card-sm mb-3 admin-week-service-form">
+  <form method="post" data-dirty-form action="/admin/{{ family }}/service" class="card card-sm mb-3 admin-week-service-form">
     <div class="card-body">
       {{ form_errors(service_errors.values()|list) }}
       {% if service_errors.get('form') %}

@@ -151,7 +151,14 @@ def test_direct_actions_across_wp3_surfaces(
                     for action in page.locator('main .admin-row-actions > .ui-sem-control:visible').all():
                         label = action.get_attribute('aria-label')
                         assert label, (name, action.evaluate('el => el.outerHTML'))
-                        expect(action).to_have_text('')
+                        classes = action.get_attribute('class') or ''
+                        # Alt: every control in .admin-row-actions had to_have_text('').
+                        # Neu: hub and section links show a destination label.
+                        # Row object actions stay icon-only (Icon-first §5.4).
+                        if 'ui-sem-control--icon-only' in classes:
+                            expect(action).to_have_text('')
+                        else:
+                            assert action.inner_text().strip(), (name, label)
                         expect(action).to_have_attribute('data-ui-tooltip', label)
                         box = action.bounding_box()
                         assert box['width'] >= (44 if width == 390 else 36) and box['height'] >= (44 if width == 390 else 36), (name, label, box)

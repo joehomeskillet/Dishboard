@@ -793,6 +793,7 @@ reference_scaffold/cafeteria/shopping_list_reads.py
 reference_scaffold/cafeteria/shopping_list_store.py
 reference_scaffold/cafeteria/signage/__init__.py
 reference_scaffold/cafeteria/signage/routes.py
+reference_scaffold/cafeteria/static/admin-asset-fallback.js
 reference_scaffold/cafeteria/static/admin-bestellung.css
 reference_scaffold/cafeteria/static/admin-branding.css
 reference_scaffold/cafeteria/static/admin-components.css
@@ -1375,9 +1376,12 @@ reference_scaffold/tests/test_auth_live_hardening.py
 reference_scaffold/tests/test_auth_local_login_browser.py
 reference_scaffold/tests/test_auth_proxy_security.py
 reference_scaffold/tests/test_auth_routes.py
+reference_scaffold/tests/test_bf_asset_failure_browser.py
+reference_scaffold/tests/test_bf_dialog_low_height_browser.py
 reference_scaffold/tests/test_bf_error_paths_browser.py
 reference_scaffold/tests/test_bf_import_invalid_browser.py
 reference_scaffold/tests/test_bf_list_context_browser.py
+reference_scaffold/tests/test_bf_multi_area_dirty_browser.py
 reference_scaffold/tests/test_bf_preview_public_output_browser.py
 reference_scaffold/tests/test_bf_progress_counters_browser.py
 reference_scaffold/tests/test_bf_relations_display_browser.py

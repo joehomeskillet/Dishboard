@@ -12,7 +12,7 @@
 {% block page_header %}
 {% call page_header('Vorlagen') %}
 {% if not catalog_error %}
-{{ icon_button('actions.print', href=url_for('admin.print_week', family='cafeteria', week=week), aria_label=area_names.staff_guest ~ ' PDF der gespeicherten Woche öffnen', emphasis='primary') }}
+{{ icon_button('actions.print', href=url_for('admin.print_week', family='cafeteria', week=week), aria_label=area_names.staff_guest ~ ' PDF der gespeicherten Woche öffnen', text='PDF Mitarbeitende', show_text=true, emphasis='primary') }}
 {% endif %}
 {% endcall %}
 {% endblock %}
@@ -94,17 +94,14 @@
               {% endif %}
               {% endfor %}
         </section>
-        <div class="output-print-actions">
-          {% set actions = [
-            {'key': 'actions.open', 'href': url_for('admin.' ~ output_family, week=week), 'aria_label': label ~ ' gewählte Woche öffnen'},
-            {'key': 'actions.open', 'href': url_for('admin.menu_collection', family=output_family), 'aria_label': label ~ ' Menüs öffnen'},
-            {'key': 'actions.open', 'href': url_for('admin.components_get', family=output_family), 'aria_label': label ~ ' Komponenten öffnen'}
-          ] %}
+        <div class="output-print-actions" role="group" aria-label="{{ t('ui.action_group.object', object=label) }}">
+          {{ icon_button('actions.open', href=url_for('admin.' ~ output_family, week=week), aria_label=label ~ ' gewählte Woche öffnen', text='gewählte Woche', show_text=true) }}
+          {{ icon_button('actions.open', href=url_for('admin.menu_collection', family=output_family), aria_label=label ~ ' Menüs öffnen', text='Menüs', show_text=true) }}
+          {{ icon_button('actions.open', href=url_for('admin.components_get', family=output_family), aria_label=label ~ ' Komponenten öffnen', text='Komponenten', show_text=true) }}
           {% if output_family != 'cafeteria' %}
-          {% set _ = actions.append({'key': 'actions.print', 'href': url_for('admin.print_week', family=output_family, week=week), 'aria_label': label ~ ' PDF der gespeicherten Woche öffnen'}) %}
+          {{ icon_button('actions.print', href=url_for('admin.print_week', family=output_family, week=week), aria_label=label ~ ' PDF der gespeicherten Woche öffnen', text='PDF Patienten', show_text=true) }}
           {% endif %}
-          {% set _ = actions.append({'key': 'actions.print', 'href': url_for('public.print_' ~ endpoint ~ '_week'), 'aria_label': label ~ ' veröffentlichten Wochenplan drucken'}) %}
-          {{ row_actions(actions, object=label) }}
+          {{ icon_button('actions.print', href=url_for('public.print_' ~ endpoint ~ '_week'), aria_label=label ~ ' veröffentlichten Wochenplan drucken', text='Wochenplan', show_text=true) }}
         </div>
   </div>
   {% endfor %}
@@ -156,7 +153,7 @@
       </table>
       {% if can_browse_recipes %}
       <div class="btn-list mt-3">
-        {{ icon_button('actions.print', href=url_for('admin.recipes_list'), aria_label='Rezept drucken') }}
+        {{ icon_button('actions.print', href=url_for('admin.recipes_list'), aria_label='Rezept drucken', text='Rezept drucken', show_text=true) }}
       </div>
       {% endif %}
   </section>
@@ -164,7 +161,7 @@
     <h2 class="h4 mb-2">Gerichtvorlagen</h2>
       <p class="text-secondary small mb-2">Menüvorlagen ({{ dish_template_counts.active }} aktiv, {{ dish_template_counts.archived }} archiviert)</p>
       <div class="btn-list">
-        {{ icon_button('actions.open', href=url_for('admin.dish_templates_list'), aria_label='Gerichtvorlagen öffnen') }}
+        {{ icon_button('actions.open', href=url_for('admin.dish_templates_list'), aria_label='Gerichtvorlagen öffnen', text='Gerichtvorlagen', show_text=true) }}
       </div>
   </section>
 </div>
@@ -202,9 +199,10 @@
   </div>
 </div>
 <div class="mt-4">
-  {% set actions = [{'key': 'actions.open', 'href': url_for('admin.master_data_list', kind='foods'), 'aria_label': 'Zutaten und Grundlagen öffnen'}] %}
-  {% if can_browse_recipes %}{% set _ = actions.append({'key': 'actions.open', 'href': url_for('admin.cookbooks_list'), 'aria_label': 'Kochbücher öffnen'}) %}{% endif %}
-  {{ row_actions(actions) }}
+  <div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.aria') }}">
+    {{ icon_button('actions.open', href=url_for('admin.master_data_list', kind='foods'), aria_label='Zutaten und Grundlagen öffnen', text='Zutaten', show_text=true) }}
+    {% if can_browse_recipes %}{{ icon_button('actions.open', href=url_for('admin.cookbooks_list'), aria_label='Kochbücher öffnen', text='Kochbücher', show_text=true) }}{% endif %}
+  </div>
 </div>
 {% endif %}
 {% endblock %}

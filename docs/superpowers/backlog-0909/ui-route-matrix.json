@@ -10483,7 +10483,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "0c8a635529cbc6f34ff93526ff2d9411ec54c2392903b1554d8903b901323521",
+      "sha256": "26deddeca498b620a40a4d172fc73ad55bcbb656af95491ada0bb77efa802f3a",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10505,7 +10505,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "36d9553be60326043bdce73e203f46c475cf31b3686e5411ea58e6c5decec195",
+      "sha256": "b93bc62fb28f5f2ba4963672418bcf4d6fac191b3fc946b238cde26ab4e18fd8",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10525,7 +10525,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "36c9a0c5b20269038faba58d2c35fb4cbc66eca5973b1e5db08d0481280e9b7f",
+      "sha256": "5a164fad6e54380fa6f6a89e1b1745250719e060b7c7f0b1f3aff42cab73a27c",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10545,7 +10545,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "a255fdd56d737ce78a2f2ec208a8c5767783d3785fa9e422660e18fd14b70e9e",
+      "sha256": "23b7a549dfd9907be93727fd3b4f45886b80a3c656632629ad226225e97bdaac",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10701,7 +10701,7 @@
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
-      "sha256": "74ac4fa9012d3f768bb1fa807fa794dd434ea61456b7eaccc283ae4bbb173653",
+      "sha256": "5f4adb11e2c871ded6413430901a9d17fc07090cedd29368a23b3c51dfc08805",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -10837,7 +10837,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "6ca844f79f80bed4584a7a93de7df164a340f19c6d325dbfc63739ac32cb547c",
+      "sha256": "bacc894f570b0e704abee567288ca2ff899621092d1cd408a8843b78cbe17269",
       "used_by_endpoints": [
         "admin.cafeteria"
       ],
@@ -11027,7 +11027,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "fedc8a0c3b208ae77f7133803d2fb02dff48acb397614dd1b71e009b97008055",
+      "sha256": "cf244cbf988776a9af964df837458fd4ff59a712b2225e730138d3e48be4cdbd",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11397,7 +11397,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "ca183c7406c50b2c68491d3cc20ee916004ae0c682ebc46ed799cc32be681900",
+      "sha256": "f0ebb192583ff6bc3a5b6e8e43d2c26d14d1b38f68ccb40380c333b2c6ca9c55",
       "used_by_endpoints": [
         "admin.menu_get"
       ],
@@ -11473,7 +11473,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "be2f2abca453c8c1b3882520e29bcdd2cf91c1a222fb84c72280c6b840100292",
+      "sha256": "b9789c18b31354fee65f21671df3dbf5516f61a021e5cd1c6076496869926e6d",
       "used_by_endpoints": [
         "admin.preview"
       ],
@@ -11820,7 +11820,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "5b1d3587fb8c3d9770aa477670df034db3394c91c18ef8154d8109635f2b017a",
+      "sha256": "6639aebcc388a533a8e716393177579b113db784ce3b1c18bb4df405edbe42c5",
       "used_by_endpoints": [
         "admin.screens"
       ],
@@ -11842,7 +11842,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "e2a13868fbaf4205e69793326ac13bbab6075361eac32067180afb1f1a6b6181",
+      "sha256": "3211de39627d04bbcd09bf9d3fbc8291a5f1dd3da10f91e91e7549bd4241a8a4",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],
@@ -11884,7 +11884,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "ca259b2f8b15e9ddc885dfbfeff2058d5809541ea26e4843e20048d0759113a7",
+      "sha256": "835f360b0719a5920e544c5ee022fef2c3358fbd575629445a3093efefb83562",
       "used_by_endpoints": [
         "admin.week_review_get"
       ],

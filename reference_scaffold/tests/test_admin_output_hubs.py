@@ -6,6 +6,7 @@ import re
 import threading
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 from flask import Blueprint, Flask
@@ -71,6 +72,108 @@ class MainLinks(HTMLParser):
     def handle_endtag(self, tag):
         if tag == 'main':
             self.inside = False
+
+
+class _HubNavLinks(HTMLParser):
+    """Cross-route links in main, excluding row object actions."""
+
+    _VOID = frozenset({
+        'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta',
+        'source', 'track', 'wbr',
+    })
+
+    def __init__(self, html, page_path):
+        super().__init__(convert_charrefs=True)
+        self.page_path = page_path
+        self.stack = []
+        self.capture = None
+        self.unlabeled = []
+        self.groups = []
+        self.feed(html)
+
+    def handle_starttag(self, tag, attrs):
+        attr = dict(attrs)
+        classes = set((attr.get('class') or '').split())
+        parent_skip = self.stack[-1]['skip'] if self.stack else False
+        in_main = tag == 'main' or any(frame['tag'] == 'main' for frame in self.stack)
+        frame = {
+            'tag': tag,
+            'skip': parent_skip or 'admin-list-actions' in classes,
+            'group': None,
+        }
+        if (
+            in_main and not frame['skip'] and tag == 'div'
+            and ({'output-print-actions', 'admin-row-actions'} & classes)
+        ):
+            frame['group'] = []
+        self.stack.append(frame)
+        if tag == 'a' and in_main and not frame['skip']:
+            self.capture = {'href': attr.get('href') or '', 'text': []}
+        if tag in self._VOID:
+            self.stack.pop()
+
+    def handle_endtag(self, tag):
+        while self.stack:
+            frame = self.stack.pop()
+            if frame['tag'] == 'a' and self.capture is not None:
+                self._finish(frame)
+            if frame['group'] is not None:
+                self.groups.append(frame['group'])
+            if frame['tag'] == tag:
+                break
+
+    def handle_data(self, data):
+        if self.capture is not None:
+            self.capture['text'].append(data)
+
+    def _innermost_group(self):
+        for frame in reversed(self.stack):
+            if frame['group'] is not None:
+                return frame['group']
+        return None
+
+    def _finish(self, frame):
+        href = self.capture['href']
+        text = ' '.join(''.join(self.capture['text']).split())
+        self.capture = None
+        group = self._innermost_group()
+        path = urlsplit(href).path
+        if group is not None:
+            group.append((text, path))
+        if not path or href.startswith('#') or path == self.page_path:
+            return
+        if not text:
+            self.unlabeled.append(href)
+
+
+def test_hub_navigation_links_keep_visible_destination_labels(hub_app, database_engine):  # noqa: F811
+    """Links to another route on the output hubs show a destination label.
+
+    Alt: identical icon-only arrows. Neu: icon plus a short visible name.
+    Row actions inside .admin-list-actions stay icon-only (Icon-first §5.4).
+    """
+    client, _ = _login(hub_app, database_engine, ['Cafeteria.Admin'])
+    expected = {
+        '/admin/vorlagen': (
+            'PDF Mitarbeitende', 'gewählte Woche', 'Menüs', 'Komponenten', 'Wochenplan',
+            'PDF Patienten', 'Rezept drucken', 'Gerichtvorlagen', 'Zutaten', 'Kochbücher',
+        ),
+        '/admin/screens': ('Tagesplan', 'Wochenplan', 'Ohne Bilder', 'Zuweisen'),
+    }
+    for path, labels in expected.items():
+        response = client.get(path)
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        scan = _HubNavLinks(html, path)
+        assert scan.unlabeled == [], (path, scan.unlabeled)
+        for label in labels:
+            assert label in html, (path, label)
+        for group in scan.groups:
+            seen = {}
+            for text, target in group:
+                assert text, (path, group)
+                assert seen.get(text, target) == target, (path, text, seen[text], target)
+                seen[text] = target
 
 
 def test_app_factory_registers_each_hub_once(monkeypatch):
@@ -290,6 +393,18 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
                 assert response is not None and response.status == 200
                 expect(page.get_by_role('heading', level=1)).to_have_text(title)
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+                if path == '/admin/screens':
+                    # Alt: empty icon. Neu: the screen link names the destination.
+                    expect(page.get_by_role(
+                        'link', name='Mitarbeitende und externe Gäste Bildschirm Tagesplan öffnen', exact=True,
+                    )).to_contain_text('Tagesplan')
+                else:
+                    expect(page.get_by_role('link', name='Gerichtvorlagen öffnen', exact=True)).to_contain_text(
+                        'Gerichtvorlagen',
+                    )
+                    expect(page.get_by_role(
+                        'link', name='Mitarbeitende und externe Gäste gewählte Woche öffnen', exact=True,
+                    )).to_contain_text('gewählte Woche')
                 if path == '/admin/screens':
                     expect(page.locator('.screen-card [data-semantic="actions.more"]')).to_have_count(0)
                     expect(page.locator('.screen-card .admin-row-actions')).to_have_count(4)

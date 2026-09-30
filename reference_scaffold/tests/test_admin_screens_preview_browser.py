@@ -95,7 +95,10 @@ def test_card_visuals_tv_is_large_visible_and_native(
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         expect(page.locator('iframe')).to_have_count(10)
         link = page.get_by_role('link', name='Mitarbeitende und externe Gäste Bildschirm Tagesplan öffnen', exact=True)
-        minimum = 36 if 'ui-sem-control--icon-only' in (link.get_attribute('class') or '') else 48
+        # Alt: icon-only, empty text, 36px. Neu: visible destination, still a 36px semantic control.
+        expect(link).to_contain_text('Tagesplan')
+        classes = link.get_attribute('class') or ''
+        minimum = 36 if 'ui-sem-control' in classes else 48
         assert link.bounding_box()['height'] >= minimum
         link.focus()
         expect(link).to_be_focused()
