@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from test_eh_http_contract import assert_login_redirect
 import threading
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
@@ -444,9 +445,12 @@ def test_detail_reference_focus_ring(detail_revisions, detail_server, browser, w
         capture_screenshot(page, tmp_path, f'detail-focus-ring-{width}x{height}')
 
 
-def test_detail_reference_unauthenticated_gets_401(detail_revisions, detail_server, browser, tmp_path):  # noqa: F811
+def test_detail_reference_unauthenticated_gets_401(detail_revisions, detail_server, browser, tmp_path, monkeypatch):  # noqa: F811
     recipe_id, rev_id, _, _ = detail_revisions['normal']
-    base, _, _ = detail_server
+    base, _, app = detail_server
+    monkeypatch.setitem(app.config, 'DEMO_MODE', False)
+    monkeypatch.setitem(app.config, 'LOCAL_AUTH_ENABLED', True)
+    monkeypatch.setitem(app.config, 'ENTRA_ENABLED', False)
     url = f'{base}/admin/rezepte/{recipe_id}/revisionen/{rev_id}'
 
     with browser.new_context(viewport={'width': 1440, 'height': 900}, java_script_enabled=True,
@@ -454,8 +458,11 @@ def test_detail_reference_unauthenticated_gets_401(detail_revisions, detail_serv
         page = context.new_page()
         for width, height in ZOOM_VIEWPORTS:
             page.set_viewport_size({'width': width, 'height': height})
+            assert_login_redirect(context.request.get(url, max_redirects=0))
             response = page.goto(url)
-            assert response.status == 401
+            assert response.status == 200
+            assert urlparse(page.url).path == '/auth/local'
+            expect(page.locator('form.auth-form')).to_be_visible()
             assert 'Unveränderlicher Stand' not in page.locator('body').inner_text()
             capture_screenshot(page, tmp_path, f'detail-401-unauthenticated-{width}x{height}')
 

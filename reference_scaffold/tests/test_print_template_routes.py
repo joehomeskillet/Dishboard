@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from test_eh_http_contract import assert_login_redirect
 from pathlib import Path
 
 import pytest
@@ -100,7 +101,7 @@ def test_template_mutations_require_current_admin_but_active_pdf_remains_readabl
     assert client.get(f'/admin/vorlagen/patienten/vorschau.pdf?week={DAY}').status_code == 403
     assert client.get(f'/admin/patienten/preview/print?week={DAY}').status_code == 200
     assert 'Vorlageneditor öffnen' not in client.get('/admin/vorlagen').text
-    assert editor_app.test_client().get(path).status_code == 401
+    assert_login_redirect(editor_app.test_client().get(path))
 
 
 def test_missing_week_has_editable_empty_state_and_activation_refuses(editor_app, database_engine):  # noqa: F811

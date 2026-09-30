@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from test_eh_http_contract import assert_login_redirect
 import json
 from datetime import date
 from pathlib import Path
@@ -56,7 +57,7 @@ def test_anonymous_kitchen_calendar_is_401(monkeypatch, tmp_path) -> None:
     application.config.update(
         TESTING=True, SECRET_KEY='cal-nav', LAST_GOOD_DIR=str(tmp_path), DEMO_MODE=True,
     )
-    assert application.test_client().get('/admin/kuechenkalender').status_code == 401
+    assert_login_redirect(application.test_client().get('/admin/kuechenkalender'))
 
 
 def test_navigation_model_exposes_calendar_without_duplicate_sidebar_data() -> None:

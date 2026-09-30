@@ -1,5 +1,6 @@
 """Real PostgreSQL literal filters, location boundaries and stable native pagination."""
 from html import unescape
+from test_eh_http_contract import assert_login_redirect
 import re
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
@@ -180,7 +181,7 @@ def test_stale_archived_and_foreign_tags_are_safe_selected_choices(b3, filter_ca
 def test_filters_preserve_read_authorization_and_safe_outage_boundary(b3, monkeypatch):  # noqa: F811
     app, owner, client, actor = b3
     query = {'ingredient': 'Rüebli', 'tag': str(uuid4())}
-    assert app.test_client().get('/admin/rezepte', query_string=query).status_code == 401
+    assert_login_redirect(app.test_client().get('/admin/rezepte', query_string=query))
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
     response = client.get('/admin/rezepte', query_string=query)
     assert response.status_code == 200 and 'Rezept anlegen' not in response.text
@@ -197,4 +198,5 @@ def test_filters_preserve_read_authorization_and_safe_outage_boundary(b3, monkey
     assert 'private SQL' not in response.text and 'hidden detail' not in response.text and len(calls) == 1
     with owner.begin() as current:
         current.execute(text('DELETE FROM cafeteria.user_role_cache WHERE user_id=:id'), {'id': actor.user_id})
-    assert client.get('/admin/rezepte', query_string=query).status_code == 401 and len(calls) == 1
+    assert_login_redirect(client.get('/admin/rezepte', query_string=query))
+    assert len(calls) == 1

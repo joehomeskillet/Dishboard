@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+from test_eh_http_contract import assert_login_success
 from io import BytesIO
 from typing import Any
 
@@ -74,7 +75,7 @@ def _login(client: Any, monkeypatch: pytest.MonkeyPatch, *, provider_sid: str | 
     monkeypatch.setattr(routes, '_client', lambda: FakeMsalClient(claims))
     with client.session_transaction() as current:
         current['auth_flow'] = {'state': 'test-state'}
-    assert client.get('/auth/callback').status_code == 302
+    assert_login_success(client.get('/auth/callback'))
 
 
 def test_callback_rejects_provider_sid_longer_than_255_characters(

@@ -7,6 +7,8 @@ import subprocess
 from datetime import timedelta
 from pathlib import Path
 
+from test_eh_http_contract import assert_login_redirect
+
 import pytest
 from jinja2 import ChoiceLoader, DictLoader
 from playwright.sync_api import Page, expect
@@ -413,8 +415,18 @@ def test_access_errors_and_failed_writes_preserve_versions(weeks_ui, monkeypatch
             assert page.context.request.post(review_path.split('?')[0], form=fields).status == 403
         else:
             page.context.clear_cookies()
+            monkeypatch.setitem(app.config, 'DEMO_MODE', False)
+            monkeypatch.setitem(app.config, 'LOCAL_AUTH_ENABLED', True)
+            monkeypatch.setitem(app.config, 'ENTRA_ENABLED', False)
         for route in (path, review_path):
-            _goto(page, route, status_code)
+            if status_code == 401:
+                assert_login_redirect(page.request.get(route, max_redirects=0))
+                _goto(page, route, 200)
+                assert page.url.endswith('/auth/local')
+                expect(page.locator('.auth-form')).to_be_visible()
+                expect(page.locator('.admin-sidebar')).to_have_count(0)
+            else:
+                _goto(page, route, status_code)
             expect(page.get_by_text('Geschützter Wochenkopf', exact=True)).to_have_count(0)
             for width, height in CORE:
                 page.set_viewport_size({'width': width, 'height': height})

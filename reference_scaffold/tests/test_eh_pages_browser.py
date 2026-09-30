@@ -19,10 +19,7 @@ from cafeteria.template_filters import register_template_filters
 from cafeteria.ui import register_ui
 
 SCAFFOLD = Path(__file__).resolve().parents[1]
-AUDIT = Path(
-    '/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18'
-    '/.claude/state/claude-session-2026-09-29/audit/EH/EH-2'
-)
+AUDIT = SCAFFOLD.parent / '.claude/state/EH-2-evidence'
 SECRET_NAME = 'Geheim Nutzer'
 EH11 = (
     ('AUTH_REQUIRED', 'Anmeldung erforderlich', 'Sign-in required'),

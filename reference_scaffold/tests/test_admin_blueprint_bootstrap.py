@@ -18,6 +18,7 @@ def test_admin_blueprint_is_complete_before_first_registration(first_module: str
 import importlib
 import sys
 from flask import Flask, url_for
+from urllib.parse import urlsplit
 
 module = importlib.import_module('cafeteria.admin.' + sys.argv[1])
 minimal = Flask('minimal')
@@ -51,9 +52,13 @@ for app in applications:
         assert url_for('admin.recipe_edit', recipe_id=recipe_id) == '/admin/rezepte/' + recipe_id
         assert url_for('admin.recipe_images', recipe_id=recipe_id) == '/admin/rezepte/' + recipe_id + '/bilder'
 for app in applications[1:]:
-    assert app.test_client().get('/admin/api').status_code == 401
-    assert app.test_client().get('/admin/rezepte').status_code == 401
-    assert app.test_client().get('/admin/kochbuecher').status_code == 401
+    for path in ('/admin/api', '/admin/rezepte', '/admin/kochbuecher'):
+        response = app.test_client().get(path)
+        assert response.status_code == 302
+        destination = urlsplit(response.headers['Location'])
+        assert destination.scheme == destination.netloc == destination.query == ''
+        assert destination.path == '/auth/login'
+        assert response.headers['Cache-Control'] == 'no-store'
     for engine in ('cafeteria_db', 'cafeteria_auth_issuer_db'):
         if engine in app.extensions:
             app.extensions[engine].dispose()

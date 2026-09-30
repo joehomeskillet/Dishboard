@@ -3,6 +3,7 @@ Additive per F3/F4 root freeze: existing `q`/`ingredient`/`tag`/`archived`/`page
 byte-identical; `text` is allowlisted, forwarded to `store.list_recipes(text_search=...)`
 and kept across pagination links without ever adding a blank `text=` parameter."""
 import re
+from test_eh_http_contract import assert_login_redirect
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -134,7 +135,7 @@ def test_list_without_text_unchanged(b3, search_lab):  # noqa: F811
 def test_search_requires_draft_read_and_is_no_store(b3, monkeypatch):  # noqa: F811
     app, _, client, _ = b3
     query = {'text': 'suppe'}
-    assert app.test_client().get('/admin/rezepte', query_string=query).status_code == 401
+    assert_login_redirect(app.test_client().get('/admin/rezepte', query_string=query))
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', set())
     response = client.get('/admin/rezepte', query_string=query)
     assert response.status_code == 403 and response.headers['Cache-Control'] == 'no-store'
