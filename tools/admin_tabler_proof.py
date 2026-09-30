@@ -13,10 +13,18 @@ def audit_tabler(page: Page, base: str, asset_status: dict[str, bool]) -> dict[s
         'nodes => nodes.map(node => node.getAttribute("href"))')
     scripts = page.locator('script[src]').evaluate_all(
         'nodes => nodes.map(node => node.getAttribute("src"))')
-    result['local_styles_order'] = styles[:4] == [
+    # Live shell inserts ui-semantic.css and admin-nav.css before menu-images
+    # (test_ui_contracts.py). Synthetic auditors still emit the earlier prefix.
+    current = [
+        '/static/tokens.css', '/static/vendor/tabler/tabler.min.css',
+        '/static/admin-tabler.css', '/static/ui-semantic.css',
+        '/static/admin-nav.css', '/static/menu-images.css',
+    ]
+    legacy = [
         '/static/tokens.css', '/static/vendor/tabler/tabler.min.css',
         '/static/admin-tabler.css', '/static/menu-images.css',
     ]
+    result['local_styles_order'] = styles[:len(current)] == current or styles[:len(legacy)] == legacy
     result['local_scripts_order'] = scripts[:2] == [
         '/static/vendor/tabler/tabler.min.js', '/static/admin.js',
     ]
