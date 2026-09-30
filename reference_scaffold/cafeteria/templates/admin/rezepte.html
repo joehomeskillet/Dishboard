@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, pagination, empty_state, hint, label %}
-{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem %}
+{% from 'admin/_macros.html' import page_header, pagination, empty_state, hint %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, filter_bar_sem, status_badge_sem %}
 {% set workflow_nav = 'recipes' %}
 {% set extra_open = query or ingredient or tag or archived %}
 {% set has_filters = query or ingredient or tag or archived or text %}
@@ -32,7 +32,7 @@
 <tr class="recipe-row">
 <th scope="row" data-label="Name"><span class="admin-list-primary">{{ item.payload.title }}</span></th>
 <td class="admin-list-meta" data-label="Ausbeute">{{ item.payload.servings }} {{ item.payload.servings_unit_code }}</td>
-<td class="admin-table-status" data-label="Zustand">{% if not item.active %}{{ label('Archiviert', 'neutral') }}{% elif archived %}{{ label('Entwurf', 'info') }}{% endif %}{% if item.active and draft.incomplete %}{{ label('Angaben fehlen', 'warning', icon='alert-triangle', detail='Zutaten, Mengen oder Einheiten fehlen') }}{% endif %}</td>
+<td class="admin-table-status" data-label="Zustand">{% if not item.active %}{{ status_badge_sem('status.archived') }}{% elif archived %}{{ status_badge_sem('publish.draft') }}{% endif %}{% if item.active and draft.incomplete %}{{ status_badge_sem('status.incomplete', text='Angaben fehlen', detail='Zutaten, Mengen oder Einheiten fehlen') }}{% endif %}</td>
 <td class="admin-table-actions" data-label="Aktionen">
 {% set actions = [{'key': 'actions.open', 'href': url_for('admin.recipe_view', recipe_id=item.public_id)}] %}
 {% if can_write and item.active %}{% set _ = actions.append({'key': 'actions.edit', 'href': url_for('admin.recipe_edit', recipe_id=item.public_id, **({'from': 'recipes', 'q': query, 'archived': '1' if archived else '0', 'page': page} if query or archived or page > 1 else {}))}) %}{% endif %}

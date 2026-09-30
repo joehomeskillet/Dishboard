@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, empty_state, disclosure_section, hint, label, list_row %}
-{% from 'ui/_semantic.html' import icon_button, icon_summary %}
+{% from 'admin/_macros.html' import page_header, icon, empty_state, disclosure_section, hint, list_row %}
+{% from 'ui/_semantic.html' import icon_button, icon_summary, status_badge_sem %}
 {% set workflow_nav = 'recipes' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Rezepte importieren · Menüplanung{% endblock %}
@@ -60,7 +60,7 @@
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="row_version" value="{{ values.row_version or batch.row_version }}">
     <p class="mb-2" data-checked-identity>Geprüftes Ergebnis von <strong>{{ batch.source_filename or 'einer Datei ohne Namen' }}</strong>. Eine neue Dateiauswahl oben legt einen anderen Stapel an und ändert dieses Ergebnis nicht.</p>
-    <p class="mb-2">{% if batch.status == 'imported' %}{{ label('Übernommen', 'success', icon='check') }}{% elif batch.status == 'draft' %}{{ label('Entwurf', 'info', icon='info-circle') }}{% elif batch.status == 'cancelled' %}{{ label('Verworfen', 'neutral', icon='info-circle') }}{% else %}{{ label(batch.status, 'neutral') }}{% endif %}
+    <p class="mb-2">{% if batch.status == 'imported' %}{{ status_badge_sem('status.done', text='Übernommen') }}{% elif batch.status == 'draft' %}{{ status_badge_sem('publish.draft') }}{% elif batch.status == 'cancelled' %}{{ status_badge_sem('status.inactive', text='Verworfen') }}{% else %}{{ status_badge_sem('status.inactive', text=batch.status) }}{% endif %}
     {% if batch.status == 'imported' %}
     Dieser Importstapel ist übernommen und unveränderlich. Es erfolgte keine Veröffentlichung und keine Allergenfreigabe.
     {% elif batch.confirmation_hash_sha256 %}
@@ -193,14 +193,14 @@
       <thead>
         <tr>
           <th scope="col">Datei</th>
-          <th scope="col">Status</th>
+          <th scope="col">Ergebnis</th>
         </tr>
       </thead>
       <tbody>
         {% for item in batches %}
         <tr>
           <td data-label="Datei"><a class="admin-list-primary text-break" href="{{ url_for('admin.recipe_import_detail', batch_id=item.public_id) }}">{{ item.source_filename or t('actions.open.label') }}</a></td>
-          <td class="admin-table-status" data-label="Status">{% if item.status == 'imported' %}{{ label('Übernommen', 'success', icon='check') }}{% elif item.status == 'draft' %}{{ label('Entwurf', 'info', icon='info-circle') }}{% elif item.status == 'cancelled' %}{{ label('Verworfen', 'neutral', icon='info-circle') }}{% else %}{{ label(item.status, 'neutral') }}{% endif %}</td>
+          <td class="admin-table-status" data-label="Ergebnis">{% if item.status == 'imported' %}{{ status_badge_sem('status.done', text='Übernommen') }}{% elif item.status == 'draft' %}{{ status_badge_sem('publish.draft') }}{% elif item.status == 'cancelled' %}{{ status_badge_sem('status.inactive', text='Verworfen') }}{% else %}{{ status_badge_sem('status.inactive', text=item.status) }}{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
