@@ -46,7 +46,7 @@ def test_native_history_filters_pagination_keyboard_and_outage(
             connection.execute(text('UPDATE cafeteria.users SET display_name=:name '
                 "WHERE auth_provider='local'"), {'name': 'Küchenverantwortung Südhang ' * 4})
         page.goto(origin + '/admin/benutzer', wait_until='networkidle')
-        page.locator('details.admin-compact-details > summary').click()
+        # UC-P2-D: the history links are direct header actions.
         page.get_by_role('link', name='Zugriffsverlauf', exact=True).click()
         expect(page.get_by_role('heading', name='Benutzer & Zugriff', exact=True, level=1)).to_be_visible()
         expect(page.locator('.page-header-subtitle')).to_have_text('Zugriffsverlauf')
