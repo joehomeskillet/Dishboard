@@ -279,7 +279,7 @@
                   </div>
                 </div>
                 <div class="menu-editor-row-actions mt-2">
-                  {{ row_actions([{'key': 'actions.delete', 'type': 'button', 'consequence_key': 'actions.delete', 'attrs': {'data-remove-row': true, 'disabled': is_auto['origin']}}], object='Herkunft') }}
+                  {{ row_actions([{'key': 'actions.delete', 'type': 'button', 'consequence_key': 'actions.delete', 'disabled_reason': t('menu.origin_auto_reason.label').unescape(), 'disabled_reason_active': is_auto['origin'], 'attrs': {'data-remove-row': true, 'disabled': is_auto['origin']}}], object='Herkunft') }}
                 </div>
               </div>
             </fieldset>

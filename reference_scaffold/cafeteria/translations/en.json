@@ -1,4 +1,7 @@
 {
+  "menu.origin_auto_reason.label": "Automatic origin is inherited from the components.",
+  "menu.origin_auto_reason.tooltip": "Automatic origin is inherited from the components.",
+  "menu.origin_auto_reason.aria": "Automatic origin is inherited from the components.",
   "recipe.template_archived.label": "Open dish template for {object} · {status}",
   "recipe.template_archived.tooltip": "Open dish template for {object} · {status}",
   "recipe.template_archived.aria": "Open dish template for {object} · {status}",

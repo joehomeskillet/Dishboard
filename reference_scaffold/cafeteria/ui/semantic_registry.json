@@ -1,5 +1,16 @@
 [
   {
+    "key": "menu.origin_auto_reason",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "menu.origin_auto_reason.label",
+    "tooltip_key": "menu.origin_auto_reason.tooltip",
+    "aria_key": "menu.origin_auto_reason.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
     "key": "recipe.template_archived",
     "category": "ui",
     "ascii": "[i]",

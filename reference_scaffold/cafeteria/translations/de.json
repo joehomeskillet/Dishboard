@@ -1,4 +1,7 @@
 {
+  "menu.origin_auto_reason.label": "Automatische Herkunft wird aus den Bausteinen geerbt.",
+  "menu.origin_auto_reason.tooltip": "Automatische Herkunft wird aus den Bausteinen geerbt.",
+  "menu.origin_auto_reason.aria": "Automatische Herkunft wird aus den Bausteinen geerbt.",
   "recipe.template_archived.label": "Gerichtvorlage für {object} · {status} öffnen",
   "recipe.template_archived.tooltip": "Gerichtvorlage für {object} · {status} öffnen",
   "recipe.template_archived.aria": "Gerichtvorlage für {object} · {status} öffnen",

@@ -499,6 +499,15 @@
             });
             form.querySelectorAll('.origin-row input, .origin-row select, .origin-row button, [data-add-row="origins-list"]').forEach(control => {
                 control.disabled = !manual('origin');
+                const wrapper = control.closest('.ui-sem-disabled');
+                const reason = wrapper?.nextElementSibling?.querySelector('[data-disabled-reason]');
+                if (reason) {
+                    reason.hidden = !control.disabled;
+                    control.setAttribute('aria-disabled', String(control.disabled));
+                    wrapper.tabIndex = control.disabled ? 0 : -1;
+                    wrapper.dataset.uiTooltip = control.getAttribute('aria-label') +
+                        (control.disabled ? ': ' + reason.textContent : '');
+                }
             });
             form.querySelectorAll('[data-mode-badge]').forEach(badge => {
                 badge.textContent = manual(badge.dataset.modeBadge) ? 'manuell festgelegt' : 'automatisch geerbt';
