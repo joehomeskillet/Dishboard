@@ -542,22 +542,22 @@
 .dishboard-admin .admin-filter-count:not([hidden]) { position: absolute; inset-block-start: 0; inset-inline-end: 0; background: var(--app-surface-soft); color: var(--app-text); border-radius: var(--app-radius-pill); font-size: var(--app-list-header-size); padding-inline: var(--app-space-1); }
 .dishboard-admin .admin-filter-chips { display: flex; flex-wrap: wrap; gap: var(--app-space-2); flex-basis: 100%; }
 .dishboard-admin .admin-filter-chip { gap: var(--app-space-1); font-size: var(--app-list-secondary-size); }
-.dishboard-admin .admin-list-row {
+.dishboard-admin :is(.admin-list-row, .print-tpl-row, .print-screen-row) {
   min-height: var(--app-list-row-min-height);
   padding: var(--app-list-pad-y) var(--app-list-pad-x);
   border-bottom: var(--app-list-line-width) solid var(--app-border);
   font-size: var(--app-list-font-size);
   box-shadow: none;
 }
-.dishboard-admin .admin-list-row:has(.admin-list-secondary, .admin-list-subtitle) { min-height: var(--app-list-row-two-line-height); }
+.dishboard-admin :is(.admin-list-row, .print-tpl-row, .print-screen-row):has(.admin-list-secondary, .admin-list-subtitle) { min-height: var(--app-list-row-two-line-height); }
 .dishboard-admin :is(.admin-list, .cookbook-list, .recipe-list, .card:has(.admin-table, .admin-table--stack, .admin-list-row):where(:not(.card .card))) {
   border: var(--app-list-line-width) solid var(--app-border);
   border-radius: var(--app-list-radius); box-shadow: none;
 }
 /* The shared shell supplies the final edge, including semantic list wrappers. */
-.dishboard-admin .admin-list > .admin-list-row:last-child,
+.dishboard-admin .admin-list > :is(.admin-list-row, .print-tpl-row, .print-screen-row):last-child,
 .dishboard-admin .admin-list > [role="listitem"]:last-child > .admin-list-row { border-bottom: 0; }
-.dishboard-admin :is(.admin-list-row, .admin-table tbody tr):hover { background: var(--app-list-hover); }
+.dishboard-admin :is(.admin-list-row, .print-tpl-row, .print-screen-row, .admin-table tbody tr):hover { background: var(--app-list-hover); }
 .dishboard-admin .admin-empty-value { color: var(--app-text-muted); }
 .dishboard-admin .admin-list-status { margin-inline-start: auto; }
 .dishboard-admin .admin-list-name { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
