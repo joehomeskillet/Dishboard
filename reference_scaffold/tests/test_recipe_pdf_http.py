@@ -242,7 +242,9 @@ def extracted(response):
 def assert_error(response, status):
     assert response.status_code == status, response.text
     assert response.headers['Cache-Control'] == 'no-store'
-    assert response.mimetype == 'text/html'
+    assert response.mimetype == ('text/plain' if status in (401, 403) else 'text/html')
+    assert 'Location' not in response.headers
+    assert 'Content-Disposition' not in response.headers
     assert 'PRIVATE_DETAIL' not in response.text
     assert 'X-Recipe-Revision' not in response.headers
     assert not response.data.startswith(b'%PDF')

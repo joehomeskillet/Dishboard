@@ -15,7 +15,7 @@ from .recipe_forms import FormError, LocationConflict
 
 
 def render_form_error(error, *, submitted=None, display_values=None, reload_url='/admin/rezepte'):
-    if isinstance(error, HTTPException) and (error.code not in (400, 409) or getattr(error, 'error_code', None)):
+    if isinstance(error, HTTPException) and (error.code not in (400, 409, 422) or getattr(error, 'error_code', None)):
         return render_error(error)
     if isinstance(error, HTTPException):
         status = error.code or 500
