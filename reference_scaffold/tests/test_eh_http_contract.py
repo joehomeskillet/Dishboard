@@ -1,13 +1,32 @@
 """EH HTTP contracts: real factory, Redis session and PostgreSQL authorization."""
 # ruff: noqa: F811 -- shared fixture imported for pytest injection.
 import re
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from flask import abort
 from redis.exceptions import RedisError
 
 from test_auth_routes import auth_app, _csrf_payload, _provision  # noqa: F401
+
+
+def assert_login_redirect(response):
+    """An anonymous HTML read enters login through a bounded, same-origin URL."""
+    assert getattr(response, 'status_code', getattr(response, 'status', None)) == 302
+    destination = urlsplit(response.headers.get('Location') or response.headers['location'])
+    assert destination.scheme == destination.netloc == destination.fragment == ''
+    assert destination.path == '/auth/login'
+    query = parse_qs(destination.query, strict_parsing=True)
+    assert set(query) <= {'return_token'}
+    if query:
+        assert len(query['return_token']) == 1
+        assert re.fullmatch(r'[0-9a-f]{48}', query['return_token'][0])
+    assert (response.headers.get('Cache-Control') or response.headers['cache-control']) == 'no-store'
+
+
+def assert_login_success(response):
+    assert response.status_code == 303
+    assert response.headers['Location'] == '/admin/cafeteria'
 
 
 def test_eh_t01_app_without_login_endpoint_denies_without_broken_redirect():
@@ -285,3 +304,33 @@ def test_eh_t40_stream_failure_does_not_append_html_or_restart(auth_app):
     assert next(iterator) == b'%PDF-partial'
     with pytest.raises(RuntimeError, match='interrupted stream'):
         next(iterator)
+
+
+@pytest.mark.parametrize('accept', ('application/json', 'text/plain', 'application/pdf',
+                                   'text/html;q=0, application/json'))
+def test_non_html_auth_requests_never_redirect_to_login(auth_app, accept):
+    app, _, _ = auth_app
+    response = app.test_client().get('/admin/patienten', headers={'Accept': accept})
+    assert response.status_code == 401
+    assert 'Location' not in response.headers
+    assert response.mimetype != 'text/html'
+    assert response.headers['Cache-Control'] == 'no-store'
+
+
+@pytest.mark.parametrize('status', (500, 503))
+def test_5xx_descriptions_never_reach_any_error_surface(auth_app, status):
+    app, _, _ = auth_app
+    marker = 'DO-NOT-EXPOSE secret detail private database detail SELECT parameter orig'
+
+    def unavailable():
+        abort(status, description=marker)
+
+    for index, path in enumerate(('/eh-outage', '/eh-outage.pdf', '/api/eh-outage', '/fhir/eh-outage')):
+        app.add_url_rule(path, f'eh_outage_{index}', unavailable)
+    client = app.test_client()
+    for path in ('/eh-outage', '/eh-outage.pdf', '/api/eh-outage', '/fhir/eh-outage'):
+        response = client.get(path)
+        assert response.status_code == status
+        assert all(value not in response.text for value in (
+            'DO-NOT-EXPOSE', 'secret detail', 'private database detail', 'SELECT parameter orig'))
+        assert response.headers['Cache-Control'] == 'no-store'

@@ -3,8 +3,7 @@ from __future__ import annotations
 from functools import wraps
 
 from flask import current_app, g, session
-from sqlalchemy.exc import SQLAlchemyError
-from werkzeug.exceptions import Forbidden, ServiceUnavailable
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 from .auth.service import load_user_authorization
 from .errors import authentication_required, render_error
@@ -38,25 +37,23 @@ def require_capability(capability: str):
             session_user = session.get('user')
             session_authz_version = session.get('authz_version')
             if not isinstance(session_user, dict) or not isinstance(session_user.get('id'), int):
-                return authentication_required()
+                raise Unauthorized(response=authentication_required())
             if not isinstance(session_authz_version, int):
                 session.clear()
-                return authentication_required(invalid=True)
-            try:
-                authorization = load_user_authorization(
-                    current_app.extensions['cafeteria_db'], session_user['id'],
-                )
-            except SQLAlchemyError:
-                return render_error(ServiceUnavailable())
+                raise Unauthorized(response=authentication_required(invalid=True))
+            # Readers and route-specific error boundaries rely on raised failures.
+            authorization = load_user_authorization(
+                current_app.extensions['cafeteria_db'], session_user['id'],
+            )
             if authorization is None or authorization.authz_version != session_authz_version:
                 session.clear()
-                return authentication_required(invalid=True)
+                raise Unauthorized(response=authentication_required(invalid=True))
             g.auth_user = authorization
             g.auth_roles = authorization.roles
             allowed = capabilities()
             if '*' not in allowed and capability not in allowed:
                 g.eh_mutation_state = 'not_started'
-                return render_error(Forbidden())
+                raise Forbidden(response=render_error(Forbidden()))
             return function(*args, **kwargs)
         return wrapped
     return decorator
