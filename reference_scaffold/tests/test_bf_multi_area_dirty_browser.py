@@ -170,7 +170,10 @@ def test_price_error_retains_inputs_opens_section_and_does_not_write(b3, master_
         expect(page.locator('#valid_to')).to_have_value('2026-10-31')
         expect(page.locator('#unit_code')).to_have_value('KG')
         expect(page.locator('#unit_price')).to_have_attribute('aria-invalid', 'true')
+        expect(page.locator('#food-core-form [aria-invalid="true"]')).to_have_count(0)
+        expect(page.locator('#food-core-form [aria-describedby~="master-error"]')).to_have_count(0)
         expect(page.locator('#price-error')).to_be_visible()
+        expect(page.locator('#unit_price' if javascript else '#price-error')).to_be_focused()
         expect(page.locator('a[data-error-link][href="#unit_price"]')).to_be_visible()
         page.screenshot(path=str(tmp_path / f'price-error-js{int(javascript)}.png'), full_page=True)
         assert snapshot(owner) == before

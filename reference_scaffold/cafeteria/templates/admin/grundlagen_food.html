@@ -2,6 +2,7 @@
 {% from 'admin/_macros.html' import page_header, pagination, icon, disclosure_section, option_detail_group, hint, empty_value, form_footer %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'master_data' %}
+{% if error_purpose == 'preis' %}{% set error_field = 'unit_price' %}{% endif %}
 {% block title %}Zutat · Grundlagen{% endblock %}
 {% block page_header %}
 {% set status_items = [] %}
