@@ -50,9 +50,7 @@ def _login_page(*, error_key: str | None = None, username: str = '', status: int
     context = login_context(token)
     methods = {'local': bool(current_app.config.get('LOCAL_AUTH_ENABLED')),
                'entra': bool(current_app.config.get('ENTRA_ENABLED'))}
-    message = {'auth.failed': 'Anmeldung fehlgeschlagen.',
-               'errors.RATE_LIMITED.message': 'Anmeldung fehlgeschlagen. Bitte kurz warten und erneut versuchen.'}.get(error_key or '')
-    return render_template('auth/local_login.html', error=message, error_key=error_key,
+    return render_template('auth/local_login.html', error=None, error_key=error_key,
         username=username[:LOGIN_USERNAME_MAX_LENGTH], notice_key=context.get('notice'),
         return_token=token if context else '', methods=methods,
         entra_login_url=url_for('auth.login', method='entra', return_token=token if context else '')), status

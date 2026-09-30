@@ -214,6 +214,10 @@ def error_view(error: HTTPException, *, code: str | None = None) -> ErrorView:
     mutation = getattr(g, 'eh_mutation_state', 'unknown' if request.method not in ('GET', 'HEAD') else 'not_started')
     if code == 'FORM_STALE':
         mutation = 'not_started'
+    if kind != 'form_post':
+        mutation = ''
+    elif mutation == 'unknown':
+        mutation = 'unclear'
     params = {}
     if status < 500 and error.description != type(error).description:
         params['detail'] = str(error.description)[:500]
@@ -248,7 +252,7 @@ def _minimal(view: ErrorView) -> str:
         message = 'Für diese Seite oder Aktion fehlt Ihnen die Berechtigung.'
     if view.mutation_state == 'not_started' and view.surface == 'form_post':
         message += ' Die angeforderte Aktion wurde vor der Ausführung abgelehnt.'
-    elif view.mutation_state == 'unknown' and view.surface == 'form_post':
+    elif view.mutation_state == 'unclear' and view.surface == 'form_post':
         message += ' Es ist unklar, ob die Änderung gespeichert wurde. Prüfen Sie den gespeicherten Stand.'
     labels = {'actions.login': 'Anmelden', 'actions.reload': 'Neu laden', 'navigation.overview': 'Zur Übersicht'}
     links = ' '.join(f'<a href="{escape(item["href"])}">{labels[item["semantic"]]}</a>' for item in view.recovery)
@@ -277,12 +281,13 @@ def render_error(error: HTTPException, *, code: str | None = None, minimal: bool
         response.content_type = 'text/plain; charset=utf-8'
     else:
         try:
-            if minimal:
-                html = _minimal(view)
-            elif view.http_status >= 500 or view.surface == 'signage':
-                html = current_app.jinja_env.get_template('errors/minimal.html').render(error=asdict(view))
+            payload = asdict(view)
+            if minimal or view.http_status >= 500 or view.surface == 'signage':
+                payload['frame'] = 'minimal'
+                html = current_app.jinja_env.get_template('errors/minimal.html').render(
+                    error=payload, ui_locale=current_app.config.get('UI_LOCALE', 'de'))
             else:
-                html = render_template('errors/page.html', error=asdict(view))
+                html = render_template('errors/page.html', error=payload)
         except Exception as renderer_error:
             # One isolated fallback. Do not log exception text, URLs, cookies or submitted values.
             _diagnose('error.renderer_failed', renderer_error, view.http_status)

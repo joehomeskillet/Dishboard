@@ -1,5 +1,23 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## EH-1b — integrierte Anmeldung und Fehlerfamilie, 2026-09-30
+
+Die reale App-Factory verwendet die gemeinsame EH-2-Familie. Eigene Browser-
+und HTTP-Nachweise: `tests/test_eh_integration_browser.py` (5 bestanden),
+`tests/test_eh_http_contract.py` (13 bestanden). Vollständige Pflichtläufe,
+Wiederholungen und Nachweisgrenzen stehen in `reports/EH-1b-report.md` unter
+`.claude/state/claude-session-2026-09-29/` des Worktrees `icon-first-r18`.
+Screenshots unter `audit/EH/EH-1b/`: 1440 px mit JavaScript, 390 px ohne
+JavaScript; zehn integrierte Ansichten tatsächlich gesichtet. Kein Deploynachweis.
+
+| Route / Fehlerpfad | Rolle und Zustand / Muster | Tatsächlicher Nachweis |
+|---|---|---|
+| `/admin/patienten?week=2026-09-28` → `/auth/login` → `/auth/local` | Anonym: 302 zum kanonischen Einstieg, lokale Auth-Karte ohne Admin-Hülle; opaker Rücksprung bleibt nach Login-POST mit 303 erhalten. | Realer Browserfluss, Hidden-Feld und Zielwoche; `login-1440.png`, `login-390.png`. |
+| `/admin/api` | Gültige Editor-Sitzung ohne Capability: gebrandete 403 im Admin-Rahmen, sichere Übersicht statt neuer Anmeldung. | Status, Rahmen, Überschrift; `forbidden-1440.png`, `forbidden-390.png`. |
+| POST `/admin/patienten/header` | Sitzung während Bearbeitung entfernt: 401 im Auth-Rahmen, Verlusthinweis und sicher abgelehnte Aktion, kein Replay und keine Datenübernahme. | Geschäftssnapshot unverändert, genau ein POST, kein Echo offener Eingaben; `post-interruption-1440.png`, `post-interruption-390.png`. |
+| Injizierte 500/503; Redis beim Sessionöffnen/-speichern | Statischer Minimalrahmen, Referenz und no-store; unabhängig von Context-Processors. String-Fallback nur bei Renderer-Ausfall. | Reale Handler und kontrollierte Ausfallinjektion; `minimal-500-*`, `minimal-503-*`; Redis-Ausfall auch EN. |
+| Organisationslink in `/auth/local` | Beide Verfahren aktiv: expliziter Entra-Start mit browsergebundenem Rücksprungtoken. | Tatsächlich gerenderter Link startet den simulierten Provider; kein Rücklauf zur lokalen Maske. |
+
 ## DA-WP5b — kombinierte Direktaktionen, 2026-09-30
 
 Die folgenden Nachprüfungen betreffen die kombinierte DA-Linie. Vollständige
