@@ -257,6 +257,33 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
             assert not any(asset.endswith('/app.css') for asset in assets)
             assert page.locator('tr[data-template-id]').first.evaluate("el => getComputedStyle(el).display") == ('grid' if width == 390 else 'table-row')
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+            if width == 1440:
+                action_rows = page.locator('main table.admin-table').evaluate_all('''tables => tables.flatMap(table => {
+                    if (table.getClientRects().length === 0) return [];
+                    const header = table.querySelector('thead th:last-child');
+                    if (!header || header.textContent.trim() !== 'Aktionen') return [];
+                    const headerBox = header.getBoundingClientRect();
+                    return [...table.querySelectorAll('tbody .admin-row-actions')].filter(
+                        group => group.getClientRects().length,
+                    ).map(group => {
+                        const cell = group.closest('td');
+                        const cellBox = cell.getBoundingClientRect();
+                        const groupBox = group.getBoundingClientRect();
+                        const tops = [...group.querySelectorAll('a, button')].map(
+                            node => Math.round(node.getBoundingClientRect().top),
+                        );
+                        return {
+                            oneRow: tops.length > 0 && tops.every(top => top === tops[0]),
+                            groupHeight: Math.round(groupBox.height),
+                            columnAligned: Math.abs(headerBox.left - cellBox.left) < 1
+                                && Math.abs(headerBox.right - cellBox.right) < 1,
+                        };
+                    });
+                })''')
+                assert action_rows, 'visible vorlagen action groups'
+                for row in action_rows:
+                    assert row['oneRow'] and row['groupHeight'] <= 40, row
+                    assert row['columnAligned'], row
             seen_hrefs: set[str] = set()
 
             def check_keyboard_link(link, *, require_focus: bool = True) -> None:
@@ -289,7 +316,7 @@ def test_catalog_browser_real_assets_revision_names_and_keyboard(
                 pane = page.locator(f'#{pane_id}')
                 for link in pane.locator('a.btn:visible').all():
                     check_keyboard_link(link)
-                menus = section.locator('.admin-list-actions .admin-row-actions')
+                menus = section.locator('.admin-table-actions .admin-row-actions')
                 expect(menus).to_have_count(2)
                 for menu, template_name in zip(
                     menus.all(), ('Winter & Festtage', 'Festliche Kopie'), strict=True,

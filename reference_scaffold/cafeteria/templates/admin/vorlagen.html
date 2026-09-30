@@ -71,7 +71,7 @@
                     {% elif active %}{{ status_badge_sem('status.active') }}
                     {% else %}{{ status_badge_sem('status.inactive') }}{{ status_badge_sem('publish.draft') }}{% endif %}
                   </td>
-                  <td class="admin-table-actions admin-list-actions" data-label="Aktionen">
+                  <td class="admin-table-actions" data-label="Aktionen">
                   {% if 'Cafeteria.Admin' in roles %}
                     {% set row = namespace(items=[
                       {'key': 'actions.edit', 'href': url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=latest.id), 'object': latest.name},
@@ -141,7 +141,7 @@
             {% elif item.id == recipe_catalog.document.active_template %}{{ status_badge_sem('status.active') }}
             {% else %}{{ status_badge_sem('status.inactive') }}{{ status_badge_sem('publish.draft') }}{% endif %}
           </td>
-          <td class="admin-table-actions admin-list-actions" data-label="Aktionen">
+          <td class="admin-table-actions" data-label="Aktionen">
           {% if 'Cafeteria.Admin' in roles %}
             {% set row = namespace(items=[{'key': 'actions.edit', 'href': url_for('admin.recipe_print_template_editor', template=item.id, revision=latest.id), 'object': latest.name}]) %}
             {% if item.id == recipe_catalog.document.active_template and active_template is not none and active_revision is not none and latest.id != active_revision.id %}
@@ -193,7 +193,7 @@
         <th scope="row" data-label="Vorlage"><span class="admin-list-primary admin-list-name">{{ area_names[choice.profile] }} · {{ choice.name }}</span></th>
         <td data-label="Version"><p class="admin-list-secondary print-tpl-meta mb-0">{% if catalog.active.template.id == choice.id %}Version {{ catalog.active.version }}{% else %}{{ empty_value() }}{% endif %}</p></td>
         <td class="admin-table-status" data-label="Status">{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_badge_sem('status.inactive') }}{% endif %}</td>
-        <td class="admin-table-actions admin-list-actions" data-label="Aktionen">{{ row_actions(row.items, object=area_names[choice.profile] ~ ' · ' ~ choice.name) }}</td>
+        <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items, object=area_names[choice.profile] ~ ' · ' ~ choice.name) }}</td>
       </tr>
       {% endfor %}
       {% endfor %}
