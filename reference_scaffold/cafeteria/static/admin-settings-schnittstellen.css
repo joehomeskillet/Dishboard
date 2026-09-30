@@ -41,3 +41,6 @@
     grid-column: 1 / -1;
   }
 }
+
+/* UC-P2-D: card disclosures hold forms that already carry card-body/card-footer padding. */
+.dishboard-admin .admin-disclosure--card > .admin-compact-detail-body { padding: 0; }

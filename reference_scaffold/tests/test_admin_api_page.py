@@ -225,7 +225,7 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                                         ['expires_at', _create_form()['expires_at']],
                                         ['scopes', 'preview.read'], ['channels', 'cafeteria'],
                                         ['channels', 'patienten']]
-                    summary = page.locator('#api-key-create-title')
+                    summary = page.locator('#api-create > summary')
                     summary.focus()
                     summary.press('Enter')
                     summary.press('Enter')
@@ -274,7 +274,7 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                             'Nicht veröffentlicht', 'Nicht veröffentlicht',
                         ]
                         expect(bar).not_to_contain_text('Revision')
-                        expect(page.locator('[data-api-technical]')).not_to_have_attribute('open', '')
+                        expect(page.locator('#api-technical')).not_to_have_attribute('open', '')
                         metrics = page.evaluate('''() => ({width: innerWidth,
                             height: document.documentElement.scrollHeight,
                             row: document.querySelector('[data-key-id]').getBoundingClientRect().height,
@@ -291,7 +291,7 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                         assert metrics['row'] <= (96 if width >= 1024 else 280), metrics
                         targets = page.locator('main :is(.btn, summary)').evaluate_all('''es => es.filter(e => e.checkVisibility()).map(e => ({
                             height: e.getBoundingClientRect().height,
-                            minimum: e.matches('.ui-sem-control') ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48,
+                            minimum: matchMedia('(any-pointer: coarse)').matches ? 44 : 36,
                         }))''')
                         assert targets and all(t['height'] >= t['minimum'] for t in targets), targets
                         measurements.append(metrics)
@@ -301,13 +301,13 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                         # Checkbox labels are the full native 48px click targets; glyphs stay 20px.
                         controls = page.locator('#api-key-create :is(.form-control, .form-check, button)').evaluate_all('''es => es.map(e => ({
                             height: e.getBoundingClientRect().height,
-                            minimum: e.matches('.ui-sem-control') ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48,
+                            minimum: matchMedia('(any-pointer: coarse)').matches ? 44 : 36,
                         }))''')
                         assert controls and all(c['height'] >= c['minimum'] for c in controls), controls
                         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                         page.locator('#api-key-create-title').click()
                     # Technical links remain reachable by keyboard, including without JS.
-                    technical = page.locator('[data-api-technical] > summary')
+                    technical = page.locator('#api-technical > summary')
                     technical.focus()
                     technical.press('Enter')
                     expect(page.get_by_role('heading', name='Technische Versionen')).to_be_visible()
@@ -353,7 +353,7 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                     with page.expect_response(lambda r: r.request.method == 'POST') as response:
                         page.locator('#api-key-create button').click()
                     assert response.value.status == 400
-                    expect(page.locator('[data-api-create]')).to_have_attribute('open', '')
+                    expect(page.locator('#api-create')).to_have_attribute('open', '')
                     expect(page.locator('.error-region')).to_be_visible()
                     expect(page.locator('#api-key-label')).to_have_value('Fehler bleibt sichtbar')
                     expect(page.locator('#api-key-channel-patienten')).to_be_checked()
