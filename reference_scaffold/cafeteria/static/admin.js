@@ -240,6 +240,7 @@
     const dirtyForms = new Set();
     const initialFormValues = new WeakMap();
     const unsavedLabel = document.body.dataset.unsavedLabel;
+    const saveFirstLabel = 'Zuerst speichern';
     let submittingForm = null;
     const dirtyActionState = new Map();
 
@@ -333,6 +334,16 @@
         const previewLinks = document.querySelectorAll('a[href*="/preview"]');
         const publishForms = document.querySelectorAll('form[action*="/publish"]');
         let flashRegion = document.getElementById('admin-dirty-action-reason');
+        if (!flashRegion && isDirty) {
+            const existing = document.querySelector('.flash-region');
+            // Reuse the empty live region. A message already in it stays intact.
+            if (existing && !existing.id && !existing.textContent.trim()
+                && !existing.querySelector('.alert, .flash')) {
+                existing.id = 'admin-dirty-action-reason';
+                existing.setAttribute('role', 'status');
+                flashRegion = existing;
+            }
+        }
         if (!flashRegion && isDirty && (previewLinks.length || publishForms.length)) {
             flashRegion = document.createElement('p');
             flashRegion.id = 'admin-dirty-action-reason';
@@ -341,7 +352,7 @@
             (document.querySelector('main') || document.body).prepend(flashRegion);
         }
         if (flashRegion) {
-            flashRegion.textContent = isDirty ? unsavedLabel : '';
+            flashRegion.textContent = isDirty ? saveFirstLabel : '';
             flashRegion.hidden = !isDirty;
         }
         if (!isDirty) {
@@ -350,6 +361,10 @@
                     if (value === null) control.removeAttribute(name);
                     else control.setAttribute(name, value);
                 });
+                if (state.text !== undefined) {
+                    const label = control.querySelector(':scope > span') || control;
+                    label.textContent = state.text;
+                }
                 const descriptions = (control.getAttribute('aria-describedby') || '').split(/\s+/)
                     .filter(id => id && id !== 'admin-dirty-action-reason');
                 if (descriptions.length) control.setAttribute('aria-describedby', descriptions.join(' '));
@@ -383,6 +398,12 @@
             if (btn) {
                 describe(btn);
                 btn.setAttribute('disabled', 'true');
+                if (!btn.classList.contains('ui-sem-control--icon-only')) {
+                    const state = dirtyActionState.get(btn);
+                    const label = btn.querySelector(':scope > span') || btn;
+                    if (state.text === undefined) state.text = label.textContent;
+                    label.textContent = saveFirstLabel;
+                }
             }
         });
 

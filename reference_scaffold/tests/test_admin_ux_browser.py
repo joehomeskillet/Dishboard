@@ -110,13 +110,20 @@ def test_admin_overview_keyboard_order_focus_and_targets(page_context: Page):
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
 def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page, family: str):
     page = page_context
+    page.set_viewport_size({'width': 390, 'height': 844})
     page.goto(f'/admin/{family}?week={DAY}')
+    header = page.locator(f'form[action="/admin/{family}/header"]')
     page.locator('details.admin-week-settings > summary').click()
-    page.fill('input[name="title"]', 'Neuer Titel')
-
+    title = header.locator('input[name="title"]')
+    original_title = title.input_value()
     preview_links = page.locator('a[href*="/preview"]')
     publish_button = page.locator('form[action*="/publish"] button[type="submit"]')
     assert preview_links.count() >= 1
+    preview_before = [link.get_attribute('aria-disabled') for link in preview_links.all()]
+    publish_disabled_before = publish_button.is_disabled()
+    publish_text_before = publish_button.text_content()
+    title.fill('Neuer Titel')
+
     for preview_link in preview_links.all():
         assert preview_link.get_attribute('aria-disabled') == 'true'
         preview_link.focus()
@@ -124,7 +131,49 @@ def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page,
     assert page.context.pages == [page]
     assert f'/admin/{family}?week={DAY}' in page.url
     assert publish_button.is_disabled()
+    assert 'Zuerst speichern' in (publish_button.text_content() or '')
+    status = header.locator('[data-dirty-status]')
+    expect(status).to_be_visible()
+    expect(status).to_have_text('Nicht gespeichert')
+    assert page.locator('.admin-week-controls').get_by_text('Nicht gespeichert', exact=True).count() == 0
     assert page.get_by_text('Nicht gespeichert', exact=True).first.is_visible()
+    assert not page.evaluate(
+        'document.documentElement.scrollWidth > document.documentElement.clientWidth + 1'), \
+        'Horizontal overflow at 390 while the week header form is dirty'
+    action_sizes = page.locator('.admin-week-controls .ui-sem-control--icon-only').evaluate_all('''elements =>
+        elements.filter(element => element.getClientRects().length).map(element => {
+            const box = element.getBoundingClientRect();
+            return {width: box.width, height: box.height, right: box.right,
+                    label: element.getAttribute('aria-label')};
+        })''')
+    assert action_sizes, 'Week action row has no icon controls'
+    for size in action_sizes:
+        assert size['width'] == 36 and size['height'] == 36 and size['right'] <= 391, size
+
+    title.fill(original_title)
+    expect(status).to_be_hidden()
+    assert page.get_by_text('Nicht gespeichert', exact=True).count() == 0
+    restored = [link.get_attribute('aria-disabled') for link in preview_links.all()]
+    assert restored == preview_before
+    assert publish_button.is_disabled() is publish_disabled_before
+    assert publish_button.text_content() == publish_text_before
+
+    page.locator('details.admin-week-service').first.locator('summary').click()
+    service = page.locator(f'form[action="/admin/{family}/service"]').first
+    notice = service.locator('[name="notice"]')
+    original_notice = notice.input_value()
+    notice.fill('Ausgabe geändert')
+    service_status = service.locator('[data-dirty-status]')
+    expect(service_status).to_be_visible()
+    expect(service_status).to_have_text('Nicht gespeichert')
+    expect(status).to_be_hidden()
+    assert page.locator('.admin-week-controls').get_by_text('Nicht gespeichert', exact=True).count() == 0
+    notice.fill(original_notice)
+    expect(service_status).to_be_hidden()
+    assert page.get_by_text('Nicht gespeichert', exact=True).count() == 0
+    assert not page.evaluate(
+        'document.documentElement.scrollWidth > document.documentElement.clientWidth + 1'), \
+        'Horizontal overflow at 390 after the week service form returns to saved values'
 
 
 def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask):  # noqa: F811

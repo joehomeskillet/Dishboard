@@ -8,7 +8,7 @@
 {% set week_settings_open = header_error or status == 'error' or (flashes and 'Wochenangaben' in flashes|join(' ')) %}
 <details class="admin-week-settings"{% if week_settings_open %} open{% endif %}>
   <summary>Wochenangaben ändern <span class="text-secondary">{{ title_summary }} · {{ note_summary }}</span></summary>
-  <form{% if header_form_id %} id="{{ header_form_id }}"{% endif %} method="post" action="/admin/{{ family }}/header" class="admin-overview-form card mb-3">
+  <form{% if header_form_id %} id="{{ header_form_id }}"{% endif %} method="post" data-dirty-form action="/admin/{{ family }}/header" class="admin-overview-form card mb-3">
     <div class="card-body">
       {{ form_errors(header_errors.values()|list) }}
       {% if header_errors.get('form') %}

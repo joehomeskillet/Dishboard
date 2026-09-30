@@ -208,3 +208,37 @@ def test_restoring_week_values_keeps_action_permissions_and_live_descriptions(fo
     assert preview.evaluate('''el => (el.getAttribute('aria-describedby') || '').split(/\\s+/)
         .filter(id => id && !document.getElementById(id))''') == []
     assert snapshot(owner) == before
+
+
+@pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
+def test_publish_shows_save_first_while_dirty_and_restores_label(food_page, family):
+    page, owner, _ = food_page
+    assert page.goto(f'/admin/{family}?week=2026-08-31').status == 200
+    before = snapshot(owner)
+    title = _open(page, 'input[name="title"]')
+    original = title.input_value()
+    publish = page.locator('form[action*="/publish"] button[type="submit"]')
+    reason = page.locator('#admin-dirty-action-reason')
+    week_status = page.locator('main').get_attribute('data-status')
+    expect(publish).to_have_text('Veröffentlichen')
+    was_enabled = publish.is_enabled()
+    original_describedby = publish.get_attribute('aria-describedby')
+    title.fill('BF vorübergehender Titel')
+    expect(publish).to_be_disabled()
+    expect(publish).to_have_text('Zuerst speichern')
+    expect(reason).to_be_visible()
+    expect(reason).to_have_text('Zuerst speichern')
+    expect(publish).to_have_attribute(
+        'aria-describedby', re.compile(r'(^|\s)admin-dirty-action-reason(\s|$)'))
+    title.fill(original)
+    expect(reason).to_be_hidden()
+    expect(publish).to_have_text('Veröffentlichen')
+    assert publish.is_enabled() is was_enabled
+    assert publish.get_attribute('aria-describedby') == original_describedby
+    described = publish.get_attribute('aria-describedby') or ''
+    assert 'admin-dirty-action-reason' not in described.split()
+    # An empty week keeps its publication guard. A publishable week is active and undescribed.
+    if week_status in {'ready', 'live', 'changed'}:
+        expect(publish).to_be_enabled()
+        expect(publish).not_to_have_attribute('aria-describedby')
+    assert snapshot(owner) == before
