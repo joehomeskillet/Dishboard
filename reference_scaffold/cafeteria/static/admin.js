@@ -848,17 +848,21 @@
         let releaseFrame = 0;
         const revealFocus = () => {
             const active = document.activeElement;
-            if (pointerId !== null || !form.contains(active) || stickyBar.contains(active)
-                || getComputedStyle(stickyBar).position !== 'sticky') return;
+            if (pointerId !== null || !form.contains(active)) return;
             const bar = stickyBar.getBoundingClientRect();
             const field = active.getBoundingClientRect();
-            if (stickyBar.dataset.stickyEdge === 'top') {
-                if (bar.top <= 0 && field.top < bar.bottom) {
-                    window.scrollBy(0, field.top - bar.bottom - 8);
-                }
-            } else if (bar.top < window.innerHeight && field.bottom > bar.top) {
-                window.scrollBy(0, field.bottom - bar.top + 8);
+            const style = getComputedStyle(active);
+            const gap = Math.max(parseFloat(style.getPropertyValue('--app-space-2')) || 0,
+                (parseFloat(style.outlineWidth) || 0) + Math.max(parseFloat(style.outlineOffset) || 0, 0));
+            let top = (viewport ? viewport.offsetTop : 0) + gap;
+            let bottom = top + (viewport ? viewport.height : window.innerHeight) - 2 * gap;
+            if (getComputedStyle(stickyBar).position === 'sticky' && !stickyBar.contains(active)) {
+                if (stickyBar.dataset.stickyEdge === 'top' && bar.top <= top) top = bar.bottom + gap;
+                else if (stickyBar.dataset.stickyEdge !== 'top' && bar.top < bottom) bottom = bar.top - gap;
             }
+            if (field.height > bottom - top) return;
+            const shift = field.bottom > bottom ? field.bottom - bottom : field.top < top ? field.top - top : 0;
+            if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
         };
         // Native focus changes between pointerdown and click must not move the target.
         document.addEventListener('pointerdown', (e) => {
