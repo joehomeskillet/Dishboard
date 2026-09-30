@@ -974,11 +974,12 @@ klassifiziert; Vorlagenstatus ist im folgenden Paket verdichtet.
 
 Vorlagen-Aktionsspalte UC-P2-B2: `/admin/vorlagen`, Admin, Woche 2026-08-31, 1440/768/390,
 fein und grob. Druck-, Rezept- und Screen-Tabellen zeigen die Symbolgruppe in
-einer Zeile ab 768 px; Kopf und Zelle der Spalte «Aktionen» teilen dieselbe
-Breite. Zeilen mit zwei Symbolen: 93 px auf 64 px (1440 fein) und 113 px auf
-64 px (1440 grob). `screens.html` und `preview.html` bleiben unverändert.
-Nachweis `test_admin_template_catalog_browser.py` im Paketlauf 200 passed,
-zweimal, `GATE_EXIT=0`.
+einer Zeile. Bei 1440 und 768 teilen Kopf und Zelle der Spalte «Aktionen»
+dieselbe Breite. Zeilen mit zwei Symbolen: 93 px auf 64 px (1440 fein) und
+113 px auf 64 px (1440 grob). Unter 768 px bleibt die Kartenhöhe der gemeinsamen
+Stapel-Tabelle; die Symbole liegen dort weiter nebeneinander. `screens.html` und
+`preview.html` bleiben unverändert. Nachweis `test_admin_template_catalog_browser.py`
+im Paketlauf 200 passed, zweimal, `GATE_EXIT=0`.
 
 Vorlagen `8624fe48`: `/admin/vorlagen`, Admin/Editor, beide Profile und Rezept,
 aktive Revision mit neuerem Entwurf, JS/No-JS und 390/1440 px. Vier Statuskarten
