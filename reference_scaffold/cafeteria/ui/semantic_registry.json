@@ -902,6 +902,17 @@
     "role": "neutral"
   },
   {
+    "key": "publish.unpublished",
+    "category": "publish",
+    "ascii": "[NP]",
+    "icon": "alert-triangle",
+    "label_key": "publish.unpublished.label",
+    "tooltip_key": "publish.unpublished.tooltip",
+    "aria_key": "publish.unpublished.aria",
+    "icon_only_allowed": true,
+    "role": "warning"
+  },
+  {
     "key": "view.search",
     "category": "view",
     "ascii": "[/]",

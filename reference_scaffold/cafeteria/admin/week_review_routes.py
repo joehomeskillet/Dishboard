@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import abort, flash, make_response, redirect, render_template, request, url_for
+from sqlalchemy import text
 from werkzeug.wrappers import Response
 
 from ..roles import capabilities, require_capability
@@ -10,6 +11,25 @@ from .workflow_routes import (
     _call, _db, _exact, _monday, _reject_override, _scope, _scoped_csrf,
     _validate_scoped_csrf, bp, profile_from_endpoint,
 )
+
+
+def _publication_key(scope, week) -> str | None:
+    """Name an unpublished saved week. A published workflow keeps its own label."""
+    engine = _db()
+    if not hasattr(engine, 'connect'):
+        return None
+    with engine.connect() as connection:
+        state = connection.execute(text(
+            'SELECT w.workflow_state FROM cafeteria.menu_weeks w '
+            'JOIN cafeteria.offer_profiles p ON p.id=w.profile_id '
+            'WHERE w.location_id=:location AND p.code=:profile AND w.week_start=:week'
+        ), {
+            'location': scope.location_id, 'profile': scope.profile_code, 'week': week,
+        }).scalar_one_or_none()
+    if state is None or state == 'published':
+        return None
+    return 'publish.unpublished'
+
 
 
 @bp.get('/<any(cafeteria, patienten):family>/wochen/pruefung')
@@ -26,6 +46,7 @@ def week_review_get(family: str) -> Response:
     response = make_response(render_template(
         'admin/week_review.html', family=family, profile=profile, week=week.isoformat(),
         review=review, can_write='*' in allowed or 'draft.write' in allowed,
+        publication_key=_publication_key(scope, week),
         csrf=_scoped_csrf(profile, 'week-review', scope),
         service_labels={'open': 'Geöffnet', 'closed': 'Geschlossen', 'holiday': 'Feiertag',
                         'company_holiday': 'Betriebsferien'},
