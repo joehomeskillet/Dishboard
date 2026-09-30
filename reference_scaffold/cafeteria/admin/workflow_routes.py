@@ -47,6 +47,7 @@ from ..course_store import parse_course_form, persist_service_courses
 from ..workflow_partial_store import (
     PartialWorkflowConflictError, PartialWorkflowNotFoundError, PartialWorkflowValidationError,
     persist_menu_item, persist_service_state, persist_week_header, resolve_item_id, resolve_week_ref)
+from ..workflow_snapshot import build_snapshot
 from ..workflow_store import load_draft_connection
 from ..workflow_review import _review_open_connection
 from ..workflow_write_context import WriteConflictError, WritePermissionError, WriteUnavailableError, write_transaction
@@ -1103,6 +1104,23 @@ def copy_post(family: str):
     ))
     return redirect(url_for(f'admin.{family}', week=target.isoformat()), 303)
 
+
+def _preview_shows_draft(connection, profile: str, draft: dict) -> bool:
+    """Name the shown stand only when it diverges from the active publication."""
+    rows = connection.execute(text(
+        'SELECT revision_code, snapshot_json FROM cafeteria.publication_revisions '
+        'WHERE menu_week_id=:week_id AND withdrawn_at IS NULL'
+    ), {'week_id': draft['id']}).mappings().all()
+    if len(rows) != 1:
+        return False
+    active = rows[0]
+    try:
+        candidate = build_snapshot(profile, draft, str(active['revision_code']))
+    except (KeyError, TypeError, ValueError):
+        return False
+    return candidate != active['snapshot_json']
+
+
 @bp.get('/<any(cafeteria, patienten):family>/preview')
 @require_capability('preview.read')
 def preview(family: str):
@@ -1110,16 +1128,20 @@ def preview(family: str):
     _reject_override()
     week = _week_arg()
     _scope(profile)
+    shown_draft = False
     try:
         with _db().connect() as connection:
             draft = load_draft_connection(connection, profile, week)
+            state = str(draft['workflow_state'])
+            if state == 'published':
+                shown_draft = _preview_shows_draft(connection, profile, draft)
     except ComponentCatalogConfigurationError as error:
         abort(503, description=str(error))
     except NoResultFound:
         abort(404)
-    state = str(draft['workflow_state'])
     if state not in {'draft', 'ready', 'published', 'archived'}:
         abort(404)
+    g.preview_shown_draft = shown_draft
     return render_admin_preview(profile, family, week, state, draft)
 
 @bp.post('/<any(cafeteria, patienten):family>/publish')
