@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, disclosure_section, list_row %}
-{% from 'ui/_semantic.html' import icon_label, empty_state_sem, status_badge_sem, icon_button, row_actions %}
+{% from 'admin/_macros.html' import page_header, disclosure_section, empty_state, list_row %}
+{% from 'ui/_semantic.html' import icon_label, status_badge_sem, icon_button, row_actions %}
 {% set workflow_nav = 'orders' %}
 {# Status labels only; no send action or state transition. #}
 {% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
@@ -29,8 +29,9 @@
 {% endfor %}
 </div>
 {% else %}
-{{ empty_state_sem('ui.order_empty_baskets') }}
+{% call empty_state('none', t('ui.order_empty_baskets.label'), t('ui.order_empty_baskets.tooltip'), compact=true, semantic_key='ui.order_empty_baskets', icon_name=sem('ui.order_empty_baskets').resolved_icon) %}
 {{ icon_button('actions.add', href=create_url, emphasis='secondary') }}
+{% endcall %}
 {% endif %}
 {% call disclosure_section(title=t('actions.add.label'), id='korb-anlegen', open=(suppliers and not baskets) or request.args.get('open') == 'korb') %}
 <form method="post" action="{{ url_for('admin.order_basket_create') }}" class="row g-2">
@@ -53,8 +54,9 @@
 {% endfor %}
 </div>
 {% else %}
-{{ empty_state_sem('ui.order_empty_suppliers') }}
+{% call empty_state('none', t('ui.order_empty_suppliers.label'), t('ui.order_empty_suppliers.tooltip'), compact=true, semantic_key='ui.order_empty_suppliers', icon_name=sem('ui.order_empty_suppliers').resolved_icon) %}
 {{ icon_button('actions.add', href=url_for('admin.order_home', open='lieferant', _anchor='code'), emphasis='secondary') }}
+{% endcall %}
 {% endif %}
 {% call disclosure_section(title=t('actions.add.label'), id='lieferant-anlegen', open=not suppliers or request.args.get('open') == 'lieferant') %}
 <form method="post" action="{{ url_for('admin.order_supplier_create') }}" class="row g-2">
@@ -74,8 +76,9 @@
 {% endfor %}
 </div>
 {% else %}
-{{ empty_state_sem('ui.order_empty_articles') }}
+{% call empty_state('none', t('ui.order_empty_articles.label'), t('ui.order_empty_articles.tooltip'), compact=true, semantic_key='ui.order_empty_articles', icon_name=sem('ui.order_empty_articles').resolved_icon) %}
 {{ icon_button('actions.add', href=url_for('admin.order_home', open='artikel', _anchor='supplier_public_id'), emphasis='secondary') }}
+{% endcall %}
 {% endif %}
 {% call disclosure_section(title=t('actions.add.label'), id='artikel-anlegen', open=request.args.get('open') == 'artikel') %}
 <form method="post" action="{{ url_for('admin.order_article_create') }}" class="row g-2">

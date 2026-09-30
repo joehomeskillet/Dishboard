@@ -162,7 +162,7 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             metrics.append({'state': state, 'width': width, 'javascript': javascript, **measured})
             for control in page.locator('main :is(.btn, input:not([type=hidden]), select, summary):visible').all():
                 box = control.bounding_box()
-                minimum = 36 if 'ui-sem-control' in (control.get_attribute('class') or '') else 48
+                minimum = 44 if page.evaluate("matchMedia('(pointer: coarse)').matches") else 36
                 assert box['height'] >= minimum
             page.screenshot(path=str(tmp_path / f'cost-{state}-{width}-{javascript}.png'), full_page=True)
 

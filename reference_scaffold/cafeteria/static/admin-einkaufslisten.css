@@ -1,4 +1,4 @@
-/* Shopping lists: compact rows, one primary, no document overflow. */
+/* Shopping forms; list geometry and segments use the shared foundations. */
 
 .dishboard-admin [data-shopping-lists] .shopping-create {
   min-width: 0;
@@ -9,25 +9,6 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--app-space-2);
-}
-
-.dishboard-admin [data-shopping-lists] .shopping-filter {
-  max-width: 100%;
-  flex-wrap: wrap;
-}
-
-.dishboard-admin [data-shopping-lists] .shopping-filter .btn.active {
-  border: 2px solid var(--app-primary);
-  background: var(--app-primary-soft);
-}
-
-.dishboard-admin [data-shopping-lists] .shopping-list .admin-list-row {
-  padding-block: var(--app-space-1);
-  align-items: center;
-}
-
-.dishboard-admin [data-shopping-lists] .shopping-list .admin-compact-actions > summary {
-  min-width: var(--app-space-12);
 }
 
 .dishboard-admin [data-shopping-lists] .shopping-revision-row,

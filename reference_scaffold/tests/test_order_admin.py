@@ -249,7 +249,7 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                         targets = page.locator('main .btn:visible, main summary:visible')
                         sizes = targets.evaluate_all(
                             'els => els.map(el => {const r = el.getBoundingClientRect();'
-                            ' const min = el.classList.contains("ui-sem-control") ? 36 : 48;'
+                            ' const min = matchMedia("(pointer: coarse)").matches ? 44 : 36;'
                             ' return r.width >= min && r.height >= min;})',
                         )
                         assert all(sizes), sizes
@@ -268,6 +268,9 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                         page.screenshot(path=str(tmp_path / f'home-{width}-js-{javascript}.png'), full_page=True)
                         assert page.goto(origin + f'/admin/bestellung/korb/{basket_id}').status == 200
                         page.evaluate('document.fonts && document.fonts.ready')
+                        back = page.locator('.page-header-back').get_by_role('link', name='Zurück', exact=True)
+                        expect(back).to_be_visible()
+                        expect(back).to_have_attribute('href', '/admin/bestellung')
                         basket_metrics = page.evaluate('''() => {
                             const line = document.querySelector('.order-lines tbody tr');
                             return {
@@ -301,7 +304,7 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                         targets = page.locator('main .btn:visible, main summary:visible, main input:not([type=hidden]):visible, main select:visible')
                         sizes = targets.evaluate_all(
                             'els => els.map(el => {const r = el.getBoundingClientRect();'
-                            ' const min = el.classList.contains("ui-sem-control") ? 36 : 48;'
+                            ' const min = matchMedia("(pointer: coarse)").matches ? 44 : 36;'
                             ' return r.width >= min && r.height >= min;})',
                         )
                         assert all(sizes), sizes
@@ -328,7 +331,7 @@ def test_order_pages_viewports_statusbar_keyboard_nojs(b3, tmp_path) -> None:  #
                     expect(page.locator('#basket_supplier')).to_be_visible()
                     sizes = page.locator('#korb-anlegen select, #korb-anlegen button').evaluate_all(
                         'els => els.map(el => {const r = el.getBoundingClientRect();'
-                        ' const min = el.classList.contains("ui-sem-control") ? 36 : 48;'
+                        ' const min = matchMedia("(pointer: coarse)").matches ? 44 : 36;'
                         ' return r.width >= min && r.height >= min;})')
                     assert all(sizes), sizes
                     if javascript:

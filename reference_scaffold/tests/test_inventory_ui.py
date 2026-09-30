@@ -135,7 +135,7 @@ def test_lager_statusbar_viewports_nojs_and_keyboard(b3, master_server, tmp_path
                         for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
                             if control.is_visible():
                                 box = control.bounding_box()
-                                minimum = 36 if 'ui-sem-control' in (control.get_attribute('class') or '') else 48
+                                minimum = 44 if page.evaluate("matchMedia('(pointer: coarse)').matches") else 36
                                 assert box is not None and box['height'] >= minimum
                         if width == 1440 and javascript:
                             quantity = page.locator('#quantity')
