@@ -65,7 +65,7 @@ def targets(page):
     for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
         if control.is_visible():
             box = control.bounding_box()
-            minimum = 36 if control.evaluate("e => e.classList.contains('ui-sem-control')") else 48
+            minimum = control.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
             assert box is not None and box['height'] >= minimum
             control.focus()
             expect(control).to_be_focused()

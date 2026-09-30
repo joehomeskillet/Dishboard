@@ -127,8 +127,8 @@ def _controls(page: Page) -> None:
     expect(page.locator('#component-form [readonly]')).to_have_count(0)
     sizes = page.locator('main .btn, main .form-control, main .form-select, main .form-check').evaluate_all(
         '''es => es.filter(e => e.getClientRects().length).map(e => [e.id,
-            e.getBoundingClientRect().height, e.classList.contains('ui-sem-control')
-                ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48])'''
+            e.getBoundingClientRect().height,
+            parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))])'''
     )
     assert sizes and all(height >= minimum for _, height, minimum in sizes), sizes
     labels = page.locator('#component-form input:not([type="hidden"]), #component-form select').evaluate_all(

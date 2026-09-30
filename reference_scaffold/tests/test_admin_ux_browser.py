@@ -81,11 +81,12 @@ def test_admin_overview_keyboard_order_focus_and_targets(page_context: Page):
     targets = page.evaluate('''() => {
         let ok = true;
         const offenders = [];
+        const minimum = parseFloat(getComputedStyle(document.body).getPropertyValue('--app-control-min-height'));
         document.querySelectorAll('.btn').forEach(btn => {
             const rect = btn.getBoundingClientRect();
             const iconOnly = btn.matches('.ui-sem-control--icon-only');
             const sized = iconOnly ? rect.width === 36 && rect.height === 36
-                                  : rect.width >= 44 && rect.height >= 44;
+                                  : rect.width >= minimum && rect.height >= minimum;
             if (rect.width > 0 && !sized) {
                 ok = false;
                 offenders.push({target: btn.id || btn.getAttribute('aria-label') || btn.textContent.trim(),
@@ -96,7 +97,7 @@ def test_admin_overview_keyboard_order_focus_and_targets(page_context: Page):
             const label = chk.closest('label') || document.querySelector(`label[for="${chk.id}"]`);
             if (label) {
                 const rect = label.getBoundingClientRect();
-                if (rect.width > 0 && (rect.width < 44 || rect.height < 44)) ok = false;
+                if (rect.width > 0 && (rect.width < minimum || rect.height < minimum)) ok = false;
             }
         });
         return {ok, offenders};

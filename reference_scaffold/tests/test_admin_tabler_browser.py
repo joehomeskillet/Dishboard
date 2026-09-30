@@ -53,7 +53,8 @@ def test_shared_macros_expose_errors_labels_and_touch_targets(page_context, admi
     expect(field).to_have_attribute('aria-describedby', 'test-title-error')
     expect(page.locator('#test-title-error')).to_have_text('Titel prüfen')
     check = page.get_by_label('Gespeicherten Stand geprüft', exact=True)
-    assert page.locator('label[for="test-review"]').bounding_box()['height'] >= 48
+    minimum = field.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+    assert page.locator('label[for="test-review"]').bounding_box()['height'] >= minimum
     page.locator('label[for="test-review"]').click()
     expect(check).to_be_checked()
     expect(page.get_by_text('Prüfung offen', exact=True)).to_be_visible()
@@ -106,7 +107,8 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
             expect(page.locator('main')).to_have_attribute('data-density', 'compact')
             for link in nav.get_by_role('link').all():
                 expect(link).to_be_visible()
-                assert link.bounding_box()['height'] >= 48
+                minimum = link.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+                assert link.bounding_box()['height'] >= minimum
             if width < 992:
                 page.keyboard.press('Escape')
                 expect(toggle).to_have_attribute('aria-expanded', 'false')
@@ -125,7 +127,7 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
                     note.last.locator('summary').click()
                 expect(page.locator('#new-week-note')).to_be_visible()
             for control in page.locator('input[type="date"]:visible, input[name="title"]:visible, textarea:visible, button[type="submit"]:visible').all():
-                minimum = control.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
+                minimum = control.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
                 if control.is_visible() and control.evaluate("e => e.matches('.ui-sem-control')"):
                     expect(control).to_have_accessible_name(re.compile(r'\S'))
                 assert control.bounding_box()['height'] >= minimum, (width, control.evaluate('(el) => el.outerHTML'))

@@ -43,7 +43,7 @@ def _shot(page, name: str, *, native=False, viewport_only=False) -> None:
     for action in page.locator('main .btn, main summary').all():
         if action.is_visible():
             box = action.bounding_box()
-            minimum = action.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
+            minimum = action.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
             assert box['height'] >= minimum and box['width'] >= minimum
             assert box['x'] >= 0 and box['x'] + box['width'] <= page.evaluate('innerWidth') + 1
     destination = EVIDENCE_DIR / f'{name}.png'

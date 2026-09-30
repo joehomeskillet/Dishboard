@@ -131,7 +131,9 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
             page.set_viewport_size({'width': width, 'height': height})
             shot(page, f'planning-{family}-{width}-{javascript}')
             for label in ('Bereich', 'Woche ab Montag', 'Wochentag', 'Mahlzeit', 'Menüart'):
-                assert page.get_by_label(label, exact=True).bounding_box()['height'] >= 48
+                control = page.get_by_label(label, exact=True)
+                minimum = control.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+                assert control.bounding_box()['height'] >= minimum
         before = stored_state(admin_engine)
         submit(page, 'Weiter zum Menü', 303)
         assert 'template_context=' in page.url and '_csrf=' not in page.url

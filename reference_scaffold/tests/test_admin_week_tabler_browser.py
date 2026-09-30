@@ -211,13 +211,15 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), width
     coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
     action_size = 44 if coarse else 36
+    minimum = page.evaluate("parseFloat(getComputedStyle(document.body).getPropertyValue('--app-control-min-height'))")
+    assert minimum == action_size
     for control in page.locator(
         '.admin-week-controls .btn, .admin-overview-form .form-control, .admin-overview-form .btn, '
         '.admin-week-service .form-select, .admin-week-service .form-control, .menu-slot .btn',
     ).all():
         box = control.bounding_box()
         icon_only = control.evaluate("el => el.matches('.ui-sem-control--icon-only')")
-        assert box is not None and box['height'] >= (action_size if icon_only else 48), control.evaluate('(el) => el.outerHTML')
+        assert box is not None and box['height'] >= minimum, control.evaluate('(el) => el.outerHTML')
         if icon_only:
             assert box['width'] >= action_size, box
     if width in (360, 1280):

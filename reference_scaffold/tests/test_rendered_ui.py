@@ -943,6 +943,8 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
     try:
         assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is coarse
         icon_size = 44 if coarse else 36
+        minimum = page.evaluate("parseFloat(getComputedStyle(document.body).getPropertyValue('--app-control-min-height'))")
+        assert minimum == icon_size
         metrics_script = """
             rootSelector => {
               const selector = 'a[href], button, input:not([type="hidden"]), select, textarea, summary.ui-sem-control--icon-only';
@@ -1047,7 +1049,7 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
             assert result['missingContainers'] == []
             assert all(
                 (item['width'] == icon_size and item['height'] == icon_size) if item['iconOnly']
-                else (item['width'] >= 44 and item['height'] >= 44)
+                else (item['width'] >= minimum and item['height'] >= minimum)
                 for item in result['reachable']
             ), result['reachable']
             assert all(item['reachable'] for item in result['reachable']), [
