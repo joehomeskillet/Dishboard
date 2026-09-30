@@ -18,8 +18,9 @@ PAGE = '''<!doctype html><html lang="{{ ui_locale }}"><head>
 {% for file in ['tokens.css', 'vendor/tabler/tabler.min.css', 'admin-tabler.css', 'ui-semantic.css'] %}
 <link rel="stylesheet" href="{{ url_for('static', filename=file) }}">{% endfor %}
 </head><body class="admin-body dishboard-admin"><main class="container-fluid py-4">
-{% from 'ui/_semantic.html' import icon_button, symbol_row, status_badge_sem, action_menu, empty_state_sem, status_bar, filter_bar_sem, confirm_dialog %}
-{{ status_bar('navigation.menus', [{'key':'status.active', 'value':0}]) }}
+{% from 'ui/_semantic.html' import icon_button, symbol_row, status_badge_sem, action_menu, empty_state_sem, filter_bar_sem, confirm_dialog %}
+{% from 'admin/_macros.html' import page_header %}
+{{ page_header(t(sem('navigation.menus').label_key), status_items=[{'label':t(sem('status.active').label_key), 'icon':sem('status.active').resolved_icon, 'variant':'active', 'value':0}]) }}
 {{ icon_button('actions.edit', href='#edit', icon_only=true, id='edit') }}
 {{ icon_button('actions.save', type='button') }}
 {{ symbol_row(['diet.vegan'], [{'key':'allergen.milk', 'presence':'contains', 'checked':true}], ['diet.regional'], ['review.approved']) }}

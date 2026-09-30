@@ -142,7 +142,7 @@ def test_registry_source_schema_and_frozen_resolution():
     seeds = json.loads((source / '05_SEMANTIC_REGISTRY.json').read_text())
     # P2c adds activate/apply/history; no aliases for different business actions.
     assert len(seeds) == 187
-    assert len(registry) == 221
+    assert len(registry) == 237  # UC-G0: sixteen explicit state/component entries.
     assert registry['status.archived'].category == 'status'
     assert registry['status.archived'].resolved_icon == 'archive'
     assert registry['status.archived'].role == 'neutral'
@@ -1258,3 +1258,66 @@ def test_p4_registry_visible_text_is_in_accessible_name(semantic_app, locale, mo
     assert upload_button.get_text(strip=True) == ''
     assert upload_button['aria-label'] == upload_button['data-ui-tooltip'] == upload
     assert upload_button.select_one('use')['href'].endswith('#tabler-upload')
+
+
+@pytest.mark.parametrize('locale', ('de', 'en'))
+def test_foundation_status_dimensions_are_explicit_and_independent(semantic_app, locale):
+    from bs4 import BeautifulSoup
+
+    semantic_app.config['UI_LOCALE'] = locale
+    states = {
+        'editing.not_created': 'editing', 'publish.draft': 'editing',
+        'status.unsaved': 'editing', 'save.saving': 'save',
+        'save.saved': 'save', 'save.failed': 'save', 'save.unknown': 'save',
+        'review.unchecked': 'review', 'review.pending': 'review',
+        'status.incomplete': 'review', 'status.not_recorded': 'review',
+        'review.approved': 'review', 'publish.unpublished': 'publication',
+        'publish.published': 'publication', 'publish.changed': 'publication',
+        'status.active': 'lifecycle', 'status.inactive': 'lifecycle',
+        'status.archived': 'lifecycle', 'status.unavailable': 'lifecycle',
+        'status.warning': 'notice', 'status.error': 'notice',
+    }
+    with semantic_app.test_request_context('/'):
+        html = render_template_string(
+            "{% from 'ui/_semantic.html' import status_badge_sem, symbol_row %}"
+            "{% for key in states %}{{ status_badge_sem(key, detail='Source <A>') }}{% endfor %}"
+            "<div id='empty'>{{ symbol_row() }}</div>", states=states)
+    doc = BeautifulSoup(html, 'html.parser')
+    badges = doc.select('.ui-sem-label[data-status-dimension]')
+    assert len(badges) == len(states)
+    for badge, (key, dimension) in zip(badges, states.items()):
+        assert badge['data-semantic'] == key
+        assert badge['data-status-dimension'] == dimension
+        assert badge.select_one('span:not(.visually-hidden)').get_text(strip=True)
+        assert badge['title'] == 'Source <A>'
+        assert not badge.select('a, script')
+    assert 'admin-status--neutral' in doc.select_one('[data-semantic="status.archived"]')['class']
+    assert 'admin-status--neutral' in doc.select_one('[data-semantic="save.unknown"]')['class']
+    assert not doc.select('#empty [data-status-dimension]')
+    assert doc.select_one('#empty [data-semantic="allergen.unknown"]')
+
+
+def test_foundation_slots_notices_and_disclosure_preserve_content(semantic_app):
+    from bs4 import BeautifulSoup
+
+    with semantic_app.test_request_context('/'):
+        html = render_template_string(
+            "{% from 'admin/_macros.html' import page_header, segment_switch, notice, empty_state, disclosure_section %}"
+            "{% set segments %}{{ segment_switch([{'key':'a','label':'Area A','href':'/a'},"
+            "{'key':'b','label':'Area B','href':'/b'}], 'b', label='Area') }}{% endset %}"
+            "{{ page_header('Title', back='<a href=\"/back\">Back</a>'|safe, segments=segments) }}"
+            "{{ notice('Information') }}{{ notice('Allergens missing', kind='warning') }}"
+            "{{ notice('Save failed', kind='error') }}"
+            "{{ empty_state('none', 'No entries', '', action='<a href=\"/new\">New</a>'|safe, compact=true) }}"
+            "{% call disclosure_section('Details', variant='card', has_error=true) %}"
+            "<input name='amount' value='bad' aria-invalid='true'>{% endcall %}")
+    doc = BeautifulSoup(html, 'html.parser')
+    assert doc.select_one('.page-header-back a')['href'] == '/back'
+    assert doc.select_one('.page-header-segments [aria-current="page"]')['href'] == '/b'
+    assert not doc.select('[role="tab"], [role="tablist"]')
+    assert [node['role'] for node in doc.select('.admin-notice')] == ['note', 'alert', 'alert']
+    assert doc.select_one('.admin-notice--warning').get_text(strip=True) == 'Allergens missing'
+    assert doc.select_one('.empty--compact .empty-action a')['href'] == '/new'
+    disclosure = doc.select_one('details.admin-disclosure--card')
+    assert disclosure.has_attr('open')
+    assert disclosure.select_one('input')['value'] == 'bad'

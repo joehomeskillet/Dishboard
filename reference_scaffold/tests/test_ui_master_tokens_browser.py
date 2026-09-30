@@ -531,10 +531,11 @@ def test_polish_six_status_styles_have_text_icons_and_contrast(site, tmp_path):
     variants = ['neutral', 'active', 'success', 'warning', 'danger', 'info']
     with app.test_request_context():
         markup = render_template_string('''
-            {% from 'ui/_semantic.html' import status_badge_sem, status_bar %}
+            {% from 'ui/_semantic.html' import status_badge_sem %}
+            {% from 'admin/_macros.html' import page_header %}
             {% for key in keys %}{{ status_badge_sem(key) }}{% endfor %}
-            {% for key in keys %}{{ status_bar('navigation.menus', [{'key': key, 'value': 0}]) }}{% endfor %}
-        ''', keys=keys)
+            {% for key in keys %}{{ page_header(t(sem('navigation.menus').label_key), status_items=[{'label':t(sem(key).label_key), 'icon':sem(key).resolved_icon, 'variant':variants[loop.index0], 'value':0}]) }}{% endfor %}
+        ''', keys=keys, variants=variants)
     page.locator('main').evaluate('(el, html) => el.innerHTML = html', markup)
     for key, variant in zip(keys, variants, strict=True):
         badge = page.locator(f'.badge[data-semantic="{key}"]')
