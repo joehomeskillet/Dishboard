@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
+from uuid import UUID
 
 from flask import current_app, flash, g, make_response, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response
@@ -77,6 +78,13 @@ def _require_quantity(raw: str | None) -> str:
     return stripped
 
 
+def _posted_id(field: str) -> str:
+    try:
+        return str(UUID(request.form.get(field) or ''))
+    except ValueError as error:
+        raise InventoryError('Ungültige Kennung.', field=field) from error
+
+
 def _public_error(error: BaseException) -> str:
     if isinstance(error, InvalidOperation):
         return 'Menge muss eine Zahl sein.'
@@ -126,14 +134,22 @@ def _fail_inventory(form: str, error: BaseException, status: int) -> Response:
     message = _public_error(error)
     food = request.form.get('food_public_id') or ''
     storage = request.form.get('source_storage_public_id') or request.form.get('storage_public_id') or ''
+    try:
+        UUID(food)
+        UUID(storage)
+    except ValueError:
+        food = storage = ''
+    values = _posted_values(form)
     field = getattr(error, 'field', None)
-    if field in ('food_public_id', 'storage_public_id'):
+    if field in ('food_public_id', 'storage_public_id', 'source_storage_public_id'):
         field = 'lager-selection'
+    elif field == 'dest_storage_public_id':
+        values['dest_storage_public_id'] = ''
     elif field == 'unit_code':
         field = _UNIT_FIELD[form]
     response = make_response(render_template(
         'admin/lager.html',
-        **_inventory_context(food, storage, _posted_values(form), {field or _inventory_field(form, message): message}, form),
+        **_inventory_context(food, storage, values, {field or _inventory_field(form, message): message}, form),
     ), status)
     response.headers['Cache-Control'] = 'no-store'
     return response
@@ -159,8 +175,8 @@ def inventory_move() -> Response:
     try:
         post_movement(
             _db(), _scope(),
-            food_public_id=request.form.get('food_public_id') or '',
-            storage_public_id=request.form.get('storage_public_id') or '',
+            food_public_id=_posted_id('food_public_id'),
+            storage_public_id=_posted_id('storage_public_id'),
             kind=request.form.get('kind') or 'receipt',
             quantity=_require_quantity(request.form.get('quantity')),
             unit_code=request.form.get('unit_code') or 'KG',
@@ -179,9 +195,9 @@ def inventory_transfer() -> Response:
     try:
         transfer(
             _db(), _scope(),
-            food_public_id=request.form.get('food_public_id') or '',
-            source_storage_public_id=request.form.get('source_storage_public_id') or '',
-            dest_storage_public_id=request.form.get('dest_storage_public_id') or '',
+            food_public_id=_posted_id('food_public_id'),
+            source_storage_public_id=_posted_id('source_storage_public_id'),
+            dest_storage_public_id=_posted_id('dest_storage_public_id'),
             quantity=_require_quantity(request.form.get('quantity')),
             unit_code=request.form.get('unit_code') or 'KG',
         )
@@ -201,8 +217,8 @@ def inventory_count() -> Response:
     try:
         result = post_count(
             _db(), _scope(),
-            food_public_id=request.form.get('food_public_id') or '',
-            storage_public_id=request.form.get('storage_public_id') or '',
+            food_public_id=_posted_id('food_public_id'),
+            storage_public_id=_posted_id('storage_public_id'),
             counted_quantity=_require_quantity(request.form.get('counted_quantity')),
             unit_code=request.form.get('unit_code') or 'KG',
         )

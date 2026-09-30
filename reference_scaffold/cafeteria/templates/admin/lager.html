@@ -85,6 +85,7 @@
       <div>
         <label class="form-label" for="dest_storage_public_id">Nach Lagerort</label>
         <select class="form-select{% if field_errors.dest_storage_public_id %} is-invalid{% endif %}" id="dest_storage_public_id" name="dest_storage_public_id" required{% if field_errors.dest_storage_public_id %} aria-invalid="true" aria-describedby="dest_storage_public_id-error" autofocus{% endif %}>
+          {% if field_errors.dest_storage_public_id and not values.dest_storage_public_id %}<option value="" selected>Bitte Lagerort auswählen.</option>{% endif %}
           {% for dest_id, dest_name in dests %}
             {% if dest_id != selected.storage_public_id %}
             <option value="{{ dest_id }}"{% if values.dest_storage_public_id == dest_id %} selected{% endif %}>{{ dest_name }}</option>
