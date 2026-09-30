@@ -66,31 +66,32 @@
 {% set warnings = namespace(archived_recipes=0) %}
 {% for item in rows if item.recipe_public_id and not item.recipe_active %}{% set warnings.archived_recipes = warnings.archived_recipes + 1 %}{% endfor %}
 {% if warnings.archived_recipes %}<p class="admin-list-secondary" role="status">{{ warnings.archived_recipes }} Gerichtvorlagen mit archiviertem Rezept.</p>{% endif %}
+{% set status_mixed = rows|rejectattr('active')|list %}
+{% set show_status = status_mixed or warnings.archived_recipes %}
 {% if rows %}
 <div class="card mb-4">
     <table class="table table-vcenter card-table admin-table admin-table--stack">
       <thead>
         <tr>
-          <th scope="col">Titel</th>
+          <th scope="col">Gerichtvorlage</th>
           <th scope="col">Menüart</th>
           <th scope="col">Geltungsbereich</th>
           <th scope="col">Dazu</th>
-          {% if include_archived %}<th scope="col">Aktivstatus</th>{% endif %}
+          {% if show_status %}<th scope="col">Status</th>{% endif %}
           {% if can_write %}<th scope="col">Planung</th>{% endif %}
         </tr>
       </thead>
       <tbody>
         {% for item in rows %}
         <tr>
-          <td data-label="Titel">
+          <td data-label="Gerichtvorlage">
             <a class="admin-list-primary d-inline-flex py-1" href="{{ url_for('admin.dish_template_edit', public_id=item.public_id, **list_args) }}">{{ item.title }}</a>
-            {% if item.recipe_public_id and not item.recipe_active %}<div class="admin-list-secondary">{{ status_badge_sem('status.archived', text='Rezept archiviert', status='archived') }}</div>
-            {% elif not item.recipe_public_id %}<div class="admin-list-secondary">Kein Rezept verknüpft</div>{% endif %}
+            {% if not item.recipe_public_id %}<div class="admin-list-secondary">Kein Rezept verknüpft</div>{% endif %}
           </td>
           <td data-label="Menüart">{{ type_labels.get(item.menu_type_code, item.menu_type_code or '—') }}</td>
           <td data-label="Geltungsbereich">{{ scope_labels.get(item.profile_scope, item.profile_scope) }}</td>
           <td data-label="Dazu">{{ accompaniment_state(item) }}</td>
-          {% if include_archived %}<td class="admin-table-status" data-label="Aktivstatus">{{ status_badge_sem('status.active' if item.active else 'status.archived', status='active' if item.active else 'archived') }}</td>{% endif %}
+          {% if show_status %}<td class="admin-table-status" data-label="Status">{%- if status_mixed -%}{{ status_badge_sem('status.active' if item.active else 'status.archived', status='active' if item.active else 'archived') }}{%- endif -%}{%- if item.recipe_public_id and not item.recipe_active -%}{{ status_badge_sem('status.archived', text='Rezept archiviert', status='archived') }}{%- endif -%}</td>{% endif %}
           {% if can_write %}<td class="admin-table-actions" data-label="Planung">{% if item.active %}{{ row_actions([{'key': 'actions.open', 'text': 'Einplanen', 'object': item.title, 'aria_label': item.title ~ ' als Menü einplanen', 'title': item.title ~ ' als Menü einplanen', 'href': url_for('admin.dish_template_plan', public_id=item.public_id)}]) }}{% endif %}</td>{% endif %}
         </tr>
         {% endfor %}

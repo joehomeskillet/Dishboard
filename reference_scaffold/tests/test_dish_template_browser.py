@@ -203,6 +203,8 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
         linked = create(client, title='Rezeptvorlage', recipe_public_id=recipe.public_id)
         _open(page, base)
         measurements['linked-list'] = _rework_measure(page, 'linked-list', width)
+        expect(page.get_by_role('columnheader', name='Status', exact=True)).to_have_count(0)
+        expect(page.locator('table.admin-table [data-label="Status"]')).to_have_count(0)
         _open(page, base, linked)
         measurements['linked-editor'] = _rework_measure(page, 'linked-editor', width)
         expect(page.locator('.admin-statusbar')).to_contain_text('Gebunden')
@@ -212,6 +214,7 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
         assert client.post(path, data=data).status_code == 303
         _open(page, base)
         expect(page.get_by_role('link', name='Messvorlage', exact=True)).to_have_count(0)
+        expect(page.get_by_role('columnheader', name='Status', exact=True)).to_have_count(0)
         page.locator('details.admin-filter-more > summary').click()
         measurements['expanded-filters'] = _rework_measure(page, 'expanded-filters', width)
         page.get_by_label('Archivierte einschliessen').check()
@@ -219,6 +222,21 @@ def test_rework_layout_measurements(b3, master_server, browser, width, javascrip
         page.get_by_role('button', name='Übernehmen', exact=True).click()
         expect(page.get_by_role('link', name='Messvorlage', exact=True)).to_be_visible()
         assert 'archived=1' in page.url
+        archived_row = page.locator('tbody tr').filter(
+            has=page.get_by_role('link', name='Messvorlage', exact=True))
+        active_row = page.locator('tbody tr').filter(
+            has=page.get_by_role('link', name='Rezeptvorlage', exact=True))
+        expect(archived_row.locator('.admin-table-status .admin-label')).to_have_text('Archiviert')
+        expect(archived_row.locator('.admin-table-status [data-status="archived"]')).to_have_count(1)
+        expect(active_row.locator('.admin-table-status .admin-label')).to_have_text('Aktiv')
+        expect(active_row.locator('.admin-table-status [data-status="active"]')).to_have_count(1)
+        if width >= 768:
+            expect(page.get_by_role('columnheader', name='Status', exact=True)).to_be_visible()
+            expect(page.get_by_role('columnheader', name='Gerichtvorlage', exact=True)).to_be_visible()
+        else:
+            expect(page.get_by_role('columnheader', name='Status', exact=True)).to_have_count(1)
+            expect(archived_row.locator('[data-label="Status"]')).to_be_visible()
+            expect(archived_row.locator('[data-label="Gerichtvorlage"]')).to_be_visible()
         _open(page, base, path)
         expect(page.locator('.admin-statusbar')).to_contain_text('Archiviert')
         measurements['archived-editor'] = _rework_measure(page, 'archived-editor', width)

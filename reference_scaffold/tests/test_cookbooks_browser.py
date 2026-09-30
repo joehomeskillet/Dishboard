@@ -137,7 +137,7 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         else:
             short = cards.filter(has=page.get_by_text('Browserbuch', exact=True))
             short_box = short.bounding_box()
-            # Measured short stacked row is 169px: G0 data-label sits above Titel, Meta and Aktionen.
+            # Measured short stacked row is 169px: G0 data-label sits above Kochbuch, Rezepte and Aktionen.
             assert short_box['height'] <= 180 < max(box['height'] for box in boxes)
             for card in cards.all():
                 title = card.locator('.admin-list-primary')
@@ -232,24 +232,30 @@ def test_cookbook_list_status_in_mixed_and_default_view(cookbook_server, browser
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
 
-        # 1. Standard view without archive filter (Normalzustand unbeschriftet, kein Strich-Artefakt)
+        # 1. Standard view without archive filter (Normalzustand: keine Statusspalte)
         page.goto(base + '/admin/kochbuecher')
         expect(page.get_by_role('heading', level=1)).to_have_text('Kochbücher')
+        expect(page.get_by_role('columnheader', name='Kochbuch', exact=True)).to_be_visible()
+        expect(page.get_by_role('columnheader', name='Rezepte', exact=True)).to_be_visible()
+        expect(page.get_by_role('columnheader', name='Aktionen', exact=True)).to_be_visible()
+        expect(page.get_by_role('columnheader', name='Status', exact=True)).to_have_count(0)
 
         cards = page.locator('section[aria-label="Kochbücher"] tbody tr')
         expect(cards).to_have_count(1)
         active_row = cards.filter(has=page.get_by_text('Aktives Kochbuch', exact=True))
         expect(active_row).to_be_visible()
         expect(page.get_by_text('Archiviertes Kochbuch')).to_have_count(0)
-
-        status_el = active_row.locator('.admin-list-status')
-        expect(status_el.locator('.admin-label')).to_have_count(0)
-        expect(status_el.locator('.admin-empty-value')).to_have_count(0)
-        assert '—' not in status_el.inner_text()
-        assert not status_el.inner_text().strip()
+        expect(active_row.locator('.admin-list-status')).to_have_count(0)
+        expect(active_row.locator('[data-label="Status"]')).to_have_count(0)
+        expect(active_row.locator('[data-label="Kochbuch"]')).to_be_visible()
+        expect(active_row.locator('[data-label="Rezepte"]')).to_be_visible()
+        # description='Aktiv' bleibt fachlicher Untertitel, kein Statuschip.
+        expect(active_row.locator('.admin-list-subtitle')).to_have_text('Aktiv')
+        expect(active_row.locator('.admin-label')).to_have_count(0)
 
         # 2. Mixed view with include_archived=1 (Spec §8.2: Status unterscheidbar, kein leerer Strich)
         page.goto(base + '/admin/kochbuecher?archived=1')
+        expect(page.get_by_role('columnheader', name='Status', exact=True)).to_be_visible()
         expect(cards).to_have_count(2)
 
         active_row = cards.filter(has=page.get_by_text('Aktives Kochbuch', exact=True))

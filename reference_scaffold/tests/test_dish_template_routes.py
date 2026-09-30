@@ -20,7 +20,7 @@ from test_master_data_routes import (  # noqa: F401
 )
 from test_recipe_store_db import payload as recipe_payload
 
-COLUMNS = ('Titel', 'Menüart', 'Geltungsbereich', 'Dazu')
+COLUMNS = ('Gerichtvorlage', 'Menüart', 'Geltungsbereich', 'Dazu')
 
 
 def snapshot(owner):
@@ -96,11 +96,15 @@ def test_list_columns_sidebar_and_create_without_target(b3):  # noqa: F811
     filled = client.get('/admin/gerichtvorlagen')
     assert path.startswith('/admin/gerichtvorlagen/')
     assert 'Ohne Ziel' in filled.text
-    assert all(column in filled.text for column in COLUMNS)
+    assert all(f'<th scope="col">{column}</th>' in filled.text for column in COLUMNS)
     assert 'Nur aktive Gerichtvorlagen' in filled.text
+    assert '<th scope="col">Status</th>' not in filled.text
     assert '<th scope="col">Aktivstatus</th>' not in filled.text
     mixed = client.get('/admin/gerichtvorlagen?archived=1')
-    assert '<th scope="col">Aktivstatus</th>' in mixed.text
+    assert all(f'<th scope="col">{column}</th>' in mixed.text for column in COLUMNS)
+    # Nur aktive Zeilen und kein archiviertes Rezept: D5, keine Statusspalte.
+    assert '<th scope="col">Status</th>' not in mixed.text
+    assert '<th scope="col">Aktivstatus</th>' not in mixed.text
     assert len(snapshot(owner)['dish_templates']) == len(before['dish_templates']) + 1
     assert len(snapshot(owner)['audit_events']) == len(before['audit_events']) + 1
 
