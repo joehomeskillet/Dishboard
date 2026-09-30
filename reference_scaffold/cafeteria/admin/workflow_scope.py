@@ -18,6 +18,7 @@ from ..component_catalog_store import (
     resolve_single_active_location_connection,
 )
 from ..security import csrf_token, validate_csrf
+from ..errors import FormStale
 from ..menu_template_binding import (
     TemplateContext, lock_templates, require_empty_template_target,
     require_template_source, template_public_id,
@@ -64,12 +65,12 @@ def _scoped_csrf(profile: str, purpose: str, scope: AdminScope, *,
 def _validated(profile: str, purposes: set[str], *, check_current: bool = True) -> tuple[AdminScope, str]:
     values = request.form.getlist('_csrf')
     if len(values) != 1 or len(values[0]) > 2048:
-        abort(400, description='CSRF-Prüfung fehlgeschlagen.')
+        raise FormStale()
     parts = values[0].split('.')
     if len(parts) == 3:
         abort(409, description='Formular ist veraltet. Bitte neu laden.')
     if len(parts) != 8 or parts[0] != 'v2':
-        abort(400, description='CSRF-Prüfung fehlgeschlagen.')
+        raise FormStale()
     _, raw, purpose, actor, authz, location, context, digest = parts
     validate_csrf(raw)
     if purpose not in purposes:

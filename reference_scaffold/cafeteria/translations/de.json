@@ -787,6 +787,7 @@
   "errors.NETWORK_UNAVAILABLE.message": "Die Verbindung wurde unterbrochen.",
   "errors.reference": "Referenz",
   "errors.code_label": "Fehler",
+  "errors.auth_input_loss": "Eingaben werden nicht über die Anmeldung hinweg gesichert.",
   "errors.limit_known": "Erlaubte Grösse: {limit}.",
   "errors.formats_known": "Zugelassen sind: {formats}.",
   "errors.wait_known": "Bitte warten Sie {wait}.",

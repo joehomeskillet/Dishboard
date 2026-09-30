@@ -10,10 +10,13 @@ from ..component_catalog_store import ComponentCatalogConfigurationError
 from .. import master_data_types as master
 from .. import recipe_types as recipe
 from ..roles import require_capability
+from ..errors import render_error
 from .recipe_forms import FormError, LocationConflict
 
 
 def render_form_error(error, *, submitted=None, display_values=None, reload_url='/admin/rezepte'):
+    if isinstance(error, HTTPException) and (error.code not in (400, 409) or getattr(error, 'error_code', None)):
+        return render_error(error)
     if isinstance(error, HTTPException):
         status = error.code or 500
     elif isinstance(error, (recipe.RecipeStaleActorError, master.StaleActorError)):

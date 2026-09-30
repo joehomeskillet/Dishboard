@@ -179,7 +179,7 @@ def test_local_login_succeeds_without_session_roles(auth_app: tuple[Any, Engine,
         ),
     )
 
-    assert response.status_code == 302
+    assert response.status_code == 303
     assert response.headers['Location'].endswith('/admin/cafeteria')
     with client.session_transaction() as flask_session:
         assert flask_session['user']['id'] == user_id
@@ -376,7 +376,10 @@ def test_login_ip_bucket_cannot_be_bypassed_by_rotating_usernames(
     )
 
     assert limited.status_code == 429
-    assert 'Anmeldung fehlgeschlagen' in limited.get_data(as_text=True)
+    assert 'Bitte warten Sie kurz, bevor Sie es erneut versuchen.' in limited.get_data(as_text=True)
+    assert 'Location' not in limited.headers
+    with client.session_transaction() as flask_session:
+        assert 'user' not in flask_session
 
 
 def test_login_account_bucket_cannot_be_bypassed_by_rotating_client_ips(
@@ -409,7 +412,10 @@ def test_login_account_bucket_cannot_be_bypassed_by_rotating_client_ips(
     )
 
     assert limited.status_code == 429
-    assert 'Anmeldung fehlgeschlagen' in limited.get_data(as_text=True)
+    assert 'Bitte warten Sie kurz, bevor Sie es erneut versuchen.' in limited.get_data(as_text=True)
+    assert 'Location' not in limited.headers
+    with client.session_transaction() as flask_session:
+        assert 'user' not in flask_session
 
 
 def test_overlong_login_username_is_rejected_before_rate_key_creation(
@@ -467,7 +473,7 @@ def test_success_clears_account_and_combined_buckets_but_keeps_ip_bucket(
         environ_base={'REMOTE_ADDR': remote_address},
     )
 
-    assert accepted.status_code == 302
+    assert accepted.status_code == 303
     assert redis_client.exists(combined_key) == 0
     assert all(redis_client.exists(key) == 0 for key in account_keys)
     assert {redis_client.get(key) for key in ip_keys} == {b'2'}
@@ -538,7 +544,7 @@ def test_role_revocation_invalidates_live_session(auth_app: tuple[Any, Engine, E
             password='Correct-Horse-2026!Battery',
         ),
     )
-    assert login.status_code == 302
+    assert login.status_code == 303
 
     with owner_engine.begin() as connection:
         connection.execute(
@@ -547,7 +553,9 @@ def test_role_revocation_invalidates_live_session(auth_app: tuple[Any, Engine, E
         )
     protected = client.get('/admin/cafeteria')
 
-    assert protected.status_code == 401
+    assert protected.status_code == 302
+    assert protected.headers['Location'].startswith('/auth/login?return_token=')
+    assert protected.headers['Cache-Control'] == 'no-store'
     with client.session_transaction() as flask_session:
         assert 'user' not in flask_session
         assert 'authz_version' not in flask_session
@@ -707,7 +715,7 @@ def test_entra_callback_accepts_exact_unique_application_roles(
             ),
             {'tid': claims['tid'], 'oid': claims['oid']},
         ).scalar_one()
-    assert response.status_code == 302
+    assert response.status_code == 303
     assert roles == ['Cafeteria.Editor', 'Cafeteria.Publisher']
     with client.session_transaction() as flask_session:
         assert flask_session['user']['provider'] == 'entra'
@@ -790,7 +798,7 @@ def test_local_login_requires_csrf_before_rate_limit_or_auth(
         assert flask_session['sentinel'] == 'preserved-before-validation'
 
     accepted = client.post('/auth/local', data=valid)
-    assert accepted.status_code == 302
+    assert accepted.status_code == 303
     with client.session_transaction() as flask_session:
         assert flask_session['user']['id'] > 0
         assert 'sentinel' not in flask_session
@@ -886,7 +894,7 @@ def _login_entra_session(
 
     response = client.get('/auth/callback')
 
-    assert response.status_code == 302
+    assert response.status_code == 303
     with client.session_transaction() as flask_session:
         server_sid = flask_session.sid
         assert flask_session['user'].get('sid') == provider_sid
@@ -1038,7 +1046,7 @@ def test_frontchannel_logout_never_revokes_local_session(
             username='local.editor',
             password='Correct-Horse-2026!Battery',
         ),
-    ).status_code == 302
+    ).status_code == 303
     with client.session_transaction() as flask_session:
         server_sid = flask_session.sid
     issuer = f"https://login.microsoftonline.com/{application.config['ENTRA_TENANT_ID']}/v2.0"

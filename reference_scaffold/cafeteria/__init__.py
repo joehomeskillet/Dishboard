@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from flask import Flask
-from flask_session import Session
+from flask_session import Session  # type: ignore[import-untyped]
 from redis import Redis
 
 from .config import Config
 from .db import init_app_database
+from .errors import register_error_handlers
 from .security import csrf_token
 from .template_filters import register_template_filters
 from .ui import register_ui
@@ -50,6 +51,7 @@ def create_app() -> Flask:
     app.register_blueprint(fhir_bp)
     app.register_blueprint(health_bp)
     app.register_blueprint(branding_bp)
+    register_error_handlers(app)
 
     @app.context_processor
     def inject_security_helpers():

@@ -787,6 +787,7 @@
   "errors.NETWORK_UNAVAILABLE.message": "The connection was interrupted.",
   "errors.reference": "Reference",
   "errors.code_label": "Error",
+  "errors.auth_input_loss": "Your entries are not retained through sign-in.",
   "errors.limit_known": "Allowed size: {limit}.",
   "errors.formats_known": "Allowed formats: {formats}.",
   "errors.wait_known": "Please wait {wait}.",

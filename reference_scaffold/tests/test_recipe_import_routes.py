@@ -86,7 +86,16 @@ def test_csrf_conflict_and_capability(b3, monkeypatch):  # noqa: F811
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', {'draft.read'})
     assert client.get('/admin/rezepte/import').status_code == 403
     assert client.post(path, data=stale).status_code == 403
-    assert app.test_client().get('/admin/rezepte/import').status_code == 401
+    before_denial = snapshot(owner)
+    anonymous = app.test_client()
+    denied = anonymous.get('/admin/rezepte/import')
+    assert denied.status_code == 302
+    assert urlsplit(denied.headers['Location']).path == '/auth/login'
+    assert denied.headers['Cache-Control'] == 'no-store'
+    denied_post = anonymous.post('/admin/rezepte/import', data={'annotation': 'MUST-NOT-WRITE'})
+    assert denied_post.status_code == 401 and 'Location' not in denied_post.headers
+    assert 'MUST-NOT-WRITE' not in denied_post.text
+    assert snapshot(owner) == before_denial
 
 
 def test_commit_creates_recipe_link_and_rejects_editor(b3):  # noqa: F811

@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from functools import wraps
 
-from flask import abort, current_app, g, session
+from flask import current_app, g, session
+from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import Forbidden, ServiceUnavailable
 
 from .auth.service import load_user_authorization
+from .errors import authentication_required, render_error
 
 ROLE_CAPABILITIES = {
     'Cafeteria.Editor': {
@@ -35,22 +38,25 @@ def require_capability(capability: str):
             session_user = session.get('user')
             session_authz_version = session.get('authz_version')
             if not isinstance(session_user, dict) or not isinstance(session_user.get('id'), int):
-                abort(401)
+                return authentication_required()
             if not isinstance(session_authz_version, int):
                 session.clear()
-                abort(401)
-            authorization = load_user_authorization(
-                current_app.extensions['cafeteria_db'],
-                session_user['id'],
-            )
+                return authentication_required(invalid=True)
+            try:
+                authorization = load_user_authorization(
+                    current_app.extensions['cafeteria_db'], session_user['id'],
+                )
+            except SQLAlchemyError:
+                return render_error(ServiceUnavailable())
             if authorization is None or authorization.authz_version != session_authz_version:
                 session.clear()
-                abort(401)
+                return authentication_required(invalid=True)
             g.auth_user = authorization
             g.auth_roles = authorization.roles
             allowed = capabilities()
             if '*' not in allowed and capability not in allowed:
-                abort(403)
+                g.eh_mutation_state = 'not_started'
+                return render_error(Forbidden())
             return function(*args, **kwargs)
         return wrapped
     return decorator

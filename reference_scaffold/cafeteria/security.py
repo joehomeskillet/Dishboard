@@ -3,7 +3,9 @@ from __future__ import annotations
 import hmac
 import secrets
 
-from flask import abort, session
+from flask import g, session
+
+from .errors import FormStale
 
 
 def csrf_token() -> str:
@@ -17,4 +19,5 @@ def csrf_token() -> str:
 def validate_csrf(candidate: str | None) -> None:
     expected = session.get('_csrf_token')
     if not expected or not candidate or not hmac.compare_digest(expected, candidate):
-        abort(400, description='CSRF-Prüfung fehlgeschlagen.')
+        g.eh_mutation_state = 'not_started'
+        raise FormStale()
