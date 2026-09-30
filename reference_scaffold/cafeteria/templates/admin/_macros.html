@@ -8,7 +8,7 @@
 <a class="btn btn-icon w-100" href="{{ href }}" aria-label="{{ label }}" title="{{ label }}" data-admin-icon-action data-bs-toggle="tooltip" data-bs-title="{{ label }}">{{ icon(sem('actions.edit').resolved_icon) }}</a>
 {%- endmacro %}
 
-{%- macro page_header(title, description=none, breadcrumbs=none, actions=none, pretitle=none, status_items=[]) -%}
+{%- macro page_header(title, description=none, breadcrumbs=none, actions=none, pretitle=none, status_items=[], back=none, segments=none) -%}
 {%- if title and title|trim -%}
 {%- set action_content = caller() if caller else actions -%}
 {%- set subtitle = description if description is not none else pretitle -%}
@@ -36,6 +36,7 @@
 {%- endset -%}
 <div class="page-header">
   <div class="container-xl">
+    {% if back %}<div class="page-header-back">{{ back }}</div>{% endif %}
     {%- if breadcrumbs and breadcrumbs|length > 0 -%}
     <nav aria-label="Breadcrumb" class="page-breadcrumb mb-2">
       <ol class="breadcrumb mb-0">
@@ -64,6 +65,7 @@
       </div>
       {%- endif -%}
     </div>
+    {% if segments %}<div class="page-header-segments">{{ segments }}</div>{% endif %}
     {%- if status.count > 0 -%}
     <dl class="admin-statusbar" aria-label="Status">
       {{- status_content -}}
@@ -218,13 +220,15 @@
 {%- endmacro %}
 
 {% set render_icon = icon %}
-{%- macro label(text, variant='neutral', icon=none, detail=none, semantic_key=none, status=none, class='') -%}
+{%- macro label(text, variant='neutral', icon=none, detail=none, semantic_key=none, status=none, class='', dimension=none) -%}
 {%- set variant = variant if variant in ['neutral', 'info', 'active', 'success', 'warning', 'danger', 'category'] else 'neutral' -%}
-<span class="badge admin-label admin-status--{{ variant }}{% if class %} {{ class }}{% endif %}"{% if detail %} title="{{ detail }}"{% endif %}{% if semantic_key %} data-semantic="{{ semantic_key }}"{% endif %}{% if status is not none %} data-status="{{ status }}"{% endif %}>{% if icon %}{{ render_icon(icon) }}{% endif %}<span>{{ text }}</span>{% if detail %}<span class="visually-hidden"> · {{ detail }}</span>{% endif %}</span>
+<span class="badge admin-label admin-status--{{ variant }}{% if class %} {{ class }}{% endif %}"{% if detail %} title="{{ detail }}"{% endif %}{% if semantic_key %} data-semantic="{{ semantic_key }}"{% endif %}{% if status is not none %} data-status="{{ status }}"{% endif %}{% if dimension %} data-status-dimension="{{ dimension }}"{% endif %}>{% if icon %}{{ render_icon(icon) }}{% endif %}<span>{{ text }}</span>{% if detail %}<span class="visually-hidden"> · {{ detail }}</span>{% endif %}</span>
 {%- endmacro %}
 {% set render_label = label %}
 
 {%- macro status_badge(value, mapping=none, label=none, detail=none) -%}
+{# Deprecated adapter: preserve domain-specific mappings until P1/P2 migrate callers. #}
+{%- from 'ui/_semantic.html' import status_badge_sem -%}
 {%- set default_map = {
   'live': ('Live', 'success'),
   'ready': ('Bereit', 'info'),
@@ -267,7 +271,10 @@
   {%- set badge_var = 'secondary' -%}
 {%- endif -%}
 {%- set variant = {'secondary': 'neutral', 'green': 'success', 'teal': 'info', 'blue': 'info', 'yellow': 'warning', 'orange': 'warning', 'red': 'danger'}.get(badge_var, badge_var) -%}
-{{ render_label(badge_text, variant='active' if value == 'active' and not (mapping and value in mapping) else variant, detail=detail, status=value, class='bg-' ~ badge_var ~ '-lt badge-pill') }}
+{%- set keys = {'live':'publish.published', 'ready':'publish.ready', 'review_open':'review.pending', 'incomplete':'status.incomplete', 'changed':'review.changed', 'active':'status.active', 'inactive':'status.inactive', 'archived':'status.archived', 'draft':'publish.draft', 'conflict':'status.error', 'error':'status.error', 'success':'status.success', 'warning':'status.warning', 'danger':'status.error', 'info':'status.info', 'published':'publish.published'} -%}
+{%- set key = keys.get(value, 'status.neutral') -%}
+{%- if mapping and value in mapping -%}{%- set key = {'danger':'status.error', 'warning':'status.warning', 'success':'status.success', 'info':'status.info'}.get(variant, 'status.neutral') -%}{%- endif -%}
+{{ status_badge_sem(key, detail=detail, text=badge_text if label is not none or (mapping and value in mapping) or value not in keys else none, variant='active' if value == 'active' and not (mapping and value in mapping) else variant, status=value, class='bg-' ~ badge_var ~ '-lt badge-pill') }}
 {%- endmacro %}
 
 {%- macro status(value, label=none, mapping=none) -%}
@@ -278,7 +285,7 @@
 {%- endif -%}
 {%- endmacro %}
 
-{%- macro empty_state(kind, title, text, action=none, semantic_key=none, icon_name=none) -%}
+{%- macro empty_state(kind, title, text, action=none, semantic_key=none, icon_name=none, compact=false) -%}
 {%- set action_content = caller() if caller else action -%}
 {%- set icon_map = {
   'none': 'archive-off',
@@ -286,7 +293,7 @@
   'forbidden': 'alert-triangle'
 } -%}
 {%- set kind_icon = icon_name or icon_map.get(kind, 'info-circle') -%}
-<div class="empty" data-empty-kind="{{ kind }}"{% if semantic_key %} data-semantic="{{ semantic_key }}"{% endif %}>
+<div class="empty{% if compact %} empty--compact{% endif %}" data-empty-kind="{{ kind }}"{% if semantic_key %} data-semantic="{{ semantic_key }}"{% endif %}>
   <div class="empty-icon">{{ icon(kind_icon) }}</div>
   <p class="empty-title">{{ title }}</p>
   <p class="empty-subtitle text-secondary">{{ text }}</p>
@@ -400,14 +407,23 @@
 </div>
 {%- endmacro %}
 
-{%- macro profile_tabs(links, current) %}
-<nav class="profile-tabs mb-3" aria-label="Profil">
+{%- macro segment_switch(links, current, label=none, class='') -%}
+<nav class="admin-segments{% if class %} {{ class }}{% endif %}" aria-label="{{ label or t(sem('ui.segments').label_key) }}">
   <ul class="nav nav-pills">
-    {% for key, label in [('cafeteria', 'Cafeteria'), ('patienten', 'Patienten')] %}
-    <li class="nav-item"><a class="nav-link{% if key == current %} active{% endif %}" href="{{ links[key] }}"{% if key == current %} aria-current="page"{% endif %}>{{ label }}</a></li>
+    {% for item in links %}
+    <li class="nav-item"><a class="nav-link{% if item.key == current %} active{% endif %}" href="{{ item.href }}"{% if item.key == current %} aria-current="page"{% endif %}>{{ item.label }}</a></li>
     {% endfor %}
   </ul>
 </nav>
+{%- endmacro %}
+
+{%- macro profile_tabs(links, current) -%}
+{{ segment_switch([{'key':'cafeteria', 'label':t(sem('ui.profile.cafeteria').label_key), 'href':links['cafeteria']}, {'key':'patienten', 'label':t(sem('ui.profile.patients').label_key), 'href':links['patienten']}], current, label=t(sem('ui.profile').label_key), class='profile-tabs') }}
+{%- endmacro %}
+
+{%- macro notice(text, kind='info') -%}
+{%- set kind = kind if kind in ['info', 'warning', 'error'] else 'info' -%}
+<div class="admin-notice admin-notice--{{ kind }}" role="{{ 'note' if kind == 'info' else 'alert' }}">{{ text }}</div>
 {%- endmacro %}
 
 {%- macro flash_region(messages) %}
@@ -461,10 +477,11 @@
 </fieldset>
 {%- endmacro %}
 
-{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none, search_id=none, search_emphasis=none) -%}
+{%- macro filter_bar(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none, search_id=none, search_emphasis=none, segments=none) -%}
 {% from 'ui/_semantic.html' import icon_button, filter_trigger %}
 {# Compatibility for the existing profile-only slot; new callers use profile=. #}
 {% if profile is none and filters and 'profile-tabs' in filters %}{% set profile = filters %}{% set filters = none %}{% endif %}
+{% if segments is not none %}{% set profile = segments %}{% endif %}
 {% set count = active_count if active_count is not none else active_filters|length if active_filters else 0 %}
 <form class="admin-filter-bar" method="get" action="{{ action }}" data-dirty-tracking="off" role="search" data-filter-remove-label="{{ t(sem('view.reset').aria_key) }}"{% if loading is not none %} data-loading="{{ 'true' if loading is sameas true else 'false' if loading is sameas false else loading }}"{% endif %}>
   <div class="admin-filter-search"><div class="admin-filter-query">{{ field(search_name, t(sem('view.search').label_key), search_value, type='search', id=search_id if search_id is not none else id ~ '-search', maxlength=maxlength, describedby=describedby) }}</div>{{ icon_button('view.search', emphasis=search_emphasis) }}</div>
@@ -488,6 +505,8 @@
 <th scope="col" aria-sort="{{ ('descending' if direction == 'desc' else 'ascending') if key == current else 'none' }}"><a class="admin-sort-header" href="{{ url }}">{{ label }}{% if key == current %}{{ icon('chevron-down' if direction == 'desc' else 'chevron-up') }}{% endif %}</a></th>
 {%- endmacro %}
 
+{# DEPRECATED: new homogeneous lists use table.admin-table.admin-table--stack
+   with title | meta | status | actions. P1/P2 own existing consumer migration. #}
 {%- macro list_row(name=none, subtitle=none, state=none, action=none, markings=none, overflow=0, more_actions=none, primary=none, secondary=none, meta=none, status=none, actions=none) -%}
 {%- set primary_content = primary if primary is not none else name -%}
 {%- set secondary_content = secondary if secondary is not none else subtitle -%}
@@ -516,9 +535,9 @@
 </div>
 {%- endmacro %}
 
-{%- macro disclosure_section(title=none, id=none, open=false, has_content=false, has_error=false) -%}
-<details class="admin-compact-details admin-disclosure"{% if id %} id="{{ id }}"{% endif %}{% if open or has_content or has_error %} open{% endif %}>
-  <summary>{{ icon(sem('ui.disclosure.more_options').resolved_icon) }}{{ t(sem('ui.disclosure.more_options').label_key) if title is none else title }}{% if has_content %}<span class="text-secondary"> · enthält Angaben</span>{% endif %}</summary>
+{%- macro disclosure_section(title=none, id=none, open=false, has_content=false, has_error=false, variant='plain') -%}
+<details class="admin-compact-details admin-disclosure{% if variant == 'card' %} card admin-disclosure--card{% endif %}"{% if id %} id="{{ id }}"{% endif %}{% if open or has_content or has_error %} open{% endif %}>
+  <summary>{{ icon(sem('ui.disclosure.more_options').resolved_icon) }}{{ t(sem('ui.disclosure.more_options').label_key) if title is none else title }}{% if has_content %}<span class="text-secondary"> · {{ t(sem('ui.disclosure.has_content').label_key) }}</span>{% endif %}</summary>
   <div class="admin-compact-detail-body">{{ caller() if caller else '' }}</div>
 </details>
 {%- endmacro %}

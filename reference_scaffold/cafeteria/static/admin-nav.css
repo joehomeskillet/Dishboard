@@ -1,11 +1,109 @@
-/* Shared navigation supplement. Palette follows the existing sidebar tokens. */
+/* Sidebar layout and interaction styles have one owner: this file. */
 .dishboard-admin .admin-sidebar {
   --admin-nav-group-gap: var(--app-space-3);
   --admin-nav-item-gap: var(--app-space-1);
+  --tblr-navbar-bg: var(--app-sidebar); --tblr-navbar-border-color: var(--app-sidebar-hover);
+  --tblr-navbar-color: var(--app-sidebar-text); --tblr-navbar-hover-color: var(--app-sidebar-text);
+  --tblr-navbar-active-color: var(--app-on-primary); --tblr-navbar-active-bg: var(--app-sidebar-active);
+  --tblr-navbar-active-border-color: var(--app-sidebar-indicator);
+  color: var(--app-sidebar-text); background: var(--app-sidebar);
 }
-.dishboard-admin .admin-sidebar .navbar-nav { gap: var(--admin-nav-group-gap); }
+.dishboard-admin .admin-sidebar .navbar-nav {
+  --tblr-nav-link-color: var(--app-sidebar-text); --tblr-nav-link-hover-color: var(--app-sidebar-text);
+  --tblr-nav-link-hover-bg: var(--app-sidebar-hover); --tblr-nav-active-bg: var(--app-sidebar-active);
+}
+.dishboard-admin .admin-sidebar .nav-link {
+  display: flex; align-items: center; gap: var(--app-space-3); padding: var(--app-space-1) var(--app-space-3);
+  border-radius: var(--app-radius-control); font-size: var(--app-font-size-body);
+}
+.dishboard-admin .admin-sidebar .nav-link:is(:hover, :focus-visible) {
+  background: var(--app-sidebar-hover); color: var(--app-surface);
+}
+.dishboard-admin .admin-sidebar .nav-link:is(.active, [aria-current="page"]) {
+  color: var(--app-on-primary); background: var(--app-sidebar-active); font-weight: 700;
+  box-shadow: inset 3px 0 var(--app-sidebar-indicator);
+}
+.dishboard-admin .admin-user-text > span { color: var(--app-sidebar-label); }
+.dishboard-admin .admin-brand {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--app-space-2);
+  margin: var(--app-space-2); padding: var(--app-space-2); border-radius: var(--sh-radius-sm);
+  color: var(--sh-ink); background: var(--sh-panel); white-space: normal;
+}
+.dishboard-admin .admin-logo { width: 164px; max-width: 100%; height: 32px; object-fit: contain; }
+.dishboard-admin .admin-brand span { font-size: .875rem; }
+.dishboard-admin .admin-user { display: flex; align-items: center; gap: var(--app-space-2); padding: var(--app-space-4); }
+.dishboard-admin .admin-user-text { display: grid; min-width: 0; }
+.dishboard-admin .admin-user-text > * { overflow-wrap: anywhere; }
 .dishboard-admin .admin-sidebar .navbar-nav .nav-link-title {
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dishboard-admin .admin-sidebar .nav-item.active::after { content: none; }
+.dishboard-admin .admin-sidebar .navbar-footer .nav-link-title { display: inline; }
+.dishboard-admin .admin-sidebar .nav-link-icon,
+.dishboard-admin .admin-sidebar .nav-link-icon .icon { width: 20px; height: 20px; flex: none; }
+.dishboard-admin .admin-sidebar .navbar-nav { gap: var(--admin-nav-group-gap); }
+.dishboard-admin .admin-sidebar .admin-nav-subitems {
+  display: grid; gap: var(--admin-nav-item-gap); list-style: none;
+  border: 0; box-shadow: none; background: transparent;
+  margin: var(--app-space-1) 0 0 var(--app-space-8); padding: 0;
+}
+.dishboard-admin .admin-user-profile { display: flex; align-items: center; gap: var(--app-space-2); min-width: 0; }
+.dishboard-admin .admin-user-info { display: grid; min-width: 0; }
+.dishboard-admin .admin-user-name { color: var(--app-sidebar-text); overflow-wrap: anywhere; }
+.dishboard-admin .admin-user-role { color: var(--app-sidebar-label); font-size: .75rem; }
+.dishboard-admin .admin-footer {
+  margin-top: auto; border-top: 1px solid var(--app-sidebar-hover); padding: var(--app-space-4) var(--app-space-3);
+}
+.dishboard-admin .admin-logout-btn {
+  display: flex; align-items: center; gap: var(--app-space-3); width: 100%; min-height: var(--app-control-min-height);
+  padding: var(--app-space-1) var(--app-space-3); margin-top: var(--app-space-2); border: 0; border-radius: var(--app-radius-control);
+  background: transparent; color: var(--app-sidebar-text);
+}
+.dishboard-admin .admin-logout-btn:is(:hover, :focus-visible) {
+  background: var(--app-sidebar-hover); color: var(--app-surface);
+}
+.dishboard-admin .admin-sidebar .navbar-nav .nav-link {
+  min-height: var(--app-control-min-height); font-size: var(--app-font-size-body);
+}
+.dishboard-admin .navbar-toggler {
+  min-height: var(--app-control-min-height);
+  width: auto; min-width: var(--app-control-min-height); padding: var(--app-space-1) var(--app-space-3); margin: var(--app-space-2); gap: var(--app-space-2); color: var(--sh-white);
+  --tblr-btn-hover-bg: var(--app-sidebar-hover); --tblr-btn-active-bg: var(--app-sidebar-active);
+}
+.dishboard-admin .admin-sidebar :is(a, button, summary):focus-visible { outline-color: var(--app-surface); }
+.dishboard-admin .admin-nojs-nav { width: 100%; }
+.dishboard-admin .admin-nojs-nav > summary {
+  display: flex; align-items: center; gap: var(--app-space-2);
+  min-height: var(--app-control-min-height); padding: 0 var(--app-space-3); cursor: pointer;
+  color: var(--app-sidebar-text);
+}
+@media (min-width: 992px) {
+  .dishboard-admin .admin-sidebar {
+    width: var(--app-sidebar-width); flex: 0 0 var(--app-sidebar-width);
+  }
+  .dishboard-admin .admin-sidebar .admin-nav-collapse {
+    display: flex; flex-direction: column; align-items: stretch; flex: 1 1 auto;
+    min-height: 0; width: 100%; height: 100%;
+  }
+  .dishboard-admin .admin-nav {
+    display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .dishboard-admin .navbar-footer { margin-top: auto; }
+}
+@media (max-width: 991.98px) {
+  .dishboard-admin .admin-sidebar { width: 100%; }
+  .dishboard-admin .admin-sidebar .navbar-nav { flex-direction: column; }
+  .dishboard-admin .admin-sidebar .nav-link { padding: var(--app-space-1) var(--app-space-4); }
+  .dishboard-admin .admin-brand span { display: none; }
+  .dishboard-admin .admin-brand { margin: var(--app-space-2) 0; }
+  .dishboard-admin .admin-sidebar .offcanvas-lg {
+    --tblr-offcanvas-width: 320px; max-width: 320px; width: min(100%, 320px);
+    background: var(--app-sidebar); color: var(--app-sidebar-text);
+  }
+  .dishboard-admin .admin-nav {
+    overflow-y: auto; overscroll-behavior: contain; min-height: 0; flex: 1 1 auto;
+  }
 }
 .dishboard-admin .admin-sidebar .admin-nav-area > .nav-link { gap: var(--app-space-2); }
 .dishboard-admin .admin-sidebar .admin-nav-area > .nav-link.active:not([aria-current="page"]) {
@@ -14,13 +112,8 @@
 .dishboard-admin .admin-sidebar .admin-nav-area > .nav-link.active:not([aria-current="page"]):is(:hover, :focus-visible) {
   background: var(--app-sidebar-hover);
 }
-.dishboard-admin .admin-sidebar .admin-nav-subitems {
-  border: 0; box-shadow: none; background: transparent;
-  gap: var(--admin-nav-item-gap);
-  margin: var(--app-space-1) 0 0 var(--app-space-8); padding: 0;
-}
 .dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link {
-  min-height: var(--app-space-12); font-size: var(--app-font-size-label); font-weight: 400;
+  min-height: var(--app-control-min-height); font-size: var(--app-font-size-label); font-weight: 400;
 }
 .dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link[aria-current="page"] { font-weight: 700; }
 .dishboard-admin .admin-nav-chevron { margin-left: auto; display: flex; flex: none; }
@@ -29,8 +122,8 @@
 .dishboard-admin { --admin-nav-rail-width: calc(var(--app-space-12) + var(--app-space-6)); }
 .dishboard-admin .admin-nav-toggle {
   display: flex; align-items: center; justify-content: center;
-  width: var(--app-space-12); min-height: var(--app-space-12);
-  margin-bottom: var(--app-space-2); padding: var(--app-space-3);
+  width: var(--app-control-min-height); min-height: var(--app-control-min-height);
+  margin-bottom: var(--app-space-2); padding: var(--app-space-2);
   border: 0; border-radius: var(--app-radius-control);
   background: transparent; color: var(--app-sidebar-text);
 }
@@ -82,7 +175,7 @@
   .dishboard-admin.admin-nav-collapsed .admin-nav-toggle .icon { transform: rotate(180deg); }
   .dishboard-admin.admin-nav-collapsed .admin-nav-area > .nav-link:is(:hover, :focus-visible)::after {
     content: attr(title); position: absolute; left: 100%; z-index: 1100;
-    padding: var(--app-space-2) var(--app-space-3); white-space: nowrap;
+    padding: var(--app-space-1) var(--app-space-3); white-space: nowrap;
     border-radius: var(--app-radius-control); background: var(--app-sidebar); color: var(--app-on-primary);
     font-size: var(--app-font-size-label); font-weight: 400;
   }

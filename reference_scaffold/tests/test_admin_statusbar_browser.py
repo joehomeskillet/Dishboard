@@ -5,10 +5,10 @@ from flask import render_template_string
 from playwright.sync_api import expect
 
 from test_admin_workflow_routes import database_engine  # noqa: F401
-from test_ui_master_components_browser import macro_site  # noqa: F401
+from test_ui_master_components_browser import macro_site, touch_input  # noqa: F401
 
 
-def test_page_header_statusbar_semantics_variants_and_empty_values(macro_site):
+def test_page_header_statusbar_semantics_variants_and_empty_values(macro_site):  # noqa: F811 - imported fixture
     page, app, _, _ = macro_site
     page.goto('/__macro_components__', wait_until='networkidle')
 
@@ -49,7 +49,7 @@ def test_page_header_statusbar_semantics_variants_and_empty_values(macro_site):
         assert '>F<' not in capped and '>6<' not in capped
 
 
-def test_page_header_statusbar_reflows_at_360_without_document_overflow(macro_site):
+def test_page_header_statusbar_reflows_at_360_without_document_overflow(macro_site):  # noqa: F811 - imported fixture
     page, _, _, _ = macro_site
     page.set_viewport_size({'width': 360, 'height': 800})
     page.goto('/__macro_components__', wait_until='networkidle')

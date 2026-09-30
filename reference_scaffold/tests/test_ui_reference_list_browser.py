@@ -117,7 +117,8 @@ def _measure(page: Page, count: int, contrast_failures: list, view: str) -> None
         assert link.inner_text() == ('' if semantic else 'Bearbeiten')
         assert 'bearbeiten' in link.get_attribute('aria-label').lower()
         box = link.bounding_box()
-        assert box is not None and box['height'] >= (36 if semantic else 48)
+        minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+        assert box is not None and box['height'] >= minimum
     geometry = page.locator('[data-menu-id]:visible').evaluate_all('''cards => cards.map(el => {
         const r = el.getBoundingClientRect(), s = getComputedStyle(el);
         return {width: r.width, height: r.height, top: r.top, radius: s.borderRadius, shadow: s.boxShadow,

@@ -52,82 +52,10 @@
 }
 .dishboard-admin .page { min-width: 0; }
 .dishboard-admin .admin-main { min-width: 0; flex: 1 1 auto; }
-.dishboard-admin .admin-sidebar {
-  --tblr-navbar-bg: var(--app-sidebar); --tblr-navbar-border-color: var(--app-sidebar-hover);
-  --tblr-navbar-color: var(--app-sidebar-text); --tblr-navbar-hover-color: var(--app-sidebar-text);
-  --tblr-navbar-active-color: var(--app-on-primary); --tblr-navbar-active-bg: var(--app-sidebar-active);
-  --tblr-navbar-active-border-color: var(--app-sidebar-indicator);
-  color: var(--app-sidebar-text); background: var(--app-sidebar);
-}
-.dishboard-admin .admin-sidebar .navbar-nav {
-  --tblr-nav-link-color: var(--app-sidebar-text); --tblr-nav-link-hover-color: var(--app-sidebar-text);
-  --tblr-nav-link-hover-bg: var(--app-sidebar-hover); --tblr-nav-active-bg: var(--app-sidebar-active);
-}
-.dishboard-admin .admin-sidebar .nav-link {
-  display: flex; align-items: center; gap: 12px; padding: 8px 12px;
-  border-radius: var(--app-radius-control); font-size: var(--app-font-size-body);
-}
-.dishboard-admin .admin-sidebar .nav-link:is(:hover, :focus-visible) {
-  background: var(--app-sidebar-hover); color: var(--app-surface);
-}
-.dishboard-admin .admin-sidebar .nav-link:is(.active, [aria-current="page"]) {
-  color: var(--app-on-primary); background: var(--app-sidebar-active); font-weight: 700;
-  box-shadow: inset 3px 0 var(--app-sidebar-indicator);
-}
-.dishboard-admin .admin-user-text > span { color: var(--app-sidebar-label); }
-.dishboard-admin .admin-brand {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-  margin: 8px; padding: 8px; border-radius: var(--sh-radius-sm);
-  color: var(--sh-ink); background: var(--sh-panel); white-space: normal;
-}
-.dishboard-admin .admin-logo { width: 164px; max-width: 100%; height: 32px; object-fit: contain; }
-.dishboard-admin .admin-brand span { font-size: .875rem; }
-.dishboard-admin .admin-user { display: flex; align-items: center; gap: 8px; padding: 16px; }
-.dishboard-admin .admin-user-text { display: grid; min-width: 0; }
-.dishboard-admin .admin-user-text > * { overflow-wrap: anywhere; }
-.dishboard-admin .admin-sidebar .navbar-nav .nav-link-title {
-  min-width: 0; white-space: normal; overflow: visible; text-overflow: clip;
-}
-.dishboard-admin .admin-sidebar .nav-item.active::after { content: none; }
-.dishboard-admin .admin-sidebar .navbar-footer .nav-link-title { display: inline; }
-.dishboard-admin .admin-sidebar .nav-link-icon,
-.dishboard-admin .admin-sidebar .nav-link-icon .icon { width: 20px; height: 20px; flex: none; }
-.dishboard-admin .admin-sidebar .navbar-nav { gap: 4px; }
-.dishboard-admin .admin-sidebar .admin-nav-subitems {
-  display: grid; gap: var(--app-space-1); list-style: none;
-  margin: var(--app-space-1) 0 var(--app-space-3) var(--app-space-8);
-  padding: 0 0 0 var(--app-space-2);
-}
-.dishboard-admin .admin-sidebar .admin-nav-subitems .nav-link {
-  min-height: 48px; padding: var(--app-space-2) var(--app-space-3);
-  font-size: var(--app-font-size-label);
-}
-.dishboard-admin .admin-user-profile { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.dishboard-admin .admin-user-info { display: grid; min-width: 0; }
-.dishboard-admin .admin-user-name { color: var(--app-sidebar-text); overflow-wrap: anywhere; }
-.dishboard-admin .admin-user-role { color: var(--app-sidebar-label); font-size: .75rem; }
-.dishboard-admin .admin-footer {
-  margin-top: auto; border-top: 1px solid var(--app-sidebar-hover); padding: 16px 12px;
-}
-.dishboard-admin .admin-logout-btn {
-  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px;
-  padding: 8px 12px; margin-top: 8px; border: 0; border-radius: var(--app-radius-control);
-  background: transparent; color: var(--app-sidebar-text);
-}
-.dishboard-admin .admin-logout-btn:is(:hover, :focus-visible) {
-  background: var(--app-sidebar-hover); color: var(--app-surface);
-}
-.dishboard-admin .admin-sidebar .navbar-nav .nav-link {
-  min-height: 56px; font-size: var(--app-font-size-body);
-}
-.dishboard-admin :is(.btn, .form-control, .form-select, .page-link, .nav-link, .form-check) { min-height: 48px; }
+.dishboard-admin :is(.btn, .form-control, .form-select, .page-link, .nav-link, .form-check) { min-height: var(--app-control-min-height); }
 .dishboard-admin :is(.btn, .form-control, .form-select) {
   font-size: calc(var(--app-font-size-body) * var(--app-font-scale));
-  line-height: var(--app-line-height-body); height: auto;
-}
-.dishboard-admin .navbar-toggler {
-  width: auto; min-width: 48px; padding: 8px 12px; margin: 8px; gap: 8px; color: var(--sh-white);
-  --tblr-btn-hover-bg: var(--app-sidebar-hover); --tblr-btn-active-bg: var(--app-sidebar-active);
+  line-height: var(--app-line-height-body); height: auto; padding-block: var(--app-space-1);
 }
 .dishboard-admin .btn {
   --tblr-btn-font-family: var(--app-font-body); --tblr-btn-border-radius: var(--app-radius-control);
@@ -136,7 +64,7 @@
   --tblr-btn-disabled-bg: var(--app-surface-soft); --tblr-btn-disabled-color: var(--app-text-muted);
   white-space: normal;
 }
-.dishboard-admin .btn-icon { min-width: var(--app-space-12); }
+.dishboard-admin .btn-icon { min-width: var(--app-control-min-height); }
 /* Icon-first actions (2026-09-26): one geometry, independent of page and role. */
 .dishboard-admin .btn.ui-sem-control {
   --ui-control-size: var(--app-sem-control-size);
@@ -215,7 +143,7 @@
   .dishboard-admin :is(.btn, a, .admin-list-actions *) { transition: none; }
 }
 .dishboard-admin .btn-list > * { margin: 0; }
-.dishboard-admin :is(.pagination, .nav-pills, .navbar-nav) { gap: 8px; }
+.dishboard-admin :is(.pagination, .nav-pills) { gap: var(--app-space-2); }
 .dishboard-admin .nav-pills { --tblr-nav-link-color: var(--app-text-muted); --tblr-nav-link-hover-color: var(--app-primary-hover); }
 .dishboard-admin .page-link { display: inline-flex; align-items: center; gap: 8px; }
 .dishboard-admin .form-check { display: flex; align-items: center; gap: 8px; padding-left: 0; cursor: pointer; }
@@ -378,43 +306,8 @@
 .dishboard-admin [data-menu-metadata] .label { padding: 4px 8px; border-radius: var(--sh-radius-sm); background: var(--sh-panel-soft); }
 .dishboard-admin [data-menu-metadata] :is(p, .label), .dishboard-admin .card-title { overflow-wrap: anywhere; }
 .dishboard-admin :is(a, button, summary, input, select, textarea, [tabindex]):focus-visible { outline: var(--app-focus-width) solid var(--app-focus); outline-offset: 2px; }
-.dishboard-admin .admin-sidebar :is(a, button, summary):focus-visible { outline-color: var(--app-surface); }
-.dishboard-admin .admin-nojs-nav { width: 100%; }
-.dishboard-admin .admin-nojs-nav > summary {
-  display: flex; align-items: center; gap: var(--app-space-2);
-  min-height: 48px; padding: 0 var(--app-space-3); cursor: pointer;
-  color: var(--app-sidebar-text);
-}
 .dishboard-admin .skip-link { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 12px; color: var(--sh-white); background: var(--sh-primary); transform: translateY(-200%); }
 .dishboard-admin .skip-link:focus { transform: translateY(0); }
-@media (min-width: 992px) {
-  .dishboard-admin .admin-sidebar {
-    width: var(--app-sidebar-width); flex: 0 0 var(--app-sidebar-width);
-  }
-  .dishboard-admin .admin-sidebar .admin-nav-collapse {
-    display: flex; flex-direction: column; align-items: stretch; flex: 1 1 auto;
-    min-height: 0; width: 100%; height: 100%;
-  }
-  .dishboard-admin .admin-nav {
-    display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0;
-    overflow-y: auto; overscroll-behavior: contain;
-  }
-  .dishboard-admin .navbar-footer { margin-top: auto; }
-}
-@media (max-width: 991.98px) {
-  .dishboard-admin .admin-sidebar { width: 100%; }
-  .dishboard-admin .admin-sidebar .navbar-nav { flex-direction: column; }
-  .dishboard-admin .admin-sidebar .nav-link { padding: 12px 16px; }
-  .dishboard-admin .admin-brand span { display: none; }
-  .dishboard-admin .admin-brand { margin: 8px 0; }
-  .dishboard-admin .admin-sidebar .offcanvas-lg {
-    --tblr-offcanvas-width: 320px; max-width: 320px; width: min(100%, 320px);
-    background: var(--app-sidebar); color: var(--app-sidebar-text);
-  }
-  .dishboard-admin .admin-nav {
-    overflow-y: auto; overscroll-behavior: contain; min-height: 0; flex: 1 1 auto;
-  }
-}
 /* Persisted admin options and the local, unsaved settings preview share consumers. */
 .dishboard-admin, .dishboard-admin :is(.admin-main, .display-preview) {
   --tblr-body-font-size: calc(var(--app-font-size-body) * var(--app-font-scale));
@@ -438,7 +331,7 @@
 .dishboard-admin .admin-compact-section > .card-body { padding: var(--app-space-2); }
 .dishboard-admin .admin-compact-section-heading {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-  gap: var(--app-space-2); min-height: var(--app-space-12); margin-bottom: var(--app-space-2);
+  gap: var(--app-space-2); min-height: var(--app-control-min-height); margin-bottom: var(--app-space-2);
 }
 .dishboard-admin .admin-compact-section-heading h2 { margin: 0; scroll-margin-top: 6rem; }
 .dishboard-admin .admin-compact-row {
@@ -463,7 +356,7 @@
 .dishboard-admin summary:has(use[href$="#tabler-chevron-right"], use[href$="#tabler-chevron-down"]) { list-style: none; }
 .dishboard-admin summary:has(use[href$="#tabler-chevron-right"], use[href$="#tabler-chevron-down"])::-webkit-details-marker { display: none; }
 .dishboard-admin :is(.admin-compact-details, .admin-compact-actions) > summary {
-  min-height: var(--app-space-12); padding: var(--app-space-2) var(--app-space-3);
+  min-height: var(--app-control-min-height); padding: var(--app-space-2) var(--app-space-3);
   white-space: normal; overflow-wrap: anywhere; cursor: pointer;
 }
 .dishboard-admin .admin-compact-form fieldset:disabled summary.btn { pointer-events: auto; }
@@ -566,6 +459,43 @@
 .dishboard-admin .admin-form-footer { padding: var(--app-space-2) 0; background: var(--app-bg); }
 .dishboard-admin .admin-form-main { margin-inline-start: auto; }
 .dishboard-admin .admin-disclosure { margin-bottom: var(--app-space-3); }
+.dishboard-admin .admin-disclosure > summary {
+  display: flex; align-items: center; gap: var(--app-space-2);
+}
+.dishboard-admin .admin-disclosure > summary > .icon { flex: none; }
+.dishboard-admin .admin-disclosure[open] > summary > .icon { transform: rotate(90deg); }
+.dishboard-admin .admin-disclosure--card > summary { margin: 0; }
+.dishboard-admin .admin-disclosure--card > .admin-compact-detail-body { padding: var(--app-space-3); }
+.dishboard-admin .admin-segments .nav {
+  display: flex; flex-wrap: wrap; gap: var(--app-space-1); margin: 0;
+}
+.dishboard-admin .admin-segments .nav-link {
+  display: flex; align-items: center; margin: 0;
+  padding: var(--app-space-1) var(--app-space-3); border: 1px solid var(--app-border);
+  color: var(--app-text); background: var(--app-surface);
+}
+.dishboard-admin .admin-segments .nav-link[aria-current="page"] {
+  color: var(--app-primary); background: var(--app-primary-soft);
+  border-color: var(--app-primary); font-weight: 600;
+}
+.dishboard-admin :is(.page-header-back, .page-header-segments) { margin-bottom: var(--app-space-2); }
+.dishboard-admin .empty--compact {
+  --tblr-empty-icon-size: var(--app-space-6);
+  display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start;
+  height: auto;
+  gap: var(--app-space-2); padding: var(--app-space-2) var(--app-space-3); text-align: start;
+}
+.dishboard-admin .empty--compact > * { margin: 0; }
+.dishboard-admin .empty--compact .empty-title { font-size: var(--app-font-size-body); }
+.dishboard-admin .empty--compact .empty-icon .icon { width: var(--app-space-6); height: var(--app-space-6); }
+.dishboard-admin .empty--compact .empty-action { margin-inline-start: auto; }
+.dishboard-admin .admin-notice {
+  padding: var(--app-space-2) var(--app-space-3); margin-bottom: var(--app-space-2);
+  border: 1px solid var(--app-border); border-radius: var(--app-radius-control);
+  color: var(--app-text-muted); background: var(--app-surface-soft); overflow-wrap: anywhere;
+}
+.dishboard-admin .admin-notice--warning { color: var(--app-warning-text); background: var(--app-warning-soft); }
+.dishboard-admin .admin-notice--error { color: var(--app-danger-text); background: var(--app-danger-soft); }
 @media (min-width: 768px) {
   .dishboard-admin .admin-option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -720,7 +650,7 @@
   margin: 0; color: inherit; font-weight: 700;
 }
 .dishboard-admin .admin-statusbar-link {
-  display: inline-flex; align-items: center; min-height: 48px;
+  display: inline-flex; align-items: center; min-height: var(--app-control-min-height);
   color: inherit; text-decoration: none;
 }
 .dishboard-admin .admin-statusbar-link:hover,
@@ -797,9 +727,9 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--app-space-2);
 }
 .kitchen-cal-jump { display: flex; align-items: center; gap: var(--app-space-2); min-width: 11rem; }
-.kitchen-cal-jump .form-control { min-height: 44px; }
+.kitchen-cal-jump .form-control { min-height: var(--app-control-min-height); }
 .kitchen-cal-filters-label { font-weight: 600; color: var(--app-text-muted); }
-.kitchen-cal-toolbar .btn { min-height: 44px; min-width: 44px; }
+.kitchen-cal-toolbar .btn { min-height: var(--app-control-min-height); min-width: var(--app-control-min-height); }
 .kitchen-cal-table { table-layout: fixed; width: 100%; }
 .kitchen-cal-table col { width: 14.2857%; }
 .kitchen-cal-day {
@@ -809,7 +739,7 @@
 .kitchen-cal-day-today { background: var(--app-primary-soft); }
 .kitchen-cal-day-head {
   display: flex; align-items: baseline; gap: var(--app-space-2);
-  min-height: 44px; text-decoration: none;
+  min-height: var(--app-control-min-height); text-decoration: none;
 }
 .kitchen-cal-area { margin-top: var(--app-space-2); }
 .kitchen-cal-area-title {
@@ -819,16 +749,16 @@
 .kitchen-cal-meal { margin-top: var(--app-space-1); }
 .kitchen-cal-dish {
   display: block; overflow-wrap: anywhere;
-  min-height: 44px; padding-block: var(--app-space-1);
+  min-height: var(--app-control-min-height); padding-block: var(--app-space-1);
 }
 .kitchen-cal-more { margin-top: var(--app-space-1); }
 .kitchen-cal-more summary {
-  cursor: pointer; min-height: 44px; display: flex; align-items: center;
+  cursor: pointer; min-height: var(--app-control-min-height); display: flex; align-items: center;
   color: var(--app-primary); font-weight: 600;
 }
 .kitchen-cal-empty { margin: var(--app-space-2) 0; color: var(--app-text-muted); }
 .kitchen-cal-event {
-  display: block; min-height: 44px; padding-block: var(--app-space-1);
+  display: block; min-height: var(--app-control-min-height); padding-block: var(--app-space-1);
 }
 .kitchen-cal-event:is(:hover, :focus-visible) { text-decoration: underline; }
 .kitchen-cal-notice { margin: 0; }

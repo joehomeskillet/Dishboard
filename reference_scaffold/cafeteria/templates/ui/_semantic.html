@@ -99,10 +99,13 @@
   <summary class="btn ui-sem-control{% if item.role == 'danger' %} btn-danger{% endif %}{% if not show_text %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" data-ui-tooltip="{{ accessible_name }}" aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}{{ action_attrs(attrs) }}>{{ sem_icon(key) }}{% if show_text %}<span>{{ visible_text }}</span>{% endif %}</summary>
 {%- endmacro %}
 
-{% macro status_badge_sem(key, detail=none) -%}
+{# Explicit state only: missing data never implies saved, approved or published.
+   text/variant/status/class retain legacy domain mappings during migration. #}
+{% macro status_badge_sem(key, detail=none, text=none, variant=none, status=none, class='') -%}
   {%- set item = sem(key) -%}
-  {%- set variant = {'status.active': 'active', 'status.info': 'info'}.get(key, {'success':'success', 'warning':'warning', 'danger':'danger'}.get(item.role, 'neutral')) -%}
-  {{ label(t(item.label_key), variant, icon=item.resolved_icon, detail=detail, semantic_key=key, class='ui-sem-label') }}
+  {%- set dimension = {'status.active':'lifecycle', 'status.inactive':'lifecycle', 'status.archived':'lifecycle', 'status.unavailable':'lifecycle', 'publish.draft':'editing', 'status.unsaved':'editing', 'status.incomplete':'review', 'status.not_recorded':'review'}.get(key, {'editing':'editing', 'save':'save', 'review':'review', 'publish':'publication'}.get(key.split('.')[0], 'notice')) -%}
+  {%- set variant = 'neutral' if key == 'status.archived' else variant if variant is not none else {'status.active': 'active', 'status.info': 'info'}.get(key, {'success':'success', 'warning':'warning', 'danger':'danger'}.get(item.role, 'neutral')) -%}
+  {{ label(t(item.label_key) if text is none else text, variant, icon=item.resolved_icon, detail=detail, semantic_key=key, status=status, class='ui-sem-label ' ~ class, dimension=dimension) }}
 {%- endmacro %}
 
 {% macro diet_icon(key) -%}{{ icon_label(key) }}{%- endmacro %}
@@ -147,8 +150,8 @@
   {% endif %}
 {%- endmacro %}
 
-{% macro empty_state_sem(key, description_key=none, action_key=none, href=none) -%}
-  {{ empty_state(key, t(sem(key).label_key), t(sem(description_key).label_key if description_key else sem(key).tooltip_key), action=icon_button(action_key, href=href) if action_key else none, semantic_key=key, icon_name=sem(key).resolved_icon) }}
+{% macro empty_state_sem(key, description_key=none, action_key=none, href=none, compact=false) -%}
+  {{ empty_state(key, t(sem(key).label_key), t(sem(description_key).label_key if description_key else sem(key).tooltip_key), action=icon_button(action_key, href=href) if action_key else none, semantic_key=key, icon_name=sem(key).resolved_icon, compact=compact) }}
 {%- endmacro %}
 
 {% macro confirm_dialog(key, consequence_key, confirm_key, id='semantic-confirm', open=false, name=none, value=none, form=none) -%}
@@ -163,20 +166,10 @@
   </dialog>
 {%- endmacro %}
 
-{% macro status_bar(title_key, items=[], description_key=none, actions=none) -%}
-  {% set translated = [] %}
-  {% for item in items %}
-    {% set entry = sem(item.key) %}
-    {% set variant = {'status.active': 'active', 'status.info': 'info'}.get(item.key, {'success':'success', 'warning':'warning', 'danger':'danger'}.get(entry.role, 'neutral')) %}
-    {% set ignored = translated.append({'label': t(entry.label_key), 'icon': entry.resolved_icon, 'value': item.value, 'detail': t(sem(item.detail_key).label_key) if item.detail_key|default(none) else none, 'variant': item.variant|default(variant), 'href': item.href|default(none)}) %}
-  {% endfor %}
-  {{ page_header(t(sem(title_key).label_key), description=t(sem(description_key).label_key) if description_key else none, actions=actions, status_items=translated) }}
-{%- endmacro %}
-
 {% macro filter_trigger(id='filters', count=0, explicit=false) -%}
   <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="view.filter" data-ui-tooltip="{{ t(sem('view.filter').aria_key) }}" aria-label="{{ t(sem('view.filter').aria_key) }}"{% if count %} aria-describedby="{{ id }}-count"{% endif %}>{{ sem_icon('view.filter') }}<span id="{{ id }}-count" class="admin-filter-count"{% if explicit %} data-filter-count-explicit{% endif %}{% if not count %} hidden{% endif %}>{{ count }}</span></summary>
 {%- endmacro %}
 
-{% macro filter_bar_sem(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none, search_id=none, search_emphasis=none) -%}
-  {{ filter_bar(action, search_name=search_name, search_value=search_value, filters=filters, more_filters=more_filters, active=active, reset_url=reset_url, id=id, maxlength=maxlength, describedby=describedby, loading=loading, open=open, profile=profile, active_filters=active_filters, active_count=active_count, search_id=search_id, search_emphasis=search_emphasis) }}
+{% macro filter_bar_sem(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none, search_id=none, search_emphasis=none, segments=none) -%}
+  {{ filter_bar(action, search_name=search_name, search_value=search_value, filters=filters, more_filters=more_filters, active=active, reset_url=reset_url, id=id, maxlength=maxlength, describedby=describedby, loading=loading, open=open, profile=profile, active_filters=active_filters, active_count=active_count, search_id=search_id, search_emphasis=search_emphasis, segments=segments) }}
 {%- endmacro %}

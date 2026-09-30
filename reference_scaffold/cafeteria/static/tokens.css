@@ -179,11 +179,11 @@
   --app-radius-card: 12px;
   --app-radius-control: 8px;
   --app-radius-pill: 999px;
-  --app-control-min-height: 44px;
-  --app-button-size: var(--app-space-12);
-  --app-button-size-large: 56px;
-  --app-sem-control-size: 36px;
-  --app-sem-control-touch-size: 44px;
+  --app-control-min-height: 36px;
+  --app-button-size: var(--app-control-min-height);
+  --app-button-size-large: var(--app-control-min-height);
+  --app-sem-control-size: var(--app-control-min-height);
+  --app-sem-control-touch-size: var(--app-control-min-height);
   --app-sem-control-icon-size: 20px;
   --app-button-icon-gap: var(--app-space-2);
   --app-table-row-height: 48px;
@@ -278,6 +278,10 @@
   --sh-font-display: var(--app-font-heading);
   --brand-on-primary: var(--app-on-primary);
   --brand-sidebar: var(--app-sidebar);
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .dishboard-admin { --app-control-min-height: 44px; }
 }
 
 /* Fira Sans self-hosted font-face declarations */

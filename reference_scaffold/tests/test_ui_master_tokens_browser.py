@@ -374,8 +374,7 @@ def test_viewports_and_real_routes(site, width, height, padding, tmp_path):
         assert _styles(page.locator('h1'))['font-size'] == ('34px' if width >= 992 else '28px')
         for control in page.locator('.btn:visible, .form-control:visible, .form-select:visible').all():
             assert control.evaluate('''el => {
-                const minimum = el.matches('.ui-sem-control')
-                    ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48;
+                const minimum = matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36;
                 return el.getBoundingClientRect().height >= minimum;
             }'''), path
         page.screenshot(path=str(tmp_path / f'{path.rsplit("/", 1)[-1]}-{width}.png'), full_page=True)
@@ -531,10 +530,11 @@ def test_polish_six_status_styles_have_text_icons_and_contrast(site, tmp_path):
     variants = ['neutral', 'active', 'success', 'warning', 'danger', 'info']
     with app.test_request_context():
         markup = render_template_string('''
-            {% from 'ui/_semantic.html' import status_badge_sem, status_bar %}
+            {% from 'ui/_semantic.html' import status_badge_sem %}
+            {% from 'admin/_macros.html' import page_header %}
             {% for key in keys %}{{ status_badge_sem(key) }}{% endfor %}
-            {% for key in keys %}{{ status_bar('navigation.menus', [{'key': key, 'value': 0}]) }}{% endfor %}
-        ''', keys=keys)
+            {% for key in keys %}{{ page_header(t(sem('navigation.menus').label_key), status_items=[{'label':t(sem(key).label_key), 'icon':sem(key).resolved_icon, 'variant':variants[loop.index0], 'value':0}]) }}{% endfor %}
+        ''', keys=keys, variants=variants)
     page.locator('main').evaluate('(el, html) => el.innerHTML = html', markup)
     for key, variant in zip(keys, variants, strict=True):
         badge = page.locator(f'.badge[data-semantic="{key}"]')

@@ -2429,5 +2429,181 @@
     "aria_key": "ui.disclosure.more_options.aria",
     "icon_only_allowed": false,
     "role": "neutral"
+  },
+  {
+    "key": "editing.not_created",
+    "category": "editing",
+    "ascii": "[i]",
+    "icon": "circle-dashed",
+    "label_key": "editing.not_created.label",
+    "tooltip_key": "editing.not_created.tooltip",
+    "aria_key": "editing.not_created.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "status.unsaved",
+    "category": "status",
+    "ascii": "[i]",
+    "icon": "edit",
+    "label_key": "status.unsaved.label",
+    "tooltip_key": "status.unsaved.tooltip",
+    "aria_key": "status.unsaved.aria",
+    "icon_only_allowed": false,
+    "role": "warning"
+  },
+  {
+    "key": "status.incomplete",
+    "category": "status",
+    "ascii": "[i]",
+    "icon": "alert-triangle",
+    "label_key": "status.incomplete.label",
+    "tooltip_key": "status.incomplete.tooltip",
+    "aria_key": "status.incomplete.aria",
+    "icon_only_allowed": false,
+    "role": "warning"
+  },
+  {
+    "key": "status.not_recorded",
+    "category": "status",
+    "ascii": "[i]",
+    "icon": "circle-dashed",
+    "label_key": "status.not_recorded.label",
+    "tooltip_key": "status.not_recorded.tooltip",
+    "aria_key": "status.not_recorded.aria",
+    "icon_only_allowed": false,
+    "role": "warning"
+  },
+  {
+    "key": "save.saving",
+    "category": "save",
+    "ascii": "[i]",
+    "icon": "clock",
+    "label_key": "save.saving.label",
+    "tooltip_key": "save.saving.tooltip",
+    "aria_key": "save.saving.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "save.saved",
+    "category": "save",
+    "ascii": "[i]",
+    "icon": "device-floppy",
+    "label_key": "save.saved.label",
+    "tooltip_key": "save.saved.tooltip",
+    "aria_key": "save.saved.aria",
+    "icon_only_allowed": false,
+    "role": "success"
+  },
+  {
+    "key": "save.failed",
+    "category": "save",
+    "ascii": "[i]",
+    "icon": "circle-x",
+    "label_key": "save.failed.label",
+    "tooltip_key": "save.failed.tooltip",
+    "aria_key": "save.failed.aria",
+    "icon_only_allowed": false,
+    "role": "danger"
+  },
+  {
+    "key": "save.unknown",
+    "category": "save",
+    "ascii": "[i]",
+    "icon": "circle-dashed",
+    "label_key": "save.unknown.label",
+    "tooltip_key": "save.unknown.tooltip",
+    "aria_key": "save.unknown.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "publish.unpublished",
+    "category": "publish",
+    "ascii": "[i]",
+    "icon": "circle-dashed",
+    "label_key": "publish.unpublished.label",
+    "tooltip_key": "publish.unpublished.tooltip",
+    "aria_key": "publish.unpublished.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "publish.changed",
+    "category": "publish",
+    "ascii": "[i]",
+    "icon": "edit",
+    "label_key": "publish.changed.label",
+    "tooltip_key": "publish.changed.tooltip",
+    "aria_key": "publish.changed.aria",
+    "icon_only_allowed": false,
+    "role": "warning"
+  },
+  {
+    "key": "status.unavailable",
+    "category": "status",
+    "ascii": "[i]",
+    "icon": "circle-minus",
+    "label_key": "status.unavailable.label",
+    "tooltip_key": "status.unavailable.tooltip",
+    "aria_key": "status.unavailable.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.segments",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "list",
+    "label_key": "ui.segments.label",
+    "tooltip_key": "ui.segments.tooltip",
+    "aria_key": "ui.segments.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.profile",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "list",
+    "label_key": "ui.profile.label",
+    "tooltip_key": "ui.profile.tooltip",
+    "aria_key": "ui.profile.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.profile.cafeteria",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "list",
+    "label_key": "ui.profile.cafeteria.label",
+    "tooltip_key": "ui.profile.cafeteria.tooltip",
+    "aria_key": "ui.profile.cafeteria.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.profile.patients",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "list",
+    "label_key": "ui.profile.patients.label",
+    "tooltip_key": "ui.profile.patients.tooltip",
+    "aria_key": "ui.profile.patients.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.disclosure.has_content",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "chevron-right",
+    "label_key": "ui.disclosure.has_content.label",
+    "tooltip_key": "ui.disclosure.has_content.tooltip",
+    "aria_key": "ui.disclosure.has_content.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
   }
 ]

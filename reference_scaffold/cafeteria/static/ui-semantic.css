@@ -2,7 +2,7 @@
 .ui-sem-label {
   display: inline-flex;
   align-items: center;
-  gap: .375rem;
+  gap: var(--app-space-1);
   max-width: 100%;
   white-space: normal;
   text-align: start;
@@ -66,7 +66,7 @@
   outline: 3px solid var(--app-focus); outline-offset: 3px;
 }
 @media (any-pointer: coarse) {
-  .dishboard-admin .admin-row-actions { gap: calc(var(--app-space-3) / 2); }
+  .dishboard-admin .admin-row-actions { gap: var(--app-space-2); }
 }
 .ui-sem-control:focus-visible {
   outline: 3px solid var(--app-focus);
@@ -78,7 +78,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .5rem;
+  gap: var(--app-space-2);
   min-width: 0;
 }
 .ui-sem-symbol-row > div:empty { display: none; }
@@ -106,7 +106,7 @@
 .dishboard-admin .admin-hint { min-width: 0; margin-block: var(--app-space-1); }
 .dishboard-admin .admin-hint-trigger {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: var(--app-space-12); min-height: var(--app-space-12);
+  min-width: var(--app-control-min-height); min-height: var(--app-control-min-height);
   color: var(--app-info-text); border-radius: var(--app-radius-control); cursor: pointer;
 }
 .dishboard-admin .admin-hint-trigger::-webkit-details-marker { display: none; }

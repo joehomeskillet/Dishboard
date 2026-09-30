@@ -140,8 +140,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         const target = check ? element.closest('label') || element.labels[0] : element;
         if (!target) return [{name: element.name, reason: 'missing label target'}];
         const box = target.getBoundingClientRect();
-        const minimum = element.matches('.ui-sem-control')
-            ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 44;
+        const minimum = matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36;
         return box.width >= minimum && box.height >= minimum ? [] : [{
             name: element.getAttribute('aria-label') || element.name || element.textContent.trim(),
             width: box.width, height: box.height,
@@ -278,7 +277,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     expect(primary).to_have_class(re.compile(r'\bprimary\b'))
     primary_box = primary.bounding_box()
     assert primary_box is not None
-    minimum = primary.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
+    minimum = primary.evaluate("() => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
     assert primary_box['height'] >= minimum
     if page_kind == 'catalog':
         primary.scroll_into_view_if_needed()
