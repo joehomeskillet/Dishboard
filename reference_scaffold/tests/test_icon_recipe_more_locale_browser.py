@@ -230,14 +230,18 @@ def test_recipe_template_associations_have_distinct_native_actions(
     complete_a3(a3)
     targets = []
     for index in range(count):
-        name = f'A & B · Vorlage {index + 1} mit langem Namen'
+        name = f'Vorlage {index + 1} mit langem Namen'
         path = create_template(client, title=name, recipe_public_id=public_id)
+        name = 'A & B · ' + name
         archived = index == 2
         if archived:
             name += ' "Kräuter" & Gemüse'
-            data = template_fields(client, path)
-            data['title'] = name
-            assert client.post(path, data=data).status_code == 303
+        # The shared creation helper matches unescaped names in HTML. Rename through
+        # the native form so every association still exercises the raw ampersand.
+        data = template_fields(client, path)
+        data['title'] = name
+        assert client.post(path, data=data).status_code == 303
+        if archived:
             data = template_fields(client, path)
             data['action'] = 'archive'
             assert client.post(path, data=data).status_code == 303
