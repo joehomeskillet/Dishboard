@@ -136,8 +136,8 @@ def assert_geometry(page):
     for element in page.locator('main :is(.btn, .form-control)').all():
         if element.is_visible():
             box = element.bounding_box()
-            minimum = element.evaluate('''el => el.classList.contains('ui-sem-control')
-                ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48''')
+            minimum = element.evaluate(
+                "el => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
             assert box is not None and box['height'] >= minimum and box['width'] >= minimum
             if element.get_attribute('data-semantic'):
                 assert element.get_attribute('aria-label')
@@ -164,7 +164,9 @@ def assert_zoom_geometry(page):
     for element in page.locator('main :is(.btn, .form-control)').all():
         if element.is_visible():
             box = element.bounding_box()
-            assert box is not None and box['height'] >= 44 and box['width'] >= 44
+            minimum = element.evaluate(
+                "el => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+            assert box is not None and box['height'] >= minimum and box['width'] >= minimum
 
 
 def assert_focus_ring(element):

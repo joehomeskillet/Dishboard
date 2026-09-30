@@ -39,9 +39,9 @@ def geometry(page):
     for element in page.locator('main :is(.btn, .form-control)').all():
         if element.is_visible():
             box = element.bounding_box()
-            # Icon actions are 36 px (fine pointer) or 44 px (coarse). Other controls stay 48.
+            # G0: every .btn/.form-control uses --app-control-min-height (36 fine / 44 coarse).
             minimum = element.evaluate(
-                "e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48"
+                "e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36"
             )
             assert box is not None and box['height'] >= minimum and box['width'] >= minimum, box
             element.focus()

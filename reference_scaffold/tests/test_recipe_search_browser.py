@@ -49,7 +49,8 @@ def test_native_text_search_is_keyboard_operable_ranked_and_no_overflow(
         assert 'text-hint' in (control.get_attribute('aria-describedby') or '')
         control.focus()
         expect(control).to_be_focused()
-        assert control.bounding_box()['height'] >= 44
+        minimum = 44 if page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") else 36
+        assert control.bounding_box()['height'] >= minimum
         control.fill('zauberwort')
         page.get_by_role('button', name='Suchen', exact=True).focus()
         expect(page.get_by_role('button', name='Suchen', exact=True)).to_be_focused()

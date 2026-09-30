@@ -333,7 +333,7 @@ def test_reference_density_and_mobile_targets(b3, master_server, browser, touch)
                         assert box and box['height'] == size and box['width'] == size
                         expect(element).to_have_accessible_name(re.compile(r'\S'))
                     else:
-                        assert box and box['height'] >= 44
+                        assert box and box['height'] >= (44 if touch else 36)
             if width < 992:
                 for label in rows.first.locator('.admin-compact-line label').all():
                     box = label.bounding_box()

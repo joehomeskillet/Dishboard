@@ -6,7 +6,7 @@
 {% set workflow_nav = 'recipes' %}
 {% macro recorded(value) %}
 {% if value is mapping %}<dl class="mb-0">{% for key, item in value.items() %}<dt class="text-break">{{ key }}</dt><dd class="text-break">{{ recorded(item) }}</dd>{% endfor %}</dl>
-{% elif value is sequence and value is not string %}<ol>{% for item in value %}<li class="text-break">{{ recorded(item) }}</li>{% else %}<li>Keine Einträge</li>{% endfor %}</ol>
+{% elif value is sequence and value is not string %}<div>{% for item in value %}<div class="text-break">{{ recorded(item) }}</div>{% else %}<div>Keine Einträge</div>{% endfor %}</div>
 {% elif value is none %}Nicht angegeben{% elif value is sameas true %}Ja{% elif value is sameas false %}Nein{% else %}{% for line in (value|string).split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='recipe-document.css') }}">{% endblock %}

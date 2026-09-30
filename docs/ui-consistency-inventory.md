@@ -59,8 +59,8 @@ in den Quellen erhalten. `<family>` steht für `cafeteria` oder `patienten`.
 | Kochbücher: `/admin/kochbuecher` | UC-P1-A2: Spalten Kochbuch, Rezepte, Aktionen. Statusspalte nur bei gemischtem Bestand; dann Aktiv und Archiviert über `status_badge_sem`. Die Beschreibung bleibt Untertitel und ist kein Statuschip. `table.admin-table.admin-table--stack`, `list_row` entfällt. Direktlinks Öffnen und, für aktive schreibbare Bücher, Bearbeiten. | `tests/test_cookbooks_browser.py`, `tests/test_ui_korrektur_cookbooks_browser.py`, `tests/test_cookbook_routes.py`; `reports/D5-report.md`, `reports/D13-report.md`, Abschnitt „D13b — Korrigierter Auftrag“. |
 | Kochbuch-Leseansicht: `/admin/kochbuecher/<cookbook_id>/ansicht` | UC-P1-A: Archivstatus über `status_badge_sem`. D13b/DEC-1: GET mit `draft.read`, geordnete Rezeptansichtslinks; Bearbeiten nur mit Recht. Writer/Reader/Archiv, JS/No-JS, Desktop/mobile fine/coarse. | `tests/test_icon_cookbook_view_browser.py`, `tests/test_ui_route_inventory.py`; `reports/D13-report.md`, Abschnitte „Endgültige Änderung“ und „Ergebnisübersicht“. |
 | Wochenplan: `/admin/cafeteria`, `/admin/patienten` | D7: Publish-Controls nur mit `publication.publish`, serverseitige Sperren bleiben erhalten (D6). D19: Titel/Kontext → gebündelte Prüfhinweise → weitere Hinweise/Raster. M45/M64: 36 px fine / mindestens 44 px coarse. | `tests/test_icon_publish_controls_role_browser.py`, `tests/test_icon_publish_guards_browser.py`, `tests/test_week_check_header_browser.py`, `tests/test_ui_korrektur_week_browser.py`; `reports/D6-report.md`, `reports/D7-report.md`, `reports/D19-report.md`. |
-| Rezepte: `/admin/rezepte` | D14: tatsächlich leere Zellen gestapelter Tabellen ohne Pseudolabel und Platzbedarf; gemischte Zustände bleiben sichtbar, Desktop-Tabelle bleibt erhalten. 390/1440 px, fine/coarse. | `tests/test_icon_stack_empty_labels_browser.py`, `tests/test_recipe_density_browser.py`, `tests/test_ui_korrektur_recipes_browser.py`; `reports/D14-report.md`, Abschnitt „Änderung und Abnahme“. |
-| Rezepteditor: `/admin/rezepte/neu`, `/admin/rezepte/<recipe_id>` | D15: Ausbeuteeinheit bei 360/390 px nicht abgeschnitten; bestehendes Desktop-Grid erhalten. | `tests/test_icon_recipe_editor_browser.py`, `tests/test_recipe_browser.py`; `reports/D15-report.md`. |
+| Rezepte: `/admin/rezepte` | UC-P1-B: Muster 1 mit Standardwerkzeugleiste, Spalten Name, Ausbeute, Zustand, Aktionen. Status nur in der Zustandszelle über `status_badge_sem` (Archiviert, Entwurf, Angaben fehlen); leere Zelle ohne Kindknoten. D14: tatsächlich leere Zellen gestapelter Tabellen ohne Pseudolabel und Platzbedarf; gemischte Zustände bleiben sichtbar, Desktop-Tabelle bleibt erhalten. 390/1440 px, fine/coarse. | `tests/test_icon_stack_empty_labels_browser.py`, `tests/test_recipe_density_browser.py`, `tests/test_ui_korrektur_recipes_browser.py`; `reports/D14-report.md`, Abschnitt „Änderung und Abnahme“. |
+| Rezepteditor: `/admin/rezepte/neu`, `/admin/rezepte/<recipe_id>` | UC-P1-B: ein `form_footer` ausserhalb des Formulars (Speichern oder Anlegen, Abbrechen); die Werkzeugleiste behält `actions.back`. Quelle über `disclosure_section`. D15: Ausbeuteeinheit bei 360/390 px nicht abgeschnitten; bestehendes Desktop-Grid erhalten. | `tests/test_icon_recipe_editor_browser.py`, `tests/test_recipe_browser.py`; `reports/D15-report.md`. |
 | Menüeditor: `/admin/<family>/menu` | D8/D16: ungespeicherte Änderungen geschützt; Abbrechen aus Sammlung übernimmt gültige Suche/Seite. Wochenlink/Breadcrumb bleiben bei der Woche; nach POST bzw. 400/409-Rerender Wochen-Fallback. Beide Profile, JS/No-JS. | `tests/test_icon_menu_unsaved_changes_browser.py`, `tests/test_menu_collection_browser.py`, `tests/test_admin_menu_editor_browser.py`; `reports/D8-report.md`, `reports/D16-report.md`, Abschnitt „Vertrag und Umfang“. Formularvergleich: `reports/R9-report.md`. |
 | Einkaufslisten: `/admin/einkaufslisten` | UC-P2-C: gemeinsamer Archivumschalter, Registry-Status, kompakter Leerzustand. Admin/Leser, aktiv/archiviert, leer/befüllt. Bestehende `list_row`-Struktur bis zur Klärung des Klassenpins erhalten; Tabellenmigration BLOCKED. | `tests/test_shopping_list_browser.py`, `tests/test_shopping_list_routes.py`; `reports/UC-P2-C-report.md`, `audit/UC/P2-C/{before,after}/`, 390/1440 px, fine/coarse. |
 | Einkaufsliste: `/admin/einkaufslisten/<public_id>` | UC-P2-C: Registry-Chips für Abhakstatus und gebündelte unvollständige Positionen; Ursachen einzeln erreichbar. Kompakter Berechnungsleerzustand mit direkter Navigation. Admin/Leser, aktueller/alter Stand, archiviert. Zwei GET-Filter warten auf G0-Toolbar ohne zusätzliche Suche. | `tests/test_shopping_list_browser.py`, `tests/test_shopping_list_routes.py`; `reports/UC-P2-C-report.md`, `audit/UC/P2-C/{before,after}/`. |
@@ -69,7 +69,7 @@ in den Quellen erhalten. `<family>` steht für `cafeteria` oder `patienten`.
 | Lager: `/admin/lager` | UC-P2-C: kompakter Leerzustand, bestehende Bestandstabelle und Korrekturformulare. Admin, fehlender/erfasster Bestand, 400/409. „Nicht erfasst bedeutet nicht 0.“ unverändert. | `tests/test_inventory_ui.py`, unverändert `tests/test_bf_error_paths_browser.py`; `reports/UC-P2-C-report.md`, `audit/UC/P2-C/{before,after}/`. |
 | Kalkulation: `/admin/kalkulation` | UC-P2-C: Registry-Chips vollständig/unvollständig bei unveränderter Preis-/Null-Semantik und Fehlerbehandlung. Admin, vollständige/unvollständige Projektion, 400/409. Sichtnachweis nutzt synthetische unvollständige Layout-Fixture. | `tests/test_admin_cost_routes.py`, unverändert `tests/test_bf_error_paths_browser.py`; `reports/UC-P2-C-report.md`, `audit/UC/P2-C/{before,after}/`. |
 | Bildschirme: `/admin/screens` | D17: Überlaufname mit Bereich und Kanal. | `tests/test_screen_template_browser.py`, `tests/test_ui_korrektur_screens_browser.py`; `reports/D17-report.md`. |
-| Rezeptstände: `/admin/rezepte/<recipe_id>/revisionen` | D17: Überlaufname mit lesbarer Standnummer. | `tests/test_recipe_revision_routes.py`, `tests/test_ui_list_family_browser.py`; `reports/D17-report.md`. |
+| Rezeptstände: `/admin/rezepte/<recipe_id>/revisionen` | UC-P1-B: Prüfnachweis als geschlossenes `disclosure_section`, Spalte Nachweis, Speicherorte als Textzeilen. D17: Überlaufname mit lesbarer Standnummer. | `tests/test_recipe_revision_routes.py`, `tests/test_ui_list_family_browser.py`; `reports/D17-report.md`. |
 | Vorlagen: `/admin/vorlagen` | D17: Überlaufname mit tatsächlichem Vorlagen-/Bereichsnamen; Hauptaktion plus Überlauf. | `tests/test_admin_template_catalog_browser.py`, `tests/test_ui_korrektur_vorlagen_browser.py`; `reports/D17-report.md`. |
 | Wochenverwaltung: `/admin/<family>/wochen` | D17: Überlaufname „Woche ab …“ mit Datensatzbezug. | `tests/test_week_management_browser.py`, `tests/test_admin_week_tabler_browser.py`; `reports/D17-report.md`. |
 | Bestätigungen: `/admin/einkaufslisten`, `/admin/einkaufslisten/<public_id>`, `/admin/gerichtvorlagen/<public_id>` | R3: `admin.js` beachtet `data-confirm` am Submitter; Löschen/Archivieren ausführen oder abbrechen, native Formulardaten/CSRF/CAS erhalten. | `tests/test_icon_confirm_submitter_browser.py`, `tests/test_shopping_list_browser.py`, `tests/test_dish_template_browser.py`; `reports/R3-report.md`, Abschnitte „Ergebnis und Blocker“ / „Roh-Ausgaben der Browsergates“. |
@@ -1159,9 +1159,9 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/_course_recipe_search.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/_local_user_forms.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_macros.html | 1 | 0 | 0 | 0 | 2 | 0 | 0 |
-| admin/_recipe_document.html | 2 | 1 | 0 | 0 | 5 | 0 | 0 |
+| admin/_recipe_document.html | 0 | 0 | 0 | 0 | 5 | 0 | 0 |
 | admin/_recipe_template_selection.html | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
-| admin/_rezepte_fields.html | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/_rezepte_fields.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_service_courses.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_week_controls.html | 6 | 2 | 0 | 0 | 2 | 0 | 0 |
 | admin/_week_menu_card.html | 1 | 1 | 0 | 0 | 1 | 0 | 0 |
@@ -1210,15 +1210,15 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/print_template_editor.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/print_template_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/recipe_template_error.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/rezepte.html | 4 | 2 | 0 | 0 | 1 | 1 | 0 |
-| admin/rezepte_ansicht.html | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
+| admin/rezepte.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/rezepte_ansicht.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/rezepte_conflict.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/rezepte_editor.html | 9 | 2 | 0 | 0 | 0 | 0 | 0 |
-| admin/rezepte_images.html | 2 | 1 | 0 | 0 | 1 | 0 | 0 |
-| admin/rezepte_import.html | 4 | 3 | 0 | 0 | 2 | 0 | 0 |
-| admin/rezepte_revision.html | 3 | 0 | 0 | 0 | 1 | 0 | 0 |
-| admin/rezepte_revisionen.html | 2 | 1 | 0 | 0 | 3 | 0 | 0 |
-| admin/rezepte_scale.html | 2 | 0 | 0 | 0 | 1 | 0 | 0 |
+| admin/rezepte_editor.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/rezepte_images.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/rezepte_import.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/rezepte_revision.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/rezepte_revisionen.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/rezepte_scale.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/screen_template_assignment.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/screen_template_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/screens.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -1277,4 +1277,4 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | static/cookbook-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-document.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **TOTAL** | 126 | 57 | 6 | 1 | 40 | 15 | 20 |
+| **TOTAL** | 93 | 46 | 6 | 1 | 31 | 14 | 20 |

@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, icon, disclosure_section, form_footer %}
 {% from 'ui/_semantic.html' import icon_button, icon_summary, row_actions %}
 {% from 'admin/_rezepte_fields.html' import field, hidden, select, row_button, recipe_row_actions with context %}
 {% set workflow_nav = 'recipes' %}
@@ -29,7 +29,6 @@
 {% if recipe_id and can_write %}{% set _ = header_actions.append({'key': 'actions.archive' if active else 'actions.activate', 'href': url_for('admin.recipe_status', recipe_id=recipe_id)}) %}{% endif %}
 {{ row_actions(header_actions, object=payload.title or t('recipe.recipe.label')) }}
 <span class="text-secondary" role="status">{{ 'Entwurf · Änderungen werden erst mit Speichern übernommen.' if active else 'Archiviert · Lesbar, zum Bearbeiten zuerst reaktivieren.' }}</span>
-{% if can_write and active %}<span class="ms-auto">{{ icon_button('actions.save' if recipe_id else 'actions.add', form='recipe-editor') }}</span>{% endif %}
 </div>
 {% if payload.source.kind == 'ai_assisted' or payload.ingredients|selectattr('source_kind', 'equalto', 'ai_assisted')|list %}<p class="alert alert-warning" role="status">{{ icon('alert-triangle') }} KI-unterstützte Vorlage · Zutaten, Mengen und Zubereitung vor der Verwendung prüfen.</p>{% endif %}
 <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="Rezeptabschnitte">
@@ -116,5 +115,9 @@
 {% endcall %}</section>
 </fieldset>
 </form>
+{% if can_write and active %}
+{% set save_primary %}{{ icon_button('actions.save' if recipe_id else 'actions.add', form='recipe-editor') }}{% endset %}
+{{ form_footer(save_primary, g.get('recipe_list_return') or url_for('admin.recipes_list')) }}
+{% endif %}
 {% endif %}
 {% endblock %}

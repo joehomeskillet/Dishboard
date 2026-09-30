@@ -10,7 +10,7 @@ import pytest
 from playwright.sync_api import expect
 
 from cafeteria import master_data_store as masters
-from test_master_data_browser import master_server, targets  # noqa: F401
+from test_master_data_browser import master_server  # noqa: F401
 from test_master_data_db import STORAGE_PUBLIC_ID, signed_in
 from test_master_data_routes import (  # noqa: F401
     Forms, app_engine, b3, installed_pg16, pg16, seeded_pg16,
@@ -25,6 +25,40 @@ EVIDENCE = Path(os.environ.get('UI_EVIDENCE_DIR', Path(__file__).resolve().paren
 ROUTE_VIEWPORTS = ((360, 844), (1440, 900))
 COMMIT_VIEWPORTS = (*ROUTE_VIEWPORTS, (720, 450))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080))
+
+
+def targets(page):
+    # Shared targets() in test_master_data_browser.py still pins 48 px for P1-C.
+    # G0 control floors are 36 px (fine pointer) and 44 px (coarse pointer).
+    page.wait_for_load_state('load')
+    page.evaluate('document.fonts && document.fonts.ready')
+    expect(page.locator('body')).to_have_css('margin', '0px')
+    overflow = page.evaluate('''() => ({
+        innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        elements: [...document.querySelectorAll('body *')].flatMap(element => {
+            const box = element.getBoundingClientRect();
+            if (!box.width || (box.left >= -1 && box.right <= innerWidth + 1)) return [];
+            return [{
+                tag: element.tagName,
+                id: element.id,
+                className: String(element.className),
+                left: box.left,
+                right: box.right,
+                width: box.width,
+                text: (element.textContent || '').trim().slice(0, 120),
+            }];
+        }),
+    })''')
+    assert overflow['scrollWidth'] <= overflow['innerWidth'] + 1, overflow
+    assert page.locator('main style, main [style]').count() == 0
+    minimum = 44 if page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") else 36
+    for control in page.locator('main :is(.btn, .form-control, .form-select)').all():
+        if control.is_visible():
+            box = control.bounding_box()
+            assert box is not None and box['height'] >= minimum
+            control.focus()
+            expect(control).to_be_focused()
 
 
 def _open(page, base, path='/admin/rezepte/import'):

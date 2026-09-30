@@ -143,8 +143,8 @@
     "css_px_heights": 0
   },
   "admin/_recipe_document.html": {
-    "literal_buttons": 2,
-    "long_labels": 1,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
     "local_lists": 5,
@@ -169,7 +169,7 @@
     "css_px_heights": 0
   },
   "admin/_rezepte_fields.html": {
-    "literal_buttons": 1,
+    "literal_buttons": 0,
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
@@ -806,21 +806,21 @@
     "css_px_heights": 0
   },
   "admin/rezepte.html": {
-    "literal_buttons": 4,
-    "long_labels": 2,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
-    "local_filters": 1,
+    "local_lists": 0,
+    "local_filters": 0,
     "list_typography_overrides": 0,
-    "local_status": 3,
+    "local_status": 0,
     "local_footers": 0,
     "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/rezepte_ansicht.html": {
-    "literal_buttons": 4,
-    "long_labels": 1,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
     "local_lists": 0,
@@ -845,8 +845,8 @@
     "css_px_heights": 0
   },
   "admin/rezepte_editor.html": {
-    "literal_buttons": 9,
-    "long_labels": 2,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
     "local_lists": 0,
@@ -858,11 +858,11 @@
     "css_px_heights": 0
   },
   "admin/rezepte_images.html": {
-    "literal_buttons": 2,
-    "long_labels": 1,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 0,
     "local_filters": 0,
     "list_typography_overrides": 0,
     "local_status": 0,
@@ -871,24 +871,24 @@
     "css_px_heights": 0
   },
   "admin/rezepte_import.html": {
-    "literal_buttons": 4,
-    "long_labels": 3,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 2,
+    "local_lists": 0,
     "local_filters": 0,
     "list_typography_overrides": 0,
-    "local_status": 8,
+    "local_status": 0,
     "local_footers": 1,
     "raw_details": 3,
     "css_px_heights": 0
   },
   "admin/rezepte_revision.html": {
-    "literal_buttons": 3,
+    "literal_buttons": 0,
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 0,
     "local_filters": 0,
     "list_typography_overrides": 0,
     "local_status": 0,
@@ -897,24 +897,24 @@
     "css_px_heights": 0
   },
   "admin/rezepte_revisionen.html": {
-    "literal_buttons": 2,
-    "long_labels": 1,
+    "literal_buttons": 0,
+    "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 3,
+    "local_lists": 0,
     "local_filters": 0,
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/rezepte_scale.html": {
-    "literal_buttons": 2,
+    "literal_buttons": 0,
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 0,
     "local_filters": 0,
     "list_typography_overrides": 0,
     "local_status": 0,
