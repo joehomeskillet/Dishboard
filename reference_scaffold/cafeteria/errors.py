@@ -1,6 +1,7 @@
 """HTTP error surfaces and bounded, server-side login navigation contexts."""
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import secrets
@@ -119,23 +120,35 @@ def safe_return_target(target: str | None) -> str | None:
         return None
 
 
-def _flow_key() -> str | None:
+def _owner() -> str | None:
     owner = session.get('_eh_navigation')
-    return 'dishboard:login-navigation:' + owner if isinstance(owner, str) and _TOKEN.fullmatch(owner) else None
+    if isinstance(owner, str) and _TOKEN.fullmatch(owner):
+        return owner
+    return None
+
+
+def _token_key(owner: str, token: str) -> str:
+    return f'dishboard:login-navigation:{owner}:{token}'
+
+
+def _state_key(owner: str, state: str) -> str:
+    digest = hashlib.sha256(state.encode()).hexdigest()
+    return f'dishboard:login-navigation:state:{owner}:{digest}'
 
 
 def login_context(token: str | None, *, consume: bool = False) -> dict:
-    key = _flow_key()
-    if not key or not isinstance(token, str) or not _TOKEN.fullmatch(token):
+    owner = _owner()
+    if not owner or not isinstance(token, str) or not _TOKEN.fullmatch(token):
         return {}
     client = current_app.extensions.get('cafeteria_rate_redis')
     if client is None:
         return {}
+    key = _token_key(owner, token)
     if consume:
-        raw = client.eval("local v=redis.call('HGET',KEYS[1],ARGV[1]); "
-                          "redis.call('HDEL',KEYS[1],ARGV[1]); return v", 1, key, token)
+        raw = client.eval(
+            "local v=redis.call('GET',KEYS[1]); redis.call('DEL',KEYS[1]); return v", 1, key)
     else:
-        raw = client.hget(key, token)
+        raw = client.get(key)
     if not raw:
         return {}
     context = json.loads(raw)
@@ -150,14 +163,22 @@ def issue_return_token(target: str | None, notice: str = 'auth.required') -> str
     if client is None:
         # Without a server store, use the safe default; never put a target in a cookie or URL.
         return ''
-    if not _flow_key():
+    owner = _owner()
+    if owner is None:
         session['_eh_navigation'] = secrets.token_hex(24)
+        owner = _owner()
+    if owner is None:
+        return ''
     token = secrets.token_hex(24)
     context = {'target': target, 'notice': notice, 'expires': int(time()) + _TTL}
-    inserted = client.eval("if redis.call('HLEN',KEYS[1]) >= 8 then return 0 end; "
-        "redis.call('HSET',KEYS[1],ARGV[1],ARGV[2]); redis.call('EXPIRE',KEYS[1],ARGV[3]); return 1",
-        1, _flow_key(), token, json.dumps(context), _TTL)
-    return token if inserted else ''
+    client.set(_token_key(owner, token), json.dumps(context), ex=_TTL)
+    return token
+
+
+_BIND_KEEP = (
+    "local t=redis.call('PTTL',KEYS[1]); if t<1 then return 0 end; "
+    "redis.call('SET',KEYS[1],ARGV[1],'PX',t); return 1"
+)
 
 
 def bind_entra_flow(token: str, flow: dict) -> None:
@@ -165,26 +186,39 @@ def bind_entra_flow(token: str, flow: dict) -> None:
     if not context:
         raise ServiceUnavailable()
     context['flow'] = flow
-    updated = current_app.extensions['cafeteria_rate_redis'].eval(
-        "if redis.call('HEXISTS',KEYS[1],ARGV[1]) == 0 then return 0 end; "
-        "redis.call('HSET',KEYS[1],ARGV[1],ARGV[2]); return 1", 1, _flow_key(), token, json.dumps(context))
+    owner = _owner()
+    client = current_app.extensions.get('cafeteria_rate_redis')
+    if not owner or client is None or not isinstance(token, str) or not _TOKEN.fullmatch(token):
+        raise ServiceUnavailable()
+    key = _token_key(owner, token)
+    updated = client.eval(_BIND_KEEP, 1, key, json.dumps(context))
     if not updated:
         raise ServiceUnavailable()
+    state = flow.get('state') if isinstance(flow, dict) else None
+    if isinstance(state, str) and 0 < len(state) <= 1024:
+        ttl = client.ttl(key)
+        if isinstance(ttl, int) and ttl > 0:
+            client.set(_state_key(owner, state), token, ex=ttl)
 
 
 def consume_entra_flow(state: str | None) -> tuple[dict, dict]:
-    key = _flow_key()
+    owner = _owner()
     client = current_app.extensions.get('cafeteria_rate_redis')
-    if not key or not client or not isinstance(state, str) or len(state) > 1024:
+    if not owner or client is None or not isinstance(state, str) or not state or len(state) > 1024:
         return {}, {}
-    for raw_token in client.hkeys(key):
-        token = raw_token.decode() if isinstance(raw_token, bytes) else raw_token
-        context = login_context(token)
-        flow = context.get('flow', {})
-        if isinstance(flow.get('state'), str) and secrets.compare_digest(flow['state'], state):
-            context = login_context(token, consume=True)
-            return context.get('flow', {}), context
-    return {}, {}
+    raw_token = client.get(_state_key(owner, state))
+    if not raw_token:
+        return {}, {}
+    token = raw_token.decode() if isinstance(raw_token, bytes) else raw_token
+    peeked = login_context(token)
+    flow = peeked.get('flow') if isinstance(peeked.get('flow'), dict) else {}
+    stored = flow.get('state')
+    if not isinstance(stored, str) or not secrets.compare_digest(stored, state):
+        return {}, {}
+    client.delete(_state_key(owner, state))
+    context = login_context(token, consume=True)
+    stored_flow = context.get('flow') if isinstance(context.get('flow'), dict) else {}
+    return stored_flow, context
 
 
 def request_id() -> str:

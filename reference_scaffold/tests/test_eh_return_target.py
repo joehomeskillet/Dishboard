@@ -175,12 +175,14 @@ def test_eh_t03_flow_storage_is_bounded_expiring_and_excludes_client_form_values
         response = client.get('/admin/patienten?week=2026-09-28')
         assert response.status_code == 302
         tokens.extend(parse_qs(urlsplit(response.location).query).get('return_token', []))
-    assert len(tokens) == 8
+    assert len(tokens) == 12
     with client.session_transaction() as sess:
-        key = 'dishboard:login-navigation:' + sess['_eh_navigation']
+        owner_id = sess['_eh_navigation']
         assert all('/admin/' not in str(value) for value in sess.values())
     store = app.extensions['cafeteria_rate_redis']
-    assert store.hlen(key) == 8 and 0 < store.ttl(key) <= 600
+    keys = set(store.scan_iter(match=f'dishboard:login-navigation:{owner_id}:*'))
+    assert len(keys) == 12
+    assert all(0 < store.ttl(key) <= 600 for key in keys)
     clock = errors.time()
     monkeypatch.setattr(errors, 'time', lambda: clock + 601)
     response = client.post('/auth/local', data=_csrf_payload(
@@ -189,16 +191,71 @@ def test_eh_t03_flow_storage_is_bounded_expiring_and_excludes_client_form_values
 
 
 def test_eh_t03_flow_binding_cannot_resurrect_consumed_context(auth_app, monkeypatch):
+    from flask import session
     from cafeteria import errors
     app, _, _ = auth_app
     with app.test_request_context():
         token = errors.issue_return_token('/admin/patienten')
         context = errors.login_context(token)
         store = app.extensions['cafeteria_rate_redis']
-        key = errors._flow_key()
+        owner_id = session['_eh_navigation']
+        key = f'dishboard:login-navigation:{owner_id}:{token}'
         # Model expiry/consumption after validation but before attaching the provider flow.
         store.delete(key)
         monkeypatch.setattr(errors, 'login_context', lambda token: context)
         with pytest.raises(ServiceUnavailable):
             errors.bind_entra_flow(token, {'state': 'test-state'})
         assert store.exists(key) == 0
+        assert list(store.scan_iter(match='dishboard:login-navigation:state:*')) == []
+
+
+def test_nine_navigation_flows_keep_login_and_separate_tabs(auth_app, monkeypatch):
+    app, owner, issuer = auth_app
+    _provision(issuer, owner)
+    app.config.update(ENTRA_ENABLED=True, ENTRA_CLIENT_ID='eh-client', ENTRA_CLIENT_SECRET='test-only',
+                      ENTRA_TENANT_ID='00000000-0000-0000-0000-000000000411')
+
+    class Provider:
+        def initiate_auth_code_flow(self, *, scopes, redirect_uri):
+            return {'state': 'flow-nine', 'auth_uri': 'https://login.microsoftonline.com/test?state=flow-nine'}
+
+    monkeypatch.setattr(auth_routes, '_client', Provider)
+    first = app.test_client()
+    tokens = [_token(first.get('/admin/patienten?week=2026-09-28')) for _ in range(9)]
+    assert len(set(tokens)) == 9
+    started = first.get('/auth/login', query_string={'method': 'entra', 'return_token': tokens[-1]})
+    assert started.status_code == 302
+    assert started.location.startswith('https://login.microsoftonline.com/')
+    second = app.test_client()
+    other = _token(second.get('/admin/cafeteria?week=2026-10-05'))
+    pairs = (
+        (first, tokens[0], '/admin/patienten?week=2026-09-28'),
+        (second, other, '/admin/cafeteria?week=2026-10-05'),
+    )
+    for client, token, target in pairs:
+        response = client.post('/auth/local', data=_csrf_payload(
+            client, username='local.editor', password='Correct-Horse-2026!Battery') | {'return_token': token})
+        assert response.status_code == 303 and response.location == target
+
+
+def test_return_store_rejection_does_not_block_entra_login(auth_app, monkeypatch):
+    app, _, _ = auth_app
+    app.config.update(LOCAL_AUTH_ENABLED=False, ENTRA_ENABLED=True, ENTRA_CLIENT_ID='eh-client',
+                      ENTRA_CLIENT_SECRET='test-only', ENTRA_TENANT_ID='00000000-0000-0000-0000-000000000411')
+
+    class Provider:
+        def initiate_auth_code_flow(self, *, scopes, redirect_uri):
+            return {'state': 'capacity-state', 'auth_uri': 'https://login.microsoftonline.com/test?state=capacity-state'}
+
+    def reject_bind(token, flow):
+        raise ServiceUnavailable()
+
+    monkeypatch.setattr(auth_routes, '_client', Provider)
+    monkeypatch.setattr(auth_routes, 'login_context', lambda *_args, **_kwargs: {
+        'target': '/admin/cafeteria', 'notice': 'auth.required', 'expires': 10**12})
+    monkeypatch.setattr(auth_routes, 'bind_entra_flow', reject_bind)
+    response = app.test_client().get('/auth/login')
+    assert response.status_code == 302
+    assert response.location.startswith('https://login.microsoftonline.com/')
+    assert 'SERVICE_UNAVAILABLE' not in response.get_data(as_text=True)
+    assert 'momentan nicht' not in response.get_data(as_text=True)

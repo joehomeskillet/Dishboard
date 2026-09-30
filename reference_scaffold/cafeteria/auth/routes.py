@@ -183,12 +183,23 @@ def login():
         return render_error(ServiceUnavailable())
     if not cfg['ENTRA_TENANT_ID'] or not cfg['ENTRA_CLIENT_ID'] or not cfg['ENTRA_CLIENT_SECRET']:
         return render_error(ServiceUnavailable())
-    if not login_context(token):
-        token = issue_return_token(None)
-    g.eh_login_context = login_context(token)
     try:
-        flow = _client().initiate_auth_code_flow(scopes=[], redirect_uri=cfg['APP_PUBLIC_BASE_URL'] + url_for('auth.callback'))
-        bind_entra_flow(token, flow)
+        if not login_context(token):
+            token = issue_return_token(None)
+        g.eh_login_context = login_context(token)
+        flow = _client().initiate_auth_code_flow(
+            scopes=[], redirect_uri=cfg['APP_PUBLIC_BASE_URL'] + url_for('auth.callback'))
+        if g.eh_login_context:
+            try:
+                bind_entra_flow(token, flow)
+            except ServiceUnavailable:
+                # A full or missing navigation key must not block Entra. Drop the return target.
+                g.eh_login_context = {}
+                session['auth_flow'] = flow
+        elif current_app.extensions.get('cafeteria_rate_redis') is None:
+            return _login_failure('entra', 'unavailable', 503)
+        else:
+            session['auth_flow'] = flow
     except (RequestException, ValueError, RedisError):
         return _login_failure('entra', 'unavailable', 503)
     return redirect(flow['auth_uri'])
