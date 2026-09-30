@@ -191,6 +191,16 @@ def request_id() -> str:
     return value
 
 
+def _diagnose(event: str, error: Exception, status: int) -> None:
+    try:
+        current_app.logger.warning('event=%s status=%s route=%s reference=%s exception=%s',
+            event, status, request.url_rule.rule if request.url_rule else 'unmatched',
+            request_id(), type(error).__name__)
+    except Exception:
+        # Diagnostics must not prevent the isolated fallback from reaching the caller.
+        pass
+
+
 def error_view(error: HTTPException, *, code: str | None = None) -> ErrorView:
     status = error.code or 500
     code = code or getattr(error, 'error_code', None) or _CODES.get(status, 'REQUEST_INVALID')
@@ -218,7 +228,7 @@ def error_view(error: HTTPException, *, code: str | None = None) -> ErrorView:
     title_key = 'auth.unavailable' if status == 503 and request.blueprint == 'auth' else f'errors.{code}.title'
     return ErrorView(code, status, title_key, f'errors.{code}.message', params,
         request_id(), recovery, 'minimal' if status >= 500 else ('admin' if verified else 'auth'),
-        mutation, kind, state)
+        mutation, kind, state, error.get_response().headers.get('Retry-After'))
 
 
 def _minimal(view: ErrorView) -> str:
@@ -269,8 +279,9 @@ def render_error(error: HTTPException, *, code: str | None = None, minimal: bool
                 html = current_app.jinja_env.get_template('errors/minimal.html').render(error=asdict(view))
             else:
                 html = render_template('errors/page.html', error=asdict(view))
-        except Exception:
+        except Exception as renderer_error:
             # One isolated fallback. Do not log exception text, URLs, cookies or submitted values.
+            _diagnose('error.renderer_failed', renderer_error, view.http_status)
             html = _minimal(view)
         response.set_data(html)
         response.content_type = 'text/html; charset=utf-8'
@@ -314,7 +325,8 @@ class _SessionBoundary:
     def save_session(self, app, sess, response):
         try:
             self.delegate.save_session(app, sess, response)
-        except RedisError:
+        except RedisError as error:
+            _diagnose('error.session_save_failed', error, 503)
             fallback = render_error(ServiceUnavailable(), minimal=True)
             response.direct_passthrough = False
             response.set_data(fallback.get_data())
@@ -345,4 +357,5 @@ def register_error_handlers(app) -> None:
     @app.errorhandler(Exception)
     def unexpected_error(error):
         unavailable = isinstance(error, (RedisError, SQLAlchemyError))
+        _diagnose('error.unhandled', error, 503 if unavailable else 500)
         return render_error(ServiceUnavailable() if unavailable else InternalServerError())

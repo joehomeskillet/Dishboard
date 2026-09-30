@@ -65,7 +65,7 @@ def test_eh_t27_t28_t40_downloads_and_bearer_contract(auth_app):
     assert client.get('/health/live').json == {'status': 'ok'}
 
 
-def test_eh_t30_t31_t35_renderer_failure_has_one_safe_fallback(auth_app, monkeypatch):
+def test_eh_t30_t31_t35_renderer_failure_has_one_safe_fallback(auth_app, monkeypatch, caplog):
     app, _, _ = auth_app
     @app.get('/failure')
     def fail():
@@ -83,6 +83,9 @@ def test_eh_t30_t31_t35_renderer_failure_has_one_safe_fallback(auth_app, monkeyp
     assert re.fullmatch(r'EH-[0-9a-f]{16}', response.headers['X-Request-ID'])
     assert response.headers['Cache-Control'] == 'no-store'
     assert "default-src 'self'" in response.headers['Content-Security-Policy']
+    assert response.headers['X-Request-ID'] in caplog.text
+    assert 'RuntimeError' in caplog.text
+    assert 'SECRET' not in caplog.text and 'ATTACKER' not in caplog.text
 
 
 @pytest.mark.parametrize('stage', ('open_session', 'save_session'))
