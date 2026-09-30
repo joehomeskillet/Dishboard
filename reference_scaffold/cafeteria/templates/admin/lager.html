@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, hint, icon, label, form_errors %}
+{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, form_errors %}
 {% from 'ui/_semantic.html' import icon_button, row_actions %}
 {% set workflow_nav = 'inventory' %}
 {% set uncaptured_count = slots|rejectattr('captured')|list|length %}
@@ -141,7 +141,7 @@
 {% endcall %}
 {% endif %}
 {% else %}
-{% call empty_state('none', 'Keine Zuordnung vorhanden', 'Zuerst in Zutaten eine aktive Zutat einem Lagerort zuordnen.') %}
+{% call empty_state('none', 'Keine Zuordnung vorhanden', 'Zuerst in Zutaten eine aktive Zutat einem Lagerort zuordnen.', compact=true) %}
 {{ icon_button('navigation.ingredients', href=url_for('admin.master_data_list', kind='zutaten'), emphasis='primary', show_text=true) }}
 {% endcall %}
 {% endif %}

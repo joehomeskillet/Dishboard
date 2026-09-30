@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, field, select, textarea, form_errors, empty_state, list_row, disclosure_section %}
-{% from 'ui/_semantic.html' import icon_button, row_actions %}
+{% from 'admin/_macros.html' import page_header, field, select, textarea, form_errors, empty_state, disclosure_section, segment_switch, list_row %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, status_badge_sem %}
 {% set workflow_nav = 'shopping_lists' %}
 {% block title %}Einkaufslisten · Menüplanung{% endblock %}
 {% block page_styles %}
@@ -48,10 +48,10 @@
   </form>
 </div>
 {% endif %}
-<nav class="shopping-filter d-flex gap-2 mb-3" role="group" aria-label="Archivfilter">
-  {{ icon_button('status.active', href=url_for('admin.shopping_lists_index'), show_text=true, class=('active' if not include_archived else ''), attrs={'aria-current': true} if not include_archived else none) }}
-  {{ icon_button('view.filter', href=url_for('admin.shopping_lists_index', archived='1'), text='Mit Archivierten', show_text=true, class=('active' if include_archived else ''), title='Archivierte Listen einschliessen', attrs={'aria-current': true} if include_archived else none) }}
-</nav>
+{{ segment_switch([
+  {'key': 'active', 'label': t('status.active.label'), 'href': url_for('admin.shopping_lists_index')},
+  {'key': 'all', 'label': 'Mit Archivierten', 'href': url_for('admin.shopping_lists_index', archived='1')}
+], 'all' if include_archived else 'active', label='Archivfilter', class='shopping-filter mb-3') }}
 {% if rows %}
 <section class="shopping-list" aria-label="Einkaufslisten">
   {% for item in rows %}
@@ -73,25 +73,20 @@
   {% if can_write and not item.archived_at %}
     {% set row_items = row_items + [{'key': 'actions.archive', 'object': item.title, 'attrs': {'data-confirm': 'Diese Einkaufsliste archivieren?'}}] %}
   {% endif %}
+  {% set row_status %}{% if item.archived_at %}{{ status_badge_sem('status.archived') }}{% elif include_archived %}{{ status_badge_sem('status.active') }}{% else %} {% endif %}{% endset %}
   {% if can_write and not item.archived_at %}
   <form method="post" action="{{ url_for('admin.shopping_list_archive', public_id=item.public_id) }}">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="row_version" value="{{ item.row_version }}">
-    {% if include_archived %}
-      {{ list_row(primary=item.title, secondary=subtitle, state='active', actions=row_actions(row_items, object=item.title)) }}
-    {% else %}
-      {{ list_row(primary=item.title, secondary=subtitle, status=' ', actions=row_actions(row_items, object=item.title)) }}
-    {% endif %}
+    {{ list_row(primary=item.title, secondary=subtitle, status=row_status, actions=row_actions(row_items, object=item.title)) }}
   </form>
-  {% elif item.archived_at %}
-    {{ list_row(primary=item.title, secondary=subtitle, state='archived', actions=row_actions(row_items, object=item.title)) }}
   {% else %}
-    {{ list_row(primary=item.title, secondary=subtitle, status=' ', actions=row_actions(row_items, object=item.title)) }}
+    {{ list_row(primary=item.title, secondary=subtitle, status=row_status, actions=row_actions(row_items, object=item.title)) }}
   {% endif %}
   {% endfor %}
 </section>
 {% else %}
-{% call empty_state('none', 'Noch keine Einkaufslisten', 'Eine Einkaufsliste anlegen, um Bausteine einer Woche zusammenzufassen.') %}
+{% call empty_state('none', 'Noch keine Einkaufslisten', 'Eine Einkaufsliste anlegen, um Bausteine einer Woche zusammenzufassen.', compact=true) %}
 {% if can_write %}{{ icon_button('actions.add', href='#title', emphasis='secondary') }}{% endif %}
 {% endcall %}
 {% endif %}

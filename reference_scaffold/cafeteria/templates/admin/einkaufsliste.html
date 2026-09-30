@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, field, select, form_errors, empty_state, disclosure_section, hint, label %}
-{% from 'ui/_semantic.html' import icon_button, row_actions %}
+{% from 'admin/_macros.html' import page_header, icon, field, select, form_errors, empty_state, disclosure_section, hint %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, status_badge_sem %}
 {% set workflow_nav = 'shopping_lists' %}
 {% block title %}Einkaufslisten · {{ detail.title }}{% endblock %}
 {% block page_styles %}
@@ -22,15 +22,15 @@
 {% endblock %}
 {% block content %}
 {%- macro line_status(line) -%}
-{%- if line.checked_status == 'checked' -%}{{ label('Abgehakt', 'active', icon='circle-check') }}
-{%- elif line.checked_status == 'changed_open' -%}{{ label('Geändert, erneut offen', 'warning', icon='alert-triangle') }}
-{%- elif line.checked_status == 'not_current' -%}{{ label('nicht aktuell', 'neutral', icon='history') }}
-{%- else -%}{{ label('Offen', 'neutral', icon='circle') }}{%- endif -%}
+{%- if line.checked_status == 'checked' -%}{{ status_badge_sem('status.done', text='Abgehakt', variant='active') }}
+{%- elif line.checked_status == 'changed_open' -%}{{ status_badge_sem('status.pending', text='Geändert, erneut offen') }}
+{%- elif line.checked_status == 'not_current' -%}{{ status_badge_sem('status.neutral', text='nicht aktuell') }}
+{%- else -%}{{ status_badge_sem('status.pending', text='Offen', variant='neutral') }}{%- endif -%}
 {%- endmacro -%}
 {%- set policy_labels = {'leaf': 'Blattbedarf', 'prepared': 'Vorbereiteter Bedarf'} -%}
 {%- set detail_url = url_for('admin.shopping_list_detail', public_id=detail.public_id) -%}
 {% if summary %}{{ form_errors(summary) }}{% endif %}
-{% if detail.archived_at %}<p>{{ label('Archiviert', 'neutral', icon='archive') }}</p>{% endif %}
+{% if detail.archived_at %}<p>{{ status_badge_sem('status.archived') }}</p>{% endif %}
 {% if selected and not selected.is_latest %}
 <div class="alert alert-warning mb-3" role="status">
   <div class="d-flex flex-wrap align-items-center gap-3">
@@ -174,7 +174,7 @@
   {% endif %}
   {% if selected.incomplete_lines %}
   <div class="shopping-incomplete">
-    <h3 class="h4">{{ icon('alert-triangle', class='text-warning me-1') }}Unvollständig</h3>
+    <p class="mb-2">{{ status_badge_sem('status.incomplete', detail=selected.incomplete_lines|length ~ ' Positionen') }}</p>
     <ul class="mb-0">
       {% for line in selected.incomplete_lines %}
       <li>{{ line.food_name or line.ingredient_text or line.food_public_id or 'Freitext' }}{% if line.quantity %} · {{ line.quantity }} {{ line.unit_name or line.unit_code }}{% endif %} · {{ line.reason or 'Kein Grund erfasst' }}</li>
@@ -184,7 +184,9 @@
   {% endif %}
 </section>
 {% else %}
-{{ empty_state('none', 'Noch keine Berechnung', 'Eine Woche wählen und Bausteine auswählen, um die Liste zu berechnen.') }}
+{% call empty_state('none', 'Noch keine Berechnung', 'Eine Woche wählen und Bausteine auswählen, um die Liste zu berechnen.', compact=true) %}
+{% if can_write and not detail.archived_at and is_latest_view %}{{ icon_button('actions.open', href='#compute_week', emphasis='secondary') }}{% endif %}
+{% endcall %}
 {% endif %}
 {%- set item_actions = can_write and is_latest_view -%}
 <section class="shopping-manual" aria-labelledby="manuell-title">
@@ -234,7 +236,7 @@
         <td class="text-break" data-label="Text">{{ item.item_text }}</td>
         <td data-label="Menge">{% if item.quantity %}{{ item.quantity }} {{ unit_names.get(item.unit_code, item.unit_code) }}{% endif %}</td>
         <td data-label="Einheit">{{ unit_names.get(item.unit_code, item.unit_code or '—') }}</td>
-        <td data-label="Status">{% if item.checked %}{{ label('Abgehakt', 'active', icon='circle-check') }}{% else %}{{ label('Offen', 'neutral', icon='circle') }}{% endif %}</td>
+        <td data-label="Status">{% if item.checked %}{{ status_badge_sem('status.done', text='Abgehakt', variant='active') }}{% else %}{{ status_badge_sem('status.pending', text='Offen', variant='neutral') }}{% endif %}</td>
         {% endif %}
       </tr>
       {% endfor %}

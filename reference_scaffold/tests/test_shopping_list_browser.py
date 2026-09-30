@@ -85,10 +85,10 @@ def _select_and_submit(page, selector, value, *, submit_label):
 
 
 EVIDENCE.mkdir(parents=True, exist_ok=True)
-# Rendered controls below the 48px target of the page contract (hidden elements have no client rects).
+# G0 controls: 36px fine / 44px coarse (hidden elements have no client rects).
 SMALL_TARGETS = '''() => [...document.querySelectorAll('main :is(a.btn, button, input:not([type=hidden], .form-check-input), select, textarea, .form-check, summary)')]
     .filter(element => {
-      const min = element.classList.contains('ui-sem-control') ? 36 : 48;
+      const min = matchMedia('(pointer: coarse)').matches ? 44 : 36;
       return element.getClientRects().length && element.getBoundingClientRect().height < min;
     })
     .map(element => `${element.getBoundingClientRect().height}px ${element.outerHTML.slice(0, 100)}`)'''
@@ -329,7 +329,7 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                 expect(statusbar.locator('.admin-statusbar-item').filter(
                     has=page.get_by_text('Positionen', exact=True)
                 )).to_contain_text('offen')
-                expect(page.locator('.shopping-filter .active')).to_have_attribute('aria-current', 'true')
+                expect(page.locator('.shopping-filter .active')).to_have_attribute('aria-current', 'page')
                 expect(page.get_by_role('link', name='Mit Archivierten', exact=True)).to_be_visible()
                 expect(page.locator('.shopping-filter').get_by_role('link', name='Archivieren', exact=True)).to_have_count(0)
                 expect(page.locator('.shopping-list [data-semantic="actions.more"]')).to_have_count(0)
