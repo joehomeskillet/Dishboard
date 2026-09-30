@@ -1009,6 +1009,15 @@ jeweils `GATE_EXIT=0`. Eigene Screenshots:
 Gestaltungsabnahme: Anlegen-Disclosures und andere Reststellen werden weiter
 klassifiziert; Vorlagenstatus ist im folgenden Paket verdichtet.
 
+Vorlagen-Aktionsspalte UC-P2-B2: `/admin/vorlagen`, Admin, Woche 2026-08-31, 1440/768/390,
+fein und grob. Druck-, Rezept- und Screen-Tabellen zeigen die Symbolgruppe in
+einer Zeile. Bei 1440 und 768 teilen Kopf und Zelle der Spalte «Aktionen»
+dieselbe Breite. Zeilen mit zwei Symbolen: 93 px auf 64 px (1440 fein) und
+113 px auf 64 px (1440 grob). Unter 768 px bleibt die Kartenhöhe der gemeinsamen
+Stapel-Tabelle; die Symbole liegen dort weiter nebeneinander. `screens.html` und
+`preview.html` bleiben unverändert. Nachweis `test_admin_template_catalog_browser.py`
+im Paketlauf 200 passed, zweimal, `GATE_EXIT=0`.
+
 Vorlagen `8624fe48`: `/admin/vorlagen`, Admin/Editor, beide Profile und Rezept,
 aktive Revision mit neuerem Entwurf, JS/No-JS und 390/1440 px. Vier Statuskarten
 und doppelte aktive Vorlage entfernt; aktive Revision und neuer Entwurf bleiben
@@ -1151,7 +1160,7 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/_local_user_forms.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_macros.html | 1 | 0 | 0 | 0 | 2 | 0 | 0 |
 | admin/_recipe_document.html | 2 | 1 | 0 | 0 | 5 | 0 | 0 |
-| admin/_recipe_template_selection.html | 10 | 6 | 0 | 0 | 1 | 3 | 0 |
+| admin/_recipe_template_selection.html | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
 | admin/_rezepte_fields.html | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_service_courses.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/_week_controls.html | 6 | 2 | 0 | 0 | 2 | 0 | 0 |
@@ -1197,10 +1206,10 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/menu_editor.html | 15 | 4 | 0 | 1 | 3 | 1 | 0 |
 | admin/operations.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/patienten.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/preview.html | 3 | 3 | 0 | 0 | 1 | 0 | 0 |
-| admin/print_template_editor.html | 19 | 11 | 0 | 0 | 1 | 1 | 0 |
+| admin/preview.html | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
+| admin/print_template_editor.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/print_template_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/recipe_template_error.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| admin/recipe_template_error.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/rezepte.html | 4 | 2 | 0 | 0 | 1 | 1 | 0 |
 | admin/rezepte_ansicht.html | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
 | admin/rezepte_conflict.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -1210,10 +1219,10 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | admin/rezepte_revision.html | 3 | 0 | 0 | 0 | 1 | 0 | 0 |
 | admin/rezepte_revisionen.html | 2 | 1 | 0 | 0 | 3 | 0 | 0 |
 | admin/rezepte_scale.html | 2 | 0 | 0 | 0 | 1 | 0 | 0 |
-| admin/screen_template_assignment.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| admin/screen_template_assignment.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | admin/screen_template_unavailable.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| admin/screens.html | 1 | 0 | 1 | 0 | 0 | 0 | 0 |
-| admin/vorlagen.html | 17 | 11 | 0 | 0 | 2 | 1 | 0 |
+| admin/screens.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| admin/vorlagen.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/week_management.html | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | admin/week_review.html | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | api/docs.html | 0 | 0 | 0 | 0 | 0 | 0 | 0 |

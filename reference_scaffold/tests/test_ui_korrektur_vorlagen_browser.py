@@ -101,8 +101,10 @@ def _assert_controls(page):
             continue
         box = control.bounding_box()
         classes = (control.get_attribute('class') or '').split()
-        icon = 'ui-sem-control' in classes or 'btn-icon' in classes
-        assert box is not None and box['height'] >= (icon_min if icon else 44)
+        icon = 'ui-sem-control' in classes or 'btn-icon' in classes or 'admin-hint-trigger' in classes
+        # Text fields and G0 info triggers follow --app-control-min-height (36px, fine pointer).
+        field = 'form-control' in classes or 'form-select' in classes
+        assert box is not None and box['height'] >= (icon_min if icon or field else 44)
         if 'btn-icon' in classes or 'ui-sem-control--icon-only' in classes:
             assert box['width'] >= icon_min and control.get_attribute('aria-label')
             assert any(control.get_attribute(name) for name in (
@@ -148,8 +150,9 @@ def test_recipe_editor_density_matrix(recipe_editor, recipe_server, browser):
             for state, route in (('empty-selection', BASE), ('selected', recipe_path(recipe, revision.public_id))):
                 assert page.goto(route).status == 200
                 _assert_controls(page)
-                for area in ('appearance', 'texts', 'activation', 'versions', 'copy', 'lifecycle'):
+                for area in ('appearance', 'texts', 'activation', 'copy', 'lifecycle'):
                     expect(page.locator(f'details[data-template-{area}]')).not_to_have_attribute('open', '')
+                expect(page.locator('#template-versions')).not_to_have_attribute('open', '')
                 if state == 'selected':
                     expect(page.locator('[data-recipe-selection]')).not_to_have_attribute('open', '')
                     normal = page.get_by_role('link', name='PDF mit aktiver Vorlage öffnen', exact=True)
@@ -243,7 +246,7 @@ def test_editor_prioritises_form_and_one_primary_save_action(
         expect(activation).to_have_accessible_name("Standard aktivieren")
         expect(activation).to_have_attribute("data-ui-tooltip", "Standard aktivieren")
         expect(activation).to_have_text("")
-        expect(page.locator("details[data-template-versions] > summary")).to_have_text(
+        expect(page.locator("#template-versions > summary")).to_have_text(
             "Versionen"
         )
         expect(page.locator('[data-template-more-actions], [data-semantic="actions.more"]')).to_have_count(0)
@@ -263,7 +266,7 @@ def test_editor_prioritises_form_and_one_primary_save_action(
         expect(page.locator("details[data-template-texts]")).not_to_have_attribute(
             "open", ""
         )
-        expect(page.locator("details[data-template-week-layout]")).not_to_have_attribute(
+        expect(page.locator("#template-week-layout")).not_to_have_attribute(
             "open", ""
         )
         if width >= 1366:
@@ -320,11 +323,11 @@ def test_save_activate_and_load_version_keep_native_requests(
         assert activate["action"] == ["activate"]
         assert activate["revision"] == ["2"]
 
-        page.locator("details[data-template-versions] > summary").click()
+        page.locator("#template-versions > summary").click()
         restore_button = page.locator(
-            'details[data-template-versions] button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]'
+            '#template-versions button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]'
         )
-        expect(page.locator('details[data-template-versions] [data-semantic="actions.more"]')).to_have_count(0)
+        expect(page.locator('#template-versions [data-semantic="actions.more"]')).to_have_count(0)
         expect(restore_button).to_be_visible()
         with page.expect_request(lambda request: request.method == "POST") as sent:
             restore_button.click()
@@ -459,7 +462,7 @@ def test_closed_recipe_details_keep_inputs_and_active_print(recipe_editor, recip
         assert normal_pdf.headers['x-print-template-revision'] == 'standard:1'
         assert preview_pdf.headers['x-print-template-revision'] == 'standard:2'
         assert normal_pdf.data != preview_pdf.data
-        page.locator('[data-template-versions] > summary').click()
+        page.locator('#template-versions > summary').click()
         _assert_controls(page)
         _capture(page, f'recipe-editor-saved-details-{javascript}-390x1100.png')
 

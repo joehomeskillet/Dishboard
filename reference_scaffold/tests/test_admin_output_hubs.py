@@ -256,8 +256,10 @@ def test_hubs_responsive_keyboard_and_native_week_selection(
             control.scroll_into_view_if_needed()
             box = control.bounding_box()
             classes = control.get_attribute('class') or ''
-            # Symbol buttons: 36 fine / 44 coarse. Text controls keep the 44px token (48px retired).
-            if 'ui-sem-control' in classes:
+            # Symbols and G0 fields follow --app-control-min-height (36 fine / 44 coarse).
+            # Other text controls keep the 44px floor.
+            field = 'form-control' in classes or 'form-select' in classes
+            if 'ui-sem-control' in classes or field:
                 minimum = 44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36
             else:
                 minimum = 44

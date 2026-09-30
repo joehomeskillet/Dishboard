@@ -80,7 +80,10 @@ def test_published_previews_and_assignment_form_are_readonly_tabler(
             expect(assignment.locator('form')).to_be_visible()
             expect(page.locator('main .btn-primary:visible')).to_have_count(1)
             help_control = assignment.locator('.admin-hint > summary').first
-            assert help_control.bounding_box()['height'] >= 48
+            # G0 .admin-hint-trigger follows --app-control-min-height (36 fine / 44 coarse).
+            coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
+            help_min = 44 if coarse else 36
+            assert help_control.bounding_box()['height'] >= help_min
             help_control.tap() if width < 1440 else help_control.click()
             expect(assignment.locator('.admin-hint').first).to_have_attribute('open', '')
             help_control.tap() if width < 1440 else help_control.click()
@@ -312,7 +315,9 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                     expect(page.locator('#screen-assignment-version')).not_to_have_attribute('open', '')
                     for target in page.locator('main .btn:visible, main summary:visible').all():
                         target_class = target.get_attribute('class') or ''
-                        target_min = 36 if 'ui-sem-control' in target_class else 44
+                        # G0 .admin-hint-trigger stays on the control token, same as icon buttons.
+                        icon = 'ui-sem-control' in target_class or 'admin-hint-trigger' in target_class
+                        target_min = 36 if icon else 44
                         assert target.bounding_box()['height'] >= target_min
                     assert page.goto('/admin/cafeteria/preview?week=2026-08-31').status == 200
                     expect(page.locator('.page-header .admin-statusbar')).to_have_count(1)

@@ -32,7 +32,8 @@
   padding-top: 0;
 }
 .screen-choice-card { min-width: 0; }
-.screen-choice-control { min-height: 3rem; }
+/* Beats the shared .form-check control height; this row is a labelled choice, not an icon. */
+.dishboard-admin .form-check.screen-choice-control { min-height: var(--app-list-row-min-height); }
 .screen-card .nav-link { min-height: 3rem; }
 .screen-card .btn-list { margin-top: auto; }
 
@@ -51,6 +52,9 @@
   outline-offset: 2px;
 }
 #screen-assignment-details { margin-top: var(--app-space-3); }
+.dishboard-admin #screen-assignment-version > summary:not(.ui-sem-control) {
+  min-height: var(--app-list-row-min-height);
+}
 #screen-assignment-details .screens-grid {
   gap: var(--app-space-3);
 }

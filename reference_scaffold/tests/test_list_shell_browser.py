@@ -42,7 +42,7 @@ def test_real_list_edges_and_calendar_state(admin_app, admin_engine, live_server
          '[aria-label="Ausgabeangaben"] > [role="listitem"] > .admin-list-row'),
         ('bestellung', '/admin/bestellung', '.order-list > [role="listitem"] > .admin-list-row'),
         ('benutzer', '/admin/benutzer', '[data-account-row] > .admin-list-row'),
-        ('vorlagen', '/admin/vorlagen?week=2026-08-31', 'li.print-tpl-row:visible'),
+        ('vorlagen', '/admin/vorlagen?week=2026-08-31', 'tr[data-template-id]:visible'),
     )
     measurements, failures = [], []
     with sync_playwright() as playwright:
@@ -82,7 +82,7 @@ def test_real_list_edges_and_calendar_state(admin_app, admin_engine, live_server
                         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), name
                         page.screenshot(path=str(tmp_path / f'{name}-{width}.png'), full_page=True)
                         if name == 'vorlagen':
-                            screen_rows = page.locator('.print-screen-row')
+                            screen_rows = page.locator('.print-screens-grid tbody tr')
                             assert screen_rows.count() > 1
                             for index in range(screen_rows.count() - 1):
                                 metrics = screen_rows.nth(index).evaluate(ROW_METRICS)
@@ -90,7 +90,7 @@ def test_real_list_edges_and_calendar_state(admin_app, admin_engine, live_server
                                 if metrics['bottom'] != '1px' or metrics['style'] != 'solid':
                                     failures.append(('screen-templates', width, index, metrics))
                                 assert metrics['shadow'] == 'none'
-                            action_edges = page.locator('.print-screen-row .admin-row-actions').evaluate_all(
+                            action_edges = page.locator('.print-screens-grid .admin-row-actions').evaluate_all(
                                 'els => els.map(el => el.getBoundingClientRect().right)')
                             assert max(action_edges) - min(action_edges) < 1, (width, action_edges)
                             screen_rows.first.scroll_into_view_if_needed()

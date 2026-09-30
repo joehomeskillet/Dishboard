@@ -131,17 +131,27 @@ def _evidence(page: Page, name: str, **extra: object) -> dict:
 
 
 def _assert_actions(page: Page) -> None:
-    """M14/A16: labelled actions, primary first, loaded icons, 44px targets (48px kept)."""
+    """M14/A16: labelled actions. Icon controls are 36px on a fine pointer; profile links stay 48px."""
     links = page.locator(ACTIONS)
     assert links.count() == 5
     primary = page.locator('.preview-links a').first
-    assert primary.inner_text().strip() == PRIMARY_LABEL
+    assert primary.get_attribute('aria-label') == PRIMARY_LABEL
+    assert primary.inner_text().strip() == ''
     assert primary.evaluate('el => el.classList.contains("primary")')
     for index in range(links.count()):
         link = links.nth(index)
-        assert link.inner_text().strip()
+        classes = link.get_attribute('class') or ''
         box = link.bounding_box()
-        assert box is not None and box['height'] >= 44 and box['width'] >= 44, box
+        minimum = 36 if 'ui-sem-control' in classes else 44
+        if 'ui-sem-control--icon-only' in classes:
+            assert link.inner_text().strip() == ''
+            assert link.get_attribute('aria-label')
+        elif 'ui-sem-control' in classes:
+            assert link.inner_text().strip()
+            assert link.get_attribute('aria-label')
+        else:
+            assert link.inner_text().strip()
+        assert box is not None and box['height'] >= minimum and box['width'] >= minimum, box
     uses = page.locator('.preview-links use, .preview-published use')
     assert uses.count() == 3
     for use in uses.all():
@@ -301,7 +311,7 @@ def test_preview_keyboard_focus(
         order = []
         for _ in range(5):
             page.keyboard.press('Tab')
-            order.append(page.evaluate('document.activeElement.textContent.trim()'))
+            order.append(page.evaluate("(document.activeElement.getAttribute('aria-label') || document.activeElement.textContent || '').trim()"))
         assert order == [
             'Mitarbeitende und externe Gäste', 'Patientinnen und Patienten',
             PRIMARY_LABEL, BACK_LABEL, PUBLISHED_LABEL,
@@ -312,11 +322,11 @@ def test_preview_keyboard_focus(
                 '''() => {
                     const el = document.activeElement;
                     const style = getComputedStyle(el);
-                    return {tag: el.tagName, text: el.textContent.trim(),
+                    return {tag: el.tagName, name: (el.getAttribute('aria-label') || el.textContent || '').trim(),
                             outline: style.outlineStyle, width: parseFloat(style.outlineWidth)};
                 }''',
             )
-            assert focused['tag'] == 'A' and focused['text'] == label
+            assert focused['tag'] == 'A' and focused['name'] == label
             assert focused['outline'] != 'none' and focused['width'] >= 2, focused
         _evidence(page, 'preview-keyboard-1440')
     finally:

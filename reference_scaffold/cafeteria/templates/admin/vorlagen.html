@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, hint, label as status_label %}
+{% from 'admin/_macros.html' import page_header, hint, empty_value %}
 {% from 'ui/_semantic.html' import icon_button, icon_summary, row_actions, status_badge_sem %}
 {% set workflow_nav = 'vorlagen' %}
 {% set layout_variant = 'standard' %}
@@ -47,21 +47,31 @@
                 {{ icon_summary('actions.archive', aria_label=label ~ ' archivierte Vorlagen öffnen') }}
                 <h3 class="h5 mt-2">{{ group_label }}</h3>
               {% endif %}
-              <ul class="admin-list list-unstyled mb-2" aria-label="{{ label }} · {{ group_label }}">
+              <table class="table table-vcenter card-table admin-table admin-table--stack admin-list mb-2" aria-label="{{ label }} · {{ group_label }}">
+                <thead>
+                  <tr>
+                    <th scope="col">Vorlage</th>
+                    <th scope="col">Version</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {% for template in group %}
                 {% set latest = template.revisions[-1] %}
                 {% set active = template.id == catalog.document.active_template %}
-                <li class="print-tpl-row" data-template-id="{{ template.id }}"{% if active %} data-current-template{% endif %}>
-                  <div class="print-tpl-name">
+                <tr data-template-id="{{ template.id }}"{% if active %} data-current-template{% endif %}>
+                  <th scope="row" data-label="Vorlage">
                     <h3 class="admin-list-primary text-break mb-0">{{ catalog.active.name if active else latest.name }}</h3>
-                    <p class="admin-list-secondary print-tpl-meta mb-0">Version {{ catalog.active.id if active else latest.id }}{% if not active %} · Entwurf{% endif %}</p>
                     {% if active and latest.id != catalog.active.id %}<p class="admin-list-secondary mb-0">Neuer Entwurf: {{ latest.name }} · Version {{ latest.id }}</p>{% endif %}
-                  </div>
-                  <div>
-                    {% if template.archived %}{{ status_label('Archiviert', 'neutral', icon=sem('actions.archive').resolved_icon) }}
+                  </th>
+                  <td data-label="Version"><p class="admin-list-secondary print-tpl-meta mb-0">Version {{ catalog.active.id if active else latest.id }}</p></td>
+                  <td class="admin-table-status" data-label="Status">
+                    {% if template.archived %}{{ status_badge_sem('status.archived') }}
                     {% elif active %}{{ status_badge_sem('status.active') }}
-                    {% else %}{{ status_label('Nicht aktiv', 'neutral') }}{% endif %}
-                  </div>
+                    {% else %}{{ status_badge_sem('status.inactive') }}{{ status_badge_sem('publish.draft') }}{% endif %}
+                  </td>
+                  <td class="admin-table-actions" data-label="Aktionen">
                   {% if 'Cafeteria.Admin' in roles %}
                     {% set row = namespace(items=[
                       {'key': 'actions.edit', 'href': url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=latest.id), 'object': latest.name},
@@ -73,11 +83,13 @@
                       {'key': 'actions.preview', 'href': url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=catalog.active.id), 'aria_label': 'Aktive Version als PDF prüfen', 'text': 'PDF'}
                     ] %}
                     {% endif %}
-                    <div class="admin-list-actions">{{ row_actions(row.items, object=latest.name) }}</div>
+                    {{ row_actions(row.items, object=latest.name) }}
                   {% endif %}
-                </li>
+                  </td>
+                </tr>
                 {% endfor %}
-              </ul>
+                </tbody>
+              </table>
               {% if archived %}</details>{% endif %}
               {% endif %}
               {% endfor %}
@@ -106,30 +118,42 @@
     <h2 class="h4 mb-2" id="recipe-templates-heading">Rezeptvorlagen</h2>
       {% set active_template = recipe_catalog.document.templates | selectattr('id', 'equalto', recipe_catalog.document.active_template) | first %}
       {% set active_revision = recipe_catalog.active %}
-      <ul class="admin-list list-unstyled">
+      <table class="table table-vcenter card-table admin-table admin-table--stack admin-list" aria-label="Rezeptvorlagen">
+        <thead>
+          <tr>
+            <th scope="col">Vorlage</th>
+            <th scope="col">Revision</th>
+            <th scope="col">Status</th>
+            <th scope="col">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody>
         {% for item in recipe_catalog.document.templates %}
         {% set latest = item.revisions[-1] %}
-        <li class="print-tpl-row" data-template-id="{{ item.id }}">
-          <div class="print-tpl-name">
+        <tr data-template-id="{{ item.id }}">
+          <th scope="row" data-label="Vorlage">
             <h3 class="admin-list-primary text-break mb-0">{{ recipe_catalog.active.name if item.id == recipe_catalog.document.active_template else latest.name }}</h3>
-            <p class="admin-list-secondary print-tpl-meta mb-0">Revision {{ recipe_catalog.active.id if item.id == recipe_catalog.document.active_template else latest.id }}{% if item.id != recipe_catalog.document.active_template %} · Entwurf{% endif %}</p>
             {% if item.id == recipe_catalog.document.active_template and latest.id != recipe_catalog.active.id %}<p class="admin-list-secondary mb-0">Neuer Entwurf: {{ latest.name }} · Revision {{ latest.id }}</p>{% endif %}
-          </div>
-          <div>
-            {% if item.archived %}{{ status_label('Archiviert', 'neutral', icon=sem('actions.archive').resolved_icon) }}
+          </th>
+          <td data-label="Revision"><p class="admin-list-secondary print-tpl-meta mb-0">Revision {{ recipe_catalog.active.id if item.id == recipe_catalog.document.active_template else latest.id }}</p></td>
+          <td class="admin-table-status" data-label="Status">
+            {% if item.archived %}{{ status_badge_sem('status.archived') }}
             {% elif item.id == recipe_catalog.document.active_template %}{{ status_badge_sem('status.active') }}
-            {% else %}{{ status_label('Nicht aktiv', 'neutral') }}{% endif %}
-          </div>
+            {% else %}{{ status_badge_sem('status.inactive') }}{{ status_badge_sem('publish.draft') }}{% endif %}
+          </td>
+          <td class="admin-table-actions" data-label="Aktionen">
           {% if 'Cafeteria.Admin' in roles %}
             {% set row = namespace(items=[{'key': 'actions.edit', 'href': url_for('admin.recipe_print_template_editor', template=item.id, revision=latest.id), 'object': latest.name}]) %}
             {% if item.id == recipe_catalog.document.active_template and active_template is not none and active_revision is not none and latest.id != active_revision.id %}
             {% set row.items = row.items + [{'key': 'actions.open', 'href': url_for('admin.recipe_print_template_editor', template=active_template.id, revision=active_revision.id), 'aria_label': 'Aktive Vorlage öffnen'}] %}
             {% endif %}
-            <div class="admin-list-actions">{{ row_actions(row.items, object=latest.name) }}</div>
+            {{ row_actions(row.items, object=latest.name) }}
           {% endif %}
-        </li>
+          </td>
+        </tr>
         {% endfor %}
-      </ul>
+        </tbody>
+      </table>
       {% if can_browse_recipes %}
       <div class="btn-list mt-3">
         {{ icon_button('actions.print', href=url_for('admin.recipes_list'), aria_label='Rezept drucken') }}
@@ -149,21 +173,32 @@
   <h2 class="h4 mb-2">Screen-Vorlagen</h2>
   <p class="text-secondary small mb-2">Web-Wochenpläne zeigen die aktuelle Veröffentlichung.</p>
   <div class="screens-grid print-screens-grid">
-    <div class="admin-list" role="list">
+    <table class="table table-vcenter card-table admin-table admin-table--stack admin-list">
+      <thead>
+        <tr>
+          <th scope="col">Vorlage</th>
+          <th scope="col">Version</th>
+          <th scope="col">Status</th>
+          <th scope="col">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
       {% for screen_family, catalog in screen_catalogs.items() %}
       {% for choice in catalog.choices %}
       {% set row = namespace(items=[{'key': 'actions.preview', 'href': url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id), 'aria_label': area_names[choice.profile] ~ ' · ' ~ choice.name ~ ' prüfen'}]) %}
       {% if loop.first %}
       {% set row.items = row.items + [{'key': 'actions.edit', 'href': url_for('admin.screen_template_assignment', family=screen_family), 'aria_label': area_names[choice.profile] ~ ' · Wochenvorlage zuordnen', 'text': 'Zuordnen'}] %}
       {% endif %}
-      <div class="print-screen-row" role="listitem">
-        <span class="admin-list-primary admin-list-name">{{ area_names[choice.profile] }} · {{ choice.name }}</span>
-        <div>{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_label('Nicht aktiv', 'neutral') }}{% endif %}</div>
-        <div class="admin-list-actions">{{ row_actions(row.items, object=area_names[choice.profile] ~ ' · ' ~ choice.name) }}</div>
-      </div>
+      <tr>
+        <th scope="row" data-label="Vorlage"><span class="admin-list-primary admin-list-name">{{ area_names[choice.profile] }} · {{ choice.name }}</span></th>
+        <td data-label="Version"><p class="admin-list-secondary print-tpl-meta mb-0">{% if catalog.active.template.id == choice.id %}Version {{ catalog.active.version }}{% else %}{{ empty_value() }}{% endif %}</p></td>
+        <td class="admin-table-status" data-label="Status">{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_badge_sem('status.inactive') }}{% endif %}</td>
+        <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items, object=area_names[choice.profile] ~ ' · ' ~ choice.name) }}</td>
+      </tr>
       {% endfor %}
       {% endfor %}
-    </div>
+      </tbody>
+    </table>
   </div>
 </div>
 <div class="mt-4">

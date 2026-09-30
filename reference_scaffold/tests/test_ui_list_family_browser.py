@@ -167,8 +167,6 @@ MEASURE_JS = r"""() => {
   cluster('article.recipe-card', 'karten', parentOf);
   cluster('article.screen-card', 'karten', parentOf);
   cluster('article.screen-choice-card', 'karten', parentOf);
-  cluster('li.print-tpl-row', 'zeilen', parentOf);
-  cluster('.print-screen-row', 'zeilen', parentOf);
   cluster('li.kitchen-cal-list-day:not(.kitchen-cal-list-day-empty)', 'zeilen', parentOf);
   for (const table of main.querySelectorAll('table')) {
     if (!visible(table) || table.closest('nav, .navbar, article.menu-slot, article.recipe-card, article.screen-card')) continue;
@@ -624,7 +622,7 @@ def _hook(page, hook: str | None, revision: str) -> None:
     if hook == 'catalog':
         page.evaluate("""() => {
           for (const details of document.querySelectorAll('details')) {
-            if (details.querySelector('.print-tpl-row')) details.open = true;
+            if (details.querySelector('tr[data-template-id]')) details.open = true;
           }
           for (const pane of document.querySelectorAll('.output-area-panels .tab-pane')) {
             pane.classList.add('active', 'show');

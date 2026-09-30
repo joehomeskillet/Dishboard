@@ -255,7 +255,7 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
         expect(page.locator('iframe')).to_be_visible()
         if profile == 'patient':
             assert page.locator('option[value="prices"]').count() == 0
-        page.locator('details[data-template-week-layout] > summary').click()
+        page.locator('#template-week-layout > summary').click()
         page.get_by_text('Raster, Bilder und Abstände', exact=True).click()
         page.get_by_label('Wochenraster', exact=True).select_option(changed_grid)
         _targets(page)
@@ -278,11 +278,11 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
         page.get_by_label('Reihenfolge im Kopfbereich · Position 2', exact=True).select_option('logo')
         page.get_by_role('button', name='Vorlage speichern', exact=True).click()
         expect(page.get_by_role('heading', name='Vorlage · Version 2', exact=True)).to_be_visible()
-        page.locator('details[data-template-week-layout] > summary').click()
+        page.locator('#template-week-layout > summary').click()
         expect(page.get_by_text('Individuelles Wochenlayout gespeichert.', exact=False)).to_be_visible()
         _targets(page)
         page.screenshot(path=str(tmp_path / f'layout-editor-{family}-{width}-js-{javascript}.png'), full_page=True, caret='initial')
-        for summary in page.locator('details[data-template-week-layout] details > summary').all():
+        for summary in page.locator('#template-week-layout details > summary').all():
             summary.click()
         _targets(page)
         page.locator('form.card').filter(has=page.locator('#template-name')).screenshot(

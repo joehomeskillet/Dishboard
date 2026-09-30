@@ -23,11 +23,9 @@
   flex-wrap: wrap;
   overflow-x: hidden;
 }
-.output-area-tabs .nav-link { min-height: var(--app-space-12); margin-bottom: 0; }
+.output-area-tabs .nav-link { min-height: var(--app-control-min-height); margin-bottom: 0; }
 .output-print-actions,
 .output-print-actions.btn-list,
-.print-tpl-row,
-.print-screen-row,
 .print-version-row {
   display: flex;
   flex-wrap: wrap;
@@ -36,38 +34,22 @@
   min-width: 0;
   max-width: 100%;
 }
-.print-tpl-row .print-tpl-name {
+.print-version-row .print-tpl-name {
   flex: 1 1 12rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.print-tpl-row {
-  padding-block: var(--app-space-2);
-  border-bottom: 1px solid var(--app-border);
-}
-.print-tpl-row:last-child { border-bottom: 0; }
 .print-tpl-meta { color: var(--app-text-muted); min-width: 0; overflow-wrap: anywhere; }
-.print-tpl-row .btn-list,
 .print-version-row .btn-list { margin-inline-start: auto; }
 .print-related-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--app-space-3);
 }
-.print-screen-row {
-  padding: var(--app-space-3);
-}
-.print-screen-row .card-title {
-  flex: 1 1 12rem;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
 .print-template-editor .admin-form-footer { padding: var(--app-space-2) var(--app-space-3); }
-.print-template-editor summary,
-.output-layouts-section summary,
-.print-screen-row .btn,
-.print-tpl-row .btn {
-  min-height: var(--app-space-12);
+.print-template-editor summary:not(.ui-sem-control):not(.admin-hint-trigger),
+.output-layouts-section summary:not(.ui-sem-control):not(.admin-hint-trigger) {
+  min-height: var(--app-list-row-min-height);
 }
 .print-version-row { padding-block: var(--app-space-2); }
 .print-template-unavailable .empty { padding: var(--app-space-4); }
@@ -79,9 +61,7 @@
   }
 }
 @media (max-width: 767.98px) {
-  .print-tpl-row .btn-list,
-  .print-version-row .btn-list,
-  .print-screen-row .btn-list { margin-inline-start: 0; flex-basis: 100%; }
+  .print-version-row .btn-list { margin-inline-start: 0; flex-basis: 100%; }
 }
 .print-screens-grid,
 #screen-assignment-details .screens-grid {

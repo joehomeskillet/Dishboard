@@ -62,10 +62,13 @@ def _assert_rendered_icons_and_targets(page: Page) -> None:
     for target in page.locator('main .btn:visible, main summary:visible').all():
         box = target.bounding_box()
         assert box is not None
-        if target.evaluate("el => el.classList.contains('ui-sem-control--icon-only')"):
+        classes = target.get_attribute('class') or ''
+        if 'ui-sem-control--icon-only' in classes:
             assert box['height'] == box['width'] == semantic_min
         else:
-            minimum = semantic_min if target.evaluate("el => el.classList.contains('ui-sem-control')") else 44
+            # G0 .admin-hint-trigger is an icon at the control token, without ui-sem-control.
+            icon = 'ui-sem-control' in classes or 'admin-hint-trigger' in classes
+            minimum = semantic_min if icon else 44
             assert box['height'] >= minimum and box['width'] >= minimum
 
 
