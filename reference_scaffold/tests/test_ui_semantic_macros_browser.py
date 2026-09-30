@@ -243,7 +243,7 @@ def test_direct_actions_visibility_geometry_and_reflow(semantic_site, width, tou
             expect(group).to_have_attribute('role', 'group')
             assert 'Broccoli <&>' in group.get_attribute('aria-label')
             size = 44 if touch else 36
-            assert float(group.evaluate('el => getComputedStyle(el).gap').removesuffix('px')) == (6 if touch else 4)
+            assert float(group.evaluate('el => getComputedStyle(el).gap').removesuffix('px')) == (8 if touch else 4)
             for i, control in enumerate(controls.all()):
                 expect(control).to_be_visible()
                 expect(control).to_have_attribute('href', f'#action-{i}')

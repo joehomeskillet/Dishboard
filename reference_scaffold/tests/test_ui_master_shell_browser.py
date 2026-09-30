@@ -313,7 +313,7 @@ def test_mobile_focus_escape_and_viewports(site, database_engine, tmp_path):  # 
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), (route, width, height)
             if width >= 992:
                 for link in page.locator('.admin-nav-area > .nav-link').all():
-                    assert link.bounding_box()['height'] >= 56
+                    assert link.bounding_box()['height'] >= minimum
                     assert float(link.evaluate('el => getComputedStyle(el).fontSize').removesuffix('px')) >= 15
                     # Wrapped full text -> single-line ellipsis plus complete title (24 September).
                     title = link.locator('.nav-link-title')
