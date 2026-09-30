@@ -12486,7 +12486,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "22bcdc2a70bf6a3425eee7af32be2a8cc6de88040cb9a49e0ad2fa5ff7d33ab0",
+      "sha256": "2bd45ff5eac028f95e2102a09e7836cac3986bb16987a7c642020fafe0c33447",
       "used_by_endpoints": [
         "admin.order_basket"
       ],
@@ -12501,7 +12501,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "22273d93487d0feb43c7af3628dedcfec5222e18c0d2489a363a5295697aafba",
+      "sha256": "a89561ad3b37d996376a1a6992dc31b8b82df0a1131b18ce24804dd8b5438c27",
       "used_by_endpoints": [
         "admin.cost_home",
         "admin.cost_preview"
@@ -12517,7 +12517,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "bb72460f8641594ba0e15dbe4d0421af721a4ed511b57b58e8931c928549cae8",
+      "sha256": "0cbeafd9e41201dc40d89b1c6ce428ed63bd95417b0ffc9b48f16b530fd8e017",
       "used_by_endpoints": [
         "admin.inventory_home"
       ],
