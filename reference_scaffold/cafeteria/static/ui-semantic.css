@@ -164,3 +164,50 @@ html.ui-asset-sprite-missing .dishboard-admin .ui-sem-control--icon-only:not([ar
 html.ui-asset-sprite-missing .dishboard-admin .ui-sem-control--icon-only[aria-label=""]:not(.admin-btn-loading)::after {
   content: attr(data-ui-tooltip);
 }
+
+/* Failed content images stay in flow so their reserved box does not collapse. */
+.asset-image-frame {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+  vertical-align: top;
+  line-height: 0;
+}
+/* Same reserved box as .admin-logo. A span would match the small-screen brand rule that hides labels. */
+.dishboard-admin .admin-brand > .asset-image-frame {
+  display: inline-block;
+  width: 164px;
+  max-width: 100%;
+  height: 32px;
+}
+.dishboard-admin .admin-brand .asset-image-placeholder { display: flex; }
+.dishboard-admin.admin-nav-collapsed .admin-brand > .asset-image-frame { width: 100%; }
+.asset-image-frame > img.asset-image-failed { visibility: hidden; }
+.asset-image-frame:has(> img.recipe-image-thumb) {
+  width: calc(var(--app-space-6) * 4);
+  height: calc(var(--app-space-6) * 4);
+  max-width: none;
+}
+.asset-image-frame:has(> img.recipe-image) {
+  display: block;
+  width: 100%;
+  min-height: calc(var(--app-space-6) * 4);
+}
+.asset-image-placeholder {
+  box-sizing: border-box;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: var(--app-space-1);
+  color: var(--app-text-muted);
+  background: var(--app-surface-soft);
+  border: var(--app-focus-width) solid var(--app-border);
+  border-radius: var(--app-radius-control);
+  font-size: var(--app-font-size-small);
+  line-height: var(--app-line-height-title);
+  text-align: center;
+  overflow-wrap: anywhere;
+}

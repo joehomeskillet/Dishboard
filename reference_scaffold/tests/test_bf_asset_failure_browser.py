@@ -1,10 +1,11 @@
-"""BF-E3-F1: a blocked icon sprite stays named and operable.
+"""BF-E3-F1: a blocked icon sprite or broken content image stays named and stable.
 
-Visible labels need the deferred probe. Without JavaScript the accessible name
-stays in the markup; the sprite class is never set.
+Visible labels and image placeholders need the deferred probe. Without JavaScript the
+accessible name (and image alt) stays in the markup; the sprite class is never set.
 """
 from __future__ import annotations
 
+import io
 import re
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -78,6 +79,13 @@ MEASURE = '''() => {
     flag: document.documentElement.dataset.adminAssetFallback || '',
   };
 }'''
+
+
+def _png() -> bytes:
+    from PIL import Image
+    data = io.BytesIO()
+    Image.new('RGB', (24, 18), 'green').save(data, format='PNG')
+    return data.getvalue()
 
 
 def _arm(context, *, images: bool) -> None:
@@ -188,7 +196,7 @@ def test_asset_fallback_is_external_and_csp_safe() -> None:
         assert banned not in script
     css = (SCAFFOLD / 'cafeteria/static/ui-semantic.css').read_text()
     fallback = css.split('html.ui-asset-sprite-missing', 1)[1]
-    assert 'content: attr(aria-label)' in fallback and '#' not in fallback
+    assert 'asset-image-placeholder' in fallback and '#' not in fallback
 
 
 @pytest.mark.parametrize('width,height', [(1440, 1100)], ids=['1440'])
@@ -251,6 +259,12 @@ def test_blocked_sprite_keeps_actions_named(
                 assert state['flag'] == '1'
             else:
                 _assert_nojs(page)
+            if javascript:
+                logo = page.locator('.admin-brand > .asset-image-frame')
+                expect(logo.locator('.asset-image-placeholder')).to_have_text('Klinik Südhang')
+                expect(logo.locator('img.admin-logo')).to_be_hidden()
+                box = logo.bounding_box()
+                assert box is not None and 30 <= box['height'] <= 40 and box['width'] >= 32
             shot = {
                 ('rezepte', 1440, False, True): 'sprite-rezepte-1440-fine-js.png',
                 ('wochenplan', 390, True, True): 'sprite-wochenplan-390-coarse-js.png',
@@ -280,7 +294,8 @@ def test_sprite_fallback_initializes_once(browser, live_server, page_context) ->
         assert page.goto('/admin/rezepte', wait_until='load').status == 200
         _ready(page, True)
         before = hits['n']
-        assert before >= 1
+        placeholders = page.locator('.asset-image-placeholder').count()
+        assert before >= 1 and placeholders >= 1
         page.evaluate('''() => {
           for (let i = 0; i < 20; i += 1) {
             window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted: true}));
@@ -294,10 +309,137 @@ def test_sprite_fallback_initializes_once(browser, live_server, page_context) ->
           document.body.appendChild(script);
         })''')
         assert loaded is True
+        page.evaluate('''() => {
+          const img = document.createElement('img');
+          img.className = 'admin-logo';
+          img.alt = 'Zweit';
+          img.src = '/static/img/missing-asset-fallback.png';
+          document.body.appendChild(img);
+        }''')
+        expect(page.locator('.asset-image-placeholder', has_text='Zweit')).to_have_count(1)
         assert hits['n'] == before
+        assert page.locator('.asset-image-placeholder').count() == placeholders + 1
         assert page.evaluate('''() => {
           const names = document.documentElement.className.split(' ').filter(name => name === 'ui-asset-sprite-missing');
           return document.documentElement.dataset.adminAssetFallback === '1' && names.length === 1;
         }''')
+    finally:
+        context.close()
+
+
+def _logo_metrics(page: Page) -> dict:
+    return page.evaluate('''() => {
+      const img = document.querySelector('img.admin-logo');
+      const frame = img.closest('.asset-image-frame') || img;
+      const box = frame.getBoundingClientRect();
+      const main = document.querySelector('main').getBoundingClientRect();
+      return {w: box.width, h: box.height, mainY: main.y};
+    }''')
+
+
+@pytest.mark.parametrize('width,height', [(1440, 1100), (390, 844)], ids=['1440', '390'])
+def test_blocked_logo_keeps_reserved_box(browser, live_server, page_context, width, height) -> None:
+    storage = page_context.context.storage_state()
+    plain = browser.new_context(
+        base_url=live_server, viewport={'width': width, 'height': height},
+        reduced_motion='reduce', storage_state=storage,
+    )
+    blocked = _open(browser, live_server, storage, width, height, False, True, images=True)
+    try:
+        first, second = plain.new_page(), blocked.new_page()
+        assert first.goto('/admin/rezepte', wait_until='load').status == 200
+        assert second.goto('/admin/rezepte', wait_until='load').status == 200
+        _ready(second, True)
+        before, after = _logo_metrics(first), _logo_metrics(second)
+        assert abs(before['h'] - after['h']) <= 2
+        assert abs(before['w'] - after['w']) <= 8
+        assert abs(before['mainY'] - after['mainY']) <= 2
+        expect(second.locator('.admin-brand .asset-image-placeholder')).to_be_visible()
+        if width == 1440:
+            _shot(second, 'image-logo-1440.png')
+    finally:
+        plain.close()
+        blocked.close()
+
+
+def _create_recipe(page: Page) -> str:
+    assert page.goto('/admin/rezepte/neu', wait_until='load').status == 200
+    page.get_by_label('Titel', exact=True).fill('Fallbackbild Herbst')
+    page.get_by_label('Ausbeute/Menge', exact=True).fill('4')
+    page.get_by_label('Ausbeuteeinheit', exact=True).select_option('PORTION')
+    with page.expect_navigation():
+        page.locator('button[form="recipe-editor"]').click()
+    recipe_id = urlsplit(page.url).path.rstrip('/').split('/')[-1]
+    assert page.goto(f'/admin/rezepte/{recipe_id}/bilder', wait_until='load').status == 200
+    page.locator('#image-file').set_input_files({
+        'name': 'fallback.png', 'mimeType': 'image/png', 'buffer': _png(),
+    })
+    page.get_by_label('Bildunterschrift · optional', exact=True).fill('Herbstbild')
+    with page.expect_navigation():
+        page.locator('button[data-semantic="actions.upload"]').click()
+    expect(page.locator('img.recipe-image-thumb')).to_be_visible()
+    return recipe_id
+
+
+def _image_box(page: Page, selector: str) -> dict:
+    return page.locator(selector).evaluate('''img => {
+      const frame = img.closest('.asset-image-frame');
+      const box = frame.getBoundingClientRect();
+      return {w: box.width, h: box.height, text: frame.querySelector('.asset-image-placeholder').textContent};
+    }''')
+
+
+@pytest.mark.parametrize('width,height', [(1440, 1100), (390, 844)], ids=['1440', '390'])
+def test_blocked_recipe_image_shows_placeholder(browser, live_server, page_context, width, height) -> None:
+    recipe_id = _create_recipe(page_context)
+    storage = page_context.context.storage_state()
+    context = _open(browser, live_server, storage, width, height, False, True, images=True)
+    page = context.new_page()
+    try:
+        assert page.goto(f'/admin/rezepte/{recipe_id}/bilder', wait_until='load').status == 200
+        _ready(page, True)
+        thumb = page.locator('img.recipe-image-thumb')
+        expect(thumb).to_be_hidden()
+        box = _image_box(page, 'img.recipe-image-thumb')
+        assert box['text'] == 'Herbstbild'
+        assert abs(box['w'] - 96) <= 2 and abs(box['h'] - 96) <= 2
+        page.evaluate('''() => {
+          for (let i = 0; i < 20; i += 1) window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted: true}));
+        }''')
+        assert _image_box(page, 'img.recipe-image-thumb') == box
+        assert page.goto(f'/admin/rezepte/{recipe_id}/ansicht', wait_until='load').status == 200
+        _ready(page, True)
+        photo = page.locator('img.recipe-image')
+        expect(photo).to_have_count(1)
+        expect(photo).to_be_hidden()
+        shown = _image_box(page, 'img.recipe-image')
+        assert shown['text'] == 'Herbstbild' and shown['w'] >= 90 and shown['h'] >= 90
+        if width == 1440:
+            _shot(page, 'image-recipe-1440.png')
+        assert page.locator('main [style]').count() == 0
+    finally:
+        context.close()
+
+
+def test_blocked_recipe_image_without_js_keeps_alt(browser, live_server, page_context) -> None:
+    recipe_id = _create_recipe(page_context)
+    storage = page_context.context.storage_state()
+    context = _open(browser, live_server, storage, 1440, 1100, False, False, images=False)
+    page = context.new_page()
+
+    def handle(route):
+        request = route.request
+        if request.resource_type == 'image' and '/rezepte/' in request.url and '/bilder/' in request.url:
+            route.abort()
+        else:
+            route.continue_()
+
+    context.route('**/*', handle)
+    try:
+        assert page.goto(f'/admin/rezepte/{recipe_id}/bilder', wait_until='load').status == 200
+        thumb = page.locator('img.recipe-image-thumb')
+        expect(thumb).to_have_attribute('alt', 'Herbstbild')
+        expect(page.locator('.asset-image-placeholder')).to_have_count(0)
+        assert 'ui-asset-sprite-missing' not in (page.locator('html').get_attribute('class') or '')
     finally:
         context.close()
