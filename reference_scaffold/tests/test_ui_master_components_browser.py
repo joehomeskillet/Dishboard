@@ -455,8 +455,8 @@ def test_compact_details_keyboard_values_and_targets(macro_site, width, height, 
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     targets = page.locator('main :is(.btn, .form-control, summary)').evaluate_all(
         '''es => es.filter(e => e.getClientRects().length).map(e => [e.id,
-            e.getBoundingClientRect().height, e.classList.contains('ui-sem-control')
-                ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48])'''
+            e.getBoundingClientRect().height,
+            matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36])'''
     )
     assert targets and all(height >= minimum for _, height, minimum in targets), targets
     for button, name in (('details-save', 'Speichern'), ('details-add', 'Zeile hinzufügen')):

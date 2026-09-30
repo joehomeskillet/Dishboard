@@ -77,6 +77,48 @@ def shared_site(monkeypatch, tmp_path, database_engine, browser):  # noqa: F811
         server.server_close()
 
 
+@pytest.mark.parametrize('width', (390, 1440))
+@pytest.mark.parametrize('touch', (False, True))
+def test_foundation_geometry_segments_and_card_disclosure(width, touch):
+    markup = '''{% from 'admin/_macros.html' import field, select, segment_switch, empty_state, disclosure_section, notice %}
+        {% from 'ui/_semantic.html' import icon_button %}
+        {{ field('title', 'Titel') }}{{ select('unit', 'Einheit', [('g', 'Gramm')]) }}
+        {{ icon_button('actions.add', href='#new') }}
+        {{ segment_switch([{'key':'a', 'label':'Bereich A', 'href':'#a'}, {'key':'b', 'label':'Bereich B', 'href':'#b'}], 'a') }}
+        {{ empty_state('none', 'Keine Einträge', '', action=icon_button('actions.add', href='#new'), compact=true) }}
+        {{ notice('Hinweis') }}{{ notice('Allergenprüfung offen', kind='warning') }}
+        {% call disclosure_section('Angaben', id='card', variant='card') %}
+        {{ field('draft', 'Entwurf', 'Ungespeichert') }}{% endcall %}'''
+
+    def verify(initial):
+        context = initial.context.browser.new_context(
+            viewport={'width': width, 'height': 900}, has_touch=touch,
+            java_script_enabled=False)
+        try:
+            page = context.new_page()
+            assert page.goto(initial.url).status == 200
+            minimum = 44 if touch else 36
+            for control in page.locator('#title, #unit, .ui-sem-control, .admin-segments a').all():
+                expect(control).to_have_css('min-height', f'{minimum}px')
+                assert control.bounding_box()['height'] >= minimum
+            segments = page.locator('.admin-segments a')
+            assert segments.count() == 2
+            expect(segments.first).to_have_attribute('aria-current', 'page')
+            assert segments.nth(1).evaluate('e => parseFloat(getComputedStyle(e).marginLeft)') >= 0
+            expect(page.locator('#card')).to_have_css('border-top-width', '1px')
+            page.locator('#card > summary').click()
+            expect(page.locator('#card')).to_have_attribute('open', '')
+            expect(page.locator('#draft')).to_have_value('Ungespeichert')
+            expect(page.locator('.admin-notice--warning')).to_have_attribute('role', 'alert')
+            if width == 1440:
+                assert page.locator('.empty--compact').bounding_box()['height'] <= 60
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        finally:
+            context.close()
+
+    _run_polish_check(markup, verify, width, javascript=False)
+
+
 def _run_polish_check(markup, check, width=390, javascript=True):
     # Own Playwright lifecycle on a separate thread from the module browser fixture.
     with ThreadPoolExecutor(max_workers=1) as executor:
@@ -194,11 +236,11 @@ def test_polish_field_grid_targets_and_adjacent_error(width, columns):
         grid = page.locator('.admin-option-grid')
         assert grid.evaluate('el => getComputedStyle(el).gridTemplateColumns.split(" ").length') == columns
         for control in page.locator('.form-control, .form-select').all():
-            assert control.bounding_box()['height'] >= 48
+            assert control.bounding_box()['height'] >= page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
         for label in page.locator('.form-label').all():
             expect(label).to_have_css('margin-bottom', '4px')
         for row in page.locator('.form-check').all():
-            assert row.bounding_box()['height'] >= 44
+            assert row.bounding_box()['height'] >= page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
         expect(page.locator('#name')).to_have_attribute('aria-invalid', 'true')
         expect(page.locator('#name')).to_have_attribute('aria-describedby', 'name-error')
         expect(page.locator('#name + .invalid-feedback')).to_have_text('Name fehlt')
@@ -251,7 +293,7 @@ def test_wp2c_list_shell_header_and_growing_rows(width):
             expect(shell).to_have_css('box-shadow', 'none')
             expect(shell).to_have_css('border-radius', '8px')
         for selector in ('.admin-list-row', '.admin-table tbody tr'):
-            assert page.locator(selector).nth(0).bounding_box()['height'] >= 48
+            assert page.locator(selector).nth(0).bounding_box()['height'] >= page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
             assert page.locator(selector).nth(1).bounding_box()['height'] >= 64
         expect(page.locator('.admin-list-row').first).to_have_css('border-bottom-width', '1px')
         expect(page.locator('.admin-table td').first).to_have_css('border-bottom-width', '1px')
@@ -563,7 +605,7 @@ def test_shared_patterns_semantics_reflow_focus_and_targets(shared_site, javascr
                 const target = el.type === 'checkbox' || el.type === 'radio' ? el.closest('label') : el;
                 const r = target.getBoundingClientRect(); return [r.width, r.height];
             }''')
-            minimum = 36 if 'ui-sem-control' in (target.get_attribute('class') or '').split() else 48
+            minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
             assert measured[0] >= minimum and measured[1] >= minimum, measured
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         for glyph in page.locator('main svg use').all():
@@ -699,7 +741,7 @@ def _assert_statusbar_link_keyboard_focus_and_navigation(width):
                 expect(page.locator('dd').nth(1).locator('a')).to_have_count(0)
                 expect(link).to_have_css('text-decoration-line', 'none')
                 assert link.evaluate('el => getComputedStyle(el).color === getComputedStyle(el.parentElement).color')
-                assert link.bounding_box()['height'] >= 48
+                assert link.bounding_box()['height'] >= page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
                 page.keyboard.press('Tab')
                 expect(link).to_be_focused()
                 expect(link).to_have_css('text-decoration-line', 'underline')

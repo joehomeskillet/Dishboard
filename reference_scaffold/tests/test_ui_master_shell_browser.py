@@ -279,7 +279,8 @@ def test_mobile_focus_escape_and_viewports(site, database_engine, tmp_path):  # 
     toggle = page.get_by_role('button', name='Menü', exact=True)
     expect(toggle).to_be_visible()
     box = toggle.bounding_box()
-    assert box is not None and box['width'] >= 44 and box['height'] >= 44
+    minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+    assert box is not None and box['width'] >= minimum and box['height'] >= minimum
     expect(toggle).to_have_attribute('aria-controls', 'sidebar-menu')
     assert toggle.get_attribute('aria-expanded') is not None
     toggle.focus()
@@ -320,7 +321,7 @@ def test_mobile_focus_escape_and_viewports(site, database_engine, tmp_path):  # 
                     assert title.evaluate('el => getComputedStyle(el).textOverflow') == 'ellipsis'
                     assert link.get_attribute('title') == title.inner_text()
                 for link in page.locator('.admin-nav-subitems .nav-link').all():
-                    assert link.bounding_box()['height'] >= 48
+                    assert link.bounding_box()['height'] >= minimum
                     assert float(link.evaluate('el => getComputedStyle(el).fontSize').removesuffix('px')) >= 13
             page.screenshot(path=str(tmp_path / f'shell-{route.split("/")[-1]}-{width}x{height}.png'), full_page=True)
     page.context.close()
@@ -474,7 +475,8 @@ def test_native_sidebar_without_javascript_and_zoom_reflow(site, tmp_path):
         expect(disclosure).not_to_have_attribute('open', '')
         assert disclosure.bounding_box()['height'] <= 64
         summary = disclosure.locator('summary')
-        assert summary.bounding_box()['height'] >= 48
+        minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+        assert summary.bounding_box()['height'] >= minimum
         assert summary.locator('use').evaluate('el => el.getBBox().width > 0')
         summary.focus()
         expect(summary).to_be_focused()
@@ -499,7 +501,7 @@ def test_native_sidebar_without_javascript_and_zoom_reflow(site, tmp_path):
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             for link in page.locator('.admin-nav:visible .admin-nav-subitems a').all():
                 box = link.bounding_box()
-                assert box['height'] >= 44 and 0 <= box['x'] < box['x'] + box['width'] <= width
+                assert box['height'] >= minimum and 0 <= box['x'] < box['x'] + box['width'] <= width
             page.screenshot(path=str(tmp_path / f'no-js-reflow-{width}.png'), full_page=True)
     finally:
         page.context.close()

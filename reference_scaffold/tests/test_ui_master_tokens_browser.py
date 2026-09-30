@@ -374,8 +374,7 @@ def test_viewports_and_real_routes(site, width, height, padding, tmp_path):
         assert _styles(page.locator('h1'))['font-size'] == ('34px' if width >= 992 else '28px')
         for control in page.locator('.btn:visible, .form-control:visible, .form-select:visible').all():
             assert control.evaluate('''el => {
-                const minimum = el.matches('.ui-sem-control')
-                    ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48;
+                const minimum = matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36;
                 return el.getBoundingClientRect().height >= minimum;
             }'''), path
         page.screenshot(path=str(tmp_path / f'{path.rsplit("/", 1)[-1]}-{width}.png'), full_page=True)

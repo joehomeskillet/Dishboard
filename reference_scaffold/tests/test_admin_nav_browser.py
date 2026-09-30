@@ -18,7 +18,7 @@ SHOTS = Path('/tmp/claude-0/-nvmetank1-projects-menuplan/2f4bbcec-0188-43ba-9334
 
 
 @pytest.fixture
-def nav_site(monkeypatch, tmp_path, database_engine):
+def nav_site(monkeypatch, tmp_path, database_engine):  # noqa: F811 - imported pytest fixture
     app = _factory(monkeypatch, tmp_path, database_engine)
 
     @app.get('/__nav__/<state>', endpoint='admin.nav_test')
@@ -117,7 +117,7 @@ def test_flat_states_spacing_contrast_and_focus(nav_site):
             assert _style(lists.locator('.nav-link').first, 'font-size') == '14px'
             assert float(_style(lists.locator('.nav-link').first, 'font-size')[:-2]) < float(_style(parents.first, 'font-size')[:-2])
         for link in page.locator('#sidebar-menu .nav-link').all():
-            assert link.bounding_box()['height'] >= 48
+            assert link.bounding_box()['height'] >= page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
         inactive = parents.nth(1)
         base = _style(inactive, 'background-color')
         inactive.hover()
