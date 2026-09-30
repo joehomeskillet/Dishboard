@@ -35,9 +35,6 @@
 }
 .dishboard-admin .admin-filter-bar > div { max-width: 100%; }
 .dishboard-admin .admin-users-history td { overflow-wrap: anywhere; }
-.dishboard-admin :is(#roles-action, #password-action, #state-action, #create-local-user) > summary {
-  min-height: var(--app-space-12);
-}
 .dishboard-admin .admin-statusbar-item {
   padding: var(--app-space-2) var(--app-space-3);
 }
@@ -76,3 +73,6 @@
     grid-column: 2;
   }
 }
+
+/* UC-P2-D: card disclosures hold forms that already carry card-body/card-footer padding. */
+.dishboard-admin .admin-disclosure--card > .admin-compact-detail-body { padding: 0; }

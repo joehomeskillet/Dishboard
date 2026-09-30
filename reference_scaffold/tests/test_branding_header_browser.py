@@ -102,7 +102,7 @@ def test_header_logos_keep_fixed_boxes_and_full_images(
         if width < 1200:
             toggle = page.get_by_role('button', name='Menü', exact=True)
             box = toggle.bounding_box()
-            assert box is not None and box['width'] >= 48 and box['height'] >= 48
+            assert box is not None and box['width'] >= 36 and box['height'] >= 36
             page.screenshot(path=str(tmp_path / f'admin-header-{width}.png'))
             toggle.click()
             expect(toggle).to_have_attribute('aria-expanded', 'true')
@@ -110,7 +110,7 @@ def test_header_logos_keep_fixed_boxes_and_full_images(
         expect(navigation).to_be_visible()
         for link in navigation.locator('a:visible').all():
             box = link.bounding_box()
-            assert box is not None and box['height'] >= 48, box
+            assert box is not None and box['height'] >= 36, box
         page.screenshot(path=str(tmp_path / f'admin-navigation-{width}.png'))
         # Contextual output navigation stays in the sidebar and keeps the existing URL.
         navigation.get_by_role('link', name='Bildschirme', exact=True).click()

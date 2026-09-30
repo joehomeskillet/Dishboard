@@ -147,7 +147,7 @@ def _open(page, origin: str, path: str):
     assert response.headers["cache-control"] == "no-store"
     _layout(page)
     assert page.locator('main summary:visible').evaluate_all(
-        'els => els.every(el => el.getBoundingClientRect().height >= 47.5)',
+        'els => els.every(el => el.getBoundingClientRect().height >= 35.5)',
     )
     return response
 
@@ -240,9 +240,8 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         assert metrics['minHeight'] == metrics['tokenMin'], metrics
         assert metrics['tokenMin'] == '64px', metrics
         assert metrics['paddingTop'] == metrics['tokenPad'], metrics
-        page.locator('details.admin-compact-details > summary').filter(
-            has_text='Weitere Optionen'
-        ).click()
+        # UC-P2-D: the history links are direct header actions, not a "more options" disclosure.
+        expect(page.get_by_text('Weitere Optionen', exact=True)).to_have_count(0)
         history_nav = page.get_by_role('navigation', name='Kontoverlauf')
         expect(history_nav.get_by_role('link', name='Kontoereignisse', exact=True)).to_be_visible()
         expect(history_nav.get_by_role('link', name='Zugriffsverlauf', exact=True)).to_be_visible()
@@ -516,10 +515,11 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         expect(page.locator('[data-empty-kind]')).to_contain_text('Noch keine Kontoereignisse')
         _open(page, origin, '/admin/benutzer')
         target = _create(issuer, 'ui.states.target')
-        page.get_by_label('Kontostatus', exact=True).select_option('disabled')
-        page.get_by_role('button', name='Filter', exact=True).click()
+        # UC-P2-D: the account status filter is a native segment switch (links, aria-current), not a select form.
+        segments = page.get_by_role('navigation', name='Kontostatus', exact=True)
+        segments.get_by_role('link', name='Deaktiviert', exact=True).click()
         expect(page.get_by_text('Keine lokalen Konten in dieser Auswahl.', exact=True)).to_be_visible()
-        expect(page.get_by_label('Kontostatus', exact=True)).to_have_value('disabled')
+        expect(segments.get_by_role('link', name='Deaktiviert', exact=True)).to_have_attribute('aria-current', 'page')
         page.get_by_role('link', name='Zurücksetzen', exact=True).first.click()
         expect(page.locator('[data-account-row]')).to_have_count(1)
         _open(page, origin, '/admin/benutzer/zugriffsverlauf')
@@ -537,7 +537,8 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
                            ('detail', f'/admin/benutzer/{target.public_id}')]:
             _open(page, origin, path)
             expect(page.get_by_role('status')).to_contain_text('Die Konten bleiben lesbar')
-            expect(page.locator('main .btn-primary')).to_have_count(0 if name == 'detail' else 1)
+            # UC-P2-D: the read-only list has no primary action any more (its filter is a segment switch).
+            expect(page.locator('main .btn-primary')).to_have_count(0 if name in ('detail', 'local-users') else 1)
             if name in ('local-users', 'create'):
                 expect(page.locator('.admin-statusbar')).to_contain_text('Nur lesen')
             for summary in page.locator('details > summary').all():

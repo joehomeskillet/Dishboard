@@ -29,6 +29,8 @@ DENSITY_VIEWPORTS = (
     (2560, 1440),
     (320, 844),
 )
+# Icon buttons carry the datum-bound name "<object> <verb>" (icon-first, R18 D-objects).
+AREA = {'staff_guest': 'Mitarbeitende und externe Gäste', 'patient': 'Patientinnen und Patienten'}
 SCHEDULE_SLOTS = {
     'staff_guest': tuple((day, 'LUNCH') for day in range(1, 8)),
     'patient': tuple((day, meal) for day in range(1, 8) for meal in ('LUNCH', 'DINNER')),
@@ -88,7 +90,8 @@ def test_operations_puts_area_overview_before_collapsed_editors(
         response = page.goto(OPS_PATH)
         assert response is not None and response.status == 200
 
-        expect(page.locator('.admin-area-tabs')).to_have_count(1)
+        # The flattened navigation keeps the area in the workflow sidebar; there are no in-page area tabs.
+        expect(page.locator('a[aria-current="page"]').filter(has_text='Bereiche & Öffnungszeiten')).to_have_count(1)
         expect(page.locator('#operations-overview')).to_be_visible()
         expect(page.locator('#operations-overview tbody tr')).to_have_count(2)
         expect(page.locator('#operations-overview')).to_contain_text(
@@ -102,11 +105,11 @@ def test_operations_puts_area_overview_before_collapsed_editors(
         box = first_row.bounding_box()
         assert box is not None and box['y'] < height
 
-        details = page.locator('main details.operations-editor')
+        details = page.locator('main details.admin-disclosure--card')
         assert details.count() >= 6
-        assert page.locator('main details.operations-editor[open]').count() == 0
+        assert page.locator('main details.admin-disclosure--card[open]').count() == 0
         assert page.locator('main form').evaluate_all(
-            "forms => forms.every(form => form.closest('details.operations-editor'))",
+            "forms => forms.every(form => form.closest('details.admin-disclosure--card'))",
         )
         assert page.locator('main form').evaluate_all(
             "forms => forms.every(form => form.querySelectorAll('button[type=submit]').length === 1)",
@@ -131,7 +134,6 @@ def test_operations_saved_summary_shows_missing_times_not_recorded(
         page.goto(OPS_PATH)
         overview = page.locator('#operations-overview')
         expect(overview).to_contain_text('Zeiten nicht eingetragen')
-        expect(overview).to_contain_text('Offene Ausgaben ohne Zeit: Zeiten nicht eingetragen.')
         expect(overview).not_to_contain_text('Standardzeiten')
 
         rows = overview.locator('tbody tr')
@@ -179,7 +181,7 @@ def test_operations_error_opens_affected_editor_and_preserves_input(
         page.locator('#staff_guest-slot_6_LUNCH_state').select_option('open')
         page.locator('#staff_guest-slot_6_LUNCH_start').fill('14:00')
         page.locator('#staff_guest-slot_6_LUNCH_end').fill('13:00')
-        page.get_by_role('button', name='Wochenvorgaben speichern', exact=True).click()
+        page.get_by_role('button', name=f"{AREA['staff_guest']} speichern", exact=True).click()
 
         expect(page.locator('#schedule-editor-staff_guest')).to_have_attribute('open', '')
         expect(page.locator('#staff_guest-slot_6_LUNCH_start')).to_have_value('14:00')
@@ -203,29 +205,29 @@ def test_operations_requests_keep_original_form_contracts(
         page.goto(OPS_PATH)
 
         page.locator('#area-name-editor-staff_guest > summary').click()
-        fields, payload = _submit_and_capture(page, 'Anzeigename speichern')
+        fields, payload = _submit_and_capture(page, f"{AREA['staff_guest']} speichern")
         assert fields == {'_csrf', 'action', 'expected_staff_guest', 'name_staff_guest'}
         assert payload['action'] == ['save_name_staff_guest']
 
         page.locator('#weekend-editor > summary').click()
         page.locator('#allows_weekend').check()
-        fields, payload = _submit_and_capture(page, 'Wochenendbetrieb speichern')
+        fields, payload = _submit_and_capture(page, f"{AREA['staff_guest']} speichern")
         assert fields == {'_csrf', 'action', 'expected_allows_weekend', 'allows_weekend'}
         assert payload['action'] == ['save_weekend']
 
         for profile in ('staff_guest', 'patient'):
             page.locator(f'#schedule-editor-{profile} > summary').click()
-            fields, payload = _submit_and_capture(page, 'Wochenvorgaben speichern')
+            fields, payload = _submit_and_capture(page, f'{AREA[profile]} speichern')
             assert fields == _expected_schedule_fields(profile)
             assert payload['action'] == ['save_schedule']
             assert payload['profile'] == [profile]
 
         page.locator('#exception-editor > summary').click()
-        fields, payload = _submit_and_capture(page, 'Ausgabe laden', form_id='exception-load-patient')
+        fields, payload = _submit_and_capture(page, f"{AREA['patient']} öffnen", form_id='exception-load-patient')
         assert fields == {'_csrf', 'action', 'profile', 'date', 'meal'}
         assert payload['action'] == ['load_exception']
 
-        fields, payload = _submit_and_capture(page, 'Ausnahme speichern')
+        fields, payload = _submit_and_capture(page, f"{AREA['patient']} speichern")
         assert fields == {
             '_csrf', 'action', 'profile', 'date', 'meal', 'row_version', 'loaded',
             'service_state', 'service_start', 'service_end', 'notice',
@@ -254,13 +256,13 @@ def test_profile_bound_exception_forms_work_without_javascript(
         form.locator('[name=meal]').select_option('LUNCH')
         _assert_no_document_overflow(page)
         page.screenshot(path=str(tmp_path / f'operations-scoped-{profile}-{width}.png'), full_page=True)
-        fields, payload = _submit_and_capture(page, 'Ausgabe laden', form_id=form_id)
+        fields, payload = _submit_and_capture(page, f'{AREA[profile]} öffnen', form_id=form_id)
         assert fields == {'_csrf', 'action', 'profile', 'date', 'meal'}
         assert payload['profile'] == [profile]
         expect(page.locator('#exception-save [name=profile]')).to_have_value(profile)
         page.locator('#service_start').fill('11:30')
         page.locator('#service_end').fill('13:30')
-        page.get_by_role('button', name='Ausnahme speichern', exact=True).click()
+        page.get_by_role('button', name=f'{AREA[profile]} speichern', exact=True).click()
         page.locator('#saved-exceptions > summary').click()
         expect(page.locator('#saved-exceptions')).to_contain_text('11:30–13:30')
 

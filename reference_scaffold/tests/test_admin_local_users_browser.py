@@ -51,8 +51,8 @@ def _layout(page):
     targets = page.locator('main .btn:visible,main .form-control:visible,main .form-select:visible,main .form-check:visible')
     assert targets.count() > 0
     assert targets.evaluate_all('''els=>els.every(el=>{
-        const minimum = el.matches('.ui-sem-control')
-            ? (matchMedia('(any-pointer: coarse)').matches ? 44 : 36) : 48;
+        // UC-G0 control contract: 36 fine / 44 coarse for icon buttons and form controls alike.
+        const minimum = matchMedia('(any-pointer: coarse)').matches ? 44 : 36;
         const box = el.getBoundingClientRect();
         return box.height >= minimum - 0.5 && (!el.matches('.ui-sem-control') || box.width >= minimum - 0.5);
     })'''), targets.evaluate_all(

@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, pagination, empty_state %}
+{% from 'admin/_macros.html' import page_header, pagination, empty_state, disclosure_section %}
 {% from 'ui/_semantic.html' import icon_button, icon_label %}
 {% set workflow_nav = 'users' %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-benutzer.css') }}">{% endblock %}
@@ -34,7 +34,7 @@
   {% else %}{% call empty_state('none', 'Noch keine Zugriffsereignisse erfasst.' if provider == 'all' and action == 'all' and page == 1 else 'Keine Zugriffsereignisse in dieser Auswahl.', 'Neue Anmeldeentscheidungen und Abmeldeanfragen erscheinen hier automatisch.') %}{% endcall %}{% endif %}
   <div class="card-footer text-secondary small">
     <p class="mb-0">{{ icon_label('status.info') }}Ein Eintrag bestätigt weder eine aktive Sitzung noch eine abgeschlossene Abmeldung.</p>
-    <details class="admin-compact-details"><summary>Geltungsbereich</summary><p class="mt-2 mb-2">Anmeldeentscheidungen und angeforderte Abmeldungen, lokal und mit Microsoft Entra. Erfasst seit Einführung dieses Verlaufs. Frühere Anmeldungen werden nicht ergänzt.</p><p class="mb-0">Zeitangaben: Schweiz. Kontonamen entsprechen dem aktuellen Stand; nicht zugeordnete Ereignisse enthalten keine verifizierte Identität.</p></details>
+    {% call disclosure_section(title='Geltungsbereich') %}<p class="mb-2">Anmeldeentscheidungen und angeforderte Abmeldungen, lokal und mit Microsoft Entra. Erfasst seit Einführung dieses Verlaufs. Frühere Anmeldungen werden nicht ergänzt.</p><p class="mb-0">Zeitangaben: Schweiz. Kontonamen entsprechen dem aktuellen Stand; nicht zugeordnete Ereignisse enthalten keine verifizierte Identität.</p>{% endcall %}
   </div>
 </section>
 {{ pagination(page,has_next,prev_url,next_url,'Zugriffsereignisseiten') }}

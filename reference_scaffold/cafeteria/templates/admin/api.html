@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state, empty_value %}
-{% from 'ui/_semantic.html' import icon_label, sem_icon, icon_button, icon_summary, status_badge_sem %}
+{% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state, empty_value, disclosure_section %}
+{% from 'ui/_semantic.html' import sem_icon, icon_button, icon_summary, status_badge_sem %}
 {% block title %}Schnittstellen{% endblock %}
 {% set workflow_nav = 'api' %}
 {% block main_attributes %}data-page="api"{% endblock %}
@@ -47,8 +47,8 @@
                 <td data-label="Läuft ab" class="text-wrap">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
                 <td data-label="Status" class="admin-table-status">
                   {% if key.state == 'active' %}<span data-status="live">{{ status_badge_sem('status.active') }}</span>
-                  {% elif key.state == 'expired' %}<span data-status="incomplete">{{ label('Abgelaufen', 'warning', icon='clock', detail='Schlüssel abgelaufen') }}</span>
-                  {% else %}<span data-status="revoked">{{ label('Widerrufen', 'neutral', icon='lock', detail='Schlüssel widerrufen') }}</span>{% endif %}
+                  {% elif key.state == 'expired' %}<span data-status="incomplete">{{ status_badge_sem('status.unavailable', text='Abgelaufen', variant='warning', detail='Schlüssel abgelaufen') }}</span>
+                  {% else %}<span data-status="revoked">{{ status_badge_sem('status.unavailable', text='Widerrufen', detail='Schlüssel widerrufen') }}</span>{% endif %}
                 </td>
                 <td data-label="Aktionen" class="admin-table-actions">
                   <div class="admin-row-actions align-items-start" role="group" aria-label="{{ t('ui.action_group.object', object=key.label) }}">
@@ -82,10 +82,8 @@
           </div>
           {% endif %}
         </section>
-        <details class="card mb-3 admin-compact-details" data-api-create{% if error or values.label or values.scopes_preview or values.channel_cafeteria or values.channel_patienten %} open{% endif %}>
-          <summary class="card-header gap-2" id="api-key-create-title">
-            {{ sem_icon('actions.add') }}<span class="card-title mb-0">{{ t('admin.api_key.label') }}</span>{% if error %}<span class="text-danger">Fehler</span>{% endif %}
-          </summary>
+        {% set create_title %}<span id="api-key-create-title">{{ t('admin.api_key.label') }}</span>{% if error %} {{ status_badge_sem('status.error') }}{% endif %}{% endset %}
+        {% call disclosure_section(title=create_title, id='api-create', variant='card', open=error or values.label or values.scopes_preview or values.channel_cafeteria or values.channel_patienten, has_error=error) %}
           <form method="post" action="{{ url_for('admin.api_key_create') }}" id="api-key-create" class="admin-form admin-compact-form" aria-labelledby="api-key-create-title">
             <div class="card-body">
               {% if error %}<div class="alert alert-danger error error-region" role="alert" tabindex="-1">{{ icon('alert-triangle') }} {{ error }}</div>{% endif %}
@@ -113,9 +111,8 @@
               <div class="btn-list ms-auto">{{ icon_button('actions.add', emphasis='secondary') }}</div>
             </div>
           </form>
-        </details>
-        <details class="card mb-3 admin-compact-details" data-api-technical>
-          <summary class="card-header gap-2">{{ icon_label('ui.disclosure.more_options') }}</summary>
+        {% endcall %}
+        {% call disclosure_section(id='api-technical', variant='card') %}
           <div class="card-body">
         <section aria-labelledby="api-status-title" data-api-status>
           <h2 class="card-title" id="api-status-title">Veröffentlichungsstatus je Bereich</h2>
@@ -128,7 +125,7 @@
               <tr>
                 <td data-label="Kanal">{{ 'Cafeteria' if channel.channel == 'cafeteria' else 'Patienten' }}</td>
                 <td data-label="Veröffentlicht">
-                  {% if channel.published %}<span data-status="live">{{ status_badge_sem('publish.published') }}</span>{% else %}<span data-status="incomplete">{{ label('Nicht veröffentlicht', 'warning', icon='alert-triangle') }}</span>{% endif %}
+                  {% if channel.published %}<span data-status="live">{{ status_badge_sem('publish.published') }}</span>{% else %}<span data-status="incomplete">{{ status_badge_sem('publish.unpublished', variant='warning') }}</span>{% endif %}
                 </td>
                 <td data-label="Revision">{{ channel.revision_id or empty_value() }}</td>
                 <td data-label="Woche">
@@ -158,5 +155,5 @@
             </dl>
         </section>
           </div>
-        </details>
+        {% endcall %}
 {% endblock %}

@@ -72,7 +72,7 @@ def _assert_page_container_width(page, width: int) -> None:
         assert layout['containerWidth'] >= frame_width - 2
 
 
-def _assert_no_overflow_and_min_targets(page, min_height: int = 44, scope: str = 'main'):
+def _assert_no_overflow_and_min_targets(page, min_height: int | None = None, scope: str = 'main'):
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
     coarse = page.evaluate("matchMedia('(pointer: coarse)').matches")
     action_min = 44 if coarse else 36
@@ -80,7 +80,7 @@ def _assert_no_overflow_and_min_targets(page, min_height: int = 44, scope: str =
         if locator.is_visible():
             box = locator.bounding_box()
             semantic_action = locator.evaluate("el => el.matches('.btn.ui-sem-control')")
-            assert box is not None and box['height'] >= (action_min if semantic_action else min_height)
+            assert box is not None and box['height'] >= (action_min if semantic_action else (min_height or action_min))
             if semantic_action:
                 assert box['width'] >= action_min
             assert locator.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 14

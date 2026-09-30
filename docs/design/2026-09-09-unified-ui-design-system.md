@@ -130,6 +130,28 @@ nicht um Beweise für Fachsemantik oder gerenderte Zustände. G0 initialisiert d
 neuen Obergrenzen; P1/P2 senken sie durch die zugewiesenen Migrationen. Bestehende
 Obergrenzen dürfen nicht still steigen. Browserprüfungen bleiben verbindlich.
 
+### Migration Benutzer & Zugriff, Einstellungen, API (UC-P2-D, 2026-09-30)
+
+Muster 1 (Kontenliste, Zugriffsverlauf) und Muster 3 (Konto, Bereiche & Öffnungszeiten,
+Darstellung, Marke, Import, Schnittstellen) verwenden die Grundmuster statt lokaler Bauteile:
+
+- Kontostatus der Kontenliste ist ein `segment_switch` im Seitenkopf (Alle, Aktiv, Deaktiviert;
+  native Links mit `aria-current="page"`), kein GET-Formular. Die Verlaufslinks stehen als direkte
+  Symbolaktionen im Kopf, nie als «Weitere Optionen» am Seitenende.
+- «Deaktiviert» ist der Registry-Zustand `status.inactive` (neutral, keine Warnfarbe); «Gesperrt»
+  (vorübergehende Anmeldesperre) bleibt `status.locked` mit Warnvariante, da es eine Abweichung ist.
+  API-Schlüssel zeigen Aktiv, Abgelaufen und Widerrufen über `status_badge_sem`.
+- Alle Kartenbereiche mit Formular (Rollen, Passwort, Konto anlegen, Bereichseditoren, API-Schlüssel
+  anlegen) sind `disclosure_section(variant='card')` mit stabiler `id`. Fehler öffnen den Bereich
+  (`has_error`) und zeigen `status.error` in der Zusammenfassung.
+- `raw_details` der Paketdateien 20 → 4: nur die beiden Icon-Zusammenfassungen der API-Schlüsseltabelle
+  (Details, Widerruf mit Sicherheitsbestätigung) und die zwei Icon-Zusammenfassungen der
+  Bereiche-Seite (Übersichtsdetails, Hinweisfeld je Zeile bzw. Ausnahme; eine gemeinsame lokale Makro-Definition).
+  Offener G0-Nachtrag: ein symbolischer `disclosure_section`-Auslöser mit `object`-Name.
+- Offener G0-Nachtrag: `filter_bar_sem(..., search=false)`. Der Zugriffsverlauf filtert nach Zugang und
+  Ereignis ohne Suche; die serverseitige Parameterprüfung erlaubt kein `q`. Bis dahin bleibt dort ein
+  lokales GET-Formular (`local_filters` 1).
+
 ## Vorrang der Icon-first-Spezifikation vom 2026-09-26
 
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Das folgende Budget „Hauptaktion plus Überlauf“ und D17 „Weitere Aktionen für …“ als Normalfall sind abgelöst. Icon-first, 36/44-px-Ziele, Listenanatomie, Sticky-Vertrag, Rückkehrkontext, Prüfhinweise und fehlend ≠ 0/allergenfrei bleiben erhalten.

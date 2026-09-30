@@ -142,7 +142,7 @@ def _targets(page):
         if control.is_visible():
             box = control.bounding_box()
             classes = control.get_attribute('class') or ''
-            minimum = 36 if 'ui-sem-control' in classes else 48
+            minimum = 36 if 'ui-sem-control' in classes else (44 if page.evaluate("matchMedia('(any-pointer: coarse)').matches") else 36)
             assert box is not None and box['height'] >= minimum
             if 'ui-sem-control--icon-only' not in classes:
                 assert control.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 16

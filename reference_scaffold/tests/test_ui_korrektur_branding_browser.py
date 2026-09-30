@@ -87,7 +87,7 @@ def _assert_viewport(page: Page, state: str) -> None:
     for locator in page.locator("main :is(.btn, .form-select, .form-control):visible").all():
         box = locator.bounding_box()
         classes = locator.get_attribute("class") or ""
-        minimum = icon_min if "ui-sem-control" in classes else 44
+        minimum = icon_min
         assert box is not None and box["height"] >= minimum, (state, locator.get_attribute("id"), box)
         if "ui-sem-control--icon-only" in classes:
             assert box["width"] >= minimum, (state, box)

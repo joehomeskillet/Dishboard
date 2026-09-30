@@ -28,7 +28,7 @@ def test_api_tooltips_stay_inside_viewport(site, monkeypatch, tmp_path, width, c
     try:
         _goto(page, '/admin/api')
         assert page.evaluate("matchMedia('(pointer: coarse)').matches") is coarse
-        technical = page.locator('[data-api-technical] > summary')
+        technical = page.locator('#api-technical > summary')
         technical.press('Enter')
         expect(page.locator('[data-api-help]')).to_be_visible()
         technical.press('Enter')

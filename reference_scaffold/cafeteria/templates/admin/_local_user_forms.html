@@ -1,5 +1,5 @@
-{% from 'admin/_macros.html' import check, field, icon, label %}
-{% from 'ui/_semantic.html' import icon_button %}
+{% from 'admin/_macros.html' import check, field, icon, disclosure_section %}
+{% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% macro hidden(csrf, page, status, account=none) %}
 <input type="hidden" name="_csrf" value="{{ csrf }}">
 <input type="hidden" name="return_page" value="{{ page }}"><input type="hidden" name="return_status" value="{{ status }}">
@@ -27,11 +27,8 @@
 {% endmacro %}
 {% macro unavailable(can_mutate) %}{% if not can_mutate %}<div class="alert alert-warning" role="status">{{ icon('alert-triangle', class='flex-shrink-0') }}Kontoänderungen sind momentan nicht verfügbar. Die Konten bleiben lesbar.</div>{% endif %}{% endmacro %}
 {% macro create_panel(csrf, page, status, role_labels, values, selected_roles, error_message, can_mutate, expanded=false) %}
-<details id="create-local-user" class="card admin-compact-section mb-4"{% if expanded or error_message %} open{% endif %}>
-  <summary class="card-header gap-2 py-2">
-    {{ icon('plus') }}<h2 class="card-title mb-0">Konto anlegen</h2>
-    {% if error_message %}{{ label('Fehler', 'danger', icon='alert-triangle') }}{% endif %}{{ icon('chevron-right', class='ms-auto') }}
-  </summary>
+{% set create_title %}Konto anlegen{% if error_message %} {{ status_badge_sem('status.error') }}{% endif %}{% endset %}
+{% call disclosure_section(title=create_title, id='create-local-user', variant='card', open=expanded, has_error=error_message) %}
   <form class="admin-compact-form" method="post" action="{{ url_for('admin.local_user_create') }}"{% if error_message %} aria-describedby="user-error-create"{% endif %}>
     {{ hidden(csrf, page, status) }}
     <div class="card-body">
@@ -45,5 +42,5 @@
     </div>
     <div class="card-footer">{{ icon_button('actions.save', attrs={'disabled': not can_mutate}) }}</div>
   </form>
-</details>
+{% endcall %}
 {% endmacro %}

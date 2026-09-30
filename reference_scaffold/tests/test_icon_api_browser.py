@@ -99,7 +99,7 @@ def test_api_icon_actions_keyboard_and_confirmation(
             assert revoke.evaluate('e => [...new FormData(e)]') == [['_csrf', 'workflow-csrf']]
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             expect(page.locator('#api-key-create-title')).to_contain_text('API-Schlüssel' if locale == 'de' else 'API key')
-            expect(page.locator('[data-api-technical] > summary')).to_contain_text('Weitere Optionen' if locale == 'de' else 'More options')
+            expect(page.locator('#api-technical > summary')).to_contain_text('Weitere Optionen' if locale == 'de' else 'More options')
             page.mouse.move(0, 0)
             page.keyboard.press('Tab')
             more.focus()

@@ -133,7 +133,7 @@ def test_operations_overview_icons_preserve_context_and_native_forms(
         form_state = '''forms => forms.map(f => ({action: f.getAttribute('action'),
             method: f.getAttribute('method'), fields: [...new FormData(f)]}))'''
         before = forms.evaluate_all(form_state)
-        section_titles = page.locator('.operations-editor > summary').all_text_contents()
+        section_titles = page.locator('.admin-disclosure--card > summary').all_text_contents()
 
         def capture(stage):
             for moment in ('before', 'after'):
@@ -190,7 +190,7 @@ def test_operations_overview_icons_preserve_context_and_native_forms(
             expect(details).not_to_have_attribute('open', '')
             capture(f'{index}-closed')
             assert forms.evaluate_all(form_state) == before
-            assert page.locator('.operations-editor > summary').all_text_contents() == section_titles
+            assert page.locator('.admin-disclosure--card > summary').all_text_contents() == section_titles
             assert not posts and not errors
         assert not failures, failures
 
@@ -298,13 +298,13 @@ def test_operations_notice_icons_keep_context_labels_and_native_forms(
             assert page.goto(PATH).status == 200
             expect(page.locator('html')).to_have_attribute('lang', locale)
             page.evaluate('document.fonts.ready')
-            section_titles = page.locator('.operations-editor > summary').all_text_contents()
+            section_titles = page.locator('.admin-disclosure--card > summary').all_text_contents()
             area = page.locator(f'#operations-overview th a[href="#schedule-{profile}"]').inner_text()
             _open_details(page, f'schedule-editor-{profile}')
             form = page.locator(f'#schedule-{profile}')
             details = form.locator('tr').filter(has=page.locator(f'#{profile}-slot_1_LUNCH_notice')).locator('.operations-notice')
             summary, field = exercise(details, f'{area} · Montag · Mittag · Hinweis', 'schedule-' + profile)
-            assert page.locator('.operations-editor > summary').all_text_contents() == section_titles
+            assert page.locator('.admin-disclosure--card > summary').all_text_contents() == section_titles
             summary.press('Enter')
             invalid_note = 'x' * 201
             field.fill(invalid_note)

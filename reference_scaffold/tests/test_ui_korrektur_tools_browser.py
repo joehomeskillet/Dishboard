@@ -205,7 +205,7 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                 assert page.locator('[data-key-state="active"] button').count() == 1
                 assert page.locator('[data-key-state="expired"] button, [data-key-state="revoked"] button').count() == 0
                 expect(page.locator('[data-api-help], [data-api-versions]')).to_have_count(2)
-                technical = page.locator('[data-api-technical]')
+                technical = page.locator('#api-technical')
                 summary = technical.locator(':scope > summary')
                 expect(technical).not_to_have_attribute('open', '')
                 for selector in ('[data-api-help]', '[data-api-versions]'):
@@ -281,7 +281,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         expect(page.get_by_text('Noch keine API-Schlüssel vorhanden.', exact=True)).to_be_visible()
         expect(page.locator('table[data-api-keys]')).to_have_count(0)
         _screenshot(page, f'empty-api-js-{javascript}', width, 900)
-        summary = page.locator('#api-key-create-title')
+        summary = page.locator('#api-create > summary')
         form = page.locator('#api-key-create')
         summary.focus()
         page.keyboard.press('Enter')
@@ -456,7 +456,7 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
         page = _page(site, client, viewport={'width': width, 'height': height})
         try:
             _goto(page, '/admin/api')
-            page.locator('summary#api-key-create-title').click()
+            page.locator('#api-create > summary').click()
             page.locator('#api-key-create').evaluate('form => { form.noValidate = true; }')
             page.locator('#api-key-create button[type="submit"]').click()
             page.wait_for_load_state('networkidle')
