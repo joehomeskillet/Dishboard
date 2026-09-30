@@ -86,6 +86,26 @@ def _movements(owner) -> int:
             'SELECT count(*) FROM cafeteria.inventory_movements')).scalar_one())
 
 
+@pytest.mark.parametrize('action,field', [
+    ('bewegung', 'food_public_id'), ('bewegung', 'storage_public_id'),
+    ('umbuchung', 'source_storage_public_id'), ('umbuchung', 'dest_storage_public_id'),
+    ('zaehlung', 'food_public_id'), ('zaehlung', 'storage_public_id'),
+])
+def test_invalid_inventory_uuid_rerenders_without_500(b3, action, field):  # noqa: F811
+    ctx = _setup(b3)
+    ctx['app'].config['PROPAGATE_EXCEPTIONS'] = False
+    path = '/admin/lager/' + action
+    form = _forms(ctx['client'], ctx['lager'])[path]
+    form['quantity' if action != 'zaehlung' else 'counted_quantity'] = '3.25'
+    form[field] = 'invalid-uuid'
+    response = ctx['client'].post(path, data=form)
+    assert response.status_code == 400
+    target = 'dest_storage_public_id' if field == 'dest_storage_public_id' else 'lager-selection'
+    assert f'id="{target}-error"' in response.text
+    assert 'Ungültige Kennung.' in response.text
+    assert _movements(ctx['owner']) == 0
+
+
 def _location(owner) -> int:
     with owner.connect() as connection:
         return int(connection.execute(text(
