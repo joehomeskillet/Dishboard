@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, disclosure_section, hint, icon, label, empty_value %}
+{% from 'admin/_macros.html' import page_header, disclosure_section, hint, icon, label, empty_value, form_errors %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'cost' %}
 {% block title %}Kalkulation · Menüplanung{% endblock %}
@@ -20,23 +20,31 @@
 <section class="card mb-3 cost-calculation">
   <form id="cost-preview" method="post" action="{{ url_for('admin.cost_preview') }}" class="card-body row g-2" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    {% if field_errors is defined and field_errors %}{{ form_errors(field_errors) }}{% endif %}
     <div class="col-md-4"><label class="form-label" for="kind">Art</label>
-      <select class="form-select" id="kind" name="kind">
+      <select class="form-select{% if field_errors is defined and field_errors.kind %} is-invalid{% endif %}" id="kind" name="kind"{% if field_errors is defined and field_errors.kind %} aria-invalid="true" aria-describedby="kind-error" autofocus{% endif %}>
         <option value="recipe"{% if kind|default('recipe') == 'recipe' %} selected{% endif %}>Rezept</option>
         <option value="prepared"{% if kind|default('') == 'prepared' %} selected{% endif %}>Zubereitung</option>
         <option value="menu"{% if kind|default('') == 'menu' %} selected{% endif %}>Menü</option>
+        {% if kind is defined and kind not in ('recipe', 'prepared', 'menu') %}
+        <option value="{{ kind }}" selected>{{ kind }}</option>
+        {% endif %}
       </select>
+      {% if field_errors is defined and field_errors.kind %}<div class="invalid-feedback d-block field-error" id="kind-error">{{ field_errors.kind }}</div>{% endif %}
     </div>
     <div class="col-md-4"><label class="form-label" for="revision_public_id">Rezeptrevision-UUID</label>
-      <input class="form-control" id="revision_public_id" name="revision_public_id" value="{{ revision_public_id|default('') }}" required>
+      <input class="form-control{% if field_errors is defined and field_errors.revision_public_id %} is-invalid{% endif %}" id="revision_public_id" name="revision_public_id" value="{{ revision_public_id|default('') }}" required{% if field_errors is defined and field_errors.revision_public_id %} aria-invalid="true" aria-describedby="revision_public_id-error" autofocus{% endif %}>
+      {% if field_errors is defined and field_errors.revision_public_id %}<div class="invalid-feedback d-block field-error" id="revision_public_id-error">{{ field_errors.revision_public_id }}</div>{% endif %}
     </div>
     <div class="col-md-4"><label class="form-label" for="as_of">Stichtag</label>
-      <input class="form-control" id="as_of" name="as_of" type="date" value="{{ as_of }}" required>
+      <input class="form-control{% if field_errors is defined and field_errors.as_of %} is-invalid{% endif %}" id="as_of" name="as_of" type="date" value="{{ as_of }}" required{% if field_errors is defined and field_errors.as_of %} aria-invalid="true" aria-describedby="as_of-error" autofocus{% endif %}>
+      {% if field_errors is defined and field_errors.as_of %}<div class="invalid-feedback d-block field-error" id="as_of-error">{{ field_errors.as_of }}</div>{% endif %}
     </div>
     <div class="col-12 cost-extra{% if menu_revision_public_ids|default([]) %} cost-extra-filled{% endif %}">
-      {% call disclosure_section(id='cost-options', has_content=menu_revision_public_ids|default([])) %}
+      {% call disclosure_section(id='cost-options', has_content=menu_revision_public_ids|default([]), has_error=field_errors is defined and field_errors.menu_revision_public_id) %}
         <label class="form-label" for="menu_revision_public_id">Weitere Menü-Revision</label>
-        <input class="form-control" id="menu_revision_public_id" name="menu_revision_public_id" value="{{ menu_revision_public_ids[0] if menu_revision_public_ids|default([]) else '' }}">
+        <input class="form-control{% if field_errors is defined and field_errors.menu_revision_public_id %} is-invalid{% endif %}" id="menu_revision_public_id" name="menu_revision_public_id" value="{{ menu_revision_public_ids[0] if menu_revision_public_ids|default([]) else '' }}"{% if field_errors is defined and field_errors.menu_revision_public_id %} aria-invalid="true" aria-describedby="menu_revision_public_id-error" autofocus{% endif %}>
+        {% if field_errors is defined and field_errors.menu_revision_public_id %}<div class="invalid-feedback d-block field-error" id="menu_revision_public_id-error">{{ field_errors.menu_revision_public_id }}</div>{% endif %}
       {% endcall %}
     </div>
     {% if projection %}<div class="col-12">{{ icon_button('actions.preview') }}</div>{% endif %}

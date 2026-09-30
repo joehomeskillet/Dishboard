@@ -15,7 +15,10 @@ from .shopping_list_reads import ShoppingScope
 
 
 class InventoryError(ValueError):
-    pass
+    def __init__(self, message: str, *, field: str | None = None, value: str | None = None):
+        super().__init__(message)
+        self.field = field
+        self.value = value
 
 
 class InventoryInsufficientError(InventoryError):
@@ -62,10 +65,14 @@ def _ensure_account(connection, scope: ShoppingScope, food_public_id: str, stora
         SELECT f.id AS food_id, f.density_g_per_ml, f.piece_weight_g, u.id AS unit_id, u.public_id, u.code, u.dimension, u.base_factor
         FROM cafeteria.foods f JOIN cafeteria.measurement_units u ON u.id=f.base_unit_id
         WHERE f.public_id=CAST(:food AS uuid) AND f.location_id=:location
-    '''), {'food': _uuid(food_public_id), 'location': scope.location_id}).mappings().one()
+    '''), {'food': _uuid(food_public_id), 'location': scope.location_id}).mappings().one_or_none()
+    if food is None:
+        raise InventoryError('Lebensmittel nicht gefunden.', field='food_public_id')
     storage = connection.execute(text(
         'SELECT id FROM cafeteria.storage_locations WHERE public_id=CAST(:id AS uuid) AND location_id=:location'
-    ), {'id': _uuid(storage_public_id), 'location': scope.location_id}).scalar_one()
+    ), {'id': _uuid(storage_public_id), 'location': scope.location_id}).scalar_one_or_none()
+    if storage is None:
+        raise InventoryError('Lagerort nicht gefunden.', field='storage_public_id', value=storage_public_id)
     snapshot = _unit_from_row(food)
     factors = {
         'density_g_per_ml': None if food['density_g_per_ml'] is None else str(food['density_g_per_ml']),
@@ -84,9 +91,11 @@ def _ensure_account(connection, scope: ShoppingScope, food_public_id: str, stora
 
 
 def _lock_account(connection, account_id: int) -> None:
-    connection.execute(text(
+    account = connection.execute(text(
         'SELECT id FROM cafeteria.inventory_accounts WHERE id=:id FOR UPDATE'
-    ), {'id': account_id}).scalar_one()
+    ), {'id': account_id}).scalar_one_or_none()
+    if account is None:
+        raise InventoryError('Lagerort nicht gefunden.', field='storage_public_id')
 
 
 def _sum_base(connection, account_id: int) -> Decimal:
@@ -97,9 +106,12 @@ def _sum_base(connection, account_id: int) -> Decimal:
 
 
 def _lookup_unit(connection, unit_code: str) -> dict[str, Any]:
-    return dict(connection.execute(text(
+    unit = connection.execute(text(
         'SELECT public_id, code, dimension, base_factor FROM cafeteria.measurement_units WHERE code=:code'
-    ), {'code': unit_code}).mappings().one())
+    ), {'code': unit_code}).mappings().one_or_none()
+    if unit is None:
+        raise InventoryError('Einheit ist unbekannt.', field='unit_code')
+    return dict(unit)
 
 
 def _sign_for(kind: str, sign: int | None) -> int:

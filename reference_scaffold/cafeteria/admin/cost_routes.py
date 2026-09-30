@@ -8,6 +8,7 @@ from flask import current_app, flash, g, make_response, redirect, render_templat
 from werkzeug.wrappers import Response
 
 from ..calculation_receipts import CalculationReceiptConflictError, append_receipt
+from ..calendar_event_store import CalendarEventValidationError
 from ..food_price_store import list_price_revisions
 from ..public.routes import effective_today
 from ..recipe_cost import project_menu, project_prepared, project_recipe
@@ -29,7 +30,10 @@ def _scope() -> ShoppingScope:
 def _as_of() -> date:
     raw = (request.values.get('as_of') or '').strip()
     if raw:
-        return date.fromisoformat(raw)
+        try:
+            return date.fromisoformat(raw)
+        except ValueError as error:
+            raise CalendarEventValidationError('Stichtag ist ungültig.', field='as_of') from error
     return effective_today()
 
 
@@ -82,12 +86,43 @@ def _serialize(projection: dict) -> dict:
     return payload
 
 
+def _posted_cost() -> dict[str, object]:
+    return {
+        'kind': request.form.get('kind') or 'recipe',
+        'revision_public_id': request.form.get('revision_public_id') if 'revision_public_id' in request.form else '',
+        'as_of': request.form.get('as_of') if 'as_of' in request.form else '',
+        'menu_revision_public_ids': [
+            item for item in request.form.getlist('menu_revision_public_id') if item.strip()
+        ],
+    }
+
+
+def _cost_error(error: BaseException, status: int, projection: dict | None) -> Response:
+    posted = _posted_cost()
+    response = make_response(render_template(
+        'admin/kalkulation.html', family='cafeteria', profile='staff_guest',
+        projection=projection, as_of=posted['as_of'], revision_public_id=posted['revision_public_id'],
+        menu_revision_public_ids=posted['menu_revision_public_ids'], kind=posted['kind'],
+        field_errors={getattr(error, 'field', None) or 'revision_public_id': str(error)},
+    ), status)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 def _project(prices: dict[str, str] | None = None):
     kind = request.values.get('kind') or 'recipe'
     revision = (request.values.get('revision_public_id') or '').strip()
     extras = [item.strip() for item in request.values.getlist('menu_revision_public_id') if item.strip()]
     chosen = prices if prices is not None else _price_map()
     as_of = _as_of()
+    fields = [('revision_public_id', revision)] if revision or kind != 'menu' else []
+    if kind == 'menu':
+        fields.extend(('menu_revision_public_id', item) for item in extras)
+    for field, public_id in fields:
+        try:
+            UUID(public_id)
+        except ValueError as error:
+            raise CalendarEventValidationError('Rezeptrevision ist ungültig.', field=field) from error
     if kind == 'menu':
         ids = ([revision] if revision else []) + extras
         return project_menu(_db(), ids, as_of, chosen)
@@ -118,9 +153,8 @@ def cost_preview() -> Response:
             filled = _current_prices([item for item in foods if item])
             if filled:
                 projection = _project(filled)
-    except Exception as error:
-        flash(str(error))
-        return redirect(url_for('admin.cost_home'), 303)
+    except CalendarEventValidationError as error:
+        return _cost_error(error, 400, None)
     response = make_response(render_template(
         'admin/kalkulation.html', family='cafeteria', profile='staff_guest',
         projection=projection,
@@ -137,19 +171,21 @@ def cost_preview() -> Response:
 @require_capability('masterdata.write')
 def cost_confirm() -> Response:
     validate_csrf(request.form.get('_csrf'))
+    projection = None
     try:
         projection = _project()
         payload = _serialize(projection)
         subject = (request.form.get('revision_public_id') or request.form.get('menu_revision_public_id') or '').strip()
-        UUID(subject)
+        try:
+            UUID(subject)
+        except ValueError as error:
+            raise CalendarEventValidationError('Rezeptrevision ist ungültig.', field='revision_public_id') from error
         append_receipt(
             _db(), _scope(), kind=projection['kind'], subject_public_id=subject, payload=payload,
         )
     except CalculationReceiptConflictError as error:
-        flash(str(error))
-        return redirect(url_for('admin.cost_home'), 303)
-    except Exception as error:
-        flash(str(error))
-        return redirect(url_for('admin.cost_home'), 303)
+        return _cost_error(error, 409, projection)
+    except CalendarEventValidationError as error:
+        return _cost_error(error, 400, projection)
     flash('Kalkulationsbeleg gespeichert.')
     return redirect(url_for('admin.cost_home'), 303)
