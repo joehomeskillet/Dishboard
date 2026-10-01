@@ -124,7 +124,7 @@
   <h3 class="h4 pt-3 mb-2">Version auswählen</h3>
   <div class="list-group list-group-flush brand-history-list">
     {% for item in document.revisions|reverse %}
-    <a class="list-group-item list-group-item-action brand-history-row{% if item.id == selected.id %} active{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id, _anchor='brand-more') }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
+    <a class="list-group-item list-group-item-action brand-history-row{% if item.id == selected.id %} active text-primary-fg{% endif %}" href="{{ url_for('admin.branding_editor', revision=item.id, _anchor='brand-more') }}"{% if item.id == selected.id %} aria-current="true"{% endif %}>
       <span class="brand-history-name">{{ item.name }}</span>
       <span>{% if item.id == document.active_revision %}{{ t('status.active.label') }}{% elif item.published %}Früher aktiv{% else %}{{ t('publish.draft.label') }}{% endif %}</span>
     </a>

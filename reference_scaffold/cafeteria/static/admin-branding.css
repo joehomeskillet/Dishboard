@@ -115,10 +115,6 @@
   background: transparent;
 }
 
-.dishboard-admin .brand-history-card a.brand-history-row.active:is(:hover, :focus, :active) {
-  color: var(--app-on-primary);
-}
-
 .brand-history-name {
   min-width: 0;
   overflow-wrap: anywhere;
