@@ -421,7 +421,7 @@ def test_a13_tab_order_actions_then_first_card_not_covered_by_sticky(
     trigger = page.locator('[data-bs-target="#week-publish-modal"]')
     _tab_to(page, trigger)
     page.keyboard.press('Tab')
-    checks = page.locator('#week-check-summary details > summary')
+    checks = page.locator('#week-check-entries-trigger')
     expect(checks).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.locator('a[href*="/preview"]')).to_be_focused()
