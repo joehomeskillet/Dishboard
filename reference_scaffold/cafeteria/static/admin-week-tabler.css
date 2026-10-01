@@ -277,9 +277,6 @@
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-components span:not(:last-child)::after {
   content: " · ";
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-review-line:not(:has(.slot-badge)) {
-  display: none;
-}
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-review-line {
   display: flex;
   flex-wrap: wrap;

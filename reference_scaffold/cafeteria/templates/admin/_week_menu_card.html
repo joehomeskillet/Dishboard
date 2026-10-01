@@ -1,6 +1,6 @@
 {% from '_food_symbols.html' import symbol, allergen_text %}
-{% from 'admin/_macros.html' import label as ui_label, disclosure_section %}
-{% from 'ui/_semantic.html' import status_badge_sem, sem_icon, icon_button %}
+{% from 'admin/_macros.html' import label as ui_label %}
+{% from 'ui/_semantic.html' import status_badge_sem, sem_icon, icon_button, read_detail_trigger, read_detail_dialog %}
 {% set hint_len = (cell.description|default('') ~ cell.note|default(''))|length %}
 {% set slot_name = cell.title if cell.title else 'Noch kein Gericht' %}
 {% set slot_action = 'actions.edit' if cell.title else 'actions.add' %}
@@ -36,6 +36,7 @@
         {% elif cell.allergen_review_status|default('not_checked') != 'checked' %}
         <p class="admin-list-secondary" data-allergen-state="review-open">Allergenprüfung offen</p>
         {% endif %}
+        {% if cell.labels or cell.allergens or cell.origins %}
         <div class="labels badge-list">
           {% for label in cell.labels if label.code|lower in ('vegan', 'vegetarian') %}
           {% set declaration %}{{ symbol('labels', label.code, true) }}{{ label.name }}{% endset %}
@@ -54,13 +55,14 @@
           {{ ui_label(declaration, 'neutral', class='label') }}
           {% endfor %}
         </div>
+        {% endif %}
       </div>
       {% endif %}
+      {% if cell.title and cell.review_open and review_badges|default(false) %}
       <p class="admin-week-review-line">
-        {% if cell.title and cell.review_open and review_badges|default(false) %}
         <span class="slot-badge" data-review="open">{{ status_badge_sem('review.pending') }}</span>
-        {% endif %}
       </p>
+      {% endif %}
       {% if show_prices %}
       <p>
         {% if cell.internal_chf and cell.external_chf %}
@@ -94,7 +96,10 @@
       {% endif %}
       {% if cell.title and (cell.description or cell.note) %}
         {% if hint_len >= 140 %}
-        {% call disclosure_section(title='Hinweis anzeigen', details_class='admin-week-note') %}
+        {% set note_id = 'week-note-' ~ cell.day ~ '-' ~ cell.meal ~ '-' ~ cell.option %}
+        {% set note_context = cell.title ~ ' · ' ~ cell.day_short ~ ' · ' ~ cell.meal_label ~ ' · ' ~ cell.option_label %}
+        <div class="admin-week-note">{{ read_detail_trigger(note_id, 'ui.read_detail.review', note_context) }}</div>
+        {% call read_detail_dialog(note_id, 'Menühinweise', note_context) %}
           {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
           {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}
         {% endcall %}

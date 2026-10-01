@@ -124,7 +124,7 @@ def test_expired_session_before_save_never_replays(
         page = context.new_page()
         path = f'/admin/{family}?week=2026-08-31'
         assert page.goto(path).status == 200
-        page.locator('details.admin-week-settings > summary').click()
+        expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
         page.locator('input[name="title"]').fill('BF private unsaved title')
         form = page.locator('form').filter(has=page.locator('input[name="title"]'))
         token = form.locator('input[name="_csrf"]').input_value()

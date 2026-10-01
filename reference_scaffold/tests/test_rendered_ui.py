@@ -967,7 +967,7 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
                 return {
                   target: element.id || element.name || element.getAttribute('aria-label') || element.textContent.trim(),
                   iconOnly: element.matches('.ui-sem-control--icon-only'),
-                  serviceSummary: element.matches('.admin-week-service > summary.ui-sem-control--icon-only'),
+                  serviceSummary: element.matches('.admin-week-service [data-semantic="actions.save"]'),
                   width: rect.width,
                   height: rect.height,
                   reachable: Boolean(hit && (hit === element || element.contains(hit))),
@@ -1043,7 +1043,7 @@ def test_every_admin_control_is_reachable_sized_and_non_overlapping(
             result = page.evaluate(metrics_script, root_selector)
             assert result['reachable']
             if root_selector == 'body':
-                expected_summaries = page.locator('.admin-week-service > summary.ui-sem-control--icon-only:visible').count()
+                expected_summaries = page.locator('.admin-week-service [data-semantic="actions.save"]:visible').count()
                 assert expected_summaries > 0
                 assert sum(item['serviceSummary'] for item in result['reachable']) == expected_summaries
             assert result['missingContainers'] == []

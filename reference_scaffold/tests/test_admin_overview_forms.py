@@ -24,7 +24,7 @@ def test_overview_header_submits_native_form_and_reloads_saved_values(
     page = page_context
     page.set_viewport_size({'width': viewport[0], 'height': viewport[1]})
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings > summary').click()
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
     form = page.locator(f'form[action="/admin/{family}/header"]')
     assert form.locator('[name="row_version"]').input_value() == '0'
     form.locator('[name="title"]').fill('Wochenangebot September')
@@ -65,9 +65,8 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
     page = page_context
     page.set_viewport_size({'width': viewport[0], 'height': viewport[1]})
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-service').evaluate_all(
-        'els => els.forEach(el => { el.open = true })',
-    )
+    expect(page.locator("details.admin-week-service")).to_have_count(0)
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     for day, state, notice in (
         (DAY, 'open', 'Ausgabe ab 11:30 Uhr'),
         (empty_day, 'holiday', 'Feiertag: keine Ausgabe'),
@@ -88,9 +87,8 @@ def test_overview_service_uses_own_version_and_preserves_notice_without_items(
             form.get_by_role('button', name='Speichern', exact=True).click()
         assert saved.value.status == 303
         page.wait_for_url(f'**/admin/{family}?week={DAY}')
-        page.locator('details.admin-week-service').evaluate_all(
-            'els => els.forEach(el => { el.open = true })',
-        )
+        expect(page.locator("details.admin-week-service")).to_have_count(0)
+        expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
         assert form.locator('[name="row_version"]').input_value() == '2'
         assert form.locator('[name="service_state"]').input_value() == state
         assert form.locator('[name="notice"]').input_value() == notice

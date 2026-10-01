@@ -55,8 +55,8 @@ def test_week_form_errors_save_and_stale_resubmit(week_page, admin_engine, famil
     page, client = week_page
     page.goto(f'/admin/{family}?week={WEEK}')
     form = _locator(page, family, kind)
-    assert form.locator('xpath=ancestor::details[1]').get_attribute('open') is None
-    form.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
+    expect(form.locator('xpath=ancestor::details')).to_have_count(0)
+    expect(form).to_be_visible()
     if kind == 'header':
         field, entered = 'title', '   '
         form.locator('[name="title"]').fill(entered)
@@ -77,7 +77,8 @@ def test_week_form_errors_save_and_stale_resubmit(week_page, admin_engine, famil
     expect(form.locator('[name="row_version"]')).to_have_value('0')
     other_field = 'shared_note' if kind == 'header' else 'notice'
     expect(form.locator(f'[name="{other_field}"]')).to_have_value('  Mein unverlorener Hinweis  ')
-    expect(page.locator('details.admin-week-settings[open], details.admin-week-service[open]')).to_have_count(1)
+    expect(page.locator('details.admin-week-settings, details.admin-week-service')).to_have_count(0)
+    expect(form.locator('.error-region')).to_be_visible()
     if javascript:
         expect(form.locator('.error-region')).to_be_focused()
     else:
@@ -103,7 +104,7 @@ def test_week_form_errors_save_and_stale_resubmit(week_page, admin_engine, famil
     # Keep the browser's original version while another writer saves a newer one.
     page.goto(f'/admin/{family}?week={WEEK}')
     form = _locator(page, family, kind)
-    form.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
+    expect(form).to_be_visible()
     old_version = form.locator('[name="row_version"]').input_value()
     competing = _form(client.get(f'/admin/{family}?week={WEEK}'), family, kind)['fields']
     target = 'title' if kind == 'header' else 'notice'

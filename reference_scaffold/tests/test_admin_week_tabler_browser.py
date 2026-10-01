@@ -97,11 +97,10 @@ def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tm
                             expect(page.locator('.admin-day-card').first).to_contain_text('Suppe: Gemüsesuppe')
                             expect(page.locator('.admin-day-card').first).to_contain_text('Dessert: Fruchtsalat')
                             expect(page.locator('.admin-day-card').first).to_contain_text('Allergenangaben fehlen')
-                        service = page.locator('.admin-week-service > summary').first
+                        service = page.locator('.admin-week-service select').first
                         service.focus()
-                        page.keyboard.press('Enter')
-                        expect(page.locator('.admin-week-service[open]').first).to_be_visible()
-                        page.keyboard.press('Tab')
+                        expect(page.locator('details.admin-week-service')).to_have_count(0)
+                        expect(page.locator('.admin-week-service').first).to_be_visible()
                         expect(page.locator('.admin-week-service select').first).to_be_focused()
                         assert page.locator(':focus').evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
     (tmp_path / 'measurements.json').write_text(json.dumps(measurements, indent=2))
@@ -307,7 +306,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     page = page_context
     page.set_viewport_size({'width': 360, 'height': 800})
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings > summary').click()
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
     header = page.locator(f'form[action="/admin/{family}/header"]')
     header.locator('[name="title"]').fill('Gespeicherte Wochenangaben')
     header.locator('[name="shared_note"]').fill('Saisonales Angebot')
@@ -327,11 +326,11 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     assert payload['week'] == [DAY]
     # The existing POST redirects to a legacy header fragment; inspect persisted overview data.
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings > summary').click()
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
     expect(header.locator('[name="title"]')).to_have_value('Gespeicherte Wochenangaben')
     expect(header.locator('[name="shared_note"]')).to_have_value('Saisonales Angebot')
 
-    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     service = page.locator(f'form[action="/admin/{family}/service"]').first
     service.locator('[name="service_state"]').select_option('open')
     service.locator('[name="notice"]').fill('Geänderte Ausgabezeit')
@@ -350,7 +349,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     assert payload['service_start'] == ['11:45']
     assert payload['service_end'] == ['13:45']
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     expect(service.locator('[name="service_state"]')).to_have_value('open')
     expect(service.locator('[name="notice"]')).to_have_value('Geänderte Ausgabezeit')
     expect(service.locator('[name="service_start"]')).to_have_value('11:45')

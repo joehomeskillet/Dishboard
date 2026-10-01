@@ -242,11 +242,9 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         page.keyboard.press('Tab')
         expect(apply).to_be_focused()
         page.keyboard.press('Tab')
-        expect(page.locator('details.admin-week-settings > summary')).to_be_focused()
-        page.keyboard.press('Enter')
+        expect(page.locator('details.admin-week-settings')).to_have_count(0)
         title = page.locator('input[name="title"]')
         expect(title).to_be_visible()
-        page.keyboard.press('Tab')
         expect(title).to_be_focused()
         title.fill('Angepasste Woche')
         focused_box = title.bounding_box()
@@ -266,7 +264,7 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
     page = week_page
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings > summary').click()
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
     header = page.locator(f'form[action="/admin/{family}/header"]')
     title = header.locator('[name="title"]')
     box = title.bounding_box()
@@ -280,9 +278,9 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
     assert set(payload) == {'_csrf', 'week', 'row_version', 'title', 'shared_note'}
     assert payload['week'] == [DAY] and payload['row_version'] == ['0']
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings > summary').click()
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
     expect(title).to_have_value('Wochenangebot September')
-    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     service = page.locator(f'form[action="/admin/{family}/service"]').first
     service.locator('[name="service_state"]').select_option('holiday')
     service.locator('[name="notice"]').fill('Heute keine Ausgabe')
@@ -296,7 +294,7 @@ def test_week_fields_preserve_native_payloads_and_usable_widths(
     assert payload['service_start'] == ['11:30'] and payload['service_end'] == ['13:30']
     assert payload['day'] == [DAY] and payload['meal'] == ['LUNCH'] and payload['row_version'] == ['0']
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     expect(service.locator('[name="row_version"]')).to_have_value('1')
     expect(service.locator('[name="notice"]')).to_have_value('Heute keine Ausgabe')
     expect(service.locator('[name="service_start"]')).to_have_value('11:30')

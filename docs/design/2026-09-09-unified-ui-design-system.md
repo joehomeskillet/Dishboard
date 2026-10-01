@@ -34,6 +34,12 @@ bleiben die Textaktionen «Abbrechen» und «Veröffentlichen». Das zusätzlich
 Schliesskreuz und der doppelte Erste-Slot-Zugang entfallen. Prüfdetailmigration
 D-15/D-16 bleibt bis zum gemeinsamen Dialogvertrag für Sprunglinks offen.
 
+DELTA-3-04: Wochenangaben und Ausgabeangaben stehen als kompakte statische
+Formularabschnitte mit ihren bisherigen Speicheraktionen bereit. Menübeschreibung
+und Hinweis ab 140 Zeichen nutzen den gemeinsamen Lesedialog; Kurztexte bleiben
+sichtbar. Prüf-/Kennzeichnungswrapper entstehen nur bei vorhandenem Inhalt.
+Einseitige Ausgabezeiten werden als «ab» beziehungsweise «bis» angezeigt.
+
 **Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
 Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere
 sind die Inline-Aufklapper in R06/R12/R17/R19/R21/R34, M03/M04/M19/M25/M55/M57

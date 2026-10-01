@@ -74,35 +74,39 @@ def test_week_patterns_keep_empty_and_filled_slots_actionable(
             page.screenshot(path=str(evidence / f'{name}-{state}-day.png'))
             assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
         editor_url = page.locator('.admin-week-card-action a').first.get_attribute('href')
-        # Exercise native disclosures before/after migration with identical fixtures.
+        # UI-DELTA replaces week/service disclosures with always visible fields.
         for section in ('settings', 'service', 'course-editor', 'check-entries'):
-            details = page.locator(f'details.admin-week-{section}').first
+            details = page.locator(f'.admin-week-{section}').first
             summary = details.locator(':scope > summary')
-            summary.focus()
-            page.keyboard.press('Enter')
-            expect(details).to_have_attribute('open', '')
-            if section == 'service':
-                # Opening a disclosure must not rotate its edit action into another symbol.
-                assert summary.locator('svg').evaluate("el => getComputedStyle(el).transform") == 'none'
+            static = section in ('settings', 'service')
+            if static:
+                expect(summary).to_have_count(0)
+                expect(details.locator('input:not([type="hidden"])').first).to_be_visible()
+            else:
+                summary.focus()
+                page.keyboard.press('Enter')
+                expect(details).to_have_attribute('open', '')
             metrics[section] = details.evaluate('''element => {
                 const rect = element.getBoundingClientRect();
-                const style = getComputedStyle(element.querySelector('summary'));
+                const heading = element.querySelector('summary, h2, .form-label');
+                const style = getComputedStyle(heading);
                 return {height: rect.height, width: rect.width,
-                    summaryHeight: element.querySelector('summary').getBoundingClientRect().height,
+                    summaryHeight: heading.getBoundingClientRect().height,
                     summaryGap: style.gap, summaryPadding: style.padding,
                     overflow: document.documentElement.scrollWidth > innerWidth + 1};
             }''')
             assert not metrics[section]['overflow'], metrics[section]
-            summary.scroll_into_view_if_needed()
+            details.scroll_into_view_if_needed()
             page.screenshot(path=str(evidence / f'{name}-{section}-open.png'))
             save = details.locator('form[method="post"] [data-semantic="actions.save"]')
             if section != 'check-entries':
                 expect(save).to_have_count(1)
                 save.scroll_into_view_if_needed()
                 page.screenshot(path=str(evidence / f'{name}-{section}-footer.png'))
-            summary.focus()
-            page.keyboard.press('Space')
-            expect(details).not_to_have_attribute('open', '')
+            if not static:
+                summary.focus()
+                page.keyboard.press('Space')
+                expect(details).not_to_have_attribute('open', '')
         if not javascript:
             fallback = page.locator('.admin-week-nojs-publish')
             expect(fallback.locator('summary')).to_have_count(0)
@@ -298,9 +302,7 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             assert page.locator('[style], [onclick], script:not([src])').count() == 0
             _assert_edit_link_context(page, family, [option['title'] for option in options])
-            page.locator('details.admin-week-service').evaluate_all(
-                'els => els.forEach(el => { el.open = true })',
-            )
+            expect(page.locator('details.admin-week-service')).to_have_count(0)
             controls = page.locator(
                 '.admin-week-service :is(input:not([type="hidden"]), select, button), '
                 '.patient-admin-meal form :is(input:not([type="hidden"]), select, button):visible, .menu-slot .btn',

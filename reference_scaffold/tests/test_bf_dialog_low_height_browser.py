@@ -127,7 +127,7 @@ def _surfaces(recipe: str) -> tuple[tuple[str, str, str, str], ...]:
         ('zutat', '/admin/grundlagen/zutaten/neu', '#note', '.admin-form-footer [data-semantic="actions.save"]'),
         ('einkauf', '/admin/einkaufslisten', '[name="menu_week_public_id"]', '#einkaufsliste-neu button[type="submit"]'),
         ('benutzer', '/admin/benutzer/neu', '#create-password-confirm', '#create-local-user [data-semantic="actions.save"]'),
-        ('woche', '/admin/cafeteria', '#week_shared_note', 'details.admin-week-settings [data-semantic="actions.save"]'),
+        ('woche', '/admin/cafeteria', '#week_shared_note', '.admin-week-settings [data-semantic="actions.save"]'),
     )
 
 
@@ -340,10 +340,16 @@ def test_t34_open_close_does_not_duplicate_listeners(site) -> None:  # noqa: F81
                 page.locator('#einkaufsliste-neu-extra > summary'), 't34-shopping', javascript,
             )
             _goto(page, '/admin/cafeteria')
-            _cycle(
-                page, 'details.admin-week-settings',
-                page.locator('details.admin-week-settings > summary'), 't34-week', javascript,
-            )
+            expect(page.locator('details.admin-week-settings')).to_have_count(0)
+            title = page.locator('.admin-week-settings [name="title"]')
+            if javascript:
+                page.evaluate('() => { window.__bfE3Base = window.__bfListenerAdds; }')
+            for _ in range(20):
+                title.focus()
+                expect(title).to_be_focused()
+                expect(title).to_be_visible()
+            if javascript:
+                assert page.evaluate('() => window.__bfListenerAdds - window.__bfE3Base') == 0
             if javascript:
                 _cycle_publish(page)
             duplicate = _ids(page)

@@ -86,7 +86,7 @@ def test_real_login_denial_interruption_and_outage_frames(integrated_server, bro
         proof.append({'case': 'forbidden', 'status': 403, 'frame': 'admin'})
 
         assert page.goto('/admin/patienten?week=2026-09-28').status == 200
-        page.locator('details.admin-week-settings > summary').click()
+        expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
         page.locator('input[name="title"]').fill('EH1B-PRIVATE-UNSAVED')
         form = page.locator('form').filter(has=page.locator('input[name="title"]'))
         before = _business_snapshot(owner)

@@ -106,7 +106,8 @@ def test_invalid_values_reopen_only_target_then_save(client, database_engine, fa
     assert '<b>' not in response.text
     others = [entry for entry in Forms(response.text).forms
               if entry['action'] in (f'/admin/{family}/header', f'/admin/{family}/service')]
-    assert sum(entry['open'] for entry in others) == 1
+    assert all(entry['open'] for entry in others)
+    assert sum(bool(entry['invalid']) for entry in others) == 1
     form['fields'][field] = fixed
     saved = client.post(form['action'], data=form['fields'])
     assert saved.status_code == 303 and saved.location == f'/admin/{family}?week={WEEK}'

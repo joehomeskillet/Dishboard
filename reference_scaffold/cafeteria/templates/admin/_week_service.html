@@ -1,5 +1,5 @@
 {# Compact meal service summary + existing POST form. #}
-{% from 'admin/_macros.html' import disclosure_section, form_footer %}
+{% from 'admin/_macros.html' import form_footer %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set service = meal_cell %}
 {% set state = service.service_state if service else 'open' %}
@@ -22,11 +22,10 @@
 {% set service_error = week_form_kind|default(none) == 'service' and week_form_values.get('day') == day_iso and week_form_values.get('meal') == meal_code %}
 {% set service_values = week_form_values if service_error else {} %}
 {% set service_errors = week_form_errors if service_error else {} %}
-{% set service_open = service_error or status == 'error' %}
 <div class="admin-week-meal-head" id="service-{{ day_iso }}-{{ meal_code }}">
   <strong>{{ meal_label }}</strong>
   <span class="admin-week-service-summary">
-    {{ state_labels.get(state, state) }}{% if start and end %} · {{ start }}–{{ end }}{% endif %}
+    {{ state_labels.get(state, state) }}{% if start and end %} · {{ start }}–{{ end }}{% elif start %} · ab {{ start }}{% elif end %} · bis {{ end }}{% endif %}
   </span>
   {% if not start and not end %}
   <span class="admin-list-secondary" data-service-time-state="missing">Zeiten nicht eingetragen</span>
@@ -35,7 +34,7 @@
   <span>Hinweis: {{ notice }}</span>
   {% endif %}
 </div>
-{% call disclosure_section(title='Ausgabeangaben ändern', open=service_open, details_class='admin-week-service', summary_key='actions.edit') %}
+<section class="admin-week-service" aria-label="Ausgabeangaben · {{ day_iso }} · {{ meal_label }}">
   <form method="post" data-dirty-form action="/admin/{{ family }}/service" class="card card-sm mb-3 admin-week-service-form">
     <div class="card-body">
       {{ form_errors(service_errors.values()|list) }}
@@ -47,8 +46,8 @@
       <input type="hidden" name="day" value="{{ day_iso }}">
       <input type="hidden" name="meal" value="{{ meal_code }}">
       <input type="hidden" name="row_version" value="{{ service_values.get('row_version', srv_ver) }}">
-      <div class="row g-3 align-items-end">
-        <div class="col-12 col-md-6">
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-sm-6 col-xl-3">
           <label class="form-label" for="{{ state_id }}">Betrieb</label>
           <select id="{{ state_id }}" class="form-select" name="service_state">
             <option value="open"{% if service_values.get('service_state', state) == 'open' %} selected{% endif %}>Offen</option>
@@ -57,14 +56,14 @@
             <option value="company_holiday"{% if service_values.get('service_state', state) == 'company_holiday' %} selected{% endif %}>Betriebsfeiertag</option>
           </select>
         </div>
-        <div class="col-12 col-md-6">
+        <div class="col-12 col-sm-6 col-xl-3">
           {{ field('notice', 'Ausgabehinweis', service_values.get('notice', notice), id=notice_id, error=service_errors.get('notice'), autofocus=service_errors.get('notice')) }}
         </div>
         {# Text inputs preserve even malformed time strings after a failed POST. #}
-        <div class="col-12 col-sm-6 col-md-3">
+        <div class="col-12 col-sm-6 col-xl-3">
           {{ field('service_start', 'Beginn', service_values.get('service_start', start), type='text' if service_error else 'time', id=start_id, error=service_errors.get('service_start'), autofocus=service_errors.get('service_start'), hint='HH:MM' if service_error else none) }}
         </div>
-        <div class="col-12 col-sm-6 col-md-3">
+        <div class="col-12 col-sm-6 col-xl-3">
           {{ field('service_end', 'Ende', service_values.get('service_end', end), type='text' if service_error else 'time', id=end_id, error=service_errors.get('service_end'), autofocus=service_errors.get('service_end'), hint='HH:MM' if service_error else none) }}
         </div>
         <div class="col-12">
@@ -73,4 +72,4 @@
       </div>
     </div>
   </form>
-{% endcall %}
+</section>
