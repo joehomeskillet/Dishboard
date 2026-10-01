@@ -76,7 +76,7 @@
       <p class="form-hint mt-2 mb-0" id="component-allergen-filter-hint">«Nicht erfasst» bedeutet keine bestätigte Allergenfreiheit.</p>
 {% endset %}
 {{ filter_bar_sem('/admin/' ~ family ~ '/komponenten', search_value=query|default(''), filters=component_filters, active=filtered, reset_url='/admin/' ~ family ~ '/komponenten', id='component', open=filtered, segments=profile_tabs({'cafeteria': '/admin/cafeteria/komponenten', 'patienten': '/admin/patienten/komponenten'}, family)) }}
-<p id="component-result-count" class="admin-list-meta mb-3" role="status">{{ rows|length }} Treffer · {{ 'Aktiv' if selected_status == 'active' else 'Archiviert' if selected_status == 'archived' else 'Aktiv und archiviert' }}</p>
+<p id="component-result-count" class="admin-list-meta mb-2" role="status">{{ rows|length }} Treffer · {{ 'Aktiv' if selected_status == 'active' else 'Archiviert' if selected_status == 'archived' else 'Aktiv und archiviert' }}</p>
 
 <div class="component-list-container">
   {% if rows %}
