@@ -63,7 +63,7 @@ def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tm
                             const meals = [...days[0].querySelectorAll('.patient-admin-meal')];
                             const image = days[0].querySelector('[data-menu-image] img');
                             const mealGaps = meals.map(meal => {
-                                const parts = [...meal.querySelectorAll('.admin-week-meal-head, .menu-slot, .admin-week-service, .admin-week-course')]
+                                const parts = [...meal.querySelectorAll('.admin-week-meal-head, .menu-slot, .admin-week-service, .admin-week-course, .admin-week-course-editor')]
                                     .map(e => e.getBoundingClientRect()).sort((a, b) => a.top - b.top);
                                 let end = meal.getBoundingClientRect().top, gap = 0;
                                 for (const part of parts) {
@@ -72,7 +72,13 @@ def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tm
                                 }
                                 return Math.max(gap, meal.getBoundingClientRect().bottom - end);
                             });
+                            const staticHeights = [...days[0].querySelectorAll('.admin-week-meal')].map(meal =>
+                                [...meal.querySelectorAll('section.admin-week-service, section.admin-week-course-editor')]
+                                    .reduce((sum, e) => sum + e.getBoundingClientRect().height, 0));
                             return {width: innerWidth, documentWidth: document.documentElement.scrollWidth,
+                                readHeight: boxes[0].height - Math.max(0, ...staticHeights),
+                                hiddenCourseFields: [...days[0].querySelectorAll('.admin-week-course-editor select')]
+                                    .filter(e => !e.getClientRects().length).length,
                                 dayHeight: boxes[0].height, firstDayTop: boxes[0].top,
                                 visibleDays: boxes.filter(r => r.top >= 0 && r.bottom <= innerHeight).length,
                                 mealOffset: meals.length ? Math.abs(meals[0].getBoundingClientRect().top -
@@ -107,12 +113,13 @@ def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tm
     print('WP21_METRICS=' + json.dumps(measurements))
     desktop = [row for row in measurements if row['width'] == 1440]
     for row in desktop:
-        assert row['dayHeight'] <= (260 if family == 'cafeteria' else 300), row
+        # UI-DELTA requires static fields: retain the reading-area density bound
+        # and prove fields remain visible instead of demanding two folded days.
+        assert row['readHeight'] <= (260 if family == 'cafeteria' else 300), row
+        assert row['hiddenCourseFields'] == 0, row
         assert row['mealOffset'] <= 8, row
         assert row['mealGap'] <= 160, row
         assert max(row['imageWidth'], row['imageHeight']) <= 96, row
-        if family == 'cafeteria':
-            assert row['visibleDays'] >= 2, row
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
@@ -189,9 +196,8 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     page = page_context
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings, details.admin-week-service').evaluate_all(
-        'els => els.forEach(el => { el.open = true })',
-    )
+    expect(page.locator('details.admin-week-settings, details.admin-week-service')).to_have_count(0)
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     toggle = page.get_by_role('button', name='Menü', exact=True)
     nav = page.get_by_role('navigation', name='Backend')
     if width < 992:  # K2-A: sidebar breakpoint moved from 1200 to 992 (navbar-expand-lg)

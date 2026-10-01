@@ -168,11 +168,9 @@ def test_week_long_names_missing_images_and_native_controls_reflow(
         assert metrics['scrollWidth'] <= metrics['width'] + 1, metrics
         assert not metrics['failures'], metrics['failures']
         assert not metrics.get('clippedImageCharacters'), metrics
-        # Native disclosure and its unchanged POST fields remain usable without app scripts.
+        # Static course fields retain their native POST contract without app scripts.
         editor = first_day.locator('.admin-week-course-editor').first
-        editor.locator(':scope > summary').focus()
-        editor.locator(':scope > summary').press('Enter')
-        expect(editor).to_have_attribute('open', '')
+        expect(editor.locator('details, summary')).to_have_count(0)
         form = editor.locator('form[method="post"]')
         expect(form).to_have_attribute('action', f'/admin/{family}/courses')
         expect(form.locator('[name="soup_state"]')).to_have_value('planned')
@@ -183,7 +181,6 @@ def test_week_long_names_missing_images_and_native_controls_reflow(
         assert fields['soup_row_version'] and fields['dessert_row_version']
         form.locator('[name="soup_state"]').focus()
         expect(form.locator('[name="soup_state"]')).to_be_focused()
-        editor.locator(':scope > summary').press('Enter')
-        expect(editor).not_to_have_attribute('open', '')
+        expect(form.locator('[name="soup_recipe"]')).to_be_visible()
     finally:
         context.close()

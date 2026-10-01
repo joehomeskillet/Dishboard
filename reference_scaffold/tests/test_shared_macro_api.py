@@ -102,12 +102,12 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
     # UI-DELTA §0.1: static week forms/fallback; long notes use read dialogs.
-    assert len(calls) == 69, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 64, 'Review compatibility inventory when consumers change'
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
-    assert len(extended) == 6
+    assert len(extended) == 2
     assert {path.name for path, _ in extended} == {
-        '_course_editor.html', '_course_recipe_search.html', '_week_check_summary.html',
+        '_week_check_summary.html',
         '_week_controls.html',
     }
     text = 'Suppe <&>' if populated else ''

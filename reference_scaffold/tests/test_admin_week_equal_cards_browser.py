@@ -78,7 +78,7 @@ def test_week_patterns_keep_empty_and_filled_slots_actionable(
         for section in ('settings', 'service', 'course-editor', 'check-entries'):
             details = page.locator(f'.admin-week-{section}').first
             summary = details.locator(':scope > summary')
-            static = section in ('settings', 'service')
+            static = section in ('settings', 'service', 'course-editor')
             if static:
                 expect(summary).to_have_count(0)
                 expect(details.locator('input:not([type="hidden"])').first).to_be_visible()

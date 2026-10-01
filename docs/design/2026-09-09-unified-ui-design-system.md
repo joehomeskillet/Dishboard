@@ -40,6 +40,11 @@ und Hinweis ab 140 Zeichen nutzen den gemeinsamen Lesedialog; Kurztexte bleiben
 sichtbar. Prüf-/Kennzeichnungswrapper entstehen nur bei vorhandenem Inhalt.
 Einseitige Ausgabezeiten werden als «ab» beziehungsweise «bis» angezeigt.
 
+DELTA-3-05: Gänge, Abweichungen je Menü und Rezeptsuche stehen statisch bereit.
+Rezeptsuche bleibt ein eigenständiges GET-Formular; die sechs Gangentscheidungen
+bleiben gemeinsam im bestehenden POST-Formular samt CSRF und Versionsfeldern.
+Sprunglinks führen weiterhin direkt zum zugehörigen Auswahlfeld.
+
 **Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
 Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere
 sind die Inline-Aufklapper in R06/R12/R17/R19/R21/R34, M03/M04/M19/M25/M55/M57
