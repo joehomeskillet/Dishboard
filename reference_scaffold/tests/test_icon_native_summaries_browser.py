@@ -5,6 +5,7 @@ import threading
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from flask import request
 from playwright.sync_api import expect
 from sqlalchemy.exc import OperationalError
 from werkzeug.serving import make_server
@@ -180,6 +181,9 @@ def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
         context_calls = []
 
         def unavailable_context():
+            # /favicon.ico 404 renders the central error page, not the outage template.
+            if request.path == '/favicon.ico':
+                return {}
             context_calls.append(True)
             raise AssertionError('Unavailable response invoked DB-dependent template context')
 
@@ -196,19 +200,23 @@ def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
             assert "script-src 'self'" in failed.value.headers['content-security-policy']
             expect(page.get_by_text('Der Abschluss der Zuweisung konnte nicht bestätigt werden.', exact=False)).to_be_visible()
             page.screenshot(path=str(tmp_path / f'unavailable-initial-{width}-js{javascript}.png'), full_page=True)
-            retry = page.get_by_role('link', name='Aktualisieren', exact=True)
-            _icon(retry)
+            retry = page.get_by_role('link', name='Neu laden: Aktualisieren', exact=True)
+            expect(retry).to_contain_text('Neu laden')
+            assert retry.get_attribute('aria-label') == 'Neu laden: Aktualisieren'
+            assert retry.get_attribute('data-ui-tooltip') == retry.get_attribute('aria-label')
+            expect(retry.locator('svg[aria-hidden="true"]')).to_have_count(1)
+            assert retry.evaluate('el => el.getBoundingClientRect().width >= 36')
             expect(retry).to_have_attribute('href', path)
             retry.focus()
             expect(retry).to_be_focused()
             if javascript:
-                expect(page.get_by_role('tooltip')).to_have_text('Aktualisieren')
+                expect(page.get_by_role('tooltip')).to_have_text('Neu laden: Aktualisieren')
                 page.keyboard.press('Escape')
                 expect(page.get_by_role('tooltip')).to_have_count(0)
                 expect(retry).to_be_focused()
                 retry.blur()
                 retry.hover()
-                expect(page.get_by_role('tooltip')).to_have_text('Aktualisieren')
+                expect(page.get_by_role('tooltip')).to_have_text('Neu laden: Aktualisieren')
                 page.keyboard.press('Escape')
                 expect(page.get_by_role('tooltip')).to_have_count(0)
             page.screenshot(path=str(tmp_path / f'unavailable-post-{width}-js{javascript}.png'), full_page=True)
@@ -219,7 +227,7 @@ def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
             assert 'private' not in page.locator('main').inner_text()
             page.screenshot(path=str(tmp_path / f'unavailable-get-{width}-js{javascript}.png'), full_page=True)
         with page.expect_navigation() as recovered:
-            page.get_by_role('link', name='Aktualisieren', exact=True).press('Enter')
+            page.get_by_role('link', name='Neu laden: Aktualisieren', exact=True).press('Enter')
         assert recovered.value.status == 200 and recovered.value.request.method == 'GET'
         expect(page.locator('#screen-assignment-details')).to_be_visible()
         assert len(posts) == 1 and not errors and not context_calls and screen_state(database_engine) == before
