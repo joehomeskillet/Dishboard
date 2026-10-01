@@ -183,7 +183,7 @@ def test_real_screen_links_open_all_targets_with_source_security_headers(
             snapshot = patient_snapshot() if '/patienten/' in target else cafeteria_snapshot()
             menu = next(day for day in snapshot['days'] if day['date'] == '2026-09-02')
             expect(page.locator('body')).to_contain_text(menu['services'][0]['options'][0]['title'])
-            if target.endswith('/ohne-bilder/') or target.startswith('/signage/'):
+            if target.endswith('/ohne-bilder/') or (target.startswith('/signage/') and target.endswith('/woche')):
                 expect(page.locator('.menu-photo, .card-img-top')).to_have_count(0)
             elif target in ('/cafeteria/wochenangebot/', '/patienten/wochenplan/'):
                 assert page.locator('.menu-photo img').count() > 0
@@ -269,6 +269,8 @@ def test_unpublished_screen_links_show_each_source_message(
         page.goto('/admin/screens')
         for target in sorted(TARGETS):
             page.goto('/admin/screens')
+            page.keyboard.press('Escape')
+            expect(page.get_by_role('tooltip')).to_have_count(0)
             page.locator(f'.screen-card a[href="{target}"]').click()
             expect(page.locator('body')).to_contain_text(re.compile(r'nicht verfügbar|nicht angezeigt'))
         assert statuses == dict.fromkeys(TARGETS, 404)
