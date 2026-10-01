@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, pagination, field, empty_state, disclosure_section, label, empty_value %}
-{% from 'ui/_semantic.html' import sem_icon, icon_button, row_actions %}
+{% from 'admin/_macros.html' import page_header, pagination, field, empty_state, disclosure_section, empty_value, segment_switch %}
+{% from 'ui/_semantic.html' import sem_icon, icon_button, row_actions, status_badge_sem %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenübersicht · {{ area_names[profile] }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-wochenuebersicht.css') }}">{% endblock %}
@@ -48,10 +48,10 @@
 {% endcall %}
 {% endblock %}
 {% block content %}
-        <div class="admin-filter-bar week-filter mb-3" role="group" aria-label="{{ t('admin.area.label') }}">
-          <a class="btn{% if family == 'cafeteria' %} active{% endif %}"{% if family == 'cafeteria' %} aria-current="true"{% endif %} href="{{ url_for('admin.week_management', family='cafeteria') }}">Cafeteria</a>
-          <a class="btn{% if family == 'patienten' %} active{% endif %}"{% if family == 'patienten' %} aria-current="true"{% endif %} href="{{ url_for('admin.week_management', family='patienten') }}">Patienten</a>
-        </div>
+        {{ segment_switch([
+          {'key': 'cafeteria', 'label': 'Cafeteria', 'href': url_for('admin.week_management', family='cafeteria')},
+          {'key': 'patienten', 'label': 'Patienten', 'href': url_for('admin.week_management', family='patienten')}
+        ], family, label=t('admin.area.label'), class='admin-filter-bar week-filter mb-3') }}
         <section class="card" aria-labelledby="saved-weeks-title">
           <h2 class="visually-hidden" id="saved-weeks-title">Gespeicherte Wochen</h2>
           <div class="week-list"{% if rows or has_next or page > 1 %} role="region" aria-label="Wochenliste" tabindex="0"{% endif %}>
@@ -69,22 +69,18 @@
                 </td>
                 <td data-label="Titel" class="text-break admin-list-meta">{{ row.title or empty_value() }}</td>
                 <td data-label="Status" class="admin-table-status">
-                  {% set week_status_variant = {
-                    'live': 'success', 'review_open': 'warning', 'changed': 'warning',
-                    'ready': 'info', 'incomplete': 'warning', 'empty': 'neutral'
-                  }.get(row.status, 'neutral') %}
-                  {% set week_status_icon = {
-                    'success': 'circle-check', 'warning': 'alert-triangle', 'info': 'info-circle'
-                  }.get(week_status_variant, 'circle') %}
-                  {% set week_status_label = {'live': 'Veröffentlicht', 'review_open': 'Noch zu prüfen', 'empty': 'Noch keine Menüs erfasst'}.get(row.status, status_labels[row.status]) %}
+                  {% set week_status_key = {
+                    'live': 'publish.published', 'review_open': 'review.pending', 'changed': 'publish.changed',
+                    'ready': 'publish.unpublished', 'incomplete': 'status.incomplete', 'empty': 'status.not_recorded'
+                  }[row.status] %}
                   {% set status_descriptions = {
                     'changed': 'Veröffentlicht · gespeicherte Änderungen noch nicht veröffentlicht',
                     'ready': 'Noch nicht veröffentlicht'
                   } %}
-                  {{ label(week_status_label, week_status_variant, icon=week_status_icon) }}
+                  {{ status_badge_sem(week_status_key) }}
                   {# Publication state explanations stay visible (polish rule: no safety/publication hints in tooltips). #}
                   {% if row.status in status_descriptions %}<p class="admin-list-secondary mb-0">{{ status_descriptions[row.status] }}</p>{% endif %}
-                  {% if row.workflow_state == 'archived' %}<div class="mt-1">{{ label('Archiviert', 'neutral', icon=sem('actions.archive').resolved_icon) }}</div>{% endif %}
+                  {% if row.workflow_state == 'archived' %}<div class="mt-1">{{ status_badge_sem('status.archived') }}</div>{% endif %}
                 </td>
                 <td data-label="Aktionen" class="admin-table-actions">
                   {% set week_object = 'Woche ab ' ~ row.week_start.strftime('%d.%m.%Y') %}
@@ -98,7 +94,7 @@
             </tbody>
           </table>
           {% else %}
-          {% call empty_state('none', 'Noch keine gespeicherten Wochen auf dieser Seite.', 'Öffnen Sie «Neue Woche anlegen», um einen Plan vorzubereiten.' if can_write else 'Für das Anlegen einer Woche benötigen Sie Bearbeitungsrechte.') %}
+          {% call empty_state('none', 'Noch keine gespeicherten Wochen auf dieser Seite.', 'Öffnen Sie «Neue Woche anlegen», um einen Plan vorzubereiten.' if can_write else 'Für das Anlegen einer Woche benötigen Sie Bearbeitungsrechte.', compact=true) %}
             {% if can_write %}{{ icon_button('actions.add', href='#new-week-date', emphasis='secondary', attrs={'data-bs-toggle': 'collapse', 'data-bs-target': '#new-week-form', 'aria-controls': 'new-week-form'}) }}{% endif %}
           {% endcall %}
           {% endif %}

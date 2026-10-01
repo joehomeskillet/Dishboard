@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, field, select, textarea, form_errors, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, field, select, textarea, form_errors, disclosure_section, form_footer %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'calendar' %}
 {% set layout_variant = 'calendar' %}
@@ -43,11 +43,7 @@
     </div>
     {% endcall %}
   </div>
-  <div class="admin-form-footer">
-    <div class="admin-form-main">
-      {{ icon_button('actions.cancel', href=url_for('admin.kitchen_calendar')) }}
-      {{ icon_button('actions.save') }}
-    </div>
-  </div>
+  {% set save_action %}{{ icon_button('actions.save') }}{% endset %}
+  {{ form_footer(save_action, url_for('admin.kitchen_calendar')) }}
 </form>
 {% endblock %}

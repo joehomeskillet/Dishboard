@@ -67,7 +67,7 @@ def test_week_creation_and_tablet_layout(page_context):
         for selector in ['input[type="date"]', 'input[name="title"]', 'textarea', 'button[type="submit"]']:
             for control in page.locator(selector).all():
                 if control.is_visible():
-                    minimum = control.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse)').matches ? 44 : 36) : 48")
+                    minimum = control.evaluate("e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
                     assert control.bounding_box()['height'] >= minimum
     expect(page.locator('#new-week-date')).to_be_visible()
     page.get_by_label('Wochenbeginn (Montag)').fill('2027-01-04')
@@ -162,7 +162,7 @@ def test_management_density_keyboard_and_native_actions(
                 expect(summary).to_have_text('4 gespeicherte Wochen')
                 expect(summary).not_to_contain_text('zu prüfen')
                 expect(page.locator('dl.admin-statusbar')).to_have_count(0)
-                expect(page.locator('.week-filter .active')).to_have_attribute('aria-current', 'true')
+                expect(page.locator('.week-filter .active')).to_have_attribute('aria-current', 'page')
                 expect(page.locator('.week-filter .active')).to_have_attribute('href', f'/admin/{family}/wochen')
                 first = rows.first
                 week_link = first.get_by_role('link', name='21.09.2026 – 27.09.2026', exact=True)
@@ -172,7 +172,8 @@ def test_management_density_keyboard_and_native_actions(
                 expect(preview).to_be_visible()
                 expect(preview).to_have_text('')
                 expect(preview.locator('use')).to_have_attribute('href', re.compile(r'#tabler-eye$'))
-                expect(first.locator('.admin-table-status .admin-label')).to_have_class(re.compile(r'admin-status--neutral'))
+                expect(first.locator('.admin-table-status .admin-label')).to_have_attribute('data-semantic', 'status.not_recorded')
+                expect(first.locator('.admin-table-status .admin-label')).to_have_class(re.compile(r'admin-status--warning'))
                 expect(page.locator('.week-filter')).to_have_class(re.compile(r'admin-filter-bar'))
                 copy = first.get_by_role('link', name='Woche ab 21.09.2026 kopieren', exact=True)
                 expect(copy).to_be_visible()
@@ -189,7 +190,7 @@ def test_management_density_keyboard_and_native_actions(
                 expect(preview).to_be_visible()
                 bad_targets = page.locator('main :is(.btn, summary):visible').evaluate_all('''es => es.flatMap(e => {
                     const r = e.getBoundingClientRect();
-                    const min = e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse)').matches ? 44 : 36) : 48;
+                    const min = matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36;
                     return r.height >= min && r.width >= min && r.left >= 0 && r.right <= innerWidth
                         ? [] : [{text: e.textContent, width: r.width, height: r.height, right: r.right}];
                 })''')

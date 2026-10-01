@@ -42,6 +42,41 @@
   {% endcall %}
 {% endmacro %}
 
+{% macro day_card(day, grouped, declarations, service_index) %}
+{% set day_row = grouped|first %}
+{% set meals = grouped|map(attribute='meal')|unique|list %}
+<article class="card admin-day-card{% if family == 'patienten' %} patient-admin-day{% endif %}">
+  <div class="card-header admin-week-day-head">
+    <h2>{{ day_row.day_label }}</h2>
+    <time datetime="{{ day }}">{{ day_row.day_short }}</time>
+    <span class="text-secondary admin-week-day-count">{{ grouped|selectattr('row_version', 'gt', 0)|list|length }} von {{ grouped|length }} Menükarten erfasst</span>
+  </div>
+  <div class="card-body admin-week-meals{% if meals|length > 1 %} admin-week-meals--multiple{% endif %}{% if family == 'patienten' %} patient-admin-meals{% endif %}">
+    {% for meal_code, meal_label in (('LUNCH', 'Mittag'), ('DINNER', 'Abend')) if meal_code in meals %}
+    {% set meal_cells = grouped|selectattr('meal', 'equalto', meal_code)|list %}
+    {% set meal_cell = meal_cells|first %}
+    {% set day_iso = day %}
+    {% set shared = meal_cell.shared_courses|default({}) %}
+    {% set exceptions = meal_cell.meal_exceptions|default({}) %}
+    <div class="admin-week-meal{% if family == 'patienten' %} patient-admin-meal{% endif %}">
+      <div class="admin-week-meal-stack">
+        {% include 'admin/_week_service.html' %}
+        <div class="row g-3 admin-menu-options">
+          {% for cell in meal_cells %}
+          {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
+          {% with show_prices=family == 'cafeteria' %}{% include 'admin/_week_menu_card.html' %}{% endwith %}
+          {% endfor %}
+        </div>
+        {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
+        {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
+        {% include 'admin/_course_editor.html' %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</article>
+{% endmacro %}
+
 <section class="admin-week-controls" aria-label="Wochenstatus und Aktionen">
   <div class="admin-actions btn-list" data-sticky>
     {% if can_publish and publish_blocked and status == 'review_open' %}

@@ -396,7 +396,7 @@ def test_recipe_selector_viewports_keyboard_zoom_and_fonts(
     select = page.get_by_label('Rezeptrevision')
     expect(select).to_be_visible()
     box = select.bounding_box()
-    minimum = 44 if page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") else 36
+    minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
     assert box is not None and box['height'] >= minimum
     page.get_by_label('Angezeigte Revisionen filtern', exact=True).fill('Sicht')
     expect(_option(page, revision['public_id'])).to_be_attached()

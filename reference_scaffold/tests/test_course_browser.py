@@ -156,7 +156,7 @@ def test_course_disclosure_form_contract_and_viewports(
                 editor.locator(':scope > summary').click()
             expect(form.locator('select[name="soup_recipe"]')).not_to_be_visible()
             for summary in editor.locator('summary:visible').all():
-                minimum = summary.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+                minimum = summary.evaluate("e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
                 assert summary.bounding_box()['height'] >= minimum
             assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
             page.screenshot(path=str(EVIDENCE / f'wp26-{family}-{javascript_enabled}-{width}.png'), full_page=True)

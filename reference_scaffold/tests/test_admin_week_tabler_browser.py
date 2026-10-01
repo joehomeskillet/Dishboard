@@ -366,7 +366,7 @@ def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engi
     root = Path(__file__).resolve().parents[2]
     names = ('_course_editor', '_course_line', '_course_recipe_search', '_service_courses',
              '_week_controls', '_week_menu_card', '_week_service', '_week_settings',
-             'cafeteria', 'copy', 'kuechenkalender', 'week_management', 'week_review')
+             'cafeteria', 'patienten', 'copy', 'kuechenkalender', 'week_management', 'week_review')
     sources = {}
     for name in names:
         path = f'admin/{name}.html'
