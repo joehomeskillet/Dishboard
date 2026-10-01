@@ -75,7 +75,10 @@ class MainLinks(HTMLParser):
 
 
 class _HubNavLinks(HTMLParser):
-    """Cross-route links in main, excluding row object actions."""
+    """Cross-route links in main.
+
+    Object row actions stay icon-only. Navigation groups keep a visible destination.
+    """
 
     _VOID = frozenset({
         'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta',
@@ -88,6 +91,7 @@ class _HubNavLinks(HTMLParser):
         self.stack = []
         self.capture = None
         self.unlabeled = []
+        self.row_actions = []
         self.groups = []
         self.feed(html)
 
@@ -96,10 +100,15 @@ class _HubNavLinks(HTMLParser):
         classes = set((attr.get('class') or '').split())
         parent_skip = self.stack[-1]['skip'] if self.stack else False
         in_main = tag == 'main' or any(frame['tag'] == 'main' for frame in self.stack)
+        in_row = any(frame['tag'] == 'tr' for frame in self.stack)
         frame = {
             'tag': tag,
             'skip': parent_skip or 'admin-list-actions' in classes,
             'group': None,
+            'template_id': attr.get('data-template-id') if tag == 'tr' else None,
+            'primaries': [],
+            'primary': [],
+            'collect_primary': 'admin-list-primary' in classes,
         }
         if (
             in_main and not frame['skip'] and tag == 'div'
@@ -108,7 +117,13 @@ class _HubNavLinks(HTMLParser):
             frame['group'] = []
         self.stack.append(frame)
         if tag == 'a' and in_main and not frame['skip']:
-            self.capture = {'href': attr.get('href') or '', 'text': []}
+            self.capture = {
+                'href': attr.get('href') or '',
+                'text': [],
+                'name': ' '.join((attr.get('aria-label') or '').split()),
+                'icon_only': 'ui-sem-control--icon-only' in classes,
+                'in_row': in_row,
+            }
         if tag in self._VOID:
             self.stack.pop()
 
@@ -117,6 +132,13 @@ class _HubNavLinks(HTMLParser):
             frame = self.stack.pop()
             if frame['tag'] == 'a' and self.capture is not None:
                 self._finish(frame)
+            if frame['collect_primary']:
+                text = ' '.join(''.join(frame['primary']).split())
+                if text:
+                    for ancestor in reversed(self.stack):
+                        if ancestor['tag'] == 'tr':
+                            ancestor['primaries'].append(text)
+                            break
             if frame['group'] is not None:
                 self.groups.append(frame['group'])
             if frame['tag'] == tag:
@@ -125,6 +147,10 @@ class _HubNavLinks(HTMLParser):
     def handle_data(self, data):
         if self.capture is not None:
             self.capture['text'].append(data)
+        for frame in reversed(self.stack):
+            if frame['collect_primary']:
+                frame['primary'].append(data)
+                break
 
     def _innermost_group(self):
         for frame in reversed(self.stack):
@@ -132,10 +158,34 @@ class _HubNavLinks(HTMLParser):
                 return frame['group']
         return None
 
+    def _object_row_action(self, href, name, icon_only, in_row):
+        """Icon button of this row's object: template id in the href, or the row name in aria-label."""
+        if not (icon_only and in_row and name):
+            return False
+        template_id = None
+        primaries = []
+        for frame in self.stack:
+            if frame['tag'] == 'tr':
+                template_id = frame['template_id'] or template_id
+                primaries = frame['primaries'] or primaries
+        parts = urlsplit(href)
+        if template_id and (
+            f'template={template_id}' in parts.query
+            or parts.path.rstrip('/').endswith('/' + template_id)
+        ):
+            return True
+        return any(primary and primary in name for primary in primaries)
+
     def _finish(self, frame):
         href = self.capture['href']
         text = ' '.join(''.join(self.capture['text']).split())
+        name = self.capture['name']
+        icon_only = self.capture['icon_only']
+        in_row = self.capture['in_row']
         self.capture = None
+        if self._object_row_action(href, name, icon_only, in_row):
+            self.row_actions.append({'href': href, 'name': name})
+            return
         group = self._innermost_group()
         path = urlsplit(href).path
         if group is not None:
@@ -149,17 +199,30 @@ class _HubNavLinks(HTMLParser):
 def test_hub_navigation_links_keep_visible_destination_labels(hub_app, database_engine):  # noqa: F811
     """Links to another route on the output hubs show a destination label.
 
-    Alt: identical icon-only arrows. Neu: icon plus a short visible name.
-    Row actions inside .admin-list-actions stay icon-only (Icon-first §5.4).
+    Alt: every icon-only link in .admin-row-actions counted as navigation.
+    Neu: object row actions stay icon-only and carry a nonempty accessible name.
+    output-print-actions, the vorlagen hub labels and the screen links stay visible.
     """
     client, _ = _login(hub_app, database_engine, ['Cafeteria.Admin'])
     expected = {
         '/admin/vorlagen': (
             'PDF Mitarbeitende', 'gewählte Woche', 'Menüs', 'Komponenten', 'Wochenplan',
             'PDF Patienten', 'Rezept drucken', 'Gerichtvorlagen', 'Zutaten', 'Kochbücher',
+            'Zuordnen',
         ),
         '/admin/screens': ('Tagesplan', 'Wochenplan', 'Ohne Bilder', 'Zuweisen'),
     }
+    object_paths = (
+        '/admin/vorlagen/cafeteria',
+        '/admin/vorlagen/cafeteria/vorschau.pdf',
+        '/admin/vorlagen/patienten',
+        '/admin/vorlagen/patienten/vorschau.pdf',
+        '/admin/vorlagen/rezepte',
+        '/admin/vorlagen/screens/cafeteria/cafeteria-week-photo',
+        '/admin/vorlagen/screens/cafeteria/cafeteria-week-text',
+        '/admin/vorlagen/screens/patienten/patient-week-photo',
+        '/admin/vorlagen/screens/patienten/patient-week-text',
+    )
     for path, labels in expected.items():
         response = client.get(path)
         assert response.status_code == 200
@@ -168,12 +231,27 @@ def test_hub_navigation_links_keep_visible_destination_labels(hub_app, database_
         assert scan.unlabeled == [], (path, scan.unlabeled)
         for label in labels:
             assert label in html, (path, label)
+        for action in scan.row_actions:
+            assert action['name'].strip(), action
+        if path == '/admin/vorlagen':
+            assert sorted(urlsplit(item['href']).path for item in scan.row_actions) == sorted(object_paths)
+            assert html.count('>Zuordnen<') == 2
+            for item in scan.row_actions:
+                target = urlsplit(item['href']).path
+                if target.endswith('/vorschau.pdf'):
+                    assert item['name'] == 'Version 1 als PDF prüfen', item
+                elif '/screens/' not in target:
+                    assert item['name'] == 'Standard bearbeiten', item
+                else:
+                    assert 'Wochenplan' in item['name'] and item['name'].endswith(' prüfen'), item
+        else:
+            assert scan.row_actions == []
         for group in scan.groups:
             seen = {}
-            for text, target in group:
-                assert text, (path, group)
-                assert seen.get(text, target) == target, (path, text, seen[text], target)
-                seen[text] = target
+            for label, target in group:
+                assert label, (path, group)
+                assert seen.get(label, target) == target, (path, label, seen[label], target)
+                seen[label] = target
 
 
 def test_app_factory_registers_each_hub_once(monkeypatch):

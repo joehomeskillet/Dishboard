@@ -182,15 +182,18 @@
       <tbody>
       {% for screen_family, catalog in screen_catalogs.items() %}
       {% for choice in catalog.choices %}
-      {% set row = namespace(items=[{'key': 'actions.preview', 'href': url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id), 'aria_label': area_names[choice.profile] ~ ' · ' ~ choice.name ~ ' prüfen'}]) %}
-      {% if loop.first %}
-      {% set row.items = row.items + [{'key': 'actions.edit', 'href': url_for('admin.screen_template_assignment', family=screen_family), 'aria_label': area_names[choice.profile] ~ ' · Wochenvorlage zuordnen', 'text': 'Zuordnen'}] %}
-      {% endif %}
+      {% set screen_object = area_names[choice.profile] ~ ' · ' ~ choice.name %}
       <tr>
-        <th scope="row" data-label="Vorlage"><span class="admin-list-primary admin-list-name">{{ area_names[choice.profile] }} · {{ choice.name }}</span></th>
+        <th scope="row" data-label="Vorlage"><span class="admin-list-primary admin-list-name">{{ screen_object }}</span></th>
         <td data-label="Version"><p class="admin-list-secondary print-tpl-meta mb-0">{% if catalog.active.template.id == choice.id %}Version {{ catalog.active.version }}{% else %}{{ empty_value() }}{% endif %}</p></td>
         <td class="admin-table-status" data-label="Status">{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_badge_sem('status.inactive') }}{% endif %}</td>
-        <td class="admin-table-actions" data-label="Aktionen">{{ row_actions(row.items, object=area_names[choice.profile] ~ ' · ' ~ choice.name) }}</td>
+        <td class="admin-table-actions" data-label="Aktionen">
+          {# ponytail: row_actions erzwingt show_text=false. Die Zuordnung verlässt diese Vorlage Richtung Bereichsseite und braucht den sichtbaren Zielnamen. Upgrade: show_text pro Eintrag in row_actions. #}
+          <div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=screen_object) }}">
+            {{ icon_button('actions.preview', href=url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id), aria_label=screen_object ~ ' prüfen') }}
+            {% if loop.first %}{{ icon_button('actions.edit', href=url_for('admin.screen_template_assignment', family=screen_family), aria_label=area_names[choice.profile] ~ ' · Wochenvorlage zuordnen', text='Zuordnen', show_text=true) }}{% endif %}
+          </div>
+        </td>
       </tr>
       {% endfor %}
       {% endfor %}
