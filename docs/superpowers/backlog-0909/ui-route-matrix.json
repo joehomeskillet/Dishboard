@@ -11003,7 +11003,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "cef849361bb192e47fe3bdf7bdbd44777d0a3e39356e6f2b06637fa690d57ba7",
+      "sha256": "faaf4489af4a5386c8952003dd1647273666012c56ad9cac87a8a3efef9fec40",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -11374,7 +11374,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "bc5869e92ed69e1622fb9f983dfbb0cccd9084fd8cc7adc2c0a1bffe6d1612cd",
+      "sha256": "416f3e33daacce40c7bc45f81acdc471a05c52198a218e2f8f4980b1a925a512",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],
