@@ -67,9 +67,9 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
             page.screenshot(path=str(tmp_path / f'list-{width}.png'), full_page=True)
             page.locator('#menu-list [data-semantic="actions.edit"]').first.click()
             for section in ('allergen', 'origin'):
-                details = page.locator(f'details[data-mode-section="{section}"]')
-                if details.get_attribute('open') is None:
-                    details.locator('summary').click()
+                fields = page.locator(f'section[data-mode-section="{section}"]')
+                expect(fields).to_be_visible()
+                expect(fields.locator('summary')).to_have_count(0)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             expect(page.locator('main .btn-primary')).to_have_count(1)
             expect(page.locator('.admin-statusbar')).to_contain_text('Profil')

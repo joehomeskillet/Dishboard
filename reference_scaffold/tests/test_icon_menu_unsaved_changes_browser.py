@@ -95,8 +95,7 @@ def test_unsaved_navigation_stay_or_leave_without_mutation(
     note = page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True)
     title.fill('D8 ungespeicherter Titel')
     output_texts = page.locator('#sec-output-texts')
-    if output_texts.get_attribute('open') is None:
-        output_texts.locator('summary').click()
+    expect(output_texts).to_be_visible()
     note.fill('D8 ungespeicherter Hinweis')
     leave = False
 
@@ -178,7 +177,7 @@ def test_collection_return_context_expected_current_behavior(
     page, family, _, evidence = menu_session
     before = stored_state(admin_engine)
     week_url = f'/admin/{family}?week={DAY}'
-    expect(page.locator('[data-semantic="navigation.weekplan"]')).to_have_attribute('href', week_url)
+    expect(page.locator('[data-semantic="navigation.weekplan"]')).to_have_count(0)
     expect(page.get_by_role('navigation', name='Breadcrumb').get_by_role(
         'link', name='Wochenplan', exact=True)).to_have_attribute('href', week_url)
     _navigate(page, navigation)
@@ -275,8 +274,8 @@ def test_collection_return_error_rerender_keeps_native_week_fallback(menu_sessio
     before = stored_state(admin_engine)
     page.get_by_label('Menüname', exact=True).fill('D16 nicht gespeichert')
     if status == 400:
-        for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
-            summary.click()
+        for section in page.locator('[data-mode-section]').all():
+            expect(section).to_be_visible()
         page.locator('[name="origin_mode"][value="manual"]').check()
         page.locator('[name="origin_ingredient"]').fill('Rind')
         page.locator('[name="origin_country_code"]').select_option('')

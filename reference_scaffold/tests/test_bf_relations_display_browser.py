@@ -23,13 +23,12 @@ def _bind_and_change_recipe(
     page.goto(_editor(family))
     page.get_by_label('Menüname', exact=True).fill('Menü mit festem Rezeptstand')
     if javascript_enabled:
-        page.locator('[data-edit-row]').first.click()
+        expect(page.locator('[data-component-edit-view]').first).to_be_visible()
         page.locator('[data-component-kind-option][value="text"]').first.check()
     page.locator('[name="component_text"]').fill('Ursprüngliche Suppe')
     page.get_by_label('Rezeptrevision', exact=True).select_option(first['public_id'])
     if family == 'cafeteria':
-        if page.locator('#sec-output-texts').get_attribute('open') is None:
-            page.locator('#sec-output-texts > summary').click()
+        expect(page.locator('#sec-output-texts')).to_be_visible()
         page.locator('[name="internal_chf"]').fill('9.50')
         page.locator('[name="external_chf"]').fill('14.50')
     with page.expect_response(lambda response: response.request.method == 'POST') as saved:
@@ -61,7 +60,7 @@ def test_t14_bound_revision_survives_recipe_change_and_archive(
                 ), {'id': int(first['recipe_id'])})
         page.goto(_editor(family))
         if javascript_enabled:
-            page.locator('[data-edit-row]').first.click()
+            expect(page.locator('[data-component-edit-view]').first).to_be_visible()
         select = page.get_by_label('Rezeptrevision', exact=True)
         expect(select).to_be_visible()
         expect(select).to_have_value(first['public_id'])

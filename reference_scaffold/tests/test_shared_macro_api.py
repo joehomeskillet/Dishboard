@@ -101,7 +101,7 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    assert len(calls) == 69, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 68, 'Review compatibility inventory when consumers change'
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
     assert len(extended) == 10

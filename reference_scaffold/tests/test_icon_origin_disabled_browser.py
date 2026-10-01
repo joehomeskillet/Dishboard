@@ -21,9 +21,8 @@ def test_automatic_origin_removal_explains_lock_and_tracks_mode(editor_page, fam
     posts = []
     page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
     assert page.goto(f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1').status == 200
-    section = page.locator('details[data-mode-section="origin"]')
-    if section.get_attribute('open') is None:
-        section.locator(':scope > summary').click()
+    section = page.locator('section[data-mode-section="origin"]')
+    expect(section).to_be_visible()
     rows = page.locator('#origins-list > .origin-row')
     action = rows.first.locator('[data-remove-row]')
     wrapper = action.locator('..')

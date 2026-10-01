@@ -149,7 +149,7 @@ def test_native_proposal_forms_save_and_keep_accessible_layout(
             page.set_viewport_size({'width': width, 'height': height})
             shot(page, f'editor-{family}-{width}-{javascript}')
         if family == 'cafeteria':
-            expect(page.locator('#sec-output-texts')).to_have_attribute('open', '')
+            expect(page.locator('#sec-output-texts')).to_be_visible()
             page.locator('[name="internal_chf"]').fill('9.50')
             page.locator('[name="external_chf"]').fill('14.50')
         else:

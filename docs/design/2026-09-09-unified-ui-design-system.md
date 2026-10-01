@@ -2118,6 +2118,16 @@ Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten st
 
 ##### Modul Menüs und Menüeditor inkl. Allergene (2026-09-20)
 
+**DELTA-3-08 (2026-10-01):** Kennzeichnungen und weitere Angaben sind statische
+Tabler-Abschnitte; kurze Hilfen stehen sichtbar bei denselben Beschreibungs-IDs.
+Bausteinzeilen zeigen ihre Eingabefelder dauerhaft. Die Umschaltung zwischen
+Kurzansicht und Bearbeiten/Fertig entfällt. Eingabeart-Radios, Rezeptbindung,
+Zielmenge, Formularzuordnung, FormData-Reihenfolge und native Zeilenaktionen
+behalten ihren Vertrag. Wiederherstellungsaktionen sind text-only. Der identische
+Wochenplan-Kopfbutton entfällt zugunsten Breadcrumb-Navigation; Abbrechen behält
+seinen Sammlungskontext. Frühere Aufklapp-/Kurzzeilenanforderungen dieses Abschnitts
+sind durch UI-DELTA §0.1 abgelöst. Aktueller Prüfstand steht im DELTA-3-08-Report.
+
 **DELTA-3-02 (2026-10-01):** Beschreibungen und Hinweise der Menüsammlung
 öffnen gemeinsame Lesedialoge außerhalb der Ergebnisansichten. Liste und Karten
 besitzen eindeutige Auslöser-/Dialog-IDs und denselben Inhalt. Profilnavigation

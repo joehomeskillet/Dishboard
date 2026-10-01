@@ -183,11 +183,9 @@ def test_menu_editor_native_zoom_form_journey(
             capture('initial')
             assert stored_state(admin_engine) == original and not posts
             expect(title_field).to_have_value(title)
-            for details in form.locator('details.admin-accordion, #sec-output-texts').all():
-                if details.get_attribute('open') is None:
-                    tab_to(details.locator(':scope > summary'))
-                    page.keyboard.press('Enter')
-                    expect(details).to_have_attribute('open', '')
+            expect(form.locator('details')).to_have_count(0)
+            for section in form.locator('[data-mode-section], #sec-output-texts').all():
+                expect(section).to_be_visible()
             # Native text controls may scroll internally; labels/content must not be clipped.
             assert form.locator('.form-label:visible, .form-hint:visible, .card-title:visible').evaluate_all('''els =>
                 els.every(el => {const style = getComputedStyle(el);
@@ -231,9 +229,7 @@ def test_menu_editor_native_zoom_form_journey(
             capture('saved-editor')
             assert page.goto(editor_url).status == 200
             output = page.locator('#sec-output-texts')
-            if output.get_attribute('open') is None:
-                tab_to(output.locator(':scope > summary'))
-                page.keyboard.press('Enter')
+            expect(output).to_be_visible()
             note_field.fill(note + ' Ausgabe um zwölf Uhr.')
             returned = submit(back, 303, returning=True)
             assert returned['row_version'] == ['2']

@@ -108,8 +108,10 @@ def test_a08_unchanged_catalog_and_text_pairs_use_native_save(
     page.goto(_menu_url(family))
     assert page.locator('[data-component-kind-option][name]').count() == 0
     if javascript:
-        expect(page.get_by_role('button', name='Bearbeiten')).to_have_count(2)
-        expect(page.locator('[data-component-summary]')).to_have_text(['Kartoffelstock', 'Blattsalat'])
+        expect(page.get_by_role('button', name='Bearbeiten')).to_have_count(0)
+        expect(page.locator('[data-component-edit-view]')).to_have_count(2)
+        expect(page.locator('[name="component_public_id"]').first.locator('option:checked')).to_have_text('Kartoffelstock')
+        expect(page.locator('[name="component_text"]').last).to_have_value('Blattsalat')
     else:
         for row in page.locator('#components-list .component-row').all():
             expect(row.locator('[name="component_public_id"]')).to_be_visible()
@@ -135,14 +137,14 @@ def test_a08_switching_input_kind_clears_other_value(editor_page, family: str, j
     page.goto(_menu_url(family))
     rows = page.locator('#components-list .component-row')
 
-    rows.first.get_by_role('button', name='Bearbeiten').click()
+    expect(rows.first.locator('[data-component-edit-view]')).to_be_visible()
     rows.first.locator('[data-component-kind-option][value="text"]').check()
     expect(rows.first.locator('[name="component_public_id"]')).to_have_value('')
     expect(rows.first.locator('[name="component_public_id"]')).to_be_hidden()
     expect(rows.first.locator('[name="component_text"]')).to_be_visible()
     rows.first.locator('[name="component_text"]').fill('Knöpfli')
 
-    rows.nth(1).get_by_role('button', name='Bearbeiten').click()
+    expect(rows.nth(1).locator('[data-component-edit-view]')).to_be_visible()
     rows.nth(1).locator('[data-component-kind-option][value="catalog"]').check()
     expect(rows.nth(1).locator('[name="component_text"]')).to_have_value('')
     expect(rows.nth(1).locator('[name="component_text"]')).to_be_hidden()
@@ -155,7 +157,7 @@ def test_a08_switching_input_kind_clears_other_value(editor_page, family: str, j
 
 
 @pytest.mark.parametrize('javascript', [True], indirect=True, ids=['js'])
-def test_a08_reopening_empty_input_kind_focuses_selected_control(editor_page, family: str) -> None:  # noqa: F811
+def test_a08_static_input_kind_keeps_selected_control_keyboard_accessible(editor_page, family: str) -> None:  # noqa: F811
     page, *_ = editor_page
     page.goto(_menu_url(family))
     row = page.locator('#components-list .component-row').first
@@ -163,19 +165,24 @@ def test_a08_reopening_empty_input_kind_focuses_selected_control(editor_page, fa
         ('text', 'component_text', 'component_public_id'),
         ('catalog', 'component_public_id', 'component_text'),
     ):
-        row.get_by_role('button', name='Bearbeiten').click()
+        expect(row.locator('[data-component-edit-view]')).to_be_visible()
         option = row.locator(f'[data-component-kind-option][value="{kind}"]')
         option.check()
         expect(row.locator(f'[name="{name}"]')).to_have_value('')
         expect(row.locator(f'[name="{other_name}"]')).to_have_value('')
-        row.get_by_role('button', name='Bestätigen').click()
-        edit = row.get_by_role('button', name='Bearbeiten')
-        expect(edit).to_be_focused()
-        edit.press('Enter')
+        expect(row.locator('[data-component-edit-view]')).to_be_visible()
+        expect(row.locator('[data-edit-row], [data-finish-row]')).to_have_count(0)
+        option.focus()
+        page.keyboard.press('Tab')
+        if kind == 'catalog':
+            # Unnamed UI-only radios remain separate native tab stops; they must
+            # not introduce another submitted form field.
+            expect(row.locator('[data-component-kind-option][value="text"]')).to_be_focused()
+            page.keyboard.press('Tab')
         expect(option).to_be_checked()
         expect(row.locator(f'[name="{name}"]')).to_be_focused()
         expect(row.locator(f'[name="{other_name}"]')).to_be_hidden()
-        row.get_by_role('button', name='Bestätigen').click()
+        expect(row.locator('[data-component-edit-view]')).to_be_visible()
 
 
 def test_a09_add_move_remove_keeps_visual_payload_order(editor_page, family: str, javascript: bool) -> None:  # noqa: F811
@@ -189,7 +196,7 @@ def test_a09_add_move_remove_keeps_visual_payload_order(editor_page, family: str
     expect(rows.last.locator('[name="component_public_id"]')).to_be_focused()
     rows.last.locator('[data-component-kind-option][value="text"]').check()
     rows.last.locator('[name="component_text"]').fill('Dritte Beilage')
-    rows.last.get_by_role('button', name='Bestätigen').click()
+    expect(rows.last.locator('[data-component-edit-view]')).to_be_visible()
     expect(rows.last.locator('details, summary')).to_have_count(0)
     for direction, name in (('up', 'Nach oben'), ('down', 'Nach unten')):
         move = rows.last.locator(f'[data-move-row="{direction}"]')
@@ -231,19 +238,17 @@ def test_a10_a13_dirty_review_links_width_and_focus_order(
     page.keyboard.press('Tab')
     expect(page.locator('#accompaniment-none')).to_be_focused()
     page.keyboard.press('Tab')
-    expect(page.locator('summary[aria-describedby="accompaniment-hint"]')).to_be_focused()
-    page.keyboard.press('Tab')
-    expect(page.locator('summary[aria-describedby="components-hint"]')).to_be_focused()
-    page.keyboard.press('Tab')
+    expect(page.locator('#accompaniment-hint')).to_be_visible()
+    expect(page.locator('#components-hint')).to_be_visible()
     assert page.evaluate('document.activeElement.closest("#components-list") !== null')
-    _tab_to(page, '#sec-markings ~ details summary')
+    _tab_to(page, '#f-desc')
     _tab_to(page, '[data-sticky] .btn-primary')
     _tab_to(page, '#review a[data-error-link]')
 
     if javascript:
         link = page.locator('#review a[href="#allergen-mode-manual"]')
         link.click()
-        expect(page.locator('details[data-mode-section="allergen"]')).to_have_attribute('open', '')
+        expect(page.locator('section[data-mode-section="allergen"]')).to_be_visible()
         expect(page.locator('#allergen-mode-manual')).to_be_focused()
 
     container_ratio = page.locator('.page-body > .container-xl').evaluate('''element => {
@@ -287,7 +292,7 @@ def test_a11_a12_editor_evidence_states(editor_page, family: str, javascript: bo
     page.locator('[data-add-row="components-list"]').click()
     page.locator('[data-component-kind-option][value="text"]').last.check()
     page.locator('[name="component_text"]').last.fill('Dritte Beilage')
-    page.locator('[data-finish-row]').last.click()
+    expect(page.locator('[data-component-edit-view]').last).to_be_visible()
     for width, height in DENSITY_VIEWPORTS:
         page.set_viewport_size({'width': width, 'height': height})
         _capture(page, f'menu-editor-regulaer-{width}x{height}.png')
@@ -301,8 +306,8 @@ def test_a11_a12_editor_evidence_states(editor_page, family: str, javascript: bo
         zoom_page.goto(_menu_url(family))
         _capture(zoom_page, 'menu-editor-regulaer-200-prozent-720x450.png')
 
-    for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
-        summary.click()
+    for section in page.locator('[data-mode-section]').all():
+        expect(section).to_be_visible()
     page.locator('[name="origin_mode"][value="manual"]').check()
     page.locator('[name="origin_ingredient"]').fill('Rind')
     page.locator('[name="origin_country_code"]').select_option('')
@@ -344,9 +349,8 @@ def test_a11_review_keeps_persisted_state_when_draft_changes(
     assert saved_labels.strip()
     draft_title = 'Entwurf der nicht geprüft ist'
     page.get_by_label('Menüname', exact=True).fill(draft_title)
-    allergen = page.locator('details[data-mode-section="allergen"]')
-    if allergen.get_attribute('open') is None:
-        allergen.locator('summary').click()
+    allergen = page.locator('section[data-mode-section="allergen"]')
+    expect(allergen).to_be_visible()
     milk = page.locator('[name="allergen_code"][value="MILK"]')
     if milk.count() and milk.is_enabled():
         milk.uncheck()
@@ -385,11 +389,11 @@ def test_compact_assignments_and_native_kind_contract(
     rows = page.locator('#components-list .component-row')
     expect(rows).to_have_count(2)
     if javascript:
-        expect(rows.first.locator('[data-component-summary-view]')).to_be_visible()
-        expect(rows.first.locator('[data-component-edit-view]')).to_be_hidden()
+        expect(rows.first.locator('[data-component-summary-view]')).to_have_count(0)
+        expect(rows.first.locator('[data-component-edit-view]')).to_be_visible()
         height = rows.first.evaluate('el => el.getBoundingClientRect().height')
         assert height >= 44
-        expect(rows.get_by_role('button', name='Bearbeiten')).to_have_count(2)
+        expect(rows.get_by_role('button', name='Bearbeiten')).to_have_count(0)
         expect(rows.locator('[data-move-row="up"]')).to_have_count(2)
         expect(rows.locator('[data-remove-row]')).to_have_count(2)
     else:
@@ -399,22 +403,20 @@ def test_compact_assignments_and_native_kind_contract(
     assert page.locator('[data-component-kind-option][name]').count() == 0
 
 
-def test_a09_origin_error_opens_closed_details(
+def test_a09_origin_error_preserves_static_fields(
     editor_page, family: str, javascript: bool,  # noqa: F811
 ) -> None:
     page, *_ = editor_page
     page.goto(_menu_url(family))
-    origin = page.locator('details[data-mode-section="origin"]')
-    if origin.get_attribute('open') is None:
-        origin.locator(':scope > summary').click()
+    origin = page.locator('section[data-mode-section="origin"]')
+    expect(origin).to_be_visible()
     page.locator('[name="origin_mode"][value="manual"]').check()
     page.locator('[name="origin_ingredient"]').first.fill('Rind')
     page.locator('[name="origin_country_code"]').first.select_option('')
-    if origin.get_attribute('open') is not None:
-        origin.locator(':scope > summary').click()
+    expect(origin).to_be_visible()
     _submit_menu_form(page, 400)
     expect(page.locator('.error-region[role="alert"]')).to_be_visible()
-    expect(page.locator('details[data-mode-section="origin"]')).to_have_attribute('open', '')
+    expect(page.locator('section[data-mode-section="origin"]')).to_be_visible()
     expect(page.locator('[name="origin_ingredient"]').first).to_have_value('Rind')
     expect(page.get_by_label('Menüname', exact=True)).to_have_value('Herbstteller')
     _assert_one_primary_save(page)
@@ -441,8 +443,8 @@ def test_density_viewports_reflow_and_zoom_probe(
             assert layout['main'] > layout['review']
             assert not layout['stacked']
             if (width, height) == (1440, 900):
-                for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
-                    summary.click()
+                for section in page.locator('[data-mode-section]').all():
+                    expect(section).to_be_visible()
                 metrics = page.evaluate('''() => {
                     const main = document.querySelector('.menu-editor-main');
                     const aside = document.querySelector('.menu-editor-review');

@@ -23,8 +23,9 @@ def _editor(family: str) -> str:
 
 
 def _open_sections(page: Page) -> None:
-    for summary in page.locator('details.admin-accordion:not([open]) > summary, #sec-output-texts:not([open]) > summary').all():
-        summary.click()
+    expect(page.locator('main details')).to_have_count(0)
+    for section in page.locator('[data-mode-section], #sec-output-texts').all():
+        expect(section).to_be_visible()
 
 
 def _box(locator) -> dict[str, float]:
@@ -58,7 +59,7 @@ def _assert_visible_editor_labels(page: Page) -> None:
         assert 'components-hint' in (field.get_attribute('aria-describedby') or '').split()
     for row in page.locator('#components-list .component-row').all():
         visible_controls = row.locator('[name="component_public_id"]:visible, [name="component_text"]:visible')
-        expect(visible_controls).to_have_count(1 if 'is-editing' in (row.get_attribute('class') or '') else 0)
+        expect(visible_controls).to_have_count(1)
     ids = page.locator('form[data-menu-editor] [id]').evaluate_all('els => els.map(el => el.id)')
     assert len(ids) == len(set(ids))
     dangling = page.locator('form[data-menu-editor] [aria-describedby]').evaluate_all('''els =>
@@ -98,7 +99,7 @@ def test_visible_editor_labels_with_populated_and_error_states(
         'falls Fleischersatz verwendet wird, dessen Soja- und Weizenbestandteile prüfen. '
         'Rezeptur und Produktdeklaration prüfen.',
     )
-    page.get_by_role('button', name='Bearbeiten').first.click()
+    expect(page.locator('[data-component-edit-view]').first).to_be_visible()
     page.locator('[data-component-kind-option][value="text"]').first.check()
     page.locator('[name="component_text"]').fill('Saisonales Gemüse mit Kräutern und langem vollständigem Rezepturhinweis')
     page.locator('[name="allergen_mode"][value="manual"]').check()
@@ -119,7 +120,7 @@ def test_visible_editor_labels_with_populated_and_error_states(
     page.get_by_role('button', name='Baustein hinzufügen').click()
     page.locator('[data-component-kind-option][value="text"]').last.check()
     page.locator('[name="component_text"]').last.fill('Zusätzliche Gemüsebeilage')
-    page.locator('#components-list [data-row]').last.get_by_role('button', name='Bestätigen', exact=True).click()
+    expect(page.locator('#components-list [data-row]').last.locator('[data-component-edit-view]')).to_be_visible()
     expect(page.locator('#components-list [data-row]').last.get_by_role('button', name='Nach oben', exact=True)).to_be_visible()
     page.locator('#components-list [data-row]').last.get_by_role('button', name='Nach oben', exact=True).click()
     _assert_visible_editor_labels(page)
@@ -297,7 +298,7 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
         page.evaluate('window.scrollTo(0, document.documentElement.scrollHeight)')
         _settle(page)
         bar_box = _box(bar)
-        last_section = form.locator('details.admin-accordion').last
+        last_section = form.locator('[data-mode-section]').last
         last_box = _box(last_section)
         assert last_box['y'] + last_box['height'] <= bar_box['y'] + 1, 'Save bar covers the last section.'
         if width < 992:
@@ -356,12 +357,12 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
         if index:
             add.click()
         else:
-            page.get_by_role('button', name='Bearbeiten').first.click()
+            expect(page.locator('[data-component-edit-view]').first).to_be_visible()
         page.locator('[data-component-kind-option][value="text"]').nth(index).check()
         page.locator('[name="component_text"]').nth(index).fill(text)
-        page.locator('#components-list .component-row').nth(index).get_by_role(
-            'button', name='Bestätigen', exact=True,
-        ).click()
+        expect(page.locator('#components-list .component-row').nth(index).locator(
+            '[data-component-edit-view]',
+        )).to_be_visible()
     rows = page.locator('#components-list .component-row')
     expect(rows).to_have_count(3)
     expect(rows.nth(2).locator('legend').first).to_have_text('Baustein 3')
@@ -410,12 +411,12 @@ def test_dynamic_rows_have_unique_ids_labeled_controls_and_ordered_payload(page_
     expect(page.locator('[name="component_text"]').nth(1)).to_have_value('Zweite')
 
 
-def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(page_context: Page) -> None:  # noqa: F811
+def test_field_error_keeps_sections_visible_and_summary_links_to_field(page_context: Page) -> None:  # noqa: F811
     page = page_context
     page.set_viewport_size({'width': 1024, 'height': 768})
     page.goto(_editor('patienten'))
     page.get_by_label('Menüname', exact=True).fill('Fehlerfall')
-    origin = page.locator('details[data-mode-section="origin"]')
+    origin = page.locator('section[data-mode-section="origin"]')
     _open_sections(page)
     # Unsaved cells prefill every mode as manual; only origin stays manual for this error case.
     page.locator('[name="allergen_mode"][value="auto"]').check()
@@ -426,9 +427,9 @@ def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(pa
     payload = _submit_menu(page, 400)
     assert payload['origin_country_code'] == ['']
 
-    assert origin.get_attribute('open') is not None
-    assert page.locator('details[data-mode-section="allergen"]').get_attribute('open') is None
-    assert page.locator('details[data-mode-section="label"]').get_attribute('open') is None
+    expect(origin).to_be_visible()
+    expect(page.locator('section[data-mode-section="allergen"]')).to_be_visible()
+    expect(page.locator('section[data-mode-section="label"]')).to_be_visible()
     field = page.locator('[name="origin_country_code"]')
     expect(page.locator('.error-region[role="alert"]')).to_be_focused()
     expect(field).to_have_attribute('aria-invalid', 'true')
@@ -442,31 +443,31 @@ def test_field_error_opens_only_affected_accordion_and_summary_links_to_field(pa
     expect(summary).to_have_class(re.compile(r'\balert-danger\b'))
     link = summary.locator('a[data-error-link]')
     expect(link).to_have_attribute('href', '#origin-0-country')
-    origin.evaluate('el => el.removeAttribute("open")')
+    expect(origin.locator('summary')).to_have_count(0)
     link.click()
-    assert origin.get_attribute('open') is not None
+    expect(origin).to_be_visible()
     expect(field).to_be_focused()
     expect(summary.get_by_role('button', name='Erneut versuchen', exact=True)).to_be_visible()
 
 
-def test_modes_and_accordion_state_survive_save_and_reload(page_context: Page) -> None:  # noqa: F811
+def test_modes_and_static_sections_survive_save_and_reload(page_context: Page) -> None:  # noqa: F811
     page = page_context
     page.set_viewport_size({'width': 820, 'height': 1180})
     page.goto(_editor('patienten'))
     page.get_by_label('Menüname', exact=True).fill('Kennzeichnungen')
-    # Unsaved cells prefill every mode as manual, so all accordions start open.
+    # Unsaved cells prefill every mode as manual; all sections remain visible.
     for key in ('allergen', 'origin', 'label'):
-        assert page.locator(f'details[data-mode-section="{key}"]').get_attribute('open') is not None
-        expect(page.locator(f'details[data-mode-section="{key}"] [data-mode-badge]')).to_have_text('manuell festgelegt')
+        expect(page.locator(f'section[data-mode-section="{key}"]')).to_be_visible()
+        expect(page.locator(f'section[data-mode-section="{key}"] [data-mode-badge]')).to_have_text('manuell festgelegt')
         page.locator(f'[name="{key}_mode"][value="auto"]').check()
-        expect(page.locator(f'details[data-mode-section="{key}"] [data-mode-badge]')).to_have_text('automatisch geerbt')
+        expect(page.locator(f'section[data-mode-section="{key}"] [data-mode-badge]')).to_have_text('automatisch geerbt')
     _submit_menu(page)
     page.reload()
     for key in ('allergen', 'origin', 'label'):
-        assert page.locator(f'details[data-mode-section="{key}"]').get_attribute('open') is None
+        expect(page.locator(f'section[data-mode-section="{key}"]')).to_be_visible()
         expect(page.locator(f'[name="{key}_mode"][value="auto"]')).to_be_checked()
-    allergen = page.locator('details[data-mode-section="allergen"]')
-    allergen.locator('summary').click()
+    allergen = page.locator('section[data-mode-section="allergen"]')
+    expect(allergen.locator('summary')).to_have_count(0)
     page.locator('[name="allergen_mode"][value="manual"]').check()
     page.locator('[name="allergen_code"][value="MILK"]').check()
     payload = _submit_menu(page)
@@ -476,12 +477,12 @@ def test_modes_and_accordion_state_survive_save_and_reload(page_context: Page) -
     assert payload['allergen_code'] == ['MILK']
 
     page.reload()
-    assert allergen.get_attribute('open') is not None
+    expect(allergen).to_be_visible()
     expect(allergen.locator('[data-mode-badge]')).to_have_text('manuell festgelegt')
     expect(page.locator('[name="allergen_mode"][value="manual"]')).to_be_checked()
     expect(page.locator('[name="allergen_code"][value="MILK"]')).to_be_checked()
     for key in ('origin', 'label'):
-        assert page.locator(f'details[data-mode-section="{key}"]').get_attribute('open') is None
+        expect(page.locator(f'section[data-mode-section="{key}"]')).to_be_visible()
         expect(page.locator(f'[name="{key}_mode"][value="auto"]')).to_be_checked()
 
     page.locator('[name="allergen_mode"][value="auto"]').check()
@@ -490,7 +491,7 @@ def test_modes_and_accordion_state_survive_save_and_reload(page_context: Page) -
     payload = _submit_menu(page)
     assert 'allergen_code' not in payload
     page.reload()
-    assert allergen.get_attribute('open') is None
+    expect(allergen).to_be_visible()
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
@@ -503,12 +504,12 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
     if family == 'cafeteria':
         expect(prices).to_have_count(2)
         expect(page.locator('#f-int')).to_be_visible()
-        expect(output).to_have_attribute('open', '')
+        expect(output).to_be_visible()
         expect(page.get_by_label('Mitarbeitende CHF', exact=True)).to_be_visible()
         expect(page.get_by_label('Preis für externe Gäste CHF', exact=True)).to_be_visible()
     else:
         expect(prices).to_have_count(0)
-        assert output.get_attribute('open') is None
+        expect(output).to_be_visible()
         assert PATIENT_FORBIDDEN.search(page.content()) is None
 
     expect(page.get_by_label('Kompakte Ansicht', exact=True)).to_have_count(0)
