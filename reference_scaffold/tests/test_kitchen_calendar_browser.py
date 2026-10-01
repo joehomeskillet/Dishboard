@@ -145,8 +145,10 @@ def _boxes_overlap(left: dict[str, float], right: dict[str, float]) -> bool:
 def _dish_counts(cell) -> dict[str, int]:
     return cell.evaluate('''(element) => {
         const dishes = [...element.querySelectorAll('.kitchen-cal-dish')];
-        const visible = dishes.filter((node) => !node.closest('dialog')).length;
-        const total = dishes.filter((node) => node.closest('dialog')).length || visible;
+        const visible = dishes.length;
+        const trigger = element.querySelector('[data-read-detail]');
+        const dialog = trigger && document.getElementById(trigger.dataset.readDetail);
+        const total = dialog ? dialog.querySelectorAll('.kitchen-cal-dish').length : visible;
         return { visible, overflow: total - visible, total };
     }''')
 
@@ -201,7 +203,7 @@ def test_overflow_details_keyboard_accessible(
     page, context = _open_calendar(browser, live_server, admin_app, admin_engine, width=1440, height=900)
     try:
         cell = _full_day_cell(page)
-        details = cell.locator('dialog.ui-read-detail')
+        details = page.locator('#' + cell.locator('[data-read-detail]').get_attribute('aria-controls'))
         assert details.count() == 1
         summary = cell.locator('[data-read-detail]')
         hidden_count = details.locator('.kitchen-cal-dish').count()
@@ -315,7 +317,7 @@ def test_no_js_navigation_filter_and_details(
         summary = cell.locator('[data-read-detail]')
         summary.focus()
         page.keyboard.press('Enter')
-        expect(cell.locator('dialog.ui-read-detail')).to_be_visible()
+        expect(page.locator('#' + summary.get_attribute('aria-controls'))).to_be_visible()
     finally:
         context.close()
 
@@ -417,10 +419,10 @@ def test_calendar_today_range_and_native_overflow(
         assert parse_qs(urlsplit(other_link.get_attribute('href')).query)['week'] == ['2026-08-31']
         capture('today-and-other-day-focus')
         # Keyboard focus is independent of today's date; the route has no selected-day state.
-        assert sorted(today.locator('dialog .kitchen-cal-dish').all_text_contents()) == sorted(records)
-        assert _dish_counts(today) == {'visible': 3, 'overflow': 3, 'total': 6}
-        details = today.locator('dialog.ui-read-detail')
         summary = today.locator('[data-read-detail]')
+        details = page.locator('#' + summary.get_attribute('aria-controls'))
+        assert sorted(details.locator('.kitchen-cal-dish').all_text_contents()) == sorted(records)
+        assert _dish_counts(today) == {'visible': 3, 'overflow': 3, 'total': 6}
         expect(today.locator('.kitchen-cal-more')).to_contain_text('3 weitere Einträge')
         expect(details.locator('a').first).to_be_hidden()
         summary.focus()

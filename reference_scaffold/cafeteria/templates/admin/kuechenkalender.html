@@ -94,9 +94,6 @@
       {{ read_detail_trigger(detail_id, 'ui.read_detail.day', day_label) }}
       <span class="admin-list-meta">{{ day_ns.overflow }} weitere Einträge</span>
     </div>
-    {% call read_detail_dialog(detail_id, 'Tageseinträge', day_label) %}
-      {{ day_body(cell, variant, full=true) }}
-    {% endcall %}
     {% endif %}
   {% endif %}
 {% endmacro %}
@@ -145,4 +142,21 @@
     {% endfor %}
   {% endfor %}
 </ol>
+{% for week in weeks %}
+  {% for cell in week %}
+    {% set entries = namespace(count=0) %}
+    {% for group in cell.groups %}
+      {% for meal in group.meals %}
+        {% set entries.count = entries.count + (meal.visible|length) + (meal.extra|length) %}
+      {% endfor %}
+    {% endfor %}
+    {% if entries.count > 3 %}
+      {% for variant in ('grid', 'list') if variant == 'grid' or cell.in_month %}
+        {% call read_detail_dialog('calendar-day-' ~ variant ~ '-' ~ cell.date.isoformat(), 'Tageseinträge', cell.date.strftime('%d.%m.%Y')) %}
+          {{ day_body(cell, variant, full=true) }}
+        {% endcall %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
 {% endblock %}

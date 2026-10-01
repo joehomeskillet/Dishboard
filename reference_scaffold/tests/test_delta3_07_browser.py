@@ -109,6 +109,9 @@ def test_full_day_dialog_contains_all_entries(
         before = page.evaluate(geometry)
         trigger.press('Enter')
         expect(dialog).to_be_visible()
+        assert dialog.locator('h2').evaluate('''el =>
+            parseFloat(getComputedStyle(el).fontSize) >=
+            parseFloat(getComputedStyle(document.body).fontSize)''')
         expect(dialog.locator('.kitchen-cal-dish')).to_have_count(6)
         expect(dialog.locator('.kitchen-cal-area')).to_have_count(2)
         expect(dialog.locator('.kitchen-cal-event')).to_have_text('Anlass im vollständigen Tageskontext')
