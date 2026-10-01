@@ -100,7 +100,7 @@ def test_week_warning_summary_and_precise_compact_records(
         expect(page.locator(link.get_attribute('href'))).to_contain_text('Allergenangaben nicht erfasst')
     if course_count:
         course_issues = page.locator('#course-issues')
-        expect(course_issues.locator('li')).to_have_count(course_count)
+        expect(course_issues.get_by_role('listitem')).to_have_count(course_count)
         expect(course_issues).to_contain_text('Allergenangaben fehlen')
         expect(course_issues).to_contain_text('Nährwertangaben fehlen')
     summary.locator('[data-read-detail-close]').click()
