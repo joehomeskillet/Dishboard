@@ -70,10 +70,10 @@ def test_week_header_precedes_check_summary_with_keyboard_and_anchors(
         (tmp_path / 'header-check-layout.json').write_text(json.dumps(layout, indent=2))
         page.screenshot(path=str(tmp_path / f'{family}-{width}-{coarse}.png'))
 
-        details = checks.locator('details')
-        trigger = details.locator('summary')
-        expect(trigger).to_have_text('Betroffene Einträge')
-        expect(details).not_to_have_attribute('open', '')
+        details = checks.locator('dialog')
+        trigger = checks.locator('#week-check-entries-trigger')
+        expect(trigger).to_have_attribute('data-semantic', 'ui.read_detail.review')
+        expect(details).to_be_hidden()
         for _ in range(60):
             page.keyboard.press('Tab')
             if trigger.evaluate('element => element === document.activeElement'):
@@ -81,7 +81,7 @@ def test_week_header_precedes_check_summary_with_keyboard_and_anchors(
         expect(trigger).to_be_focused()
         page.keyboard.press('Enter')
         expect(details).to_have_attribute('open', '')
-        links = details.locator('a')
+        links = details.locator('.ui-read-detail-content a')
         for link in links.all():
             expect(page.locator(link.get_attribute('href'))).to_have_count(1)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -92,14 +92,17 @@ def test_week_header_precedes_check_summary_with_keyboard_and_anchors(
         assert href is not None
         anchor.focus()
         page.keyboard.press('Enter')
-        expect(page).to_have_url(f'{live_server}/admin/{family}?week={DAY}{href}')
-        expect(page.locator(':target')).to_have_attribute('id', href[1:])
+        expect(details).to_be_hidden()
+        expect(page.locator(href)).to_be_focused()
         expect(page.locator(href)).to_be_in_viewport()
         assert page.evaluate('scrollY > 0')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         trigger.focus()
         page.keyboard.press('Enter')
-        expect(details).not_to_have_attribute('open', '')
+        expect(details).to_be_visible()
+        page.keyboard.press('Escape')
+        expect(details).to_be_hidden()
+        expect(trigger).to_be_focused()
 
         # Last assertion preserves screenshots and exercises warnings on the red baseline.
         assert layout['headingFirst'], layout

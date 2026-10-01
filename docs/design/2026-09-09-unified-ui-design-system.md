@@ -31,8 +31,11 @@ Fachliche Informationen, notwendige Warnungen, Berechtigungen und Schutzschritte
 DELTA-3-03 (Wochenplanung): Wochenendhinweise stehen statisch in der Inhaltszone.
 Die No-JS-Veröffentlichungsbestätigung ist ein statischer Abschnitt; im Dialog
 bleiben die Textaktionen «Abbrechen» und «Veröffentlichen». Das zusätzliche
-Schliesskreuz und der doppelte Erste-Slot-Zugang entfallen. Prüfdetailmigration
-D-15/D-16 bleibt bis zum gemeinsamen Dialogvertrag für Sprunglinks offen.
+Schliesskreuz und der doppelte Erste-Slot-Zugang entfallen. Prüfdetails D-15/D-16
+stehen gemeinsam im Lesedialog «Betroffene Einträge». Menü-, Ausgabe- und
+Gangsprünge schliessen ihn über den gemeinsamen Hintergrundziel-Vertrag.
+Prüfstatus und Publikationssperren bleiben unmittelbar sichtbar. Die vollständige
+No-JS-Geometrieabnahme bleibt wegen des gemeinsamen Schliessen-Ankers offen.
 
 DELTA-3-04: Wochenangaben und Ausgabeangaben stehen als kompakte statische
 Formularabschnitte mit ihren bisherigen Speicheraktionen bereit. Menübeschreibung

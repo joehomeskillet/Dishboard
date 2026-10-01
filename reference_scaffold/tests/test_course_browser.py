@@ -102,18 +102,19 @@ def test_ac12_course_issues_in_info_bar(browser, live_server, admin_app, admin_e
         page.goto(f'/admin/cafeteria?week={DAY}')
         
         # Gang warnings stay visible in the week check summary. The affected
-        # courses open from the native «Gangangaben prüfen» disclosure.
+        # Course details share the affected-entry dialog; no second local trigger.
         course_status = page.locator('#week-check-summary')
         expect(course_status).to_contain_text('1 Gang prüfen')
         expect(course_status).to_contain_text('ohne Allergenangaben')
         expect(course_status).to_contain_text('nicht allergenfrei')
 
-        issues = page.locator('details#course-issues')
+        page.locator('#week-check-entries-trigger').click()
+        issues = page.locator('#course-issues')
         expect(issues).to_have_count(1)
-        issues.locator('summary').click()
-        expect(issues).to_have_attribute('open', '')
+        issues.scroll_into_view_if_needed()
         expect(issues).to_be_in_viewport()
         expect(issues).to_contain_text('Allergenangaben fehlen')
+        page.locator('#week-check-entries [data-read-detail-close]').click()
         
         expect(page.locator(f'.menu-slot[data-day="{DAY}"][data-option="MENU_1"]')).not_to_contain_text('Geprüft')
         

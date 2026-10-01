@@ -1,5 +1,4 @@
 {# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, can_publish, week_row_version, schedule_defaults_csrf. #}
-{% from 'admin/_macros.html' import disclosure_section %}
 {% from 'ui/_semantic.html' import icon_button, row_actions, status_badge_sem %}
 {% if status == 'live' %}
   {% set publish_label = 'Erneut veröffentlichen' %}
@@ -85,17 +84,6 @@
     {% endif %}
     {{ icon_button('actions.preview', href='/admin/' ~ family ~ '/preview?week=' ~ week_value, attrs={'target': '_blank', 'rel': 'noopener'}) }}
     {{ icon_button('actions.check', href='/admin/' ~ family ~ '/wochen/pruefung?week=' ~ week_value, aria_label='Wochenangaben prüfen', class='admin-week-review-link') }}
-    {% if course_issues is defined and course_issues['items'] %}
-    {% call disclosure_section(title='Gangangaben prüfen', id='course-issues', details_class='admin-week-issues', summary_key='actions.check') %}
-      <ul class="list-unstyled mb-0">
-        {% for item in course_issues['items'] %}
-        <li>
-          <a href="#course-{{ item.day }}-{{ item.meal }}">{{ item.day }} · {{ 'Mittag' if item.meal == 'LUNCH' else 'Abend' }} · {{ 'Suppe' if item.kind == 'soup' else 'Dessert' }}{% if item.option %} · {{ 'Vegetarisch' if item.option == 'VEGGIE' else 'Menü 1' }}{% endif %}: {% if 'missing_allergens' in item.problems %}Allergenangaben fehlen{% endif %}{% if 'missing_nutrition' in item.problems %}{% if 'missing_allergens' in item.problems %} · {% endif %}Nährwertangaben fehlen{% endif %}</a>
-        </li>
-        {% endfor %}
-      </ul>
-    {% endcall %}
-    {% endif %}
     {{ row_actions([
       {'key': 'actions.export', 'href': url_for('admin.export_csv', profile_code=csv_profile), 'aria_label': 'CSV exportieren'},
       {'key': 'actions.copy', 'href': '/admin/' ~ family ~ '/copy?week=' ~ week_value, 'aria_label': 'Vorwoche kopieren'}

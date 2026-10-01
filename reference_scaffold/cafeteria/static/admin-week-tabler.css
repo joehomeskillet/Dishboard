@@ -157,12 +157,6 @@
   font-size: var(--app-font-size-label);
 }
 .dishboard-admin .admin-week-checkline { margin: 0 0 var(--app-space-2); }
-.dishboard-admin .admin-week-check-entries > summary {
-  cursor: pointer; list-style: none; display: inline-flex; align-items: center;
-  min-height: var(--app-control-min-height);
-}
-.dishboard-admin .admin-week-check-entries > summary::-webkit-details-marker { display: none; }
-.dishboard-admin .admin-week-check-entries:not([open]) > :not(summary) { display: none; }
 .dishboard-admin .admin-week-check-list { margin: var(--app-space-2) 0 0; padding: 0; list-style: none; }
 .dishboard-admin .admin-week-check-list a {
   display: flex; align-items: center; min-height: var(--app-control-min-height);

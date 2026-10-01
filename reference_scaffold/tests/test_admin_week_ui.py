@@ -221,7 +221,7 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         publish_trigger.focus()
         page.keyboard.press('Tab')
         # The quiet header's warning details precede the secondary action row.
-        expect(page.locator('#week-check-entries > summary')).to_be_focused()
+        expect(page.locator('#week-check-entries-trigger')).to_be_focused()
         page.keyboard.press('Tab')
         expect(page.locator('a[href*="/preview"]')).to_be_focused()
         page.keyboard.press('Tab')

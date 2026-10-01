@@ -93,19 +93,17 @@ def test_week_warning_summary_and_precise_compact_records(
         else:
             assert form['action'] == f'/admin/{family}/publish'
             assert set(fields) == {'_csrf', 'week', 'row_version'}
-    summary.locator('summary').press('Enter')
+    summary.locator('#week-check-entries-trigger').press('Enter')
     missing_links = summary.locator('a').filter(has_text='Allergenangaben nicht erfasst')
     expect(missing_links).to_have_count(missing_count)
     for link in missing_links.all():
         expect(page.locator(link.get_attribute('href'))).to_contain_text('Allergenangaben nicht erfasst')
-    summary.locator('summary').press('Enter')
     if course_count:
         course_issues = page.locator('#course-issues')
-        course_issues.locator('summary').press('Enter')
         expect(course_issues.locator('li')).to_have_count(course_count)
         expect(course_issues).to_contain_text('Allergenangaben fehlen')
         expect(course_issues).to_contain_text('Nährwertangaben fehlen')
-        course_issues.locator('summary').press('Enter')
+    summary.locator('[data-read-detail-close]').click()
     warnings = page.locator('[data-menu-metadata] > p').filter(has_text='Allergen')
     expect(warnings).to_have_count(missing_count + review_count)
     # Screenshot precedes presentation assertions so a baseline run preserves before evidence.

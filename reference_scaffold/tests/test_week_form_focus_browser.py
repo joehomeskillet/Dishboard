@@ -43,19 +43,16 @@ def test_week_form_keyboard_focus_after_modal_cancel_is_fully_visible(
     expect(modal).not_to_be_visible()
     expect(trigger).to_be_focused()
     page.keyboard.press('Tab')
-    # Fachliche Warnungen und Wochenendhinweise bleiben eigene Tab-Stationen.
-    for summary in page.locator('#week-check-entries > summary, #weekend-hint > summary').all():
-        expect(summary).to_be_focused()
-        expect(summary).to_be_in_viewport(ratio=1)
+    # One dialog trigger reaches menu, time and course warnings.
+    for check_trigger in page.locator('#week-check-entries-trigger').all():
+        expect(check_trigger).to_be_focused()
+        expect(check_trigger).to_be_in_viewport(ratio=1)
         page.keyboard.press('Tab')
     expect(page.locator('a[href*="/preview"]')).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.get_by_role('link', name='Wochenangaben prüfen')).to_be_focused()
     page.keyboard.press('Tab')
-    for summary in page.locator('#course-issues > summary').all():
-        expect(summary).to_be_focused()
-        expect(summary).to_be_in_viewport(ratio=1)
-        page.keyboard.press('Tab')
+    expect(page.locator('.admin-week-controls [data-read-detail]')).to_have_count(0)
     expect(page.get_by_role('link', name='CSV exportieren', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.get_by_role('link', name='Vorwoche kopieren', exact=True)).to_be_focused()

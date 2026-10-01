@@ -145,7 +145,7 @@ def test_blocked_publish_explains_guard_and_links_to_review(blocked_week, admin_
         expect(page.locator('[data-week-review-intro]')).to_contain_text('Die Menüs werden einzeln geprüft.')
         assert _database_snapshot(admin_engine) == before
         assert page.goto(f'/admin/{family}?week={DAY}').status == 200
-        page.locator('#week-check-entries > summary').click()
+        page.locator('#week-check-entries-trigger').click()
         affected = page.locator('#week-check-entries a', has_text='Kartenprüfung offen')
         expect(affected).to_have_count(1)
         affected.focus()
