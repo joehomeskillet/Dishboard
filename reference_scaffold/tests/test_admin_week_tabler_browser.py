@@ -489,7 +489,9 @@ def test_publish_guidance_correction_review_and_publish(
         initial = state()
         milk.uncheck()
         submit(page.get_by_role('button', name='Menü speichern', exact=True), f'/admin/{family}/menu')
-        page.locator('[data-semantic="navigation.weekplan"]').click()
+        back = page.get_by_role('navigation', name='Breadcrumb').get_by_role('link', name='Wochenplan', exact=True)
+        expect(back).to_have_attribute('href', overview)
+        back.click()
         page.wait_for_url(live_server + overview)
         blocked = state()
         assert blocked[1:] == initial[1:] and blocked[1] == 0
@@ -561,7 +563,7 @@ def test_publish_guidance_correction_review_and_publish(
         after_review = state()
         assert after_review[1] == 0 and after_review[2] == after_save[2] + 1
         assert after_review[0]['days'][0]['services'][0]['options'][0]['allergen_review_status'] == 'checked'
-        back = page.locator('[data-semantic="navigation.weekplan"]')
+        back = page.get_by_role('navigation', name='Breadcrumb').get_by_role('link', name='Wochenplan', exact=True)
         expect(back).to_have_attribute('href', overview)
         before_navigation = len(posts)
         back.click()
