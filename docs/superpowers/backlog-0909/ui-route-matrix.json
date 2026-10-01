@@ -10307,7 +10307,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "75c2d987736117f3274b517f595fd2d76d6a64ef52b6b17ff8c2727dc8de4071",
+      "sha256": "70017b12fe2016b06dabce1e1aaf45cf24e6f56670e06100f8c3d60ca578cffb",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -10680,7 +10680,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "972dc5cf93624f1ac187fea12c4fb63b086746afe88d8698e543db535c1f8aa8",
+      "sha256": "c1b320dbecf39357b161f108b8c4e049435bd5fe6d3fcfdcceca0ba850c76f40",
       "used_by_endpoints": [
         "admin.api_overview"
       ],
@@ -10978,7 +10978,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "acf439d40544b87d806b7ac8336c0650b32680b4e6493af1d3993eb9282732e0",
+      "sha256": "c0c9c1f60b0eb924fcfac7db9f6c027e119628e6b6409bc8ab9f9ec52426a8dd",
       "used_by_endpoints": [
         "admin.dish_template_create",
         "admin.dish_template_edit",
@@ -11027,7 +11027,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "d700a63cd678b41324ed153eae5b2fe17ff3b7f8f98dd9b8744cf5678d4b36d9",
+      "sha256": "62f9edb576c81c44919477930e445ae5a87bd8ef03ccac1301bd2e555406f69b",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11420,7 +11420,7 @@
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
-      "sha256": "bad8f89c78ddb9c0b1b70587e9eb76cbdd3cfa1c19f22e4657023127bed8ebf6",
+      "sha256": "73247ae7326283ff381575d836e84ff9ab8c077e5ccef3f796133b655d07543f",
       "used_by_endpoints": [
         "admin.operations_settings"
       ],
@@ -11842,7 +11842,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "9bb214d25b343dd22969affc2d87cb633f6a7e855454928469000e49daeb72e4",
+      "sha256": "2075c48a2e1ac8f0bae35fd60e0e7c889eee2f0888f1a42563db614027c96a85",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],
@@ -11863,7 +11863,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "1b92364a5924c79efa72e0736fe0d11a4a8fe7bcdf7d4422d7570056063f0b9a",
+      "sha256": "549600f3a1c1d1f95e79402babf5ceac844774fee592a23ee47884eb36a17c00",
       "used_by_endpoints": [
         "admin.week_management"
       ],
@@ -12604,7 +12604,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "e133fec31e20d65694dd76bc0aee4799dfa7c017caf35c92f516988cd0924860",
+      "sha256": "586745b8177c9bb9df7e3c00895d2180ae53cb148ecde6994b83336e3e7d25ed",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
