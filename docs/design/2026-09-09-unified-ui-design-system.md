@@ -2306,6 +2306,15 @@ Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte W
 
 ##### Modul Vorschau & Bildschirme (2026-09-20)
 
+**DELTA-3-13 (2026-10-01):** Inhaltsvorschauen öffnen über die vorhandenen
+direkten GET-Links dieselben veröffentlichten Leseansichten. Eingebettete
+Vorschauaufklapper und ihre Browserrahmen entfallen gemäß UI-DELTA §0.1/D-02.
+Alle zehn Ausgabeziele sowie zwei Zuweisungsseiten bleiben direkt erreichbar.
+Zuordnungsversion und Variantenhinweise stehen statisch; native Felder,
+Reihenfolge, Schreibrechte und Versionsprüfung bleiben erhalten. Für Schreibende
+ersetzt Formular-Abbrechen den identischen unteren Rückweg; Lesende behalten
+ihren Rückweg. Wiederherstellung verwendet reinen Text.
+
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Genau eine Direktaktion plus weitere Ausgabeziele unter „Weitere Aktionen“ ist abgelöst. Alle zulässigen Ausgabeziele bleiben direkt erreichbar; historische Nachweise bleiben erhalten.
 
 **Polish P3: editoren (2026-09-24).** Auf der Zuweisungsseite ist die Auswahl
@@ -2337,6 +2346,13 @@ bleiben unverändert. Modulprüfungen erfassen 360/768/1024/1440 px, Karten-/Sei
 geschlossene Vorschauen, Feldreihenfolge, No-JS, Tastatur und echten 200-%-Zoom.
 
 ##### Modul Vorlagen & Druck (2026-09-20)
+
+**DELTA-3-13 (2026-10-01):** Archivierte Vorlagen stehen als statische Tabellen
+mit Überschrift im gewählten Bereich. Wochenerklärung folgt auf Bereichstabs,
+behält ihre Beschreibungs-ID. Leere Aktionszellen für Lesende bleiben wirklich
+leer. Frühere Aufklappanforderungen dieser Übersichtsseite sind durch UI-DELTA
+§0.1 abgelöst; Druckeditoren gehören zu separaten Paketen. Aktueller Prüfstand
+und konkrete Sichtnachweise stehen im DELTA-3-13-Report.
 
 **Polish P3: editoren (2026-09-24).** Aktive und archivierte Vorlagen verwenden
 `admin-status--active/neutral` mit Icon und Text. Die Wochenauswahl hat eine

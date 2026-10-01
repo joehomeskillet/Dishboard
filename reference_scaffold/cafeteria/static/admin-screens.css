@@ -12,7 +12,7 @@
 }
 
 .screen-card { min-width: 0; }
-/* One logical screen group: title/actions first, full-width native preview next. */
+/* One logical screen group: title and direct links to published read pages. */
 .dishboard-admin .screens-overview table.admin-table--stack tbody.screen-card > tr {
   height: auto;
   min-height: 0;
@@ -28,13 +28,9 @@
   padding-top: 0;
   border-bottom: var(--app-list-line-width) solid var(--app-border);
 }
-.dishboard-admin .screens-overview table.admin-table--stack tbody.screen-card > tr:last-child > td {
-  padding-top: 0;
-}
 .screen-choice-card { min-width: 0; }
 /* Beats the shared .form-check control height; this row is a labelled choice, not an icon. */
 .dishboard-admin .form-check.screen-choice-control { min-height: var(--app-list-row-min-height); }
-.screen-card .nav-link { min-height: 3rem; }
 .screen-card .btn-list { margin-top: auto; }
 
 .screens-area-tabs {
@@ -44,17 +40,7 @@
 .screen-card .card-header,
 .screen-card .card-body { padding: var(--app-space-3); }
 .screen-card .card-title { overflow-wrap: anywhere; }
-.screen-more-actions { min-width: 0; }
-.screen-more-actions > .btn-list { padding-top: var(--app-space-2); }
-.screen-more-actions > summary { list-style: none; }
-.screen-more-actions > summary:focus-visible {
-  outline: 2px solid var(--app-focus);
-  outline-offset: 2px;
-}
 #screen-assignment-details { margin-top: var(--app-space-3); }
-.dishboard-admin #screen-assignment-version > summary:not(.ui-sem-control) {
-  min-height: var(--app-list-row-min-height);
-}
 #screen-assignment-details .screens-grid {
   gap: var(--app-space-3);
 }
@@ -66,81 +52,6 @@
 
 .screen-assignment-details > .card-body {
   border-top: 1px solid var(--app-border-soft, var(--tblr-border-color-translucent));
-}
-
-.screen-browser-frame {
-  min-width: 0;
-  overflow: hidden;
-  background: var(--tblr-bg-surface);
-  border: var(--tblr-border-width) solid var(--tblr-border-color);
-  border-radius: var(--tblr-border-radius-lg);
-  box-shadow: var(--tblr-shadow-card);
-}
-
-.screen-browser-toolbar {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: var(--app-space-2);
-  padding: var(--app-space-2);
-  background: var(--tblr-bg-surface-secondary);
-  border-bottom: var(--tblr-border-width) solid var(--tblr-border-color);
-}
-
-.screen-browser-window-controls {
-  display: flex;
-  flex: 0 0 auto;
-  gap: var(--app-space-1);
-}
-
-.screen-browser-dot {
-  width: var(--app-space-3);
-  height: var(--app-space-3);
-  border-radius: var(--tblr-border-radius-pill);
-}
-
-.screen-browser-dot-close { background: var(--tblr-danger); }
-.screen-browser-dot-minimize { background: var(--tblr-warning); }
-.screen-browser-dot-maximize { background: var(--tblr-success); }
-
-.screen-browser-address {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  padding: var(--app-space-1) var(--app-space-2);
-  color: var(--tblr-secondary-color);
-  background: var(--tblr-bg-surface);
-  border: var(--tblr-border-width) solid var(--tblr-border-color);
-  border-radius: var(--tblr-border-radius);
-  font-size: var(--app-font-size-small);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.screen-preview {
-  position: relative;
-  container-type: inline-size;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--app-surface-soft, var(--tblr-bg-surface-secondary));
-}
-
-.screen-preview iframe {
-  position: absolute;
-  inset: 0 auto auto 0;
-  width: 1440px;
-  height: 810px;
-  border: 0;
-  pointer-events: none;
-  transform-origin: top left;
-  /* atan2 converts the container/viewport ratio to a unitless CSS scale. */
-  transform: scale(tan(atan2(100cqw, 1440px)));
-}
-
-.screen-preview-signage iframe {
-  width: 1920px;
-  height: 1080px;
-  transform: scale(tan(atan2(100cqw, 1920px)));
 }
 
 .output-print-section,
@@ -174,22 +85,4 @@ summary.card-header:focus-visible {
 #screen-assignment-details .screens-grid {
   display: block;
   grid-template-columns: none;
-}
-
-@media (max-width: 767px) {
-  .screen-preview { aspect-ratio: 1; }
-
-  .screen-preview-public iframe {
-    left: 50%;
-    width: 390px;
-    height: 844px;
-    transform-origin: top center;
-    transform: translateX(-50%) scale(tan(atan2(100cqw, 844px)));
-  }
-
-  .screen-preview-signage iframe {
-    top: 50%;
-    transform-origin: left center;
-    transform: translateY(-50%) scale(tan(atan2(100cqw, 1920px)));
-  }
 }

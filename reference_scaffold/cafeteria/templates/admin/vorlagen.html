@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, hint, empty_value %}
-{% from 'ui/_semantic.html' import icon_button, icon_summary, row_actions, status_badge_sem %}
+{% from 'admin/_macros.html' import page_header, hint %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, status_badge_sem %}
 {% set workflow_nav = 'vorlagen' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Vorlagen · Menüplanung{% endblock %}
@@ -19,7 +19,7 @@
 {% block content %}
 {% if catalog_error %}
 <div class="alert alert-danger" role="alert">{{ catalog_error }}</div>
-{{ icon_button('actions.refresh', href=url_for('admin.vorlagen', week=week), aria_label='Erneut laden', emphasis='primary') }}
+{{ icon_button('actions.refresh', href=url_for('admin.vorlagen', week=week), aria_label='Erneut laden', mode='text', emphasis='primary') }}
 {% else %}
 <form class="admin-filter-bar output-week-form" method="get" action="{{ url_for('admin.vorlagen') }}">
   <div class="admin-filter-search">
@@ -27,13 +27,14 @@
     <input class="form-control" type="date" id="output-week" name="week" value="{{ week }}" required aria-describedby="output-week-hint">
   </div>
   <div class="btn-list">{{ icon_button('actions.open', type='submit', aria_label='Woche öffnen') }}
-  {{ hint('Wochenpflege und PDF verwenden die gespeicherte Woche.', 'output-week-hint') }}</div>
+</div>
 </form>
 <div class="nav nav-tabs mb-2 output-area-tabs" role="tablist" aria-label="Bereich">
   {% for output_family, label, endpoint in [('cafeteria', area_names.staff_guest, 'cafeteria'), ('patienten', area_names.patient, 'patient')] %}
   <a class="nav-link{% if loop.first %} active{% endif %}" id="output-{{ output_family }}-tab" href="#output-{{ output_family }}" role="tab" data-bs-toggle="tab" data-bs-target="#output-{{ output_family }}" aria-controls="output-{{ output_family }}" aria-selected="{{ 'true' if loop.first else 'false' }}"{% if loop.first %} aria-current="true"{% endif %}{% if not loop.first %} tabindex="-1"{% endif %}>{{ label }}</a>
   {% endfor %}
 </div>
+{{ hint('Wochenpflege und PDF verwenden die gespeicherte Woche.', 'output-week-hint', mode='inline') }}
 <div class="tab-content output-area-panels mb-4">
   {% for output_family, label, endpoint in [('cafeteria', area_names.staff_guest, 'cafeteria'), ('patienten', area_names.patient, 'patient')] %}
   {% set catalog = catalogs[output_family] %}
@@ -43,9 +44,8 @@
               {% set group = catalog.document.templates|selectattr('archived', 'equalto', archived)|list %}
               {% if group %}
               {% if archived %}
-              <details class="admin-compact-details mb-2">
-                {{ icon_summary('actions.archive', aria_label=label ~ ' archivierte Vorlagen öffnen') }}
-                <h3 class="h5 mt-2">{{ group_label }}</h3>
+              <section class="mb-2" aria-labelledby="archived-{{ output_family }}-title">
+                <h3 class="h5 mt-2" id="archived-{{ output_family }}-title">{{ group_label }}</h3>
               {% endif %}
               <table class="table table-vcenter card-table admin-table admin-table--stack admin-list mb-2" aria-label="{{ label }} · {{ group_label }}">
                 <thead>
@@ -71,8 +71,7 @@
                     {% elif active %}{{ status_badge_sem('status.active') }}
                     {% else %}{{ status_badge_sem('status.inactive') }}{{ status_badge_sem('publish.draft') }}{% endif %}
                   </td>
-                  <td class="admin-table-actions" data-label="Aktionen">
-                  {% if 'Cafeteria.Admin' in roles %}
+                  <td class="admin-table-actions" data-label="Aktionen">{%- if 'Cafeteria.Admin' in roles %}
                     {% set row = namespace(items=[
                       {'key': 'actions.edit', 'href': url_for('admin.print_template_editor', family=output_family, week=week, template=template.id, revision=latest.id), 'object': latest.name},
                       {'key': 'actions.preview', 'href': url_for('admin.print_template_preview', family=output_family, week=week, template=template.id, revision=latest.id), 'aria_label': 'Version ' ~ latest.id ~ ' als PDF prüfen', 'text': 'PDF'}
@@ -84,13 +83,12 @@
                     ] %}
                     {% endif %}
                     {{ row_actions(row.items, object=latest.name) }}
-                  {% endif %}
-                  </td>
+                  {% endif -%}</td>
                 </tr>
                 {% endfor %}
                 </tbody>
               </table>
-              {% if archived %}</details>{% endif %}
+              {% if archived %}</section>{% endif %}
               {% endif %}
               {% endfor %}
         </section>
@@ -138,15 +136,13 @@
             {% elif item.id == recipe_catalog.document.active_template %}{{ status_badge_sem('status.active') }}
             {% else %}{{ status_badge_sem('status.inactive') }}{{ status_badge_sem('publish.draft') }}{% endif %}
           </td>
-          <td class="admin-table-actions" data-label="Aktionen">
-          {% if 'Cafeteria.Admin' in roles %}
+          <td class="admin-table-actions" data-label="Aktionen">{%- if 'Cafeteria.Admin' in roles %}
             {% set row = namespace(items=[{'key': 'actions.edit', 'href': url_for('admin.recipe_print_template_editor', template=item.id, revision=latest.id), 'object': latest.name}]) %}
             {% if item.id == recipe_catalog.document.active_template and active_template is not none and active_revision is not none and latest.id != active_revision.id %}
             {% set row.items = row.items + [{'key': 'actions.open', 'href': url_for('admin.recipe_print_template_editor', template=active_template.id, revision=active_revision.id), 'aria_label': 'Aktive Vorlage öffnen'}] %}
             {% endif %}
             {{ row_actions(row.items, object=latest.name) }}
-          {% endif %}
-          </td>
+          {% endif -%}</td>
         </tr>
         {% endfor %}
         </tbody>

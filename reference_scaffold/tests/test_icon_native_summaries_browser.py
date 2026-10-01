@@ -12,6 +12,7 @@ from werkzeug.serving import make_server
 from cafeteria.admin import screen_template_routes
 from test_admin_ux_browser import admin_app, admin_engine, live_server  # noqa: F401
 from test_admin_workflow_routes import _login, _payload
+from test_delta_renderer_browser import VISIBILITY
 from test_menu_collection import _save, _scope
 from test_print_template_browser import browser, _context  # noqa: F401
 from test_print_template_routes import database_engine  # noqa: F401
@@ -169,7 +170,7 @@ def unavailable_server(screen_app):  # noqa: F811
 
 @pytest.mark.parametrize('width', [1440, 390])
 @pytest.mark.parametrize('javascript', [True, False])
-def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
+def test_unavailable_retry_text_is_a_native_get_after_failed_assignment(
     screen_app, database_engine, unavailable_server, browser, monkeypatch, tmp_path, width, javascript,  # noqa: F811
 ):
     client, _ = _login(screen_app, database_engine, ['Cafeteria.Admin'])
@@ -209,7 +210,9 @@ def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
             expect(retry).to_contain_text('Neu laden')
             assert retry.get_attribute('aria-label') == 'Neu laden: Aktualisieren'
             assert retry.get_attribute('data-ui-tooltip') == retry.get_attribute('aria-label')
-            expect(retry.locator('svg[aria-hidden="true"]')).to_have_count(1)
+            expect(retry.locator('svg')).to_have_count(0)
+            visible = retry.evaluate(VISIBILITY)
+            assert visible['text'] == 'Neu laden' and not visible['icons'], visible
             assert retry.evaluate('el => el.getBoundingClientRect().width >= 36')
             expect(retry).to_have_attribute('href', path)
             retry.focus()

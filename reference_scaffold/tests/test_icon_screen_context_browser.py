@@ -103,20 +103,11 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
                 headerCards: document.querySelectorAll('.admin-statusbar-item').length,
                 rows: rows.map(row => {
                     const main = row.querySelector(':scope > tr:first-child');
-                    const preview = row.querySelector(':scope > tr:last-child');
-                    const cell = preview.querySelector('td');
-                    const summary = row.querySelector('.screen-preview-details > summary');
-                    const outer = getComputedStyle(preview), inner = getComputedStyle(cell);
-                    const vertical = style => ['paddingTop', 'paddingBottom', 'borderTopWidth', 'borderBottomWidth']
-                        .reduce((sum, key) => sum + parseFloat(style[key]), 0);
                     return {id: row.getAttribute('aria-labelledby'),
                         height: row.getBoundingClientRect().height, text: row.innerText,
                         mainDivider: getComputedStyle(main).borderBottomWidth,
-                        divider: outer.borderBottomWidth,
-                        cellDividers: [...row.querySelectorAll('th, td')].map(el => getComputedStyle(el).borderBottomWidth),
-                        previewRowHeight: preview.getBoundingClientRect().height,
-                        summaryHeight: summary.getBoundingClientRect().height,
-                        previewVerticalInsets: vertical(outer) + vertical(inner)};
+                        divider: getComputedStyle(main).borderBottomWidth,
+                        cellDividers: [...row.querySelectorAll('th, td')].map(el => getComputedStyle(el).borderBottomWidth)};
                 }),
                 links: [...document.querySelectorAll('main a[href]')].map(a => ({
                     href: a.getAttribute('href'), name: a.getAttribute('aria-label')})),
@@ -131,9 +122,8 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
         (tmp_path / f'{name}.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2))
         page.screenshot(path=str(tmp_path / f'{name}.png'), full_page=True)
         for row in evidence['rows']:
-            assert row['mainDivider'] == '0px' and row['divider'] == '1px'
+            assert row['mainDivider'] == row['divider'] == '1px'
             assert all(value == '0px' for value in row['cellDividers'])
-            assert abs(row['previewRowHeight'] - row['summaryHeight'] - row['previewVerticalInsets']) <= 2
 
         all_links = []
         for identifier, target in targets.items():
@@ -142,17 +132,17 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
             heading = row.locator('th[scope="rowgroup"]')
             heading_id = heading.get_attribute('id')
             assert heading_id and page.locator(f'[id="{heading_id}"]').count() == 1
-            expect(row.locator(':scope > tr')).to_have_count(2)
-            expect(row.locator('td[colspan="2"]')).to_have_attribute('headers', heading_id)
+            expect(row.locator(':scope > tr')).to_have_count(1)
+            expect(row.locator('td[data-label="Aktionen"]')).to_have_attribute('headers', heading_id)
             assert row.evaluate('''row => {
-                const nodes = ['.admin-list-primary', '.admin-row-actions a:first-child', '.admin-row-actions a:nth-child(2)', '.screen-preview-details > summary']
+                const nodes = ['.admin-list-primary', '.admin-row-actions a:first-child', '.admin-row-actions a:nth-child(2)']
                     .map(selector => row.querySelector(selector));
                 return nodes.every((node, i) => node && (!i || (nodes[i - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)));
             }''')
             outputs = target['outputs']
             expected = outputs + ([target['assignment']] if 'assignment' in target else [])
             assert row.locator('a[href]').evaluate_all('links => links.map(a => a.getAttribute("href"))') == expected
-            assert row.locator('iframe').evaluate_all('frames => frames.map(frame => frame.getAttribute("src"))') == outputs
+            expect(row.locator('iframe, details')).to_have_count(0)
             all_links.extend(expected)
             for destination in outputs:
                 result = page.request.get(destination)
@@ -174,7 +164,6 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
                 assert form.select_one('[name="template_id"][checked]')['value'] == assignment.template.id
                 assert bool(form.select('[data-semantic="actions.save"]')) == (role == 'Cafeteria.Admin')
 
-            preview = row.locator('.screen-preview-details > summary')
             actions = row.locator('.admin-row-actions a[href]')
             expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
             actions.first.focus()
@@ -183,7 +172,7 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
                 expect(action).to_be_focused()
                 assert action.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
                 page.keyboard.press('Tab')
-            expect(preview).to_be_focused()
+            assert not row.evaluate('row => row.contains(document.activeElement)')
             first_item = actions.nth(1)
             first_item.focus()
             expect(first_item).to_be_visible()
@@ -198,40 +187,11 @@ def test_screen_context_preserves_assignments_destinations_and_native_navigation
             expect(first_item).to_be_focused()
             if javascript:
                 expect(page.get_by_role('tooltip')).to_have_count(0)
-            preview.press('Enter')
-            expect(row.locator('.screen-preview-details')).to_have_attribute('open', '')
-            expect(preview).to_be_focused()
-            expect(row.locator('iframe').first).to_be_visible()
             group_box = row.bounding_box()
-            cell_box = row.locator('td[colspan="2"]').bounding_box()
-            row_content = row.locator('td[colspan="2"]').evaluate('''cell => {
-                const row = cell.parentElement;
-                const box = row.getBoundingClientRect();
-                const style = getComputedStyle(row);
-                const paddingLeft = parseFloat(style.paddingLeft);
-                const paddingRight = parseFloat(style.paddingRight);
-                const borderLeft = parseFloat(style.borderLeftWidth);
-                const borderRight = parseFloat(style.borderRightWidth);
-                return {
-                    x: box.x, width: box.width, paddingLeft, paddingRight,
-                    borderLeft, borderRight,
-                    left: box.left + borderLeft + paddingLeft,
-                    right: box.right - borderRight - paddingRight,
-                };
-            }''')
-            preview_box = row.locator('.screen-preview:visible').first.bounding_box()
-            (tmp_path / f'{name}-{identifier}-preview.json').write_text(json.dumps({
-                'group': group_box, 'cell': cell_box, 'row_content': row_content,
-                'preview': preview_box,
-            }, indent=2))
-            if identifier == 'cafeteria-public-title':
-                page.screenshot(path=str(tmp_path / f'{name}-preview.png'), full_page=True)
-            assert abs(cell_box['x'] - row_content['left']) <= 1
-            assert abs(cell_box['x'] + cell_box['width'] - row_content['right']) <= 1
-            assert preview_box['width'] >= 220 and preview_box['x'] >= group_box['x']
-            assert preview_box['x'] + preview_box['width'] <= group_box['x'] + group_box['width'] + 1
-            preview.press('Enter')
-            expect(row.locator('.screen-preview-details')).not_to_have_attribute('open', '')
+            for action in actions.all():
+                box = action.bounding_box()
+                assert box['x'] >= group_box['x'] - 1
+                assert box['x'] + box['width'] <= group_box['x'] + group_box['width'] + 1
             with page.expect_response(lambda result: result.request.is_navigation_request()
                                       and result.request.frame == page.main_frame) as navigation:
                 row.locator('a[href]').first.press('Enter')
@@ -285,7 +245,7 @@ def test_normal_screen_header_keeps_context_once(
         expect(page.locator('.screen-status strong')).to_have_text([
             screen_case[1]['staff_guest'].template.name, screen_case[1]['patient'].template.name,
         ])
-        expect(page.get_by_text('Vorlage für Web-Wochenplan:', exact=False)).to_have_count(2)
+        expect(page.locator('.screen-status strong')).to_have_count(2)
     finally:
         context.close()
 
@@ -302,8 +262,8 @@ def test_screen_empty_publication_and_corrupt_assignment_remain_explicit(
         assert page.goto('/admin/screens').status == 200
         expect(page.locator('.screen-status .badge')).to_have_text(['Vorgabe', 'Vorgabe'])
         first = page.locator('.screen-card').first
-        first.locator('.screen-preview-details > summary').press('Enter')
-        expect(page.frame_locator('.screen-preview iframe').first.get_by_text(
+        first.locator('.admin-row-actions a').first.press('Enter')
+        expect(page.get_by_text(
             'Speiseplan nicht verfügbar', exact=False)).to_be_visible()
         page.evaluate('window.scrollTo(0, 0)')
         page.screenshot(path=str(tmp_path / f'screen-empty-{width}-js{javascript}.png'), full_page=True)

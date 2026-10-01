@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ui-semantic.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='admin-screens.css') }}">
   <script src="{{ url_for('static', filename='vendor/tabler/tabler.min.js') }}" defer></script>
   <script src="{{ url_for('static', filename='admin.js') }}" defer></script>
@@ -20,7 +21,7 @@
   <div role="alert">
     {% set unavailable_text %}Die gespeicherte Bildschirmvorlage ist zurzeit nicht erreichbar.{% if request.method == 'POST' %} Der Abschluss der Zuweisung konnte nicht bestätigt werden. Laden Sie den gespeicherten Stand, bevor Sie erneut zuweisen.{% endif %}{% endset %}
     {% call empty_state('error', t('ui.request_failed.label'), unavailable_text) %}
-      {{ icon_button('actions.refresh', href=request.path, emphasis='primary', text='Neu laden', show_text=true, aria_label=t('actions.refresh.aria')) }}
+      {{ icon_button('actions.refresh', href=request.path, emphasis='primary', text='Neu laden', mode='text', aria_label=t('actions.refresh.aria')) }}
     {% endcall %}
   </div>
 </main>

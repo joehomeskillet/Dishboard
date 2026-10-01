@@ -101,15 +101,16 @@ def test_lists_and_settings_come_first_at_required_viewports(
         expect(page.locator('main .btn-primary')).to_have_count(0)
         first_screen = page.locator(".screen-card").first.bounding_box()
         assert first_screen is not None and first_screen["y"] < height
-        expect(page.get_by_text("Vorlage für Web-Wochenplan:", exact=False)).to_have_count(2)
+        expect(page.locator('.screen-status strong')).to_have_text(['Wochenplan mit Bildern', 'Wochenplan mit Bildern'])
         body = page.locator("main").inner_text().lower()
         assert "verbunden" not in body and "zuletzt gesehen" not in body
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
-        expect(page.locator('.screen-preview-details .screen-preview-signage')).to_have_count(4)
+        expect(page.locator('main details')).to_have_count(0)
+        expect(page.locator('.screen-card a[href^="/signage/"]')).to_have_count(4)
+        expect(page.locator('main iframe')).to_have_count(0)
         first_action = page.locator('.screen-card .btn').first.bounding_box()
         assert first_action is not None and first_action['y'] < height
         _screenshot(page, f"bildschirme-reihenfolge-{width}x{height}-{javascript}.png")
-        assert first_action['y'] < page.locator('.screen-preview-details > summary').first.bounding_box()['y']
+        assert first_action['y'] >= first_screen['y']
         expect(page.locator('.screen-status .badge')).to_have_text(['Vorgabe', 'Vorgabe'])
         _assert_no_horizontal_scroll(page)
         _assert_rendered_icons_and_targets(page)
@@ -118,7 +119,8 @@ def test_lists_and_settings_come_first_at_required_viewports(
         assert page.goto("/admin/screens/cafeteria/wochenvorlage").status == 200
         expect(page.locator('.admin-statusbar')).to_contain_text('Vorgabe')
         expect(page.locator('.admin-statusbar')).to_contain_text('Wochenplan mit Bildern')
-        expect(page.locator('#screen-assignment-version')).not_to_have_attribute('open', '')
+        expect(page.locator('#screen-assignment-version')).to_be_visible()
+        expect(page.locator('#screen-assignment-version summary')).to_have_count(0)
         assignment = page.locator("section#screen-assignment-details")
         expect(assignment).to_be_visible()
         expect(assignment.locator(":scope > summary")).to_have_count(0)
@@ -127,9 +129,9 @@ def test_lists_and_settings_come_first_at_required_viewports(
         _assert_no_horizontal_scroll(page)
         _assert_rendered_icons_and_targets(page)
         _screenshot(page, f"vorlage-zuweisen-formular-{width}x{height}-{javascript}.png")
-        hint = assignment.locator('.admin-hint').first
-        hint.locator(':scope > summary').click()
-        expect(hint).to_have_attribute('open', '')
+        hint = assignment.locator('[id^="screen-choice-"][id$="-hint"]').first
+        expect(hint).to_be_visible()
+        expect(hint.locator('summary')).to_have_count(0)
         _assert_no_horizontal_scroll(page)
         _assert_rendered_icons_and_targets(page)
         previews = assignment.locator('a[data-semantic="actions.preview"]')
@@ -185,12 +187,9 @@ def test_native_form_targets_and_payloads_stay_complete(
         selected.check()
         posts = []
         page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
-        hint = page.locator('.screen-choice-card').filter(has=page.locator('input[name="template_id"]:checked')).locator('.admin-hint')
-        summary = hint.locator(':scope > summary')
-        summary.click()
-        expect(hint).to_have_attribute('open', '')
-        summary.click()
-        expect(hint).not_to_have_attribute('open', '')
+        hint = page.locator('.screen-choice-card').filter(has=page.locator('input[name="template_id"]:checked')).locator('[id^="screen-choice-"][id$="-hint"]')
+        expect(hint).to_be_visible()
+        expect(hint.locator('summary')).to_have_count(0)
         expect(page.locator(f'input[name="template_id"][value="{template_id}"]')).to_be_checked()
         assert posts == []
         with page.expect_request(
@@ -215,7 +214,7 @@ def test_native_form_targets_and_payloads_stay_complete(
         assert payload["renderer_revision"] == ["1"]
         assert payload["action"] == ["activate"]
         expect(page.locator('.admin-statusbar-item--success')).to_contain_text('Aktiv')
-        page.locator('#screen-assignment-version > summary').click()
+        expect(page.locator('#screen-assignment-version summary')).to_have_count(0)
         expect(page.get_by_text('Zuordnung 1', exact=False)).to_be_visible()
 
         page.goto("/admin/design/darstellung")
@@ -319,8 +318,8 @@ def test_empty_and_unavailable_states_have_scoped_messages_and_evidence(
     )
     try:
         empty.goto("/admin/screens")
-        empty.locator('.screen-preview-details > summary').first.click()
-        expect(empty.frame_locator(".screen-preview iframe").first.get_by_text(
+        empty.locator('.screen-card .admin-row-actions a').first.click()
+        expect(empty.get_by_text(
             "Speiseplan nicht verfügbar", exact=False
         )).to_be_visible()
         _assert_no_horizontal_scroll(empty)
@@ -438,11 +437,10 @@ def test_required_pages_have_no_overflow_at_200_percent_zoom(
                 photo.scroll_into_view_if_needed()
                 assert photo.evaluate('el => el.complete && el.naturalWidth > 0')
             if name == 'bildschirme':
-                page.locator('.screen-preview-details').nth(1).locator(':scope > summary').click()
-                preview = page.locator('.tab-pane.active .screen-preview-signage').first
-                box = preview.bounding_box()
-                assert box['width'] >= 220 and abs(box['width'] / box['height'] - 16 / 9) < .01
-                preview.scroll_into_view_if_needed()
+                expect(page.locator('main details, main iframe')).to_have_count(0)
+                for link in page.locator('.screen-card .admin-row-actions a').all():
+                    expect(link).to_be_visible()
+                    assert link.bounding_box()['width'] >= 36
             _assert_no_horizontal_scroll(page)
             _assert_rendered_icons_and_targets(page)
             # Playwright full_page clips real browser zoom; capture the native viewport.
@@ -471,25 +469,25 @@ def test_native_disclosure_and_assignment_preview_are_keyboard_reachable(
         page.goto('/admin/screens')
         page.keyboard.press('Tab')
         expect(page.locator('.skip-link')).to_be_focused()
-        summary = page.locator('.screen-preview-details > summary').first
-        summary.focus()
-        page.keyboard.press('Enter')
-        expect(page.locator('.screen-preview-details').first).to_have_attribute('open', '')
-        expect(summary).to_be_focused()
-        assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+        link = page.locator('.screen-card .admin-row-actions a').first
+        link.focus()
+        expect(link).to_be_focused()
+        assert link.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+        target = link.get_attribute('href')
+        with page.expect_navigation() as navigation:
+            link.press('Enter')
+        assert navigation.value.request.method == 'GET'
+        assert page.url.endswith(target)
+        expect(page.locator('main')).to_be_visible()
         _screenshot(page, f'bildschirme-tastatur-{javascript}.png')
         page.goto('/admin/screens/cafeteria/wochenvorlage')
         expect(page.locator('section#screen-assignment-details form')).to_be_visible()
         selected = page.locator('input[name=template_id]:checked')
         selected.focus()
         page.keyboard.press('Tab')
-        hint = page.locator('.screen-choice-card').filter(has=selected).locator('.admin-hint')
-        expect(hint.locator(':scope > summary')).to_be_focused()
-        page.keyboard.press('Enter')
-        expect(hint).to_have_attribute('open', '')
-        page.keyboard.press('Enter')
-        expect(hint).not_to_have_attribute('open', '')
-        page.keyboard.press('Tab')
+        hint = page.locator('.screen-choice-card').filter(has=selected).locator('[id^="screen-choice-"][id$="-hint"]')
+        expect(hint).to_be_visible()
+        expect(hint.locator('summary')).to_have_count(0)
         preview = page.get_by_role('link', name='Wochenplan mit Bildern prüfen', exact=True)
         expect(preview).to_be_focused()
         assert preview.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'

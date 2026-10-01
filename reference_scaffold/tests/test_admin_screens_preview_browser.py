@@ -60,7 +60,7 @@ def _capture_card_visuals(page, name: str) -> Path:
 
 @pytest.mark.parametrize('width,height', [(1440, 900), (390, 844), (320, 844)])
 @pytest.mark.parametrize('javascript', [True, False])
-def test_card_visuals_tv_is_large_visible_and_native(
+def test_screen_read_pages_are_visible_and_native(
     screen_app, screen_server, database_engine, browser, width, height, javascript, tmp_path,  # noqa: F811
 ) -> None:
     client, _ = _login(screen_app, database_engine, ['Cafeteria.Admin'])
@@ -71,29 +71,23 @@ def test_card_visuals_tv_is_large_visible_and_native(
         page = context.new_page()
         assert page.goto('/admin/screens').status == 200
         page.screenshot(path=str(tmp_path / f'screens-{width}-{javascript}-closed.png'), full_page=True)
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
-        for card in page.locator('.screen-card').filter(has=page.locator('.screen-preview-signage')).all():
-            summary = card.locator('.screen-preview-details > summary')
-            summary.focus()
-            page.keyboard.press('Enter')
-            expect(card.locator('.screen-preview-details')).to_have_attribute('open', '')
-            expect(summary).to_be_focused()
-            preview = card.locator('.tab-pane.active .screen-preview-signage')
-            expect(preview).to_be_visible()
-            box = preview.bounding_box()
-            assert box['width'] >= (380 if width == 1440 else 220)
-            assert abs(box['width'] / box['height'] - 16 / 9) < .01
-            expect(card.locator('[data-tv-stand]')).to_be_visible()
-            frame = preview.locator('iframe')
-            assert frame.get_attribute('loading') == 'lazy'
-            assert frame.get_attribute('tabindex') == '-1'
-            assert frame.evaluate('el => el.parentElement.inert')
-            preview.scroll_into_view_if_needed()
-            expect(frame.content_frame.locator('main')).to_be_visible()
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(2)
-        page.screenshot(path=str(tmp_path / f'screens-{width}-{javascript}-open.png'), full_page=True)
+        expect(page.locator('main details')).to_have_count(0)
+        expect(page.locator('main details, main iframe')).to_have_count(0)
+        targets = page.locator('.screen-card a[href^="/signage/"]').evaluate_all(
+            'links => links.map(link => link.getAttribute("href"))')
+        assert len(targets) == 4
+        for target in targets:
+            link = page.locator(f'.screen-card a[href="{target}"]')
+            link.focus()
+            expect(link).to_be_focused()
+            with page.expect_navigation() as navigation:
+                link.press('Enter')
+            assert navigation.value.status == 200 and navigation.value.request.method == 'GET'
+            expect(page.locator('main')).to_be_visible()
+            assert page.locator('main').inner_text().strip()
+            page.screenshot(path=str(tmp_path / f'screen-{target.rsplit("/", 2)[-2]}-{target.rsplit("/", 1)[-1]}-{width}-js{javascript}.png'))
+            page.goto('/admin/screens')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        expect(page.locator('iframe')).to_have_count(10)
         link = page.get_by_role('link', name='Mitarbeitende und externe Gäste Bildschirm Tagesplan öffnen', exact=True)
         # Alt: icon-only, empty text, 36px. Neu: visible destination, still a 36px semantic control.
         expect(link).to_contain_text('Tagesplan')
@@ -138,7 +132,7 @@ def screen_server(screen_app: Flask) -> Iterator[str]:
 
 
 @pytest.mark.parametrize('width,height', [(320, 844), (390, 844), (768, 1024), (1024, 768), (1440, 900)])
-def test_real_screen_previews_switch_all_targets_without_frame_blocks(
+def test_real_screen_links_open_all_targets_with_source_security_headers(
     screen_app: Flask, screen_server: str, database_engine: Engine, browser: Browser,  # noqa: F811
     width: int, height: int, tmp_path: Path,
 ) -> None:
@@ -167,79 +161,39 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         assert response is not None and response.status == 200
         assert "style-src 'self'; script-src 'self'" in response.headers['content-security-policy']
         page.screenshot(path=str(tmp_path / f'screens-initial-{width}.png'), full_page=True)
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
+        expect(page.locator('main details')).to_have_count(0)
         expect(page.locator('.screen-card')).to_have_count(4)
-        expect(page.locator('iframe')).to_have_count(10)
-        expect(page.locator('.screen-browser-frame')).to_have_count(6)
-        expect(page.locator('.screen-browser-toolbar[aria-hidden="true"]')).to_have_count(6)
+        expect(page.locator('main iframe, .screen-browser-frame')).to_have_count(0)
         screen_links = page.locator('.screens-grid a')
         all_targets = set(screen_links.evaluate_all('links => links.map(link => new URL(link.href).pathname)'))
         assert all_targets == TARGETS | {
             '/admin/screens/cafeteria/wochenvorlage',
             '/admin/screens/patienten/wochenvorlage',
         }
-        for card in page.locator('.screen-card').all():
-            if not card.locator('.screen-preview-details').evaluate('el => el.open'):
-                card.locator('.screen-preview-details > summary').click()
-            is_web = 'Web' in card.locator('.admin-list-primary').inner_text()
-            expect(card.locator('.screen-browser-frame')).to_have_count(3 if is_web else 0)
-            periods = ('Tagesplan', 'Wochenplan mit Bildern · Vorgabe', 'Wochenplan ohne Bilder') if is_web else (
-                'Tagesplan', 'Wochenplan ohne Bilder',
-            )
-            expect(card.get_by_role('tab')).to_have_count(len(periods))
-            for period in periods:
-                tab = card.get_by_role('tab', name=period, exact=True)
-                tab.click()
-                expect(tab).to_have_attribute('aria-selected', 'true')
-                panel = card.locator('.tab-pane.active')
-                frame_element = panel.locator('iframe')
-                expect(frame_element).to_be_visible()
-                if is_web:
-                    browser_frame = panel.locator('.screen-browser-frame')
-                    expect(browser_frame.locator('.screen-browser-dot')).to_have_count(3)
-                    expect(browser_frame.locator('a')).to_have_count(0)
-                    address = browser_frame.locator('.screen-browser-address')
-                    source = frame_element.get_attribute('src')
-                    assert source is not None and source.startswith('/')
-                    expect(address).to_have_text(source)
-                    assert address.evaluate(
-                        "el => [getComputedStyle(el).overflowX, getComputedStyle(el).textOverflow, "
-                        "getComputedStyle(el).whiteSpace]",
-                    ) == ['hidden', 'ellipsis', 'nowrap']
-                    address_box = address.bounding_box()
-                    toolbar_box = browser_frame.locator('.screen-browser-toolbar').bounding_box()
-                    assert address_box is not None and toolbar_box is not None
-                    assert address_box['width'] <= toolbar_box['width']
-                else:
-                    expect(panel.locator('.screen-browser-frame')).to_have_count(0)
-                handle = frame_element.element_handle()
-                assert handle is not None
-                frame = handle.content_frame()
-                assert frame is not None
-                expect(frame.locator('main')).to_be_visible()
-                expect(frame.locator('body')).to_contain_text('Menü')
-                snapshot = patient_snapshot() if '/patienten/' in frame.url else cafeteria_snapshot()
-                menu = next(day for day in snapshot['days'] if day['date'] == '2026-09-02')
-                expect(frame.locator('body')).to_contain_text(menu['services'][0]['options'][0]['title'])
-                if period == 'Wochenplan ohne Bilder':
-                    expect(frame.locator('.menu-photo, .card-img-top')).to_have_count(0)
-                elif period == 'Wochenplan mit Bildern · Vorgabe' and is_web:
-                    assert frame.locator('.menu-photo img').count() > 0
-                if '/patienten/' in frame.url:
-                    assert not re.search(r'preis|chf|rappen|kosten|price', frame.content(), re.IGNORECASE)
-                viewport_width = frame.evaluate('innerWidth')
-                assert viewport_width == (1920 if '/signage/' in frame.url else 390 if width < 768 else 1440)
-                assert frame_element.get_attribute('loading') == 'lazy'
-                assert frame_element.get_attribute('tabindex') == '-1'
-                assert frame_element.evaluate('el => el.parentElement.inert')
-                viewport_box = panel.locator('.screen-preview').bounding_box()
-                frame_box = frame_element.bounding_box()
-                assert viewport_box is not None and frame_box is not None
-                assert frame_box['width'] <= viewport_box['width'] + 1
-                assert frame_box['height'] <= viewport_box['height'] + 1
-                tab.focus()
-                page.keyboard.press('Tab')
-                assert page.evaluate('document.activeElement.tagName') != 'IFRAME'
+        for target in sorted(TARGETS):
+            page.goto('/admin/screens')
+            link = page.locator(f'.screen-card a[href="{target}"]')
+            link.focus()
+            expect(link).to_be_focused()
+            with page.expect_navigation() as navigation:
+                link.press('Enter')
+            assert navigation.value.request.method == 'GET'
+            expect(page.locator('main')).to_be_visible()
+            expect(page.locator('body')).to_contain_text('Menü')
+            snapshot = patient_snapshot() if '/patienten/' in target else cafeteria_snapshot()
+            menu = next(day for day in snapshot['days'] if day['date'] == '2026-09-02')
+            expect(page.locator('body')).to_contain_text(menu['services'][0]['options'][0]['title'])
+            if target.endswith('/ohne-bilder/') or target.startswith('/signage/'):
+                expect(page.locator('.menu-photo, .card-img-top')).to_have_count(0)
+            elif target in ('/cafeteria/wochenangebot/', '/patienten/wochenplan/'):
+                assert page.locator('.menu-photo img').count() > 0
+            if '/patienten/' in target:
+                assert not re.search(r'preis|chf|rappen|kosten|price', page.content(), re.IGNORECASE)
+            assert page.evaluate('innerWidth') == width
+            assert page.locator('main').bounding_box()['width'] <= width + 1
+            page.keyboard.press('Tab')
+            assert page.evaluate('document.activeElement.tagName') != 'IFRAME'
+        page.goto('/admin/screens')
         assert loaded == TARGETS
         dimensions = page.locator('.screen-card').evaluate_all(
             'cards => cards.map(card => ({top: card.offsetTop, width: card.offsetWidth, height: card.offsetHeight}))',
@@ -253,7 +207,7 @@ def test_real_screen_previews_switch_all_targets_without_frame_blocks(
         assert page.locator('main style, main [style]').count() == 0
         assert not failures
         page.get_by_role('heading', level=1).click()
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(4)
+        expect(page.locator('main details')).to_have_count(0)
         if (width, height) in ((390, 844), (1440, 900)):
             page.screenshot(path=str(tmp_path / f'admin-screens-{width}x{height}.png'), full_page=True)
         page.screenshot(path=str(tmp_path / f'screens-preview-{width}.png'), full_page=True)
@@ -270,15 +224,13 @@ def test_full_views_remain_available_without_javascript(
         page = context.new_page()
         page.goto('/admin/screens')
         expect(page.locator('.screen-card [data-semantic="actions.more"]')).to_have_count(0)
-        expect(page.locator('.screen-preview-details[open]')).to_have_count(0)
+        expect(page.locator('main details')).to_have_count(0)
         for card in page.locator('.screen-card').all():
             expect(card.locator('.admin-row-actions a').first).to_be_visible()
-            for summary in card.locator('details > summary').all():
-                summary.focus()
-                page.keyboard.press('Enter')
-                expect(summary).to_be_focused()
-            expect(card.locator('.screen-preview-details[open]')).to_have_count(1)
-            expect(card.locator('details')).to_have_count(1)
+            expect(card.locator('details, iframe')).to_have_count(0)
+            for link in card.locator('a').all():
+                link.focus()
+                expect(link).to_be_focused()
         screen_links = page.locator('.screens-grid a')
         for link in screen_links.all():
             expect(link).to_be_visible()
@@ -295,7 +247,7 @@ def test_full_views_remain_available_without_javascript(
         expect(page.locator('.menu-photo, .card-img-top')).to_have_count(0)
 
 
-def test_unpublished_screens_show_the_source_message_in_each_preview(
+def test_unpublished_screen_links_show_each_source_message(
     screen_app: Flask, screen_server: str, database_engine: Engine, browser: Browser,  # noqa: F811
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -315,11 +267,8 @@ def test_unpublished_screens_show_the_source_message_in_each_preview(
 
         page.on('response', record_status)
         page.goto('/admin/screens')
-        for card in page.locator('.screen-card').all():
-            if not card.locator('.screen-preview-details').evaluate('el => el.open'):
-                card.locator('.screen-preview-details > summary').click()
-            for tab in card.get_by_role('tab').all():
-                tab.click()
-                frame = card.locator('.tab-pane.active iframe').content_frame
-                expect(frame.locator('body')).to_contain_text(re.compile(r'nicht verfügbar|nicht angezeigt'))
+        for target in sorted(TARGETS):
+            page.goto('/admin/screens')
+            page.locator(f'.screen-card a[href="{target}"]').click()
+            expect(page.locator('body')).to_contain_text(re.compile(r'nicht verfügbar|nicht angezeigt'))
         assert statuses == dict.fromkeys(TARGETS, 404)
