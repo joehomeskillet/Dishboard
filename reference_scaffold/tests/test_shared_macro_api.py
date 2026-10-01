@@ -88,7 +88,7 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
                 ''').render(**data)
             else:
                 expected = icon_button('actions.save', emphasis=(
-                    'secondary' if path.name == '_week_service.html' else None))
+                    'secondary' if path.name in {'_week_service.html', '_week_settings.html'} else None))
             actual = BeautifulSoup(rendered, 'html.parser')
             assert len(actual.select('.admin-form-footer')) == 1
             assert actual.select('button, a') == BeautifulSoup(expected, 'html.parser').select('button, a'), path
