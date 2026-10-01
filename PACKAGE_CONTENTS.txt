@@ -465,6 +465,7 @@ docs/design/2026-09-26-icon-first-contract.md
 docs/design/2026-09-26-icon-first-simplification-spec.md
 docs/design/2026-09-26-list-family-comparison.md
 docs/design/2026-09-29-direct-symbol-actions-sdd.md
+docs/design/2026-10-01-ui-delta-sdd.md
 docs/design/admin-redesign-ui.md
 docs/design/admin-tabler-contract.md
 docs/design/country-select-source.md
