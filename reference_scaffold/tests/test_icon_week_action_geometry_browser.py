@@ -39,11 +39,17 @@ def test_week_edit_add_and_header_use_shared_pointer_geometry(
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         expected = 44 if coarse else 36
         day = page.locator('.patient-admin-day').first
+        header = page.locator('.admin-page-header')
+        checks = header.locator('#week-check-entries-trigger')
+        expect(header.locator('[data-read-detail]')).to_have_count(1)
+        expect(checks).to_have_attribute('data-semantic', 'ui.read_detail.review')
+        expect(checks).to_have_attribute('aria-controls', 'week-check-entries')
         groups = (
             ('menu-edit', day.locator('.admin-week-card-action [data-semantic="actions.edit"]'), 4),
             ('soup-add', day.locator('[data-course="soup"] [data-semantic="actions.add"]'), 2),
             ('dessert-add', day.locator('[data-course="dessert"] [data-semantic="actions.add"]'), 2),
-            ('header', page.locator('.admin-page-header .ui-sem-control--icon-only'), 1),
+            ('header', header.locator('.ui-sem-control--icon-only:not([data-read-detail])'), 1),
+            ('header-checks', checks, 1),
         )
         measurements = []
         for group, controls, count in groups:
