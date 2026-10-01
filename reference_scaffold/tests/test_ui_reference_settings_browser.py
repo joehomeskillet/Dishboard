@@ -1,7 +1,7 @@
 """Browser test suite for MP-UI-REF-SETTINGS reference settings page.
 
 Verifies admin.display_settings in all matrix states:
-- normal (all 5 viewports, data-layout narrow, full working width, header, default values, target size, no overflow)
+- normal (all 5 viewports, data-layout standard, full working width, header, default values, target size, no overflow)
 - preview with both values for each of the 4 options without DB persistence
 - validation error on invalid input with preserved form values and 400 status
 - 403 rejection for non-admin actors
@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Browser, expect
+from playwright.sync_api import Browser, Locator, Page, expect
 
 from cafeteria.admin import display_routes  # noqa: F401 - blueprint registration
 from cafeteria.display_settings import (
@@ -50,13 +50,36 @@ def _create_context(playwright_browser: Browser, server_url: str, client, *, jav
     return context
 
 
-def _assert_no_overflow_and_min_targets(page, min_height: int = 44):
+def _pointer_action_size(page: Page) -> int:
+    # Same media query as .btn.ui-sem-control in admin-tabler.css: 36 fine, 44 coarse.
+    coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
+    return 44 if coarse else 36
+
+
+def _assert_brand_focus_ring(locator: Locator) -> None:
+    ring = locator.evaluate('''el => {
+        el.focus({focusVisible: true});
+        const style = getComputedStyle(el);
+        return {outline: style.outlineStyle, width: parseFloat(style.outlineWidth), color: style.outlineColor};
+    }''')
+    assert ring['outline'] != 'none' and ring['width'] >= 2, ring
+    assert 'rgb(163, 22, 77)' in ring['color'], ring
+
+
+def _assert_no_overflow_and_min_targets(page: Page) -> None:
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+    action_size = _pointer_action_size(page)
     for locator in page.locator('main :is(.btn, .form-select, .form-control)').all():
         if locator.is_visible():
             box = locator.bounding_box()
-            assert box is not None and box['height'] >= min_height
-            assert locator.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 16
+            semantic = locator.evaluate("el => el.matches('.ui-sem-control')")
+            minimum = action_size if semantic else 44
+            assert box is not None and box['height'] >= minimum, (minimum, box)
+            if semantic:
+                assert box['width'] >= action_size, box
+                assert locator.get_attribute('aria-label')
+            else:
+                assert locator.evaluate('el => parseFloat(getComputedStyle(el).fontSize)') >= 16
 
 
 @pytest.mark.parametrize('width,height', VIEWPORTS)
@@ -70,8 +93,8 @@ def test_settings_normal_state_and_viewports(
         response = page.goto(PATH)
         assert response is not None and response.status == 200
 
-        # data-layout stays narrow; the shell no longer caps working width.
-        expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'narrow')
+        # Shared page frame uses the standard layout across the full working width.
+        expect(page.locator('main.admin-main')).to_have_attribute('data-layout', 'standard')
         if width >= 1024:
             metrics = page.locator('.page-body > .container-xl').evaluate(
                 '''el => {
@@ -86,31 +109,40 @@ def test_settings_normal_state_and_viewports(
             assert metrics['maxWidth'] in {'none', ''}, metrics
             assert metrics['ratio'] >= 0.95, metrics
 
-        # Page header according to spec §7.2 Nr. 4
-        expect(page.locator('h1.page-title')).to_have_text('Design & Marke')
-        expect(page.locator('.breadcrumb-item a')).to_have_text('Design & Marke')
-        expect(page.locator('.breadcrumb-item.active')).to_have_text('Darstellung')
+        # Title is the nav item. Breadcrumbs were replaced by the status bar.
+        expect(page.locator('h1.page-title')).to_have_text('Darstellung')
+        expect(page.locator('.page-breadcrumb')).to_have_count(0)
         expect(page.locator('.admin-page-header .btn-list')).to_have_count(0)
+        status = page.locator('.admin-statusbar')
+        expect(status).to_contain_text('Aktiv')
+        expect(status).to_contain_text('Kompakt')
+        expect(status).to_contain_text('Anzeigen')
 
-        # 4 options with default values and hints
+        # 4 options with default values. Hints for spacing and preview width stay collapsed.
         expect(page.get_by_label('Abstände', exact=True)).to_have_value('compact')
-        expect(page.locator('#admin-density-hint')).to_be_visible()
-        expect(page.get_by_label('Schriftgröße', exact=True)).to_have_value('normal')
-        expect(page.locator('#admin-font-size-hint')).to_be_visible()
+        expect(page.locator('#admin-density-hint')).to_have_count(1)
+        expect(page.locator('#admin-density-hint')).to_be_hidden()
+        expect(page.locator('#admin-density-hint')).to_have_text('Kompakt zeigt kleinere Kartenabstände.')
+        expect(page.get_by_label('Schriftgrösse', exact=True)).to_have_value('normal')
+        expect(page.locator('#admin-font-size-hint')).to_have_count(0)
         expect(page.get_by_label('Inhaltsbreite', exact=True)).to_have_value('contained')
-        expect(page.locator('#admin-content-width-hint')).to_be_visible()
+        expect(page.locator('#admin-content-width-hint')).to_have_count(1)
+        expect(page.locator('#admin-content-width-hint')).to_be_hidden()
         expect(page.get_by_label('Menübilder', exact=True)).to_have_value('show')
-        expect(page.locator('#admin-menu-images-hint')).to_be_visible()
+        expect(page.locator('#admin-menu-images-hint')).to_have_count(0)
 
-        # Action buttons
-        expect(page.get_by_role('button', name='Darstellung speichern', exact=True)).to_have_class(
-            'btn btn-primary',
-        )
-        expect(page.get_by_role('button', name='Vorschau aktualisieren', exact=True)).to_be_visible()
-        expect(page.get_by_role('button', name='Standardwerte speichern', exact=True)).to_be_visible()
+        # Icon actions: one primary save, preview beside it, reset inside Weitere Optionen.
+        expect(page.locator('main .btn-primary')).to_have_count(1)
+        expect(page.locator('main .btn-primary')).to_have_accessible_name('Speichern')
+        expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.save')
+        preview_button = page.get_by_role('button', name='Vorschau', exact=True)
+        expect(preview_button).to_be_visible()
+        expect(preview_button).to_have_attribute('data-semantic', 'actions.preview')
+        expect(page.locator('#display-reset-btn')).to_be_hidden()
         expect(page.locator('#display-reset-btn')).to_have_attribute(
             'aria-describedby', 'display-reset-hint',
         )
+        expect(page.locator('#display-reset-btn')).to_have_attribute('aria-label', 'Standardwerte speichern')
 
         # Preview card initial state
         preview = page.locator('.display-preview')
@@ -121,7 +153,7 @@ def test_settings_normal_state_and_viewports(
         expect(page.locator('.display-preview .menu-photo')).to_have_count(1)
         expect(page.locator('#display-example')).to_have_value('Frisch zubereitet')
 
-        _assert_no_overflow_and_min_targets(page, min_height=44)
+        _assert_no_overflow_and_min_targets(page)
         page.screenshot(path=str(tmp_path / f'ref-settings-normal-{width}x{height}.png'), full_page=True)
 
 
@@ -137,44 +169,44 @@ def test_settings_preview_both_values_per_option(
 
         # Option 1: admin_density (comfortable vs compact)
         page.get_by_label('Abstände', exact=True).select_option('comfortable')
-        page.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        page.get_by_role('button', name='Vorschau', exact=True).click()
         expect(page.get_by_text('Vorschau der Auswahl – noch nicht gespeichert.', exact=True)).to_be_visible()
         expect(preview).to_have_attribute('data-density', 'comfortable')
         assert preview.locator('.card-body').evaluate('el => getComputedStyle(el).paddingTop') == '32px'
 
         page.get_by_label('Abstände', exact=True).select_option('compact')
-        page.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        page.get_by_role('button', name='Vorschau', exact=True).click()
         expect(preview).to_have_attribute('data-density', 'compact')
         assert preview.locator('.card-body').evaluate('el => getComputedStyle(el).paddingTop') == '24px'
 
         # Option 2: admin_font_size (large vs normal)
-        page.get_by_label('Schriftgröße', exact=True).select_option('large')
-        page.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        page.get_by_label('Schriftgrösse', exact=True).select_option('large')
+        page.get_by_role('button', name='Vorschau', exact=True).click()
         expect(preview).to_have_attribute('data-font-size', 'large')
         assert page.locator('#display-example').evaluate('el => parseFloat(getComputedStyle(el).fontSize)') == 18
 
-        page.get_by_label('Schriftgröße', exact=True).select_option('normal')
-        page.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        page.get_by_label('Schriftgrösse', exact=True).select_option('normal')
+        page.get_by_role('button', name='Vorschau', exact=True).click()
         expect(preview).to_have_attribute('data-font-size', 'normal')
         assert page.locator('#display-example').evaluate('el => parseFloat(getComputedStyle(el).fontSize)') == 16
 
         # Option 3: admin_content_width (full vs contained)
         page.get_by_label('Inhaltsbreite', exact=True).select_option('full')
-        page.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        page.get_by_role('button', name='Vorschau', exact=True).click()
         expect(preview).to_have_attribute('data-content-width', 'full')
 
         page.get_by_label('Inhaltsbreite', exact=True).select_option('contained')
-        page.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        page.get_by_role('button', name='Vorschau', exact=True).click()
         expect(preview).to_have_attribute('data-content-width', 'contained')
 
         # Option 4: admin_menu_images (hide vs show)
         page.get_by_label('Menübilder', exact=True).select_option('hide')
-        page.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        page.get_by_role('button', name='Vorschau', exact=True).click()
         expect(preview).to_have_attribute('data-menu-images', 'hide')
         expect(page.locator('.display-preview .menu-photo')).to_have_count(0)
 
         page.get_by_label('Menübilder', exact=True).select_option('show')
-        page.get_by_role('button', name='Vorschau aktualisieren', exact=True).click()
+        page.get_by_role('button', name='Vorschau', exact=True).click()
         expect(preview).to_have_attribute('data-menu-images', 'show')
         expect(page.locator('.display-preview .menu-photo')).to_have_count(1)
 
@@ -192,7 +224,7 @@ def test_settings_validation_error_preserves_inputs(
         page.goto(PATH)
 
         # Change valid fields
-        page.get_by_label('Schriftgröße', exact=True).select_option('large')
+        page.get_by_label('Schriftgrösse', exact=True).select_option('large')
         page.get_by_label('Menübilder', exact=True).select_option('hide')
 
         # Inject invalid density option into DOM and submit
@@ -206,7 +238,7 @@ def test_settings_validation_error_preserves_inputs(
         }""")
 
         with page.expect_response(lambda res: res.url.endswith(PATH) and res.request.method == 'POST') as res_info:
-            page.get_by_role('button', name='Darstellung speichern', exact=True).click()
+            page.get_by_role('button', name='Speichern', exact=True).click()
 
         # Status 400 on error
         assert res_info.value.status == 400
@@ -223,7 +255,7 @@ def test_settings_validation_error_preserves_inputs(
         expect(page.locator('#admin-density')).to_have_attribute('aria-invalid', 'true')
 
         # Preserved valid input values
-        expect(page.get_by_label('Schriftgröße', exact=True)).to_have_value('large')
+        expect(page.get_by_label('Schriftgrösse', exact=True)).to_have_value('large')
         expect(page.get_by_label('Menübilder', exact=True)).to_have_value('hide')
 
         # Database remains untouched
@@ -276,11 +308,11 @@ def test_settings_nojs_save_and_reset(
 
         # Select custom values and save without JS
         page.get_by_label('Abstände', exact=True).select_option('comfortable')
-        page.get_by_label('Schriftgröße', exact=True).select_option('large')
+        page.get_by_label('Schriftgrösse', exact=True).select_option('large')
         page.get_by_label('Inhaltsbreite', exact=True).select_option('full')
         page.get_by_label('Menübilder', exact=True).select_option('hide')
 
-        page.get_by_role('button', name='Darstellung speichern', exact=True).click()
+        page.get_by_role('button', name='Speichern', exact=True).click()
 
         # Follows redirect 303, page updated with flash and main attributes
         expect(page.get_by_text('Darstellung für alle Benutzer und Geräte gespeichert.', exact=True)).to_be_visible()
@@ -298,7 +330,9 @@ def test_settings_nojs_save_and_reset(
         assert get_admin_display(admin_engine) == expected
         page.screenshot(path=str(tmp_path / 'ref-settings-nojs-saved.png'), full_page=True)
 
-        # Reset without JS
+        # Reset stays in Weitere Optionen until the native disclosure is opened.
+        page.locator('#display-more > summary').click()
+        expect(page.locator('#display-reset-btn')).to_be_visible()
         page.get_by_role('button', name='Standardwerte speichern', exact=True).click()
         expect(page.get_by_text('Standardwerte für alle Benutzer und Geräte gespeichert.', exact=True)).to_be_visible()
         expect(page.locator('main')).to_have_attribute('data-density', 'compact')
@@ -322,12 +356,13 @@ def test_settings_keyboard_navigation_and_focus(
         page.keyboard.press('Tab')
         expect(page.locator('.skip-link')).to_be_focused()
 
-        # Tab into breadcrumb link
-        page.locator('.page-breadcrumb a').focus()
-        breadcrumb_link = page.locator('.page-breadcrumb a')
-        expect(breadcrumb_link).to_be_focused()
-        outline_color = breadcrumb_link.evaluate('el => getComputedStyle(el).outlineColor')
-        assert 'rgb(163, 22, 77)' in outline_color or outline_color != 'rgba(0, 0, 0, 0)'
+        hint = page.locator('.admin-hint > summary').first
+        _assert_brand_focus_ring(hint)
+        expect(hint).to_be_focused()
+        page.keyboard.press('Enter')
+        expect(page.locator('#admin-density-hint')).to_be_visible()
+        page.keyboard.press('Enter')
+        expect(page.locator('#admin-density-hint')).to_be_hidden()
 
         # Tab through the 4 form select fields
         for field_id in ADMIN_DISPLAY_CHOICES:
@@ -337,13 +372,19 @@ def test_settings_keyboard_navigation_and_focus(
             expect(elem).to_be_focused()
             page.keyboard.press('ArrowDown')
 
-        # Tab through action buttons
-        for btn_name in ['Vorschau aktualisieren', 'Standardwerte speichern', 'Darstellung speichern']:
+        for btn_name in ('Vorschau', 'Speichern'):
             btn = page.get_by_role('button', name=btn_name, exact=True)
-            btn.focus()
+            _assert_brand_focus_ring(btn)
             expect(btn).to_be_focused()
-            outline = btn.evaluate('el => getComputedStyle(el).outlineColor')
-            assert 'rgb(163, 22, 77)' in outline or outline != 'rgba(0, 0, 0, 0)'
+
+        summary = page.locator('#display-more > summary')
+        _assert_brand_focus_ring(summary)
+        expect(summary).to_be_focused()
+        page.keyboard.press('Enter')
+        reset = page.locator('#display-reset-btn')
+        expect(reset).to_be_visible()
+        _assert_brand_focus_ring(reset)
+        expect(reset).to_be_focused()
 
         page.screenshot(path=str(tmp_path / 'ref-settings-keyboard-focus.png'), full_page=True)
 
@@ -358,7 +399,7 @@ def test_settings_zoom200_and_reduced_motion(
         page.set_viewport_size({'width': 640, 'height': 480})
         page.goto(PATH)
 
-        _assert_no_overflow_and_min_targets(page, min_height=44)
+        _assert_no_overflow_and_min_targets(page)
         expect(page.locator('h1.page-title')).to_be_visible()
         expect(page.locator('#display-settings-form')).to_be_visible()
         expect(page.locator('.display-preview')).to_be_visible()
