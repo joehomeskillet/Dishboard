@@ -13,6 +13,6 @@
 <body class="admin-body dishboard-admin"><main class="container-fluid py-4">
   {{ page_header(t('navigation.recipes.label'), 'Rezeptvorlage · Anfrage prüfen', status_items=[{'label': t('actions.preview.label'), 'value': t('status.error.label'), 'variant': 'danger'}]) }}
   <div class="alert alert-warning" role="alert">{{ icon('alert-triangle') }}<span>{{ message }}</span></div>
-  {{ icon_button('ui.templates_back', href=url_for('admin.recipe_print_template_editor')) }}
+  {{ icon_button('ui.templates_back', href=url_for('admin.recipe_print_template_editor'), text='Zurück', show_text=true, aria_label=t('ui.templates_back.aria')) }}
 </main></body>
 </html>

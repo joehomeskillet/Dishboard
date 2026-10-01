@@ -6,4 +6,4 @@
 </head><body class="dishboard-admin"><main class="container-fluid py-3">
 {{ page_header(t('navigation.ingredients.label'), description=title|default('Grundlagen nicht verfügbar'), status_items=[{'label': t('status.error.label'), 'value': t('status.blocked.label'), 'variant': 'danger'}]) }}
 <div class="card"><div class="card-body"><p role="alert"><svg class="icon text-secondary" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-alert-triangle"></use></svg> {{ message|default('Die Stammdaten können momentan nicht geladen werden. Bitte versuchen Sie es später erneut.') }}</p>
-{{ icon_button('actions.retry', href=url_for('admin.master_data_list')) }}</div></div></main></body></html>
+{{ icon_button('actions.retry', href=url_for('admin.master_data_list'), text='Neu laden', show_text=true, aria_label=t('actions.retry.aria')) }}</div></div></main></body></html>
