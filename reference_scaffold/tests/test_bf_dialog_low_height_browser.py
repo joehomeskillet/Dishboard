@@ -333,7 +333,8 @@ def test_t34_open_close_does_not_duplicate_listeners(site) -> None:  # noqa: F81
             _goto(page, '/admin/import-preview')
             _cycle(page, '#csv-more', page.locator('#csv-more > summary'), 't34-csv', javascript)
             _goto(page, '/admin/benutzer/neu')
-            _cycle(page, '#create-local-user', page.locator('#create-local-user > summary'), 't34-user', javascript)
+            expect(page.locator('#create-local-user > summary')).to_have_count(0)
+            expect(page.locator('#create-local-user form')).to_be_visible()
             _goto(page, '/admin/einkaufslisten')
             _cycle(
                 page, '#einkaufsliste-neu-extra',

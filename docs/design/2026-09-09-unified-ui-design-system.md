@@ -118,6 +118,16 @@ wird durch seinen bestehenden Filterchip aufgehoben. Fehlende optionale
 Menüart und Beilage lassen ihre Tabellenzellen leer. D-77 bleibt bis zum
 gemeinsamen Filterdialog in DELTA-2b offen.
 
+### Kontodetail und Anlage: UI-DELTA (DELTA-3-19, 2026-10-01)
+
+Anlage, Rollen, Passwort und Kontostatus nutzen statische Tabler-Abschnitte.
+Die drei Sicherheitsformulare bleiben getrennt, inklusive nativer Bestätigung,
+Versionsprüfung und Sitzungswiderruf. Sicherheitsaktionen haben reinen Text;
+Fehler stehen weiterhin beim eigenen Formular und werden fokussiert. Die
+Anmeldesperre steht nur im Kopf; Passwortprüfung und Änderungszeit bleiben im
+statischen Abschnitt Anmeldedaten. Der Hinweis zur getrennten Speicherung ist
+unmittelbar lesbar. Die Ausfallseite verwendet ausdrücklich den Textmodus.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt

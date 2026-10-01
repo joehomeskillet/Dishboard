@@ -7,4 +7,4 @@
 <h1 class="page-title mb-3">Benutzer & Zugriff</h1>
 <h2 class="card-title">{{ sem_icon('status.warning') }}<span>Benutzerverwaltung nicht verfügbar</span></h2><p role="alert">Benutzerkonten und Zugriffsverlauf können momentan nicht geladen werden. Bitte versuchen Sie es später erneut.</p>
 {% if request.method == 'POST' %}<p>Der Abschluss der Kontoaktion konnte nicht bestätigt werden. Laden Sie den aktuellen Stand, bevor Sie die Aktion erneut bestätigen.</p>{% endif %}
-{{ icon_button('actions.retry', href=url_for('admin.local_users_list'), text='Neu laden', show_text=true, aria_label=t('actions.retry.aria')) }}</div></div></main></body></html>
+{{ icon_button('actions.retry', href=url_for('admin.local_users_list'), text='Neu laden', mode='text', aria_label=t('actions.retry.aria')) }}</div></div></main></body></html>
