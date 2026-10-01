@@ -34,8 +34,10 @@ bleiben die Textaktionen «Abbrechen» und «Veröffentlichen». Das zusätzlich
 Schliesskreuz und der doppelte Erste-Slot-Zugang entfallen. Prüfdetails D-15/D-16
 stehen gemeinsam im Lesedialog «Betroffene Einträge». Menü-, Ausgabe- und
 Gangsprünge schliessen ihn über den gemeinsamen Hintergrundziel-Vertrag.
-Prüfstatus und Publikationssperren bleiben unmittelbar sichtbar. Die vollständige
-No-JS-Geometrieabnahme bleibt wegen des gemeinsamen Schliessen-Ankers offen.
+Prüfstatus und Publikationssperren bleiben unmittelbar sichtbar. Beim nativen
+No-JS-Schliessen kehrt der Anker zum sichtbaren, fokussierbaren Auslöser zurück;
+Zeilen und Spalten bleiben unverändert. Der JS-Pfad erhält zusätzlich die
+Dokument-Scrollposition innerhalb von 1 CSS-px (Präzisierung vom 01.10., 19:55).
 
 DELTA-3-04: Wochenangaben und Ausgabeangaben stehen als kompakte statische
 Formularabschnitte mit ihren bisherigen Speicheraktionen bereit. Menübeschreibung
@@ -60,8 +62,8 @@ Formular. Zusätzliche Tageseinträge öffnen über den gemeinsamen Zweck
 «Einträge am {Datum} anzeigen» einen Lesedialog mit allen Anlässen und Menüs
 des Tages. Die Zahl weiterer Einträge bleibt nichtinteraktiv daneben sichtbar.
 Raster und mobile Liste erhalten eindeutige IDs; ihre drei direkt sichtbaren
-Menüs und fachlichen Zielparameter bleiben erhalten. Vollständige No-JS-
-Geometrieabnahme des gemeinsamen Schliessen-Ankers bleibt offen.
+Menüs und fachlichen Zielparameter bleiben erhalten. Der No-JS-Schliessanker
+verwendet dieselbe Rückkehr zum Auslöser wie die Wochenprüfdetails.
 
 **Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
 Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere
