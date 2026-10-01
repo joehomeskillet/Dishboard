@@ -1,6 +1,7 @@
 """DB-free UC-G0d/G0e compatibility and attribute trust-boundary contracts."""
 from __future__ import annotations
 
+from copy import copy, deepcopy
 from itertools import product
 from types import SimpleNamespace
 
@@ -47,7 +48,9 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'form_footer':
                 calls.append((path, call))
-    assert len(calls) == 11, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 15, 'Review compatibility inventory when consumers change'
+    migrated = {'_course_editor.html', '_week_service.html', '_week_settings.html', 'menu_editor.html'}
+    assert {path.name for path, _ in calls if path.name in migrated} == migrated
     with semantic_app.test_request_context('/'):
         before = env.from_string(LEGACY).module.form_footer
         after = env.get_template('admin/_macros.html').module.form_footer
@@ -59,18 +62,34 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
             week='2026-W40', public_id='synthetic-template', book=populated, row=populated,
             list_args={'q': 'Reis & Suppe', 'archived': '1'},
             save_action=save, save_primary=save, add_primary=save, continue_primary=save,
+            cell={'template_proposal': populated}, back_url='/week',
             archive_rare=icon_button('actions.open', href='#archive'),
             g={key: '/filtered?q=Reis&archived=1' for key in (
                 'food_list_return', 'cookbook_list_return', 'recipe_list_return',
-                'component_list_return')} if populated else {},
+                'component_list_return', 'menu_collection_return')} if populated else {},
             url_for=lambda endpoint, **values: '/' + endpoint + '?' + repr(sorted(values.items())),
             icon_button=icon_button,
         )
         for path, call in calls:
             ast = nodes.Template([nodes.Output([call])]).set_environment(env)
             template = env.template_class.from_code(env, env.compile(ast), env.globals, None)
-            assert template.render(form_footer=after, **data) == template.render(
-                form_footer=before, **data), f'{path}:{call.lineno}'
+            rendered = template.render(form_footer=after, **data)
+            if path.name not in migrated:
+                assert rendered == template.render(form_footer=before, **data), f'{path}:{call.lineno}'
+                continue
+            # Native controls frozen from the pre-UC consumers (73ebe498).
+            if path.name == 'menu_editor.html':
+                expected = env.from_string('''
+                    {{ icon_button('actions.save', text='Menü speichern', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'} if cell.template_proposal else {}) }}
+                    {% if not cell.template_proposal %}{{ icon_button('actions.save', aria_label=t('menu.save_return.aria'), emphasis='secondary', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'}) }}{% endif %}
+                    {{ icon_button('actions.cancel', href=g.get('menu_collection_return') or back_url) }}
+                ''').render(**data)
+            else:
+                expected = icon_button('actions.save', emphasis=(
+                    'secondary' if path.name == '_week_service.html' else None))
+            actual = BeautifulSoup(rendered, 'html.parser')
+            assert len(actual.select('.admin-form-footer')) == 1
+            assert actual.select('button, a') == BeautifulSoup(expected, 'html.parser').select('button, a'), path
 
 
 @pytest.mark.parametrize('profile', ['staff_guest', 'patients'])
@@ -82,7 +101,14 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    assert len(calls) == 64, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 74, 'Review compatibility inventory when consumers change'
+    extended = [(path, call) for path, call in calls if any(
+        kw.key == 'details_class' for kw in call.kwargs)]
+    assert len(extended) == 10
+    assert {path.name for path, _ in extended} == {
+        '_course_editor.html', '_course_recipe_search.html', '_week_check_summary.html',
+        '_week_controls.html', '_week_menu_card.html', '_week_service.html', '_week_settings.html',
+    }
     text = 'Suppe <&>' if populated else ''
     values = dict.fromkeys([
         'note', 'shared_note', 'menu_week_public_id', 'prepared_recipe_choice', 'label',
@@ -94,6 +120,10 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
     data = dict(
         profile=profile, code=profile, form_id='course', exceptions=[text] if populated else [],
         course_open=populated, expanded=populated, error=populated, error_message=text,
+        course={'state': 'planned' if populated else 'unplanned', 'recipe_public_id': text},
+        override={'state': 'planned' if populated else 'inherit', 'recipe_public_id': text},
+        kind_label='Suppe', option_label='Menü 1', service_open=populated,
+        week_settings_open=populated, settings_summary='Wochenangaben ändern',
         create_title='Anlegen', roles_title='Rollen', state_title='Status',
         password_title='Passwort',  # noqa: S106 -- UI section title, not a credential.
         group='heading', group_label='Überschrift', singular='Einheit', recipe_query=text,
@@ -113,11 +143,33 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         before = env.from_string(LEGACY).module.disclosure_section
         after = env.get_template('admin/_macros.html').module.disclosure_section
         for path, call in calls:
+            context = dict(data)
+            if path.name == '_course_recipe_search.html':
+                context['recipe_page'] = SimpleNamespace(
+                    query=SimpleNamespace(search=text), previous_offset=20 if populated else None)
             call.kwargs.append(nodes.Keyword('caller', nodes.Name('body', 'load')))
             ast = nodes.Template([nodes.Output([call])]).set_environment(env)
             template = env.template_class.from_code(env, env.compile(ast), env.globals, None)
-            assert template.render(disclosure_section=after, **data) == template.render(
-                disclosure_section=before, **data), f'{path}:{call.lineno}'
+            rendered = template.render(disclosure_section=after, **context)
+            additions = {kw.key: kw.value.value for kw in call.kwargs
+                         if kw.key in ('details_class', 'summary_key')}
+            if not additions:
+                assert rendered == template.render(disclosure_section=before, **context), f'{path}:{call.lineno}'
+                continue
+            legacy_call = copy(call)
+            legacy_call.kwargs = [kw for kw in legacy_call.kwargs if kw.key not in additions]
+            legacy_template = _compile_call(env, legacy_call)
+            expected = BeautifulSoup(legacy_template.render(disclosure_section=before, **context), 'html.parser')
+            actual = BeautifulSoup(rendered, 'html.parser')
+            assert actual.details['class'] == expected.details['class'] + additions['details_class'].split()
+            actual.details['class'] = expected.details['class']
+            if 'summary_key' in additions:
+                title = next(kw.value.value for kw in call.kwargs if kw.key == 'title')
+                icon_summary = env.get_template('ui/_semantic.html').module.icon_summary
+                summary = BeautifulSoup(icon_summary(additions['summary_key'], aria_label=title), 'html.parser')
+                assert actual.summary == summary.summary
+                actual.summary.replace_with(deepcopy(expected.summary))
+            assert actual == expected, f'{path}:{call.lineno}'
 
 
 def test_existing_disclosure_and_footer_options_are_byte_identical(semantic_app):  # noqa: F811

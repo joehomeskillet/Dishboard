@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from flask import Flask
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, nodes
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, UndefinedError, nodes
 
 from cafeteria.template_filters import register_template_filters
 from cafeteria.ui import register_ui
@@ -60,44 +60,53 @@ def test_patient_templates_are_structurally_cost_free() -> None:
         r"|(?:internal|external)_rappen|price-row|signage-price|admin-price",
         re.IGNORECASE,
     )
-    pending = [(path, False) for path in PATIENT_TEMPLATES]
+    # The patient route supplies family='patienten'; the shared day card now
+    # gates costs by that family instead of two literal false bindings.
+    patient_guard = Environment().parse("{{ family == 'cafeteria' }}").body[0].nodes[0]
+    pending = [(path, False, path == 'admin/patienten.html') for path in PATIENT_TEMPLATES]
     checked = set()
 
-    def scan(node, prices_disabled, relative_path):
-        # Only this explicit constant guard is proved unreachable; all other branches stay checked.
+    def scan(node, prices_disabled, relative_path, patient_family):
+        # Only literal false or this exact patient-family comparison is proved.
         if isinstance(node, nodes.With):
             scoped_disabled = prices_disabled
             for target, value in zip(node.targets, node.values):
+                assert not (patient_family and isinstance(target, nodes.Name)
+                            and target.name == 'family'), relative_path
                 if isinstance(target, nodes.Name) and target.name == 'show_prices':
-                    scoped_disabled = isinstance(value, nodes.Const) and value.value is False
-                scan(value, prices_disabled, relative_path)
+                    scoped_disabled = ((isinstance(value, nodes.Const) and value.value is False)
+                                       or (patient_family and value == patient_guard))
+                scan(value, prices_disabled, relative_path, patient_family)
             for child in node.body:
-                scan(child, scoped_disabled, relative_path)
+                scan(child, scoped_disabled, relative_path, patient_family)
             return
         if (prices_disabled and isinstance(node, nodes.If)
                 and isinstance(node.test, nodes.Name) and node.test.name == 'show_prices'):
             for child in (*node.elif_, *node.else_):
-                scan(child, prices_disabled, relative_path)
+                scan(child, prices_disabled, relative_path, patient_family)
             return
         if isinstance(node, nodes.Name) and node.name == 'show_prices' and node.ctx != 'load':
             assert not prices_disabled, relative_path  # A rebind invalidates the constant proof.
+        if isinstance(node, nodes.Name) and node.name == 'family' and node.ctx != 'load':
+            assert not patient_family, relative_path
         if isinstance(node, nodes.Include):
             assert isinstance(node.template, nodes.Const), relative_path
             assert isinstance(node.template.value, str), relative_path
-            pending.append((node.template.value, prices_disabled and node.with_context))
+            pending.append((node.template.value, prices_disabled and node.with_context,
+                            patient_family and node.with_context))
         for _, value in node.iter_fields():
             for child in value if isinstance(value, list) else [value]:
                 if isinstance(child, nodes.Node):
-                    scan(child, prices_disabled, relative_path)
+                    scan(child, prices_disabled, relative_path, patient_family)
                 elif isinstance(child, str):
                     assert forbidden.search(child) is None, relative_path
 
     while pending:
-        relative_path, prices_disabled = pending.pop()
-        if (relative_path, prices_disabled) in checked:
+        relative_path, prices_disabled, patient_family = pending.pop()
+        if (relative_path, prices_disabled, patient_family) in checked:
             continue
-        checked.add((relative_path, prices_disabled))
-        scan(Environment().parse(_template(relative_path)), prices_disabled, relative_path)
+        checked.add((relative_path, prices_disabled, patient_family))
+        scan(Environment().parse(_template(relative_path)), prices_disabled, relative_path, patient_family)
 
 
 @pytest.mark.parametrize('included_source', ['<span>CHF</span>', "{% include unknown_template %}"])
@@ -110,17 +119,18 @@ def test_patient_include_guard_rejects_hidden_costs_and_dynamic_templates(monkey
         test_patient_templates_are_structurally_cost_free()
 
 
-@pytest.mark.parametrize('binding', ['', 'show_prices=true', 'show_prices=unknown'])
-@pytest.mark.parametrize('include_index', [0, 1])
-def test_patient_cost_guard_requires_false_at_each_include(monkeypatch, binding, include_index):
+@pytest.mark.parametrize('binding', [
+    '', 'show_prices=true', 'show_prices=unknown',
+    "show_prices=family != 'cafeteria'", "show_prices=family == 'patienten'",
+    "show_prices=unknown == 'cafeteria'",
+])
+def test_patient_cost_guard_requires_false_at_each_include(monkeypatch, binding):
     original = _template
-    parts = original('admin/patienten.html').split('show_prices=false')
-    assert len(parts) == 3
-    changed = parts[0] + binding + parts[1] + 'show_prices=false' + parts[2] if include_index == 0 else (
-        parts[0] + 'show_prices=false' + parts[1] + binding + parts[2]
-    )
+    parts = original('admin/_week_controls.html').split("show_prices=family == 'cafeteria'")
+    assert len(parts) == 2  # One shared call covers both lunch and dinner.
+    changed = binding.join(parts)
     monkeypatch.setitem(globals(), '_template', lambda path: (
-        changed if path == 'admin/patienten.html' else original(path)
+        changed if path == 'admin/_week_controls.html' else original(path)
     ))
     with pytest.raises(AssertionError, match='admin/_week_menu_card.html'):
         test_patient_templates_are_structurally_cost_free()
@@ -147,13 +157,24 @@ def test_patient_shared_card_rejects_reachable_costs(monkeypatch, mutation):
 
 def test_patient_cost_guard_requires_include_context(monkeypatch):
     original = _template
-    changed = original('admin/patienten.html').replace(
+    changed = original('admin/_week_controls.html').replace(
         "include 'admin/_week_menu_card.html'", "include 'admin/_week_menu_card.html' without context"
     )
     monkeypatch.setitem(globals(), '_template', lambda path: (
-        changed if path == 'admin/patienten.html' else original(path)
+        changed if path == 'admin/_week_controls.html' else original(path)
     ))
     with pytest.raises(AssertionError, match='admin/_week_menu_card.html'):
+        test_patient_templates_are_structurally_cost_free()
+
+
+@pytest.mark.parametrize('binding', ["{% set family='cafeteria' %}",
+                                   "{% with family='cafeteria' %}{% endwith %}"])
+def test_patient_cost_guard_rejects_family_rebinding(monkeypatch, binding):
+    original = _template
+    monkeypatch.setitem(globals(), '_template', lambda path: (
+        binding + original(path) if path == 'admin/_week_controls.html' else original(path)
+    ))
+    with pytest.raises(AssertionError, match='admin/_week_controls.html'):
         test_patient_templates_are_structurally_cost_free()
 
 
@@ -229,6 +250,9 @@ def test_print_views_use_dedicated_print_surface() -> None:
 def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int) -> None:
     patient = _template("admin/patienten.html")
     cafeteria = _template("admin/cafeteria.html")
+    controls = _template('admin/_week_controls.html')
+    day_card = re.search(r'{% macro day_card\(.*?{% endmacro %}', controls, re.S)
+    assert day_card is not None
     weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
     application = Flask(__name__)
     application.config.update(TESTING=True, UI_LOCALE='de')
@@ -237,7 +261,18 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
     register_ui(application)
     environment = application.jinja_env
     environment.loader = FileSystemLoader(str(TEMPLATE_ROOT))
-    environment.undefined = StrictUndefined
+    class GridUndefined(StrictUndefined):
+        def __bool__(self):
+            # Jinja injects this sentinel for optional macro call blocks. It is
+            # not missing application data; all other undefined values stay strict.
+            if self._undefined_name == 'caller' and self._undefined_hint == 'No caller defined':
+                return False
+            return super().__bool__()
+
+    environment.undefined = GridUndefined
+    for missing in ('family', 'cell', 'caller'):
+        with pytest.raises(UndefinedError):
+            environment.from_string('{% if ' + missing + ' %}bad{% endif %}').render()
     # Render the real grids and their shared cards/services, without a database or page-shell fixture.
     for family, source, days, meals in (
         ('patienten', patient, 7, ('LUNCH', 'DINNER')),
@@ -259,8 +294,10 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
         assert grid is not None
         weekday_assignment = re.search(r'{% set weekdays = .*?%}', patient)
         assert weekday_assignment is not None
+        assert "{% from 'admin/_week_controls.html' import day_card with context %}" in source
         fragment = ("{% from 'admin/_macros.html' import icon, field, form_errors %}"
-                    "{% set declarations = namespace(options=[]) %}" + weekday_assignment.group() + grid.group())
+                    "{% set declarations = namespace(options=[]) %}"
+                    + weekday_assignment.group() + day_card.group() + grid.group())
         with application.test_request_context():
             rendered = environment.from_string(fragment).render(
                 cells=cells, day_cells=cells, family=family, status='empty', week_value='2026-09-14',
@@ -274,10 +311,16 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
         assert rendered.count('<strong>Abend</strong>') == (days if family == 'patienten' else 0)
         assert rendered.count(f'von {len(meals) * 2} Menükarten erfasst') == days
         assert ('CHF' in rendered) == (family == 'cafeteria')
+        assert len(re.findall(r'class="[^"]*\badmin-day-card\b', rendered)) == days
+        assert len(re.findall(r'class="[^"]*\bpatient-admin-day\b', rendered)) == (
+            days if family == 'patienten' else 0)
 
     weekend_hint = re.search(r"{% if last_cell.day_label == 'Sonntag' %}.*?{% endif %}", cafeteria, re.S)
     assert weekend_hint is not None
-    rendered_hint = environment.from_string(weekend_hint.group()).render(last_cell={'day_label': weekdays[day_count - 1]})
+    with application.test_request_context():
+        rendered_hint = environment.from_string(
+            "{% from 'admin/_macros.html' import disclosure_section %}" + weekend_hint.group()
+        ).render(last_cell={'day_label': weekdays[day_count - 1]})
     assert ('Wochenendbetrieb: Samstag und Sonntag sind im Raster.' in rendered_hint) == (day_count == 7)
 
     css = _compact((STATIC_ROOT / "app.css").read_text(encoding="utf-8"))
@@ -309,7 +352,5 @@ def test_editor_grids_keep_profile_scope_visible_on_small_screens(day_count: int
             for stylesheet in (*base_styles, "admin-week-tabler.css")
         )
     )
-    assert re.search(r'class="[^"]*\bpatient-admin-day\b[^"]*"', patient)
-    assert re.search(r'class="[^"]*\badmin-day-card\b[^"]*"', cafeteria)
     assert re.search(r"\.patient-admin-day\b", admin_css)
     assert re.search(r"\.admin-day-card\b", admin_css)
