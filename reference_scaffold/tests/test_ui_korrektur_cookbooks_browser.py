@@ -220,15 +220,17 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         page.set_content(_list_html([], search='Nichts'))
         no_match = page.locator('.empty[data-empty-kind="no_match"]')
         expect(no_match.get_by_text('Keine passenden Kochbücher', exact=True)).to_be_visible()
-        expect(no_match.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
+        # UI-DELTA §0.1/R-03: the toolbar retains the canonical reset.
+        expect(no_match.get_by_role('link', name='Zurücksetzen', exact=True)).to_have_count(0)
+        expect(page.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
         expect(page.get_by_role('searchbox', name='Suchen')).to_have_value('Nichts')
         expect(page.locator('details#cookbook-create')).to_have_count(0)
 
         page.set_content(_list_html([]))
         none = page.locator('.empty[data-empty-kind="none"]')
         expect(none.get_by_text('Noch keine Kochbücher', exact=True)).to_be_visible()
-        expect(none.get_by_role('link', name='Anlegen', exact=True)).to_be_visible()
-        assert 'btn-primary' not in (none.locator('a').get_attribute('class') or '').split()
+        expect(none.get_by_role('link', name='Anlegen', exact=True)).to_have_count(0)
+        expect(page.get_by_role('link', name='Anlegen', exact=True)).to_have_count(1)
         expect(page.locator('details#cookbook-create')).to_have_count(0)
         assert page.locator('main .btn-primary').count() == 1
         expect(page.locator('main .btn-primary')).to_have_accessible_name('Anlegen')
@@ -267,8 +269,10 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.get_by_role('heading', level=2, name='Kochbuch archivieren')).to_be_visible()
         confirm = page.get_by_role('button', name='Archivieren', exact=True)
         assert 'btn-danger' in (confirm.get_attribute('class') or '').split()
-        assert _symbol(confirm) == 'archive'
-        assert _symbol(page.get_by_role('link', name='Abbrechen', exact=True)) == 'x'
+        # UI-DELTA §0.1/B-02: safety confirmation actions are plain text.
+        expect(confirm.locator('svg')).to_have_count(0)
+        expect(confirm).to_have_text('Archivieren')
+        expect(page.get_by_role('link', name='Abbrechen', exact=True).locator('svg')).to_have_count(0)
         assert page.locator('a[data-semantic="actions.archive"]').count() == 0
         assert page.locator('main .btn-primary').count() == 0
         status_form = Forms(page.content()).forms['/admin/kochbuecher/book-1/status']
@@ -283,7 +287,7 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.locator('.admin-statusbar-label').filter(has_text='Status')).to_have_count(0)
         expect(page.locator('dl.admin-statusbar')).to_contain_text('1 Rezept')
         assert page.locator('section[aria-labelledby="cookbook-header-title"] h3').count() == 0
-        expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
+        expect(page.locator('#cookbook-readonly-hint')).to_have_text('Archivierte Kochbücher bleiben lesbar. Rezepte und Angaben lassen sich erst nach dem Reaktivieren wieder ändern.')
         reactivate_name = page.get_by_role('heading', level=1).inner_text() + ' reaktivieren'
         reactivate = page.get_by_role('link', name=reactivate_name, exact=True)
         assert _icon_control(reactivate) == (reactivate_name, reactivate_name)
@@ -300,7 +304,8 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         ))
         confirm = page.get_by_role('button', name='Reaktivieren', exact=True)
         assert 'btn-primary' in (confirm.get_attribute('class') or '').split()
-        assert _symbol(confirm) == 'circle-check'
+        expect(confirm.locator('svg')).to_have_count(0)
+        expect(confirm).to_have_text('Reaktivieren')
         expect(page.get_by_role('button', name='Wiederherstellen', exact=True)).to_have_count(0)
         assert page.locator('main .btn-primary').count() == 1
     finally:
@@ -444,7 +449,8 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
             page.goto(cookbook_server['base'] + '/admin/kochbuecher?q=KeinTreffer')
             no_match = page.locator('.empty[data-empty-kind="no_match"]')
             expect(no_match.get_by_text('Keine passenden Kochbücher', exact=True)).to_be_visible()
-            expect(no_match.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
+            expect(no_match.get_by_role('link', name='Zurücksetzen', exact=True)).to_have_count(0)
+            expect(page.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
             expect(page.locator('details#cookbook-create')).to_have_count(0)
             _assert_page_width(page, width)
             page.screenshot(path=str(EVIDENCE / f'kochbuecher-empty-{label}.png'), full_page=True)
@@ -549,7 +555,7 @@ def test_cookbook_native_posts_keep_targets_and_payloads(cookbook_server, browse
                 opener = _open_archive_action(page)
                 expect(opener).to_have_text('')
             else:
-                expect(page.get_by_text('Schreibgeschützt · zum Ändern zuerst reaktivieren.')).to_be_visible()
+                expect(page.locator('#cookbook-readonly-hint')).to_be_visible()
                 expect(page.locator('form[action$="/rezepte"], #cookbook-name')).to_have_count(0)
                 reactivate_name = page.get_by_role('heading', level=1).inner_text() + ' reaktivieren'
                 opener = page.get_by_role('link', name=reactivate_name, exact=True)
@@ -854,10 +860,8 @@ def test_p3_polish_cookbook_editor_primary_stack_hint(cookbook_server, browser):
         page.goto(cookbook_server['base'] + path + '/status')
         page.get_by_role('button', name='Archivieren', exact=True).click()
         page.goto(cookbook_server['base'] + path)
-        trigger = page.locator('summary[aria-describedby="cookbook-readonly-hint"]')
-        trigger.focus()
-        expect(trigger).to_be_focused()
-        page.keyboard.press('Enter')
+        # UI-DELTA §0.1/D-02: archive guidance is static, with no trigger.
+        expect(page.locator('summary[aria-describedby="cookbook-readonly-hint"]')).to_have_count(0)
         expect(page.locator('#cookbook-readonly-hint')).to_be_visible()
         _assert_page_width(page, 360)
     finally:

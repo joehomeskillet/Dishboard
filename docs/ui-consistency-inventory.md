@@ -11,7 +11,7 @@ keine bereits erfolgte Migration auf den neuen Lesedialog.
 | Gemeinsame `icon_button`, `icon_summary`, `row_actions` | DB-freie DE/EN-Renderer; Symbol oder Text, alle Legacy-Kombinationen; Namen und native Attribute erhalten | `test_delta_renderer_contract.py`, `test_delta_renderer_browser.py`; tatsächliche Gate-Ausgaben im DELTA-2-Report |
 | Gemeinsame `list_row`, `empty_value` | Optional leer ohne Wrapper; 0/false/negative Werte; fachlich fehlend ausdrücklich benannt; Tabellenzellen bleiben zugeordnet | `test_delta_renderer_contract.py`; minimale Tabellenverbraucher-Anpassung |
 | Gemeinsamer Lesedialog (Migrationsschnittstelle, noch keine Produktseitenmigration) | `read_detail_trigger`/`read_detail_dialog`; Titel, Objekt, ein Text-Schliesszugang, Fokus/Escape; No-JS-Ankeroverlay | `test_delta_renderer_browser.py`: 1440/1024/768/390/1920, fein/grob, JS/No-JS, Geometrie/Scrollposition; Messprotokolle im Test-`tmp_path` |
-| `/admin/kochbuecher` | Tabelle besitzt bereits keinen `status=' '`-Workaround; Öffnen und Bearbeiten bleiben getrennt | `test_cookbooks_browser.py`, `test_icon_cookbook_view_browser.py` |
+| `/admin/kochbuecher` | DELTA-3-17: ein Anlegen-Zugang im Kopf; Reset ohne Archivfilter nur in der Toolbar. Bei Archivfilter bleiben vollständiger Reset und Suchreset getrennt. Öffnen und Bearbeiten bleiben getrennt. Filterdialog D-78/B-28 wartet auf DELTA-2b. | `test_delta3_17_browser.py`, `test_cookbooks_browser.py`, `test_icon_cookbook_view_browser.py` |
 
 ## UC-P2-A — Wochenplanung und Kalender, 2026-10-01
 

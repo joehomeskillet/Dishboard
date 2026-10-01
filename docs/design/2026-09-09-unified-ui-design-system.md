@@ -98,6 +98,16 @@ Die ungenutzte zweite Kopfkomponente `status_bar` entfällt. `label` bleibt der
 interne Renderer, `status_badge`/`status` bleiben vorläufige Adapter für vorhandene
 fachliche Zuordnungen. Kategorie- und Herkunftslabels werden nicht zu Status erklärt.
 
+### Kochbücher: UI-DELTA-Verbraucher (DELTA-3-17, 2026-10-01)
+
+Der Archivhinweis im Kochbucheditor steht einmal statisch bei den Angaben;
+ältere Hinweis-Aufklapper sind hier durch UI-DELTA §0.1 abgelöst. Bestätigungen
+verwenden explizit den Textmodus. Anlegen bleibt im Listenkopf; ein identischer
+Suchreset bleibt in der Toolbar. Suchreset mit erhaltenem Archivfilter und
+vollständiger Filterreset bleiben wegen unterschiedlicher Parameter getrennt.
+Leseansicht und Editor bleiben getrennte Aufgaben. Der gemeinsame Filterdialog
+ist als DELTA-2b-Vertragslücke offen, ohne lokalen Ersatz.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt
