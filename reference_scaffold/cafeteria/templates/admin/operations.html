@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import icon, page_header, flash_region, label, empty_state, empty_value, disclosure_section %}
-{% from 'ui/_semantic.html' import sem_icon, icon_button, icon_summary, status_badge_sem %}
+{% from 'admin/_macros.html' import icon, page_header, flash_region, label, empty_state %}
+{% from 'ui/_semantic.html' import sem_icon, icon_button, status_badge_sem, read_detail_trigger, read_detail_dialog %}
 {% set workflow_nav = 'operations' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Bereiche & Öffnungszeiten · Dishboard{% endblock %}
@@ -29,9 +29,6 @@
 <input class="form-control{% if errors.get(id) %} is-invalid{% endif %}" id="{{ id }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"{{ validation(id) }}>
 {{ error_text(id) }}
 {%- endmacro %}
-{% macro notice_field(object_name, is_open) -%}
-<details class="operations-notice"{% if is_open %} open{% endif %}>{{ icon_summary('ui.disclosure.more_options', object=object_name) }}{{ caller() }}</details>
-{%- endmacro %}
 
 {% block content %}
 {{ flash_region(get_flashed_messages()) }}
@@ -54,19 +51,10 @@
         <td data-label="Wochenvorgaben für neue Ausgaben">
           {% set missing_times = namespace(found=false) %}
           <div class="operations-overview-actions">
-          <details class="operations-overview-details">
-          {{ icon_summary('ui.disclosure.details', object=area_names[code]) }}
-          <ul class="list-unstyled mb-0">
           {% for slot, rule in schedule.slots.items() %}
-            {% set day, meal = slot %}
-            {% if rule.state == 'open' and not rule.start and not rule.end %}{% set missing_times.found = true %}{% endif %}
-            <li>
-              <span class="admin-list-primary">{{ day_names[day - 1] }} · {{ meal_labels[meal] }}:</span>
-              <span class="admin-list-meta">{{ state_labels[rule.state] }}{% if rule.state == 'open' and not rule.start and not rule.end %} · Zeiten nicht eingetragen{% elif rule.start or rule.end %} · {{ rule.start or '–' }}–{{ rule.end or '–' }}{% endif %}</span>
-            </li>
+            {% if rule.state == 'open' and (not rule.start or not rule.end) %}{% set missing_times.found = true %}{% endif %}
           {% endfor %}
-          </ul>
-          </details>
+          {{ read_detail_trigger('schedule-detail-' ~ code, 'ui.read_detail.schedule', area_names[code]) }}
           {% if missing_times.found %}{{ status_badge_sem('status.not_recorded', text='Zeiten nicht eingetragen') }}{% endif %}
           </div>
         </td>
@@ -77,10 +65,27 @@
   </div>
 </section>
 
+{% for code, schedule in schedules.items() %}
+{% call read_detail_dialog('schedule-detail-' ~ code, 'Wochenvorgaben', area_names[code]) %}
+  <p>Wochenvorgaben gelten für neue Ausgaben.</p>
+  <ul class="list-unstyled mb-0">
+  {% for slot, rule in schedule.slots.items() %}
+    {% set day, meal = slot %}
+    <li>
+      <span class="admin-list-primary">{{ day_names[day - 1] }} · {{ meal_labels[meal] }}:</span>
+      <span class="admin-list-meta">{{ state_labels[rule.state] }}{% if rule.start and rule.end %} · {{ rule.start }}–{{ rule.end }}{% elif rule.start %} · ab {{ rule.start }}{% elif rule.end %} · bis {{ rule.end }}{% elif rule.state == 'open' %} · Zeiten nicht eingetragen{% endif %}</span>
+      {% if rule.notice %}<p class="admin-list-secondary mb-0">{{ rule.notice }}</p>{% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+{% endcall %}
+{% endfor %}
+
 <h2 class="h3 mb-3">{{ t('admin.settings.label') }}</h2>
 
 {% for code in ['staff_guest', 'patient'] %}
-  {% call disclosure_section(title='Bereichsname · ' ~ area_names[code] ~ ' · ' ~ t('actions.edit.label'), id='area-name-editor-' ~ code, variant='card', has_error=errors.get('name_' ~ code)) %}
+  <section class="card mb-3" id="area-name-editor-{{ code }}" aria-labelledby="area-name-title-{{ code }}">
+    <div class="card-header"><h3 class="card-title" id="area-name-title-{{ code }}">Bereichsname · {{ area_names[code] }}</h3></div>
     <form method="post" id="name-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
       <div class="card-body">
         <input type="hidden" name="_csrf" value="{{ operations_csrf[code].save_name }}"><input type="hidden" name="action" value="save_name_{{ code }}">
@@ -90,10 +95,11 @@
       </div>
       <div class="card-footer">{{ icon_button('actions.save', emphasis='secondary', object=area_names[code]) }}</div>
     </form>
-  {% endcall %}
+  </section>
 {% endfor %}
 
-{% call disclosure_section(title='Wochenendbetrieb · ' ~ area_names.staff_guest ~ ' · ' ~ t('actions.edit.label'), id='weekend-editor', variant='card', has_error=errors.get('allows_weekend')) %}
+<section class="card mb-3" id="weekend-editor" aria-labelledby="weekend-title">
+  <div class="card-header"><h3 class="card-title" id="weekend-title">Wochenendbetrieb · {{ area_names.staff_guest }}</h3></div>
   <form method="post" id="weekend-form" action="{{ url_for('admin.operations_settings') }}">
     <div class="card-body">
       <input type="hidden" name="_csrf" value="{{ operations_csrf.staff_guest.save_weekend }}"><input type="hidden" name="action" value="save_weekend">
@@ -107,12 +113,11 @@
     </div>
     <div class="card-footer">{{ icon_button('actions.save', emphasis='secondary', object=area_names.staff_guest) }}</div>
   </form>
-{% endcall %}
+</section>
 
 {% for code, schedule in schedules.items() %}
-{% set schedule_error = namespace(found=false) %}
-{% for field in errors %}{% if field.startswith(code ~ '-') %}{% set schedule_error.found = true %}{% endif %}{% endfor %}
-{% call disclosure_section(title='Wochenvorgaben · ' ~ area_names[code] ~ ' · ' ~ t('actions.edit.label'), id='schedule-editor-' ~ code, variant='card', open=values.get('action') == 'save_schedule' and values.get('profile') == code, has_error=schedule_error.found) %}
+<section class="card mb-3" id="schedule-editor-{{ code }}" aria-labelledby="schedule-title-{{ code }}">
+<div class="card-header"><h3 class="card-title" id="schedule-title-{{ code }}">Wochenvorgaben · {{ area_names[code] }}</h3></div>
 <form method="post" id="schedule-{{ code }}" action="{{ url_for('admin.operations_settings') }}">
   <input type="hidden" name="_csrf" value="{{ schedule_csrf[code] }}"><input type="hidden" name="action" value="save_schedule">
   <input type="hidden" name="profile" value="{{ code }}">
@@ -137,8 +142,7 @@
         {% for part, label in [('start', 'Beginn'), ('end', 'Ende'), ('notice', 'Hinweis')] %}
         {% set field_value = values.get(prefix ~ part, rule[part] or '') if editing else rule[part] or '' %}
         <td data-label="{{ label }}"{% if part != 'notice' %} class="operations-time{% if field_value or errors.get(code ~ '-' ~ prefix ~ part) %} has-content{% endif %}"{% endif %}>
-          {% if part == 'notice' %}{% call notice_field(area_names[code] ~ ' · ' ~ day_names[day - 1] ~ ' · ' ~ meal_labels[meal] ~ ' · ' ~ label, field_value or errors.get(code ~ '-' ~ prefix ~ part)) %}{{ input(prefix ~ part, label, field_value, 'text', code ~ '-' ~ prefix ~ part) }}{% endcall %}
-          {% else %}{{ input(prefix ~ part, label, field_value, 'time', code ~ '-' ~ prefix ~ part) }}{% endif %}
+          {{ input(prefix ~ part, label, field_value, 'text' if part == 'notice' else 'time', code ~ '-' ~ prefix ~ part) }}
         </td>
         {% endfor %}
       </tr>
@@ -148,12 +152,11 @@
   </div>
   <div class="card-footer">{{ icon_button('actions.save', emphasis='secondary', object=area_names[code]) }}</div>
 </form>
-{% endcall %}
+</section>
 {% endfor %}
 
-{% set exception_error = namespace(found=false) %}
-{% for field in errors %}{% if field in ['profile', 'date', 'meal', 'service_state', 'service_start', 'service_end', 'notice'] %}{% set exception_error.found = true %}{% endif %}{% endfor %}
-{% call disclosure_section(title='Datierte Ausnahme · ' ~ t('actions.add.label'), id='exception-editor', variant='card', open=preview, has_error=exception_error.found) %}
+<section class="card mb-3" id="exception-editor" aria-labelledby="exception-title">
+  <div class="card-header"><h3 class="card-title" id="exception-title">Datierte Ausnahme</h3></div>
   <div class="card-body">
     <p>Ausgabe wählen und gespeicherten Stand laden. Erst das anschliessende Speichern ändert den Plan.</p>
     {% if not values.get('profile') %}{{ error_text('date') }}{% endif %}
@@ -187,25 +190,26 @@
         <div class="col-12 col-lg-4"><label class="form-label" for="service_state">Betrieb</label><select class="form-select" id="service_state" name="service_state"{{ validation('service_state') }}>{% for state, label in state_labels.items() %}<option value="{{ state }}"{% if values.service_state == state %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{{ error_text('service_state') }}</div>
         <div class="col-12 col-lg-4 operations-time{% if values.service_start or errors.get('service_start') %} has-content{% endif %}">{{ input('service_start', 'Beginn', values.service_start, 'time') }}</div>
         <div class="col-12 col-lg-4 operations-time{% if values.service_end or errors.get('service_end') %} has-content{% endif %}">{{ input('service_end', 'Ende', values.service_end, 'time') }}</div>
-        <div class="col-12">{% call notice_field(area_names[values.profile] ~ ' · ' ~ values.date ~ ' · ' ~ meal_labels[values.meal] ~ ' · Hinweis', values.notice or errors.get('notice')) %}{{ input('notice', 'Hinweis', values.notice) }}{% endcall %}</div>
+        <div class="col-12">{{ input('notice', 'Hinweis', values.notice) }}</div>
         <div class="col-12">{{ icon_button('actions.save', object=area_names[values.profile]) }}</div>
       </div>
     </form>
     {% endif %}
   </div>
-{% endcall %}
+</section>
 
-{% call disclosure_section(title='Gespeicherte Ausnahmen', id='saved-exceptions', variant='card') %}
+<section class="card mb-3" id="saved-exceptions" aria-labelledby="saved-exceptions-title">
+  <div class="card-header"><h3 class="card-title" id="saved-exceptions-title">Gespeicherte Ausnahmen</h3></div>
   {% if exceptions %}
   <div class="table-responsive"><table class="table table-vcenter card-table admin-table admin-table--stack">
     <thead><tr><th scope="col">Datum / Bereich</th><th scope="col">Betrieb</th><th scope="col">Zeiten / Hinweis</th><th scope="col">Woche</th></tr></thead>
     <tbody>{% for item in exceptions %}<tr>
       <th scope="row" data-label="Datum / Bereich" class="admin-list-primary"><a href="{{ url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()) }}">{{ item.service_date.strftime('%d.%m.%Y') }} · {{ area_names[item.profile_code] }} · {{ meal_labels[item.meal_code] }}</a></th>
       <td data-label="Betrieb"><span data-kind="{{ item.kind }}">{{ label({'closure': 'Schliessung', 'time': 'Andere Zeit', 'open': 'Zusätzlich offen'}[item.kind], 'neutral', icon='calendar-week') }}</span><div class="admin-list-secondary">{{ state_labels[item.service_state] }}</div></td>
-      <td data-label="Zeiten / Hinweis">{% if item.service_start or item.service_end %}{{ item.service_start if item.service_start else empty_value() }}–{{ item.service_end if item.service_end else empty_value() }}{% endif %}{% if item.notice %}<div class="admin-list-secondary">{{ item.notice }}</div>{% endif %}</td>
+      <td data-label="Zeiten / Hinweis">{% if item.service_start and item.service_end %}{{ item.service_start }}–{{ item.service_end }}{% elif item.service_start %}ab {{ item.service_start }}{% elif item.service_end %}bis {{ item.service_end }}{% elif item.service_state == 'open' %}Zeiten nicht eingetragen{% endif %}{% if item.notice %}<div class="admin-list-secondary">{{ item.notice }}</div>{% endif %}</td>
       <td data-label="Woche" class="admin-list-meta">{{ item.week_start.strftime('%d.%m.%Y') }}</td>
     </tr>{% endfor %}</tbody>
   </table></div>
-  {% else %}<div class="card-body">{{ empty_state('none', 'Keine gespeicherten Ausnahmen im Zeitraum von sieben Tagen vor heute bis acht Wochen danach.', '', action=icon_button('actions.add', href='#exception-load', emphasis='secondary')) }}</div>{% endif %}
-{% endcall %}
+  {% else %}<div class="card-body">{{ empty_state('none', 'Keine gespeicherten Ausnahmen im Zeitraum von sieben Tagen vor heute bis acht Wochen danach.', '') }}</div>{% endif %}
+</section>
 {% endblock %}

@@ -254,6 +254,18 @@ Obergrenzen dürfen nicht still steigen. Browserprüfungen bleiben verbindlich.
 
 ### Migration Benutzer & Zugriff, Einstellungen, API (UC-P2-D, 2026-09-30)
 
+**Bereiche & Öffnungszeiten, DELTA-3-01:** UI-DELTA §0.1 löst die unten
+beschriebenen Inhaltsdisclosures dieser Seite ab. Wochenvorgaben stehen im
+gemeinsamen Lesedialog; Bereichsname, Wochenendbetrieb, Vorgaben, Ausnahme und
+Hinweisfelder bleiben statisch sichtbar in ihren bisherigen Formularen.
+Gespeicherte Ausnahmen sind eine statische Tabelle. Der Kopfzugang zur datierten
+Ausnahme bleibt; sein identischer Leerzustandszugang entfällt. Statusleistenlink
+und Bereichsname behalten den direkten Editoranker (Fehlerbehebung aus Kopf
+beziehungsweise Auswahl aus Übersicht), während der Dialog ausschliesslich liest.
+Fehlende Zeiten offener Ausgaben sind ausdrücklich benannt; einzelne Zeitgrenzen
+stehen als «ab»/«bis». `test_delta3_01_browser` misst Dialog, Fokus und erhaltene
+Formulardaten bei 390/1440 und feinem/grobem Zeiger.
+
 Muster 1 (Kontenliste, Zugriffsverlauf) und Muster 3 (Konto, Bereiche & Öffnungszeiten,
 Darstellung, Marke, Import, Schnittstellen) verwenden die Grundmuster statt lokaler Bauteile:
 

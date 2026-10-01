@@ -7,7 +7,6 @@
 }
 .dishboard-admin .operations-overview-actions > .btn { grid-column: 2; grid-row: 1; }
 .dishboard-admin .operations-overview-actions > .form-hint { grid-column: 1 / -1; }
-.dishboard-admin .operations-overview-details[open] { grid-column: 1 / -1; grid-row: 2; }
 .dishboard-admin .operations-schedule :is(th, td) {
   padding: var(--app-space-2);
   vertical-align: top;
@@ -18,16 +17,6 @@
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
-}
-.dishboard-admin :is(.operations-overview-details, .operations-notice) > summary {
-  min-height: var(--app-control-min-height);
-  padding: var(--app-space-2) var(--app-space-3);
-  cursor: pointer;
-}
-.dishboard-admin :is(.operations-overview-details, .operations-notice) > summary {
-  display: flex;
-  align-items: center;
-  list-style: none;
 }
 .dishboard-admin .operations-schedule tr:has(option[value="closed"]:checked):not(:has([aria-invalid="true"])) .operations-time:not(.has-content) {
   visibility: hidden;
@@ -40,7 +29,9 @@
   min-width: 0;
   width: 100%;
 }
-.dishboard-admin .admin-disclosure--card .card-footer {
+.dishboard-admin section[id$="editor"] .card-footer,
+.dishboard-admin section[id^="area-name-editor-"] .card-footer,
+.dishboard-admin section[id^="schedule-editor-"] .card-footer {
   padding: var(--app-space-2) var(--app-space-3);
 }
 @media (max-width: 767.98px) {
@@ -61,6 +52,3 @@
     display: none;
   }
 }
-
-/* UC-P2-D: card disclosures hold forms that already carry card-body/card-footer padding. */
-.dishboard-admin .admin-disclosure--card > .admin-compact-detail-body { padding: 0; }

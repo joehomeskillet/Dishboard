@@ -18,12 +18,11 @@ from test_admin_workflow_routes import _login
 PATH = '/admin/bereiche-zeiten'
 
 
-def _open_details(page, editor_id: str) -> None:
-    details = page.locator(f'#{editor_id}')
-    expect(details).to_have_count(1)
-    if details.get_attribute('open') is None:
-        page.locator(f'#{editor_id} > summary').click()
-    expect(details).to_have_attribute('open', '')
+def _assert_section(page, editor_id: str) -> None:
+    section = page.locator(f'#{editor_id}')
+    expect(section).to_have_count(1)
+    expect(section).to_be_visible()
+    expect(section.locator('details, summary')).to_have_count(0)
 
 
 @pytest.mark.parametrize('width', [390, 820, 1440])
@@ -43,22 +42,22 @@ def test_native_operations_controls_save_focus_and_original_exception(
         _assert_controls(page)
         assert page.locator('[style], [onclick], script:not([src])').count() == 0
         page.screenshot(path=str(tmp_path / f'operations-{width}-js-{javascript}.png'), full_page=True)
-        _open_details(page, 'weekend-editor')
+        _assert_section(page, 'weekend-editor')
         page.locator('#allows_weekend').check()
         page.locator('#weekend-form').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
-        _open_details(page, 'weekend-editor')
+        _assert_section(page, 'weekend-editor')
         expect(page.locator('#allows_weekend')).to_be_checked()
-        _open_details(page, 'schedule-editor-staff_guest')
+        _assert_section(page, 'schedule-editor-staff_guest')
         page.locator('#staff_guest-slot_6_LUNCH_state').select_option('open')
         page.locator('#staff_guest-slot_6_LUNCH_start').fill('11:30')
         page.locator('#staff_guest-slot_6_LUNCH_end').fill('13:30')
         page.locator('#schedule-staff_guest button[type="submit"]').click()
-        _open_details(page, 'schedule-editor-staff_guest')
+        _assert_section(page, 'schedule-editor-staff_guest')
         expect(page.locator('#staff_guest-slot_6_LUNCH_start')).to_have_value('11:30')
         page.locator('#staff_guest-slot_6_LUNCH_end').fill('10:00')
         page.locator('#schedule-staff_guest button[type="submit"]').click()
         page.wait_for_load_state()
-        expect(page.locator('#schedule-editor-staff_guest')).to_have_attribute('open', '')
+        expect(page.locator('#schedule-editor-staff_guest')).to_be_visible()
         invalid = page.locator('#staff_guest-slot_6_LUNCH_end')
         expect(invalid).to_have_attribute('aria-invalid', 'true')
         expect(invalid).to_have_attribute('autofocus', '')
@@ -68,17 +67,17 @@ def test_native_operations_controls_save_focus_and_original_exception(
         assert focused.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
         page.screenshot(path=str(tmp_path / f'operations-error-{width}-js-{javascript}.png'), full_page=True)
         page.goto(PATH)
-        _open_details(page, 'exception-editor')
+        _assert_section(page, 'exception-editor')
         page.locator('#exception-load-date').fill('2026-09-05')
         page.locator('#exception-load-meal').select_option('LUNCH')
         page.locator('#exception-load').get_by_role('button', name=re.compile(r'.+ öffnen$')).click()
-        expect(page.locator('#exception-editor')).to_have_attribute('open', '')
+        expect(page.locator('#exception-editor')).to_be_visible()
         expect(page.locator('#exception-save input[name="row_version"]')).to_have_value('0')
         expect(page.locator('#service_start')).to_have_value('11:30')
         page.locator('#service_end').fill('14:00')
         _assert_controls(page)
         page.locator('#exception-save').get_by_role('button', name=re.compile(r'.+ speichern$')).click()
-        _open_details(page, 'saved-exceptions')
+        _assert_section(page, 'saved-exceptions')
         expect(page.locator('[data-kind="time"]')).to_be_visible()
         page.screenshot(path=str(tmp_path / f'operations-saved-{width}-js-{javascript}.png'), full_page=True)
 
@@ -133,7 +132,7 @@ def test_operations_overview_icons_preserve_context_and_native_forms(
         form_state = '''forms => forms.map(f => ({action: f.getAttribute('action'),
             method: f.getAttribute('method'), fields: [...new FormData(f)]}))'''
         before = forms.evaluate_all(form_state)
-        section_titles = page.locator('.admin-disclosure--card > summary').all_text_contents()
+        section_titles = page.locator('section.card > .card-header > .card-title').all_text_contents()
 
         def capture(stage):
             for moment in ('before', 'after'):
@@ -143,7 +142,7 @@ def test_operations_overview_icons_preserve_context_and_native_forms(
                     anyCoarse: matchMedia('(any-pointer: coarse)').matches,
                     fine: matchMedia('(pointer: fine)').matches, maxTouchPoints: navigator.maxTouchPoints,
                     innerWidth, scrollWidth: document.documentElement.scrollWidth,
-                    summaries: [...document.querySelectorAll('.operations-overview-details > summary')]
+                    summaries: [...document.querySelectorAll('[data-read-detail]')]
                         .map(el => ({name: el.getAttribute('aria-label'), text: el.textContent.trim(),
                             width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height,
                             minHeight: getComputedStyle(el).minHeight, padding: getComputedStyle(el).padding}))})''')
@@ -160,37 +159,40 @@ def test_operations_overview_icons_preserve_context_and_native_forms(
 
         capture('initial')
         for index, name in enumerate(names):
-            details = rows.nth(index).locator('.operations-overview-details')
-            summary = details.locator(':scope > summary')
-            expected = (f'{name}: Details ein- oder ausklappen' if locale == 'de'
-                        else f'Expand or collapse details: {name}')
-            actual = {'text': summary.inner_text().strip(), 'name': summary.get_attribute('aria-label'),
-                      'tooltip': summary.get_attribute('data-ui-tooltip')}
-            if actual != {'text': '', 'name': expected, 'tooltip': expected}:
-                failures.append({'expected_name': expected, 'actual': actual})
-            if summary.get_attribute('data-semantic') != 'ui.disclosure.details':
-                failures.append('missing shared disclosure semantic')
+            code = ('staff_guest', 'patient')[index]
+            details = page.locator(f'#schedule-detail-{code}')
+            summary = rows.nth(index).locator('[data-read-detail]')
+            expected = (f'Wochenvorgaben für {name} anzeigen' if locale == 'de'
+                        else f'Show weekly schedule for {name}')
+            assert summary.inner_text().strip() == ''
+            expect(summary).to_have_attribute('aria-label', expected)
+            expect(summary).to_have_attribute('data-ui-tooltip', expected)
+            expect(summary).to_have_attribute('data-semantic', 'ui.read_detail.schedule')
             expect(summary.locator('a, button, input')).to_have_count(0)
-            expect(details).not_to_have_attribute('open', '')
+            expect(details).to_be_hidden()
             summary.scroll_into_view_if_needed()
+            page.keyboard.press('Tab')
             summary.focus()
             expect(summary).to_be_focused()
             assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-            if javascript and summary.get_attribute('data-ui-tooltip'):
+            if javascript:
                 tooltip = page.get_by_role('tooltip', name=expected, exact=True)
                 expect(tooltip).to_be_visible()
                 summary.press('Escape')
                 expect(tooltip).to_be_hidden()
-                expect(details).not_to_have_attribute('open', '')
+                expect(details).to_be_hidden()
             summary.press('Enter')
-            expect(details).to_have_attribute('open', '')
+            expect(details).to_be_visible()
             expect(details.locator('ul')).to_be_visible()
+            expect(details.locator('li')).to_have_count(7 if code == 'staff_guest' else 14)
             capture(f'{index}-opened')
-            summary.press('Space')
-            expect(details).not_to_have_attribute('open', '')
+            details.locator('[data-read-detail-close]').click()
+            expect(details).to_be_hidden()
+            if javascript:
+                expect(summary).to_be_focused()
             capture(f'{index}-closed')
             assert forms.evaluate_all(form_state) == before
-            assert page.locator('.admin-disclosure--card > summary').all_text_contents() == section_titles
+            assert page.locator('section.card > .card-header > .card-title').all_text_contents() == section_titles
             assert not posts and not errors
         assert not failures, failures
 
@@ -198,10 +200,10 @@ def test_operations_overview_icons_preserve_context_and_native_forms(
 @pytest.mark.parametrize('locale', ['de', 'en'])
 @pytest.mark.parametrize('javascript', [False, True])
 @pytest.mark.parametrize('width', [390, 1440])
-def test_operations_notice_icons_keep_context_labels_and_native_forms(
+def test_operations_static_notices_keep_context_labels_and_native_forms(
     browser, live_server, admin_app, admin_engine, width, javascript, locale, tmp_path, monkeypatch,  # noqa: F811
 ):
-    """Notice disclosures identify their slot and retain native closed form values."""
+    """UI-DELTA replaces disclosure mechanics; context and submitted values remain."""
     from urllib.parse import parse_qs
 
     monkeypatch.setitem(admin_app.config, 'UI_LOCALE', locale)
@@ -239,77 +241,49 @@ def test_operations_notice_icons_keep_context_labels_and_native_forms(
                 assert (state['maxTouchPoints'] > 0) is coarse and state['innerWidth'] == width, state
                 assert state['scrollWidth'] <= width + 1, state
                 size = 44 if coarse else 36
-                if (state['width'], state['height']) != (size, size):
+                if state['width'] < size or state['height'] < size:
                     failures.append({'stage': stage, 'expected_size': size, 'actual': state})
 
-        def exercise(details, object_name, stage):
-            summary = details.locator(':scope > summary')
-            field = details.locator('input')
-            form = details.locator('xpath=ancestor::form')
-            expected = (f'{object_name}: Weitere Optionen ein- oder ausklappen' if locale == 'de'
-                        else f'Expand or collapse more options: {object_name}')
-            names.append(expected)
-            actual = {'text': summary.inner_text().strip(), 'name': summary.get_attribute('aria-label'),
-                      'tooltip': summary.get_attribute('data-ui-tooltip'),
-                      'semantic': summary.get_attribute('data-semantic')}
-            if actual != {'text': '', 'name': expected, 'tooltip': expected,
-                          'semantic': 'ui.disclosure.more_options'}:
-                failures.append({'stage': stage, 'expected_name': expected, 'actual': actual})
-            expect(summary.locator('use')).to_have_attribute('href', re.compile(r'#tabler-chevron-right$'))
-            expect(summary.locator('a, button, input')).to_have_count(0)
-            expect(details).not_to_have_attribute('open', '')
+        def exercise(field, object_name, stage):
+            form = field.locator('xpath=ancestor::form')
+            names.append(object_name)
+            expect(form.locator('details, summary')).to_have_count(0)
             before, post_count = form.evaluate(form_state), len(posts)
-            capture(stage + '-closed', summary)
-            page.keyboard.press('Tab')
-            summary.focus()
-            expect(summary).to_be_focused()
-            assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-            if javascript and summary.get_attribute('data-ui-tooltip'):
-                tooltip = page.get_by_role('tooltip', name=expected, exact=True)
-                expect(tooltip).to_be_visible()
-                summary.press('Escape')
-                expect(tooltip).to_be_hidden()
-                expect(details).not_to_have_attribute('open', '')
-            summary.press('Enter')
-            expect(details).to_have_attribute('open', '')
             expect(field).to_be_visible()
-            label = details.locator(f'label[for="{field.get_attribute("id")}"]')
+            field.focus()
+            expect(field).to_be_focused()
+            assert field.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+            label = form.locator(f'label[for="{field.get_attribute("id")}"]')
             expect(label).to_have_text('Hinweis')
             if width == 390 or stage.startswith('exception'):
-                if not label.is_visible():
-                    failures.append({'stage': stage, 'missing_visible_notice_label': True})
+                expect(label).to_be_visible()
             if width == 390 and stage.startswith('schedule'):
-                for cell in details.locator('xpath=ancestor::tr').locator('td[data-label]').all():
-                    if cell.evaluate("el => getComputedStyle(el, '::before').display") != 'none':
-                        failures.append({'stage': stage, 'duplicate_mobile_label': cell.get_attribute('data-label')})
-            capture(stage + '-open', summary)
+                for cell in field.locator('xpath=ancestor::tr').locator('td[data-label]').all():
+                    assert cell.evaluate("el => getComputedStyle(el, '::before').display") == 'none'
+            capture(stage + '-visible', field)
             assert form.evaluate(form_state) == before
             field.fill('Notiz "A&B" bleibt erhalten')
             entered = form.evaluate(form_state)
-            summary.focus()
-            summary.press('Space')
-            expect(details).not_to_have_attribute('open', '')
+            field.press('Tab')
             assert form.evaluate(form_state) == entered
             expect(field).to_have_value('Notiz "A&B" bleibt erhalten')
             assert len(posts) == post_count
-            return summary, field
+            return field
 
         for profile in ('staff_guest', 'patient'):
             assert page.goto(PATH).status == 200
             expect(page.locator('html')).to_have_attribute('lang', locale)
             page.evaluate('document.fonts.ready')
-            section_titles = page.locator('.admin-disclosure--card > summary').all_text_contents()
+            section_titles = page.locator('section.card > .card-header > .card-title').all_text_contents()
             area = page.locator(f'#operations-overview th a[href="#schedule-{profile}"]').inner_text()
-            _open_details(page, f'schedule-editor-{profile}')
+            _assert_section(page, f'schedule-editor-{profile}')
             form = page.locator(f'#schedule-{profile}')
-            details = form.locator('tr').filter(has=page.locator(f'#{profile}-slot_1_LUNCH_notice')).locator('.operations-notice')
-            summary, field = exercise(details, f'{area} · Montag · Mittag · Hinweis', 'schedule-' + profile)
-            assert page.locator('.admin-disclosure--card > summary').all_text_contents() == section_titles
-            summary.press('Enter')
+            field = form.locator(f'#{profile}-slot_1_LUNCH_notice')
+            field = exercise(field, f'{area} · Montag · Mittag · Hinweis', 'schedule-' + profile)
+            assert page.locator('section.card > .card-header > .card-title').all_text_contents() == section_titles
             invalid_note = 'x' * 201
             field.fill(invalid_note)
-            summary.focus()
-            summary.press('Space')
+            field.press('Tab')
             submitted = form.evaluate(form_state)
             with page.expect_response(lambda response: response.request.method == 'POST'
                                       and response.url == live_server + PATH) as response:
@@ -317,16 +291,16 @@ def test_operations_notice_icons_keep_context_labels_and_native_forms(
             assert response.value.status == 400
             payload = parse_qs(response.value.request.post_data, keep_blank_values=True)
             assert payload == {key: [value] for key, value in submitted['fields'].items()}
-            expect(page.locator(f'#schedule-editor-{profile}')).to_have_attribute('open', '')
-            expect(details).to_have_attribute('open', '')
+            expect(page.locator(f'#schedule-editor-{profile}')).to_be_visible()
+            expect(field).to_be_visible()
             expect(field).to_have_value(invalid_note)
             expect(field).to_have_attribute('aria-invalid', 'true')
             expect(page.locator(f'#{profile}-slot_1_LUNCH_notice-error')).to_be_visible()
             expect(form.locator('[name=revision]')).to_have_value(submitted['fields']['revision'])
-            capture('schedule-' + profile + '-error', summary)
+            capture('schedule-' + profile + '-error', field)
 
             assert page.goto(PATH).status == 200
-            _open_details(page, 'exception-editor')
+            _assert_section(page, 'exception-editor')
             load_id = 'exception-load' if profile == 'staff_guest' else 'exception-load-patient'
             load_form = page.locator('#' + load_id)
             load_form.locator('[name=date]').fill('2026-09-28')
@@ -342,7 +316,7 @@ def test_operations_notice_icons_keep_context_labels_and_native_forms(
             expect(exception.locator('[name=row_version]')).to_have_value('0')
             for name in ('_csrf', 'loaded'):
                 expect(exception.locator(f'[name={name}]')).not_to_have_value('')
-            exercise(exception.locator('.operations-notice'),
+            exercise(exception.locator('#notice'),
                      f'{area} · 2026-09-28 · Mittag · Hinweis', 'exception-' + profile)
             expect(exception.get_by_role('heading', name=f'{area} · 2026-09-28 · Mittag', exact=True)).to_be_visible()
         assert len(names) == len(set(names)) == 4

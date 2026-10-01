@@ -79,7 +79,7 @@ def _submit_and_capture(page, button_name: str, *, form_id: str | None = None) -
 
 
 @pytest.mark.parametrize('width,height', DENSITY_VIEWPORTS)
-def test_operations_puts_area_overview_before_collapsed_editors(
+def test_operations_puts_area_overview_before_static_editors(
     browser: Browser, live_server: str, admin_app, admin_engine,  # noqa: F811
     width: int, height: int,
 ):
@@ -105,11 +105,11 @@ def test_operations_puts_area_overview_before_collapsed_editors(
         box = first_row.bounding_box()
         assert box is not None and box['y'] < height
 
-        details = page.locator('main details.admin-disclosure--card')
+        details = page.locator('main section.card').filter(has=page.locator('form'))
         assert details.count() >= 6
-        assert page.locator('main details.admin-disclosure--card[open]').count() == 0
+        assert page.locator('main details').count() == 0
         assert page.locator('main form').evaluate_all(
-            "forms => forms.every(form => form.closest('details.admin-disclosure--card'))",
+            "forms => forms.every(form => form.closest('section.card'))",
         )
         assert page.locator('main form').evaluate_all(
             "forms => forms.every(form => form.querySelectorAll('button[type=submit]').length === 1)",
@@ -139,17 +139,15 @@ def test_operations_saved_summary_shows_missing_times_not_recorded(
         rows = overview.locator('tbody tr')
         expect(rows).to_have_count(2)
 
-        staff_row = rows.first
-        monday_staff = staff_row.locator('li').filter(has_text='Montag · Mittag')
+        monday_staff = page.locator('#schedule-detail-staff_guest li').filter(has_text='Montag · Mittag')
         expect(monday_staff).to_contain_text('Offen · Zeiten nicht eingetragen')
-        saturday_staff = staff_row.locator('li').filter(has_text='Samstag · Mittag')
+        saturday_staff = page.locator('#schedule-detail-staff_guest li').filter(has_text='Samstag · Mittag')
         expect(saturday_staff).to_contain_text('Geschlossen')
         expect(saturday_staff).not_to_contain_text('Zeiten nicht eingetragen')
 
-        patient_row = rows.nth(1)
-        monday_patient = patient_row.locator('li').filter(has_text='Montag · Mittag')
+        monday_patient = page.locator('#schedule-detail-patient li').filter(has_text='Montag · Mittag')
         expect(monday_patient).to_contain_text('Offen · Zeiten nicht eingetragen')
-        saturday_patient = patient_row.locator('li').filter(has_text='Samstag · Mittag')
+        saturday_patient = page.locator('#schedule-detail-patient li').filter(has_text='Samstag · Mittag')
         expect(saturday_patient).to_contain_text('Offen · Zeiten nicht eingetragen')
 
 
@@ -161,8 +159,8 @@ def test_operations_empty_exception_state_is_explicit(
         page = context.new_page()
         page.set_viewport_size({'width': 1440, 'height': 900})
         page.goto(OPS_PATH)
-        page.locator('#saved-exceptions > summary').click()
-        expect(page.locator('#saved-exceptions')).to_have_attribute('open', '')
+        expect(page.locator('#saved-exceptions')).to_be_visible()
+        expect(page.locator('#saved-exceptions')).to_be_visible()
         expect(page.locator('#saved-exceptions')).to_contain_text('Keine gespeicherten Ausnahmen')
         _assert_no_document_overflow(page)
         _shot(page, 'leer', '1440x900')
@@ -177,13 +175,13 @@ def test_operations_error_opens_affected_editor_and_preserves_input(
         page = context.new_page()
         page.set_viewport_size({'width': 1440, 'height': 900})
         page.goto(OPS_PATH)
-        page.locator('#schedule-editor-staff_guest > summary').click()
+        expect(page.locator('#schedule-editor-staff_guest')).to_be_visible()
         page.locator('#staff_guest-slot_6_LUNCH_state').select_option('open')
         page.locator('#staff_guest-slot_6_LUNCH_start').fill('14:00')
         page.locator('#staff_guest-slot_6_LUNCH_end').fill('13:00')
-        page.get_by_role('button', name=f"{AREA['staff_guest']} speichern", exact=True).click()
+        page.locator('#schedule-staff_guest').get_by_role('button', name=f"{AREA['staff_guest']} speichern", exact=True).click()
 
-        expect(page.locator('#schedule-editor-staff_guest')).to_have_attribute('open', '')
+        expect(page.locator('#schedule-editor-staff_guest')).to_be_visible()
         expect(page.locator('#staff_guest-slot_6_LUNCH_start')).to_have_value('14:00')
         expect(page.locator('#staff_guest-slot_6_LUNCH_end')).to_have_attribute(
             'aria-invalid', 'true',
@@ -204,30 +202,30 @@ def test_operations_requests_keep_original_form_contracts(
         page = context.new_page()
         page.goto(OPS_PATH)
 
-        page.locator('#area-name-editor-staff_guest > summary').click()
-        fields, payload = _submit_and_capture(page, f"{AREA['staff_guest']} speichern")
+        expect(page.locator('#area-name-editor-staff_guest')).to_be_visible()
+        fields, payload = _submit_and_capture(page, f"{AREA['staff_guest']} speichern", form_id='name-staff_guest')
         assert fields == {'_csrf', 'action', 'expected_staff_guest', 'name_staff_guest'}
         assert payload['action'] == ['save_name_staff_guest']
 
-        page.locator('#weekend-editor > summary').click()
+        expect(page.locator('#weekend-editor')).to_be_visible()
         page.locator('#allows_weekend').check()
-        fields, payload = _submit_and_capture(page, f"{AREA['staff_guest']} speichern")
+        fields, payload = _submit_and_capture(page, f"{AREA['staff_guest']} speichern", form_id='weekend-form')
         assert fields == {'_csrf', 'action', 'expected_allows_weekend', 'allows_weekend'}
         assert payload['action'] == ['save_weekend']
 
         for profile in ('staff_guest', 'patient'):
-            page.locator(f'#schedule-editor-{profile} > summary').click()
-            fields, payload = _submit_and_capture(page, f'{AREA[profile]} speichern')
+            expect(page.locator(f'#schedule-editor-{profile}')).to_be_visible()
+            fields, payload = _submit_and_capture(page, f'{AREA[profile]} speichern', form_id=f'schedule-{profile}')
             assert fields == _expected_schedule_fields(profile)
             assert payload['action'] == ['save_schedule']
             assert payload['profile'] == [profile]
 
-        page.locator('#exception-editor > summary').click()
+        expect(page.locator('#exception-editor')).to_be_visible()
         fields, payload = _submit_and_capture(page, f"{AREA['patient']} öffnen", form_id='exception-load-patient')
         assert fields == {'_csrf', 'action', 'profile', 'date', 'meal'}
         assert payload['action'] == ['load_exception']
 
-        fields, payload = _submit_and_capture(page, f"{AREA['patient']} speichern")
+        fields, payload = _submit_and_capture(page, f"{AREA['patient']} speichern", form_id='exception-save')
         assert fields == {
             '_csrf', 'action', 'profile', 'date', 'meal', 'row_version', 'loaded',
             'service_state', 'service_start', 'service_end', 'notice',
@@ -245,7 +243,7 @@ def test_profile_bound_exception_forms_work_without_javascript(
         page = context.new_page()
         page.set_viewport_size({'width': width, 'height': 900})
         page.goto(OPS_PATH)
-        page.locator('#exception-editor > summary').click()
+        expect(page.locator('#exception-editor')).to_be_visible()
         assert page.locator('[id]').evaluate_all(
             'nodes => new Set(nodes.map(node => node.id)).size === nodes.length',
         )
@@ -262,8 +260,8 @@ def test_profile_bound_exception_forms_work_without_javascript(
         expect(page.locator('#exception-save [name=profile]')).to_have_value(profile)
         page.locator('#service_start').fill('11:30')
         page.locator('#service_end').fill('13:30')
-        page.get_by_role('button', name=f'{AREA[profile]} speichern', exact=True).click()
-        page.locator('#saved-exceptions > summary').click()
+        page.locator('#exception-save').get_by_role('button', name=f'{AREA[profile]} speichern', exact=True).click()
+        expect(page.locator('#saved-exceptions')).to_be_visible()
         expect(page.locator('#saved-exceptions')).to_contain_text('11:30–13:30')
 
 
@@ -279,7 +277,7 @@ def test_operations_keyboard_focus_reaches_native_controls(
         page.keyboard.press('Tab')
         expect(page.locator('.skip-link')).to_be_focused()
 
-        page.locator('#weekend-editor > summary').click()
+        expect(page.locator('#weekend-editor')).to_be_visible()
         page.locator('#allows_weekend').focus()
         expect(page.locator('#allows_weekend')).to_be_focused()
         outline = page.locator('#allows_weekend').evaluate('el => getComputedStyle(el).outlineColor')
