@@ -138,6 +138,18 @@ des Zugriffsverlaufs stehen statisch; die nativen Verlaufsfilter bleiben erhalte
 Die leere Aktionsgruppe aus dem gemeinsamen list_row bleibt als P-07-Vertragslücke
 offen und wird nicht durch einen lokalen Listenrenderer umgangen.
 
+### API-Verwaltung: UI-DELTA (DELTA-3-21, 2026-10-01)
+
+Schlüsselmetadaten, Anlageformular und technische Angaben stehen statisch.
+Die Textaktion Widerrufen behält CSRF, Konsequenztext und native Bestätigung.
+Nie verwendete Schlüssel zeigen «Noch nicht verwendet»; fehlende Revisionen
+bleiben leere Tabellenzellen. Veröffentlichung und Zeitraum stehen einmal
+im Kopf, technische Revisionen darunter. Der Anlegen-Sprung steht einmal im Kopf.
+Swagger verwendet den vorgesehenen Plugin-Hook für einen reinen Textbutton
+Authorize mit sichtbarem Autorisierungszustand; Popup und Authentifizierungsablauf
+bleiben bei der Originalkomponente. Die Operationsaufklapper bleiben als D-119
+offen dokumentiert; Vendor-Dateien und gemeinsame Renderer sind unverändert.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt

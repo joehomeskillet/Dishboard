@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state, empty_value, disclosure_section %}
-{% from 'ui/_semantic.html' import sem_icon, icon_button, icon_summary, status_badge_sem %}
+{% from 'admin/_macros.html' import icon, page_header, field, check, label, empty_state %}
+{% from 'ui/_semantic.html' import sem_icon, icon_button, status_badge_sem %}
 {% block title %}Schnittstellen{% endblock %}
 {% set workflow_nav = 'api' %}
 {% block main_attributes %}data-page="api"{% endblock %}
@@ -37,12 +37,19 @@
             <tbody>
               {% for key in keys %}
               <tr data-key-id="{{ key.public_id }}" data-key-state="{{ key.state }}">
-                <td data-label="Bezeichnung" class="admin-list-primary text-wrap text-break">
-                  {{ key.label }}
+                <td data-label="Bezeichnung" class="text-wrap text-break">
+                  <span class="admin-list-primary">{{ key.label }}</span>
+                  <div class="admin-api-key-details admin-list-secondary">
+                    <dl class="mb-0 mt-2">
+                      <div class="d-flex flex-wrap gap-2"><dt>Präfix</dt><dd class="mb-0"><code class="text-reset" data-api-key-prefix>{{ key.key_prefix }}…</code></dd></div>
+                      <div class="d-flex flex-wrap gap-2"><dt>Erstellt</dt><dd class="mb-0">{{ key.created_at.strftime('%d.%m.%Y %H:%M') }} von {{ key.created_by_name }}</dd></div>
+                      <div class="d-flex flex-wrap gap-2"><dt>Zuletzt verwendet</dt><dd class="mb-0">{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}Noch nicht verwendet{% endif %}</dd></div>
+                    </dl>
+                  </div>
                 </td>
                 <td data-label="Scopes / Kanäle" class="admin-api-key-scopes">
                   {% for scope in key.scopes %}{{ label(scope, 'neutral', semantic_key='status.info') }}{% endfor %}
-                  <span class="admin-list-secondary">{% for channel in key.channels %}{% if not loop.first %}, {% endif %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% endfor %}</span>
+                  {% if key.channels %}<span class="admin-list-secondary">{% for channel in key.channels %}{% if not loop.first %}, {% endif %}{{ 'Cafeteria' if channel == 'cafeteria' else 'Patienten' }}{% endfor %}</span>{% endif %}
                 </td>
                 <td data-label="Läuft ab" class="text-wrap">{% if key.expires_at %}{{ key.expires_at.strftime('%d.%m.%Y') }}{% else %}Bestandsschlüssel ohne Ablaufdatum{% endif %}</td>
                 <td data-label="Status" class="admin-table-status">
@@ -51,26 +58,15 @@
                   {% else %}<span data-status="revoked">{{ status_badge_sem('status.unavailable', text='Widerrufen', detail='Schlüssel widerrufen') }}</span>{% endif %}
                 </td>
                 <td data-label="Aktionen" class="admin-table-actions">
-                  <div class="admin-row-actions align-items-start" role="group" aria-label="{{ t('ui.action_group.object', object=key.label) }}">
-                    <details class="admin-compact-details admin-api-key-details">
-                      {{ icon_summary('ui.disclosure.details', object=key.label) }}
-                      <dl class="mb-0 mt-2">
-                        <dt>Präfix</dt><dd data-label="Präfix"><code class="text-reset">{{ key.key_prefix }}…</code></dd>
-                        <dt>Erstellt</dt><dd>{{ key.created_at.strftime('%d.%m.%Y %H:%M') }}<br>von {{ key.created_by_name }}</dd>
-                        <dt>Zuletzt verwendet</dt><dd>{% if key.last_used_at %}{{ key.last_used_at.strftime('%d.%m.%Y %H:%M') }}{% else %}{{ empty_value() }}{% endif %}</dd>
-                      </dl>
-                    </details>
-                    {% if key.state == 'active' %}
-                    <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="col" data-confirm="{{ t('api_key.revoke.confirm') }}">
+                  {%- if key.state == 'active' %}
+                  <div class="admin-row-actions align-items-start w-100" role="group" aria-label="{{ t('ui.action_group.object', object=key.label) }}">
+                    <form method="post" action="{{ url_for('admin.api_key_revoke', public_id=key.public_id) }}" class="col min-w-0" data-confirm="{{ t('api_key.revoke.confirm') }}">
                       <input type="hidden" name="_csrf" value="{{ csrf }}">
-                      <details class="admin-compact-details">
-                        {{ icon_summary('actions.delete', aria_label=t('api_key.revoke.aria', name=key.label).unescape()) }}
-                        <p class="my-2 ui-sem-consequence">{{ t('api_key.revoke.confirm') }} {{ t('api_key.revoke.consequence') }}</p>
-                        {{ icon_button('actions.confirm', text=t('api_key.revoke.label'), aria_label=t('api_key.revoke.aria', name=key.label), emphasis='secondary', class='btn-danger', show_text=true) }}
-                      </details>
+                      <p class="my-2 ui-sem-consequence">{{ t('api_key.revoke.confirm') }} {{ t('api_key.revoke.consequence') }}</p>
+                      {{ icon_button('actions.confirm', text=t('api_key.revoke.label'), aria_label=t('api_key.revoke.aria', name=key.label), emphasis='secondary', class='btn-danger text-nowrap', mode='text') }}
                     </form>
-                    {% endif %}
                   </div>
+                  {% endif -%}
                 </td>
               </tr>
               {% endfor %}
@@ -78,12 +74,12 @@
           </table>
           {% else %}
           <div class="card-body py-3">
-            {% call empty_state('none', 'Noch keine API-Schlüssel vorhanden.', 'Legen Sie einen Schlüssel mit Vorschauzugriff an.') %}{{ icon_button('actions.add', href='#api-key-label', emphasis='secondary') }}{% endcall %}
+            {{ empty_state('none', 'Noch keine API-Schlüssel vorhanden.', 'Legen Sie einen Schlüssel mit Vorschauzugriff an.') }}
           </div>
           {% endif %}
         </section>
-        {% set create_title %}<span id="api-key-create-title">{{ t('admin.api_key.label') }}</span>{% if error %} {{ status_badge_sem('status.error') }}{% endif %}{% endset %}
-        {% call disclosure_section(title=create_title, id='api-create', variant='card', open=error or values.label or values.scopes_preview or values.channel_cafeteria or values.channel_patienten, has_error=error) %}
+        <section class="card mb-3" id="api-create" aria-labelledby="api-key-create-title">
+          <div class="card-header"><h2 class="card-title" id="api-key-create-title">{{ t('admin.api_key.label') }}{% if error %} · Fehler{% endif %}</h2></div>
           <form method="post" action="{{ url_for('admin.api_key_create') }}" id="api-key-create" class="admin-form admin-compact-form" aria-labelledby="api-key-create-title">
             <div class="card-body">
               {% if error %}<div class="alert alert-danger error error-region" role="alert" tabindex="-1">{{ icon('alert-triangle') }} {{ error }}</div>{% endif %}
@@ -111,26 +107,20 @@
               <div class="btn-list ms-auto">{{ icon_button('actions.add', emphasis='secondary') }}</div>
             </div>
           </form>
-        {% endcall %}
-        {% call disclosure_section(id='api-technical', variant='card') %}
+        </section>
+        <section class="card" id="api-technical" aria-label="Technische Schnittstelleninformationen">
           <div class="card-body">
         <section aria-labelledby="api-status-title" data-api-status>
-          <h2 class="card-title" id="api-status-title">Veröffentlichungsstatus je Bereich</h2>
+          <h2 class="card-title" id="api-status-title">Veröffentlichte Revisionen</h2>
           <table class="table table-vcenter card-table admin-table admin-table--stack">
             <thead>
-              <tr><th scope="col">Kanal</th><th scope="col">Veröffentlicht</th><th scope="col">Revision</th><th scope="col">Woche</th></tr>
+              <tr><th scope="col">Kanal</th><th scope="col">Revision</th></tr>
             </thead>
             <tbody>
               {% for channel in status.channels %}
               <tr>
                 <td data-label="Kanal">{{ 'Cafeteria' if channel.channel == 'cafeteria' else 'Patienten' }}</td>
-                <td data-label="Veröffentlicht">
-                  {% if channel.published %}<span data-status="live">{{ status_badge_sem('publish.published') }}</span>{% else %}<span data-status="incomplete">{{ status_badge_sem('publish.unpublished', variant='warning') }}</span>{% endif %}
-                </td>
                 <td data-label="Revision">{{ channel.revision_id if channel.revision_id is not none else '' }}</td>
-                <td data-label="Woche">
-                  {% if channel.week_start and channel.week_end %}{{ channel.week_start }} – {{ channel.week_end }}{% endif %}
-                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -155,5 +145,5 @@
             </dl>
         </section>
           </div>
-        {% endcall %}
+        </section>
 {% endblock %}

@@ -28,37 +28,25 @@ def test_api_tooltips_stay_inside_viewport(site, monkeypatch, tmp_path, width, c
     try:
         _goto(page, '/admin/api')
         assert page.evaluate("matchMedia('(pointer: coarse)').matches") is coarse
-        technical = page.locator('#api-technical > summary')
-        technical.press('Enter')
+        expect(page.locator('#api-technical > summary')).to_have_count(0)
         expect(page.locator('[data-api-help]')).to_be_visible()
-        technical.press('Enter')
         for key_state in ('active', 'expired', 'revoked'):
             key_row = page.locator(f'[data-key-state="{key_state}"]')
             label = f'Synthetischer {key_state} Testzugang'
             group = key_row.get_by_role('group', name=f'Aktionen für {label}', exact=True)
-            expect(group).to_be_visible()
+            expect(group).to_have_count(int(key_state == 'active'))
             expect(key_row.locator('.ui-sem-actions, [data-semantic="actions.more"]')).to_have_count(0)
-            disclosure = group.locator('.admin-api-key-details')
-            control = disclosure.locator(':scope > summary')
-            name = f'{label}: Details ein- oder ausklappen'
-            expect(control).to_be_visible()
-            expect(control).to_have_text('')
-            expect(control).to_have_accessible_name(name)
-            expect(control).to_have_attribute('data-ui-tooltip', name)
-            control.focus()
-            expect(control).to_be_focused()
-            control.press('Enter')
-            expect(key_row.locator('[data-label="Präfix"]')).to_be_visible()
-            control.press('Enter')
-            expect(disclosure).not_to_have_attribute('open', '')
+            metadata = key_row.locator('.admin-api-key-details')
+            expect(metadata.locator('summary')).to_have_count(0)
+            expect(metadata).to_be_visible()
+            expect(key_row.locator('[data-api-key-prefix]')).to_be_visible()
             expect(key_row.locator('form[action$="/revoke"]')).to_have_count(int(key_state == 'active'))
         row = page.locator('[data-key-state="active"]')
-        details = row.locator('.admin-api-key-details')
-        summary = details.locator(':scope > summary')
-        revoke = row.locator('form[action$="/revoke"] details')
-        revoke_action = revoke.locator(':scope > summary')
+        revoke = row.locator('form[action$="/revoke"]')
+        revoke_action = revoke.locator('button[type="submit"]')
         expect(revoke_action).to_be_visible()
-        expect(revoke_action).to_have_text('')
+        expect(revoke_action).to_have_text('Widerrufen')
+        expect(revoke_action.locator('svg')).to_have_count(0)
         expect(revoke_action).to_have_accessible_name('Schlüssel Synthetischer active Testzugang widerrufen')
 
         def capture(stage):
@@ -90,7 +78,7 @@ def test_api_tooltips_stay_inside_viewport(site, monkeypatch, tmp_path, width, c
             measurements.append({'stage': stage, **state})
             (tmp_path / 'geometry.json').write_text(json.dumps(measurements, indent=2))
             page.screenshot(path=str(tmp_path / f'{stage}.png'), full_page=False,
-                            mask=[row.locator('[data-label="Präfix"] code')])
+                            mask=[row.locator('[data-api-key-prefix]')])
             assert state['tips'], state
             assert state['scrollWidth'] <= state['width'] + 1, state
             for tip in state['tips']:
@@ -112,30 +100,17 @@ def test_api_tooltips_stay_inside_viewport(site, monkeypatch, tmp_path, width, c
             assert tip.get_attribute('id') in control.get_attribute('aria-describedby').split()
             return tip
 
-        # Reopen the direct details action after visiting the other rows.
-        if trigger == 'hover':
-            summary.click()
-        else:
-            summary.press('Enter')
-        expect(details).to_have_attribute('open', '')
-        expect(page.get_by_role('tooltip', name=summary.get_attribute('aria-label'), exact=True)).to_be_visible()
+        # UI-DELTA: metadata needs no control; tooltip geometry belongs to the direct action.
+        explain(revoke_action)
         page.evaluate('window.scrollTo(0, scrollY)')
-        capture('details-open')
+        capture('action-first-focus')
         page.keyboard.press('Escape')
         expect(page.get_by_role('tooltip')).to_have_count(0)
-        expect(summary).to_be_focused()
-        expect(details).to_have_attribute('open', '')
-        assert not summary.get_attribute('aria-describedby')
-        summary.press('Enter')
-        explain(summary)
-        capture('details-closed')
-        page.keyboard.press('Escape')
-        expect(details).not_to_have_attribute('open', '')
         if trigger == 'focus':
-            expect(summary).to_be_focused()
+            expect(revoke_action).to_be_focused()
         else:
-            expect(summary).not_to_be_focused()
-        assert not summary.get_attribute('aria-describedby')
+            expect(revoke_action).not_to_be_focused()
+        assert not revoke_action.get_attribute('aria-describedby')
         explain(revoke_action)
         capture('row-action')
         page.keyboard.press('Escape')
@@ -144,7 +119,7 @@ def test_api_tooltips_stay_inside_viewport(site, monkeypatch, tmp_path, width, c
             expect(revoke_action).to_be_focused()
         else:
             expect(revoke_action).not_to_be_focused()
-        expect(revoke).not_to_have_attribute('open', '')
+        expect(revoke.locator('details, summary')).to_have_count(0)
         assert not revoke_action.get_attribute('aria-describedby')
         assert not posts and not errors
     finally:

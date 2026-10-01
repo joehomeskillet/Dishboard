@@ -89,7 +89,7 @@ def _screenshot(page: Page, name: str, width: int, height: int, masks: list[obje
 
 
 def _api_prefix_mask_locators(page: Page):
-    return page.locator('details.admin-api-key-details[open] [data-label="Präfix"] code')
+    return page.locator('[data-api-key-prefix]')
 
 
 def test_tool_pages_put_primary_content_before_administration(site) -> None:  # noqa: F811
@@ -104,15 +104,15 @@ def test_tool_pages_put_primary_content_before_administration(site) -> None:  # 
             .compareDocumentPosition(document.querySelector('[data-api-status]'))
             & Node.DOCUMENT_POSITION_FOLLOWING
         )''')
-        create = page.locator('#api-key-create').locator('xpath=ancestor::details')
-        expect(create).not_to_have_attribute('open', '')
+        create = page.locator('#api-create')
+        expect(create.locator('summary')).to_have_count(0)
+        expect(page.locator('#api-key-create')).to_be_visible()
         _assert_no_duplicate_primary_action(page)
-        create.locator('summary').click()
         page.locator('#api-key-create').evaluate('form => { form.noValidate = true; }')
         with page.expect_response(lambda response: response.request.method == 'POST') as rejected:
             page.locator('#api-key-create button[type="submit"]').click()
         assert rejected.value.status == 400
-        expect(create).to_have_attribute('open', '')
+        expect(page.locator('#api-key-create')).to_be_visible()
         expect(create.get_by_role('alert')).to_be_visible()
         _assert_no_duplicate_primary_action(page)
         _screenshot(page, 'schnittstellen-fehler', 1366, 768)
@@ -199,21 +199,17 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                 _assert_full_width(page, width)
                 _assert_rendered_icons(page)
                 expect(page.locator('[data-api-status]')).to_contain_text('SYNTHETISCH-CAF-R7')
-                expect(page.locator('[data-api-status]')).to_contain_text('Nicht veröffentlicht')
+                expect(page.locator('.admin-statusbar')).to_contain_text('Nicht veröffentlicht')
                 for state in ('active', 'expired', 'revoked'):
                     expect(page.locator(f'[data-key-state="{state}"]')).to_be_visible()
                 assert page.locator('[data-key-state="active"] button').count() == 1
                 assert page.locator('[data-key-state="expired"] button, [data-key-state="revoked"] button').count() == 0
                 expect(page.locator('[data-api-help], [data-api-versions]')).to_have_count(2)
                 technical = page.locator('#api-technical')
-                summary = technical.locator(':scope > summary')
-                expect(technical).not_to_have_attribute('open', '')
-                for selector in ('[data-api-help]', '[data-api-versions]'):
-                    expect(page.locator(selector)).not_to_be_visible()
-                summary.focus()
-                expect(summary).to_be_focused()
-                page.keyboard.press('Enter')
-                expect(technical).to_have_attribute('open', '')
+                expect(technical.locator('summary')).to_have_count(0)
+                docs = technical.locator('a[href="/api/v1/docs"]')
+                docs.focus()
+                expect(docs).to_be_focused()
                 for selector in ('[data-api-help]', '[data-api-versions]'):
                     expect(page.locator(f'section{selector}')).to_be_visible()
                 expect(page.locator('[data-api-status]')).to_be_visible()
@@ -222,32 +218,20 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                 minimum = page.evaluate(
                     "matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36"
                 )
-                box = summary.bounding_box()
+                box = docs.bounding_box()
                 assert box and box['height'] >= minimum and box['width'] >= minimum
-                summary.press('Enter')
-                expect(technical).not_to_have_attribute('open', '')
-                for selector in ('[data-api-help]', '[data-api-versions]'):
-                    expect(page.locator(selector)).not_to_be_visible()
                 for state in ('active', 'expired', 'revoked'):
                     expect(page.locator(f'[data-key-state="{state}"] [data-semantic="actions.more"]')).to_have_count(0)
                     menu = page.locator(f'[data-key-state="{state}"] .admin-api-key-details')
-                    more = menu.locator(':scope > summary')
-                    expect(menu).not_to_have_attribute('open', '')
-                    more.press('Enter')
-                    expect(menu).to_have_attribute('open', '')
+                    expect(menu.locator('summary')).to_have_count(0)
                     expect(menu.locator('dl')).to_be_visible()
                     _assert_rendered_icons(page)
-                    box = more.bounding_box()
-                    assert box and box['height'] >= minimum and box['width'] >= minimum
-                    more.press('Enter')
-                    expect(menu).not_to_have_attribute('open', '')
                 assert 'dbk_' not in ' '.join(page.locator('main summary').all_text_contents())
                 key_details = page.locator('[data-key-state="active"] .admin-api-key-details')
-                key_details.locator('summary').click()
-                expect(key_details).to_have_attribute('open', '')
+                expect(key_details.locator('dl')).to_be_visible()
                 _assert_rendered_icons(page)
                 prefix_mask = _api_prefix_mask_locators(page)
-                expect(prefix_mask).to_have_count(1)
+                expect(prefix_mask).to_have_count(3)
                 page.evaluate('if (document.activeElement && document.activeElement.blur) { document.activeElement.blur(); }')
                 page.evaluate('window.scrollTo(0, 0)')
                 geometry = page.evaluate('''() => ({
@@ -281,10 +265,9 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         expect(page.get_by_text('Noch keine API-Schlüssel vorhanden.', exact=True)).to_be_visible()
         expect(page.locator('table[data-api-keys]')).to_have_count(0)
         _screenshot(page, f'empty-api-js-{javascript}', width, 900)
-        summary = page.locator('#api-create > summary')
+        expect(page.locator('#api-create > summary')).to_have_count(0)
         form = page.locator('#api-key-create')
-        summary.focus()
-        page.keyboard.press('Enter')
+        expect(form).to_be_visible()
         form.get_by_role('button', name='Anlegen', exact=True).click()
         expect(page.locator('#api-key-label')).to_be_focused()
         page.get_by_label('Bezeichnung', exact=True).fill('Synthetischer Browserzugang')
@@ -292,8 +275,8 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         page.locator('#api-key-channel-patienten').check()
         expiry = page.locator('#api-key-expires').input_value()
         original = form.evaluate('form => [...new FormData(form)]')
-        summary.click()
-        summary.click()
+        page.locator('#api-key-expires').focus()
+        expect(page.locator('#api-key-expires')).to_be_focused()
         assert bool(original == form.evaluate('form => [...new FormData(form)]'))
         with page.expect_response(lambda response: response.request.method == 'POST') as rejected:
             form.get_by_role('button', name='Anlegen', exact=True).click()
@@ -305,9 +288,8 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         expect(page.locator('#api-key-expires')).to_have_value(expiry)
         for channel in ('cafeteria', 'patienten'):
             expect(page.locator(f'#api-key-channel-{channel}')).to_be_checked()
-        summary.click()
-        expect(summary).to_contain_text('Fehler')
-        summary.click()
+        expect(page.locator('#api-key-create-title')).to_contain_text('Fehler')
+        expect(page.locator('#api-create > summary')).to_have_count(0)
         page.locator('#api-key-scope-preview').check()
         form.get_by_role('button', name='Anlegen', exact=True).click()
         expect(page.locator('[data-new-key]')).to_be_visible()
@@ -334,35 +316,34 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         expect(row.locator('[data-label="Scopes / Kanäle"]')).to_contain_text('Cafeteria, Patienten')
         expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
         details = row.locator('.admin-api-key-details')
-        expect(details.locator('summary')).to_have_attribute(
-            'aria-label', 'Synthetischer Browserzugang: Details ein- oder ausklappen'
-        )
-        details.locator('summary').click()
+        expect(details.locator('summary')).to_have_count(0)
         expect(details).to_contain_text('Zuletzt verwendet')
         expect(details.locator('dl')).to_be_visible()
         _assert_rendered_icons(page)
         _assert_full_width(page, width)
-        if javascript:
-            details.locator('summary').press('Escape')
-            expect(page.get_by_role('tooltip')).not_to_be_visible()
-        details.locator('summary').press('Enter')
         revoke = row.locator('form[action$="/revoke"]')
-        trigger = revoke.locator('summary')
+        expect(revoke.locator('summary')).to_have_count(0)
         confirm = revoke.get_by_role(
             'button', name='Schlüssel Synthetischer Browserzugang widerrufen', exact=True
         )
         posts = []
         page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
-        trigger.click()
         expect(confirm).to_be_visible()
+        expect(confirm).to_have_text('Widerrufen')
+        expect(confirm.locator('svg')).to_have_count(0)
+        confirm.focus()
+        expect(confirm).to_be_focused()
+        if javascript:
+            confirm.press('Escape')
+            expect(page.get_by_role('tooltip')).not_to_be_visible()
         expect(revoke.locator('.ui-sem-consequence')).to_have_text(
             'Schlüssel wirklich widerrufen? Anwendungen verlieren damit den Vorschauzugriff.'
         )
-        trigger.click()
-        expect(confirm).not_to_be_visible()
+        expect(confirm).to_be_visible()
         expect(row).to_be_visible()
         assert posts == []
-        geometry = trigger.evaluate('''el => {
+        confirm.scroll_into_view_if_needed()
+        geometry = confirm.evaluate('''el => {
             const b = el.getBoundingClientRect();
             const hit = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2);
             return {trigger: b.toJSON(), hit: {tag: hit?.tagName, className: hit?.className},
@@ -370,7 +351,6 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
                     box: tip.getBoundingClientRect().toJSON(), text: tip.textContent}))};
         }''')
         (API_EVIDENCE / f'revoke-reopen-{width}-js-{javascript}.json').write_text(json.dumps(geometry, indent=2))
-        trigger.click()
         if javascript:
             page.once('dialog', lambda dialog: dialog.dismiss())
             confirm.click()
@@ -456,7 +436,8 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
         page = _page(site, client, viewport={'width': width, 'height': height})
         try:
             _goto(page, '/admin/api')
-            page.locator('#api-create > summary').click()
+            expect(page.locator('#api-create > summary')).to_have_count(0)
+            expect(page.locator('#api-key-create')).to_be_visible()
             page.locator('#api-key-create').evaluate('form => { form.noValidate = true; }')
             page.locator('#api-key-create button[type="submit"]').click()
             page.wait_for_load_state('networkidle')

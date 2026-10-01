@@ -6,5 +6,24 @@ document.addEventListener('DOMContentLoaded', function () {
     presets: [SwaggerUIBundle.presets.apis],
     layout: 'BaseLayout',
     tryItOutEnabled: true,
+    plugins: [function () {
+      return {
+        wrapComponents: {
+          authorizeBtn: function (Original, system) {
+            return function (props) {
+              return system.React.createElement(Original, Object.assign({}, props, {
+                getComponent: function (name) {
+                  // Keep Swagger's popup and event handling; render auth state as text.
+                  if (name === 'LockAuthIcon' || name === 'UnlockAuthIcon') {
+                    return function () { return props.isAuthorized ? ' (authorized)' : null; };
+                  }
+                  return props.getComponent.apply(null, arguments);
+                },
+              }));
+            };
+          },
+        },
+      };
+    }],
   });
 });

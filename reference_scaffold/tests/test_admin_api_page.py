@@ -205,7 +205,7 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                     page = context.new_page()
                     page.goto(origin + '/admin/api', wait_until='networkidle')
                     expect(page.locator('[data-api-keys]')).to_contain_text('Noch keine API-Schlüssel')
-                    expect(page.locator('[data-api-keys] a[href="#api-key-label"]')).to_be_visible()
+                    expect(page.locator('main a[href="#api-key-label"]')).to_have_count(1)
                     expect(page.locator('main .btn-primary')).to_have_count(1)
                     primary = page.locator('main .btn-primary')
                     primary.focus()
@@ -225,10 +225,9 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                                         ['expires_at', _create_form()['expires_at']],
                                         ['scopes', 'preview.read'], ['channels', 'cafeteria'],
                                         ['channels', 'patienten']]
-                    summary = page.locator('#api-create > summary')
-                    summary.focus()
-                    summary.press('Enter')
-                    summary.press('Enter')
+                    expect(page.locator('#api-create > summary')).to_have_count(0)
+                    page.locator('#api-key-expires').focus()
+                    expect(page.locator('#api-key-expires')).to_be_focused()
                     assert page.locator('#api-key-create').evaluate('e => [...new FormData(e)]') == selected
                     with page.expect_response(lambda r: r.request.method == 'POST') as response:
                         page.locator('#api-key-create button[type="submit"]').press('Enter')
@@ -253,10 +252,10 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                             # R18: metadata shares the secondary typography (§7).
                             ('td[data-label="Läuft ab"]', '13px', '400'),
                         ):
-                            cell = row.locator(selector)
-                            expect(cell).to_have_css('font-size', size)
-                            expect(cell).to_have_css('font-weight', weight)
-                            expect(cell).to_have_css('font-style', 'normal')
+                            for cell in row.locator(selector).all():
+                                expect(cell).to_have_css('font-size', size)
+                                expect(cell).to_have_css('font-weight', weight)
+                                expect(cell).to_have_css('font-style', 'normal')
                         row_actions = table.locator('.admin-row-actions').first
                         shared = row_actions.evaluate('el => { const cs = getComputedStyle(el); return {wrap: cs.flexWrap, gap: cs.gap, display: cs.display}; }')
                         assert shared['display'] == 'flex', shared
@@ -274,7 +273,8 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                             'Nicht veröffentlicht', 'Nicht veröffentlicht',
                         ]
                         expect(bar).not_to_contain_text('Revision')
-                        expect(page.locator('#api-technical')).not_to_have_attribute('open', '')
+                        expect(page.locator('#api-technical summary')).to_have_count(0)
+                        expect(page.locator('[data-api-versions]')).to_be_visible()
                         metrics = page.evaluate('''() => ({width: innerWidth,
                             height: document.documentElement.scrollHeight,
                             row: document.querySelector('[data-key-id]').getBoundingClientRect().height,
@@ -284,11 +284,17 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                             overflow: document.documentElement.scrollWidth - innerWidth})''')
                         metrics['cells'] = row.locator('td').evaluate_all('''es => es.map(el => ({
                             label: el.dataset.label, box: el.getBoundingClientRect().toJSON()}))''')
-                        metrics['actions'] = row_actions.locator('summary').evaluate_all('''es => es.map(el => ({
+                        metrics['actions'] = row_actions.locator('button').evaluate_all('''es => es.map(el => ({
                             name: el.getAttribute('aria-label'), box: el.getBoundingClientRect().toJSON()}))''')
                         (evidence / f'layout-{javascript}-{width}.json').write_text(json.dumps(metrics, indent=2))
                         assert metrics['overflow'] <= 1, metrics
-                        assert metrics['row'] <= (96 if width >= 1024 else 280), metrics
+                        # UI-DELTA D-02 exposes metadata and safety text. Keep the
+                        # original density budget for the previously visible content.
+                        revealed_height = row.locator('.admin-api-key-details, .ui-sem-consequence').evaluate_all('''es => es.reduce((sum, el) => {
+                            const s = getComputedStyle(el);
+                            return sum + el.getBoundingClientRect().height + parseFloat(s.marginTop) + parseFloat(s.marginBottom);
+                        }, 0)''')
+                        assert metrics['row'] - revealed_height <= (96 if width >= 1024 else 280), metrics
                         targets = page.locator('main :is(.btn, summary)').evaluate_all('''es => es.filter(e => e.checkVisibility()).map(e => ({
                             height: e.getBoundingClientRect().height,
                             minimum: matchMedia('(any-pointer: coarse)').matches ? 44 : 36,
@@ -307,11 +313,11 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                         page.locator('#api-key-create-title').click()
                     # Technical links remain reachable by keyboard, including without JS.
-                    technical = page.locator('#api-technical > summary')
-                    technical.focus()
-                    technical.press('Enter')
+                    expect(page.locator('#api-technical > summary')).to_have_count(0)
                     expect(page.get_by_role('heading', name='Technische Versionen')).to_be_visible()
                     docs = page.locator('a[href="/api/v1/docs"]')
+                    docs.focus()
+                    expect(docs).to_be_focused()
                     expect(docs).to_be_visible()
                     expect(docs).to_have_accessible_name('Swagger UI')
                     expect(docs).to_have_attribute('target', '_blank')
@@ -321,21 +327,17 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                     fhir = page.locator('a[href="/fhir/metadata"]')
                     expect(fhir).to_have_accessible_name('FHIR')
                     expect(fhir).to_have_attribute('data-ui-tooltip', 'FHIR öffnen')
-                    technical.press('Enter')
                     # Direct details and revoke; the native safety step stays readable.
                     revoke = page.locator('form[action$="/revoke"]')
-                    expect(revoke.locator('summary')).to_have_text('')
-                    expect(revoke.locator('summary')).to_have_attribute('aria-label', re.compile(r'widerrufen$'))
-                    expect(revoke.locator('summary')).to_have_attribute('data-ui-tooltip', re.compile(r'widerrufen$'))
-                    expect(revoke.locator('button')).not_to_be_visible()
+                    expect(revoke.locator('summary')).to_have_count(0)
+                    expect(revoke.locator('button')).to_have_text('Widerrufen')
+                    expect(revoke.locator('button')).to_have_attribute('aria-label', re.compile(r'widerrufen$'))
+                    expect(revoke.locator('button')).to_have_attribute('data-ui-tooltip', re.compile(r'widerrufen$'))
+                    expect(revoke.locator('button svg')).to_have_count(0)
+                    expect(revoke.locator('button')).to_be_visible()
                     expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
-                    details = page.locator('.admin-api-key-details > summary')
-                    expect(details).to_have_attribute('data-ui-tooltip', 'Küchenintegration: Details ein- oder ausklappen')
-                    expect(details).to_have_text('')
-                    details.focus()
-                    details.press('Enter')
-                    expect(page.locator('[data-label="Präfix"]')).to_be_visible()
-                    revoke.locator('summary').press('Enter')
+                    expect(page.locator('.admin-api-key-details > summary')).to_have_count(0)
+                    expect(page.locator('[data-api-key-prefix]')).to_be_visible()
                     assert revoke.evaluate('e => [...new FormData(e)]') == [['_csrf', 'workflow-csrf']]
                     if javascript:
                         page.once('dialog', lambda dialog: dialog.dismiss())
@@ -353,7 +355,8 @@ def test_api_browser_layout_native_post_and_keyboard(admin_client, javascript, t
                     with page.expect_response(lambda r: r.request.method == 'POST') as response:
                         page.locator('#api-key-create button').click()
                     assert response.value.status == 400
-                    expect(page.locator('#api-create')).to_have_attribute('open', '')
+                    expect(page.locator('#api-key-create')).to_be_visible()
+                    expect(page.locator('#api-create summary')).to_have_count(0)
                     expect(page.locator('.error-region')).to_be_visible()
                     expect(page.locator('#api-key-label')).to_have_value('Fehler bleibt sichtbar')
                     expect(page.locator('#api-key-channel-patienten')).to_be_checked()

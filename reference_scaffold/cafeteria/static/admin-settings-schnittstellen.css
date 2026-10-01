@@ -7,12 +7,9 @@
   content: " · ";
 }
 
-.dishboard-admin [data-page="api"] .admin-api-key-details > summary {
-  margin-top: 0;
-}
-
-.dishboard-admin [data-page="api"] .admin-api-key-details[open] {
-  min-width: 0;
+.dishboard-admin [data-page="api"] [data-api-keys] td.admin-table-actions {
+  width: 25%;
+  white-space: normal;
 }
 
 @media (max-width: 767.98px) {
@@ -38,9 +35,11 @@
   }
 
   .dishboard-admin [data-page="api"] [data-api-keys] td.admin-table-actions {
+    width: auto;
+    grid-column: 1 / -1;
+  }
+
+  .dishboard-admin [data-page="api"] [data-api-keys] td[data-label="Bezeichnung"] {
     grid-column: 1 / -1;
   }
 }
-
-/* UC-P2-D: card disclosures hold forms that already carry card-body/card-footer padding. */
-.dishboard-admin .admin-disclosure--card > .admin-compact-detail-body { padding: 0; }

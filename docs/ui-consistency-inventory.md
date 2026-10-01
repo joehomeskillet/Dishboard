@@ -16,6 +16,8 @@ keine bereits erfolgte Migration auf den neuen Lesedialog.
 | `/admin/benutzer/neu`, `/admin/benutzer/<id>`, Benutzer-Ausfallseite | DELTA-3-19: Admin, Anlage/Detail/Sperre/Nur-Lesen/503; statische getrennte Formulare, Textbestätigungen, Loginstatus einmal im Kopf. CSRF, Versionsfelder, Fehlerrückgabe und Sperrgrenzen erhalten. | `test_delta3_19_browser.py`, `test_admin_local_users_browser.py`, `test_ui_korrektur_users_browser.py`; tatsächliche Pflichtläufe im Paketreport. |
 | `/admin/benutzer`, `/admin/benutzer/protokoll`, `/admin/benutzer/zugriffsverlauf` | DELTA-3-20: Admin, leer/befüllt/gefiltert/ohne aktive Rolle; je ein Anlegen- und Gesamtlisten-Zugang, optionale Status-Slots entfallen, Hinweise statisch. Gemeinsames P-07 offen. | `test_delta3_20_browser.py`, `test_ui_korrektur_users_browser.py`; Pflichtlaufstatus im Paketreport. |
 
+| `/admin/api`, `/api/v1/docs` | DELTA-3-21: Admin, leer/aktiv/abgelaufen/widerrufen/Fehler; statische Metadaten und native Formulare, Textwiderruf mit Bestätigung, Publikationsstatus einmal. Swagger Authorize im Textmodus über offiziellen Plugin-Hook; D-119 bleibt offen. | `test_delta3_21_browser.py`, `test_icon_api_browser.py`, `test_admin_api_page.py`, `test_admin_api_key_policy.py`; tatsächliche Gate- und Sichtnachweise im Paketreport. |
+
 ## UC-P2-A — Wochenplanung und Kalender, 2026-10-01
 
 | Route | Rolle / Zustand / gemeinsames Muster | Nachweis |

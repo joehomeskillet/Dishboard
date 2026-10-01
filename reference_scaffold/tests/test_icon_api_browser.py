@@ -25,8 +25,6 @@ def test_api_icon_actions_keyboard_and_confirmation(
     monkeypatch.setitem(application.config, 'UI_LOCALE', locale)
     key_label = 'Vorschau Küche' if locale == 'de' else 'Preview <Kitchen> & "A"'
     revoke_name = f'Schlüssel {key_label} widerrufen' if locale == 'de' else f'Revoke key {key_label}'
-    details_name = (f'{key_label}: Details ein- oder ausklappen' if locale == 'de'
-                    else f'Expand or collapse details: {key_label}')
     confirmation = 'Schlüssel wirklich widerrufen?' if locale == 'de' else 'Really revoke this key?'
     consequence = ('Anwendungen verlieren damit den Vorschauzugriff.' if locale == 'de'
                    else 'Applications will lose preview access.')
@@ -58,9 +56,10 @@ def test_api_icon_actions_keyboard_and_confirmation(
             expect(row.locator('.admin-list-primary')).to_have_text(key_label)
             expect(row.locator('.admin-list-primary > *')).to_have_count(0)
             revoke = row.locator('form[action$="/revoke"]')
-            trigger = revoke.locator('summary')
+            trigger = revoke.get_by_role('button', name=revoke_name, exact=True)
             expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
-            more = row.locator('.admin-api-key-details > summary')
+            expect(row.locator('.admin-api-key-details > summary')).to_have_count(0)
+            expect(row.locator('[data-api-key-prefix]')).to_be_visible()
 
             def capture(stage):
                 row.scroll_into_view_if_needed()
@@ -73,7 +72,7 @@ def test_api_icon_actions_keyboard_and_confirmation(
                         fine: matchMedia('(pointer: fine)').matches, maxTouchPoints: navigator.maxTouchPoints,
                         width: innerWidth, scrollWidth: document.documentElement.scrollWidth})''')
                     state['controls'] = [control.evaluate('''el => ({width: el.getBoundingClientRect().width,
-                        height: el.getBoundingClientRect().height})''') for control in (trigger, more)]
+                        height: el.getBoundingClientRect().height})''') for control in (trigger,)]
                     measurements.append({'stage': stage, 'moment': moment, 'state': state})
                     (tmp_path / 'api-measurements.json').write_text(json.dumps(measurements, indent=2))
                     coarse = width == 390
@@ -81,16 +80,15 @@ def test_api_icon_actions_keyboard_and_confirmation(
                     assert state['maxTouchPoints'] == (1 if coarse else 0), state
                     assert state['width'] == width and state['scrollWidth'] <= width + 1, state
                     size = 44 if coarse else 36
-                    assert all(c['width'] == c['height'] == size for c in state['controls']), state
+                    assert all(c['width'] >= size and c['height'] == size for c in state['controls']), state
 
-            capture('closed')
+            capture('static')
             expect(trigger).to_have_accessible_name(revoke_name)
-            expect(more).to_have_accessible_name(details_name)
-            for control in (trigger, more):
-                expect(control).to_have_text('')
+            for control in (trigger,):
+                expect(control).to_have_text('Widerrufen' if locale == 'de' else 'Revoke')
                 assert control.get_attribute('title') is None
                 assert control.get_attribute('data-ui-tooltip') == control.get_attribute('aria-label')
-                expect(control.locator('svg')).to_have_attribute('aria-hidden', 'true')
+                expect(control.locator('svg')).to_have_count(0)
                 box = control.bounding_box()
                 assert box and box['width'] >= (44 if width == 390 else 36)
                 assert box['height'] >= (44 if width == 390 else 36)
@@ -99,45 +97,31 @@ def test_api_icon_actions_keyboard_and_confirmation(
             assert revoke.evaluate('e => [...new FormData(e)]') == [['_csrf', 'workflow-csrf']]
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             expect(page.locator('#api-key-create-title')).to_contain_text('API-Schlüssel' if locale == 'de' else 'API key')
-            expect(page.locator('#api-technical > summary')).to_contain_text('Weitere Optionen' if locale == 'de' else 'More options')
+            expect(page.locator('#api-technical > summary')).to_have_count(0)
+            expect(page.locator('[data-api-help]')).to_be_visible()
             page.mouse.move(0, 0)
             page.keyboard.press('Tab')
-            more.focus()
-            expect(more).to_be_focused()
-            assert more.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+            trigger.focus()
+            expect(trigger).to_be_focused()
+            assert trigger.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
             if javascript:
-                tooltip = page.get_by_role('tooltip', name=details_name, exact=True)
+                tooltip = page.get_by_role('tooltip', name=revoke_name, exact=True)
                 expect(tooltip).to_be_visible()
-                more.press('Escape')
+                trigger.press('Escape')
                 expect(tooltip).not_to_be_visible()
-            details = row.locator('.admin-api-key-details > summary')
-            expect(details).to_have_text('')
-            expect(details).to_have_accessible_name(details_name)
-            expect(details).to_have_attribute('data-ui-tooltip', details_name)
-            details.press('Enter')
-            expect(row.locator('[data-label="Präfix"]')).to_be_visible()
-            details.press('Enter')
-            if javascript:
-                details.press('Escape')
+            expect(row.locator('.admin-api-key-details dl')).to_be_visible()
+            expect(row.locator('[data-api-key-prefix]')).to_be_visible()
             expect(row.locator('.ui-sem-actions')).to_have_count(0)
-            if javascript:
-                more.press('Escape')
-            trigger.press('Enter')
             expect(revoke.locator('.ui-sem-consequence')).to_have_text(f'{confirmation} {consequence}')
             confirm = revoke.get_by_role('button', name=revoke_name, exact=True)
             expect(confirm).to_have_text('Widerrufen' if locale == 'de' else 'Revoke')
             expect(confirm).to_have_attribute('type', 'submit')
-            if javascript:
-                expect(page.get_by_role('tooltip')).to_have_count(1)
-                expect(page.get_by_role('tooltip', name=revoke_name, exact=True)).to_be_visible()
             capture('confirmation')
-            # A disclosure and closing it cannot revoke a key or submit its form.
-            trigger.press('Enter')
-            expect(confirm).not_to_be_visible()
+            # Reading static metadata and focusing a control cannot revoke a key.
+            expect(confirm).to_be_visible()
             assert not posts and not errors
             page.reload(wait_until='networkidle')
             expect(page.locator('[data-key-state="active"]')).to_have_count(1)
-            trigger.press('Enter')
             if javascript:
                 dialogs = []
 
