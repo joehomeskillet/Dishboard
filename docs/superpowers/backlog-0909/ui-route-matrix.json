@@ -10307,7 +10307,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "eace1a24b0a9586430473aa02ca2ca6a359a38b2c1ed76b4d32454388a44a8e9",
+      "sha256": "75c2d987736117f3274b517f595fd2d76d6a64ef52b6b17ff8c2727dc8de4071",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -11842,7 +11842,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "3ef9d1253ac870433733d58f8dea066e13f3665ba37d9d62ca276c15d33294a9",
+      "sha256": "9bb214d25b343dd22969affc2d87cb633f6a7e855454928469000e49daeb72e4",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],
@@ -12604,7 +12604,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "000af5732695831aa30d59b1a656bd7e4f8e1befe060ad3907950b32c9ba133d",
+      "sha256": "e133fec31e20d65694dd76bc0aee4799dfa7c017caf35c92f516988cd0924860",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"

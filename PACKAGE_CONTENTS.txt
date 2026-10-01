@@ -1669,6 +1669,7 @@ reference_scaffold/tests/test_screen_template_browser.py
 reference_scaffold/tests/test_screen_template_navigation.py
 reference_scaffold/tests/test_screen_template_routes.py
 reference_scaffold/tests/test_screen_template_store.py
+reference_scaffold/tests/test_shared_macro_api.py
 reference_scaffold/tests/test_shopping_aggregate.py
 reference_scaffold/tests/test_shopping_cost.py
 reference_scaffold/tests/test_shopping_list_browser.py
