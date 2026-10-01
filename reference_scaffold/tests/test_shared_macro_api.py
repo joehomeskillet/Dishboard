@@ -1,7 +1,9 @@
 """DB-free UC-G0d/G0e compatibility and attribute trust-boundary contracts."""
 from __future__ import annotations
 
+from collections import Counter
 from copy import copy, deepcopy
+from hashlib import sha256
 from itertools import product
 from types import SimpleNamespace
 
@@ -102,14 +104,17 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
     # UI-DELTA §0.1: static week forms/fallback; long notes use read dialogs.
-    assert len(calls) == 62, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 60, 'Review compatibility inventory when consumers change'
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
-    assert len(extended) == 2
-    assert {path.name for path, _ in extended} == {
-        '_week_check_summary.html',
-        '_week_controls.html',
-    }
+    # DELTA-2c owns the frozen extended-call contract; removals are permitted.
+    from test_delta_renderer_contract import assert_consumer_ratchet
+
+    assert_consumer_ratchet(Counter(
+        (path.relative_to(ROOT.parent / 'templates/admin').as_posix(),
+         sha256(repr(call).encode()).hexdigest()[:16])
+        for path, call in extended
+    ))
     text = 'Suppe <&>' if populated else ''
     values = dict.fromkeys([
         'note', 'shared_note', 'menu_week_public_id', 'prepared_recipe_choice', 'label',
