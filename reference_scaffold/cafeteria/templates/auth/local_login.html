@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from '_brand_logo.html' import brand_logo %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set method_map = methods if methods is mapping else none %}
 {% set show_local = method_map.local if method_map is not none else true %}
 {% set show_entra = method_map.entra if method_map is not none else config.ENTRA_ENABLED %}
@@ -70,7 +71,7 @@
           class="auth-input">
       </div>
       <div class="auth-actions">
-        <button type="submit" class="auth-submit"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='vendor/tabler-icons/tabler-icons.svg') }}#tabler-lock"></use></svg><span>Anmelden</span></button>
+        {{ icon_button('actions.login', mode='text', class='auth-submit') }}
       </div>
     </form>
     {% elif return_token %}

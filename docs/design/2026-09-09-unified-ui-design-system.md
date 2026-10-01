@@ -343,9 +343,10 @@ Rahmen je Kontext:
   Lokales CSS (`errors.css`, `tokens.css`) und das statische Logo. Kein `url_for`,
   kein Session-Benutzer, kein Marken-Stylesheet.
 
-Begrenzte Textbutton-Ausnahme: die Wiederherstellungsaktionen Anmelden, Zur Übersicht
-und Neu laden zeigen Icon und kurze sichtbare Beschriftung. Das ist keine Rückkehr
-zu Textbuttons im Verwaltungsraster. Icon-Ausfall lässt die Beschriftung stehen.
+UI-DELTA B-02 / DELTA-3-24: Anmelden, Zur Übersicht und Neu laden verwenden
+ausschließlich Textmodus des gemeinsamen Renderers. Statussymbole bleiben
+nichtinteraktiv; Aktionen reservieren keinen Symbolabstand. Optionale Fehlerdetails
+erzeugen auch im isolierten String-Fallback nur bei Inhalt einen Absatz.
 Neu laden ist ein sicheres GET, kein `location.reload()`. Code und Referenz bleiben
 klein und auswählbar. Bedienflächen mindestens 44 px. Ohne JavaScript und ohne CSS
 bleiben Titel, Erklärung und Aktionen lesbar. „Support“ nur, wenn ein Kontaktweg
@@ -359,7 +360,7 @@ Zielbild A – Anmeldemaske
 |                    Anmeldung erforderlich                   |
 |        Bitte anmelden, um diesen Bereich zu oeffnen.        |
 | Benutzername / Passwort                                     |
-|                   [LOGIN  Anmelden]                         |
+|                       [Anmelden]                           |
 | [Mit Organisationskonto anmelden]   nur wenn eingerichtet    |
 +-------------------------------------------------------------+
 
@@ -367,7 +368,7 @@ Zielbild B – kein Zugriff
 +-------------------------------------------------------------+
 | [LOCK]  Kein Zugriff                                        |
 | Ihr Konto hat fuer diesen Bereich keine Berechtigung.       |
-| [HOME  Zur Uebersicht]                                      |
+| [Zur Uebersicht]                                            |
 | Fehler 403                       Referenz                    |
 +-------------------------------------------------------------+
 
@@ -375,7 +376,7 @@ Zielbild C – technischer Fehler
 +-------------------------------------------------------------+
 | [ALERT]  Vorgang konnte nicht abgeschlossen werden          |
 | Bei der Verarbeitung ist ein Fehler aufgetreten.            |
-| [RELOAD  Neu laden]   [HOME  Zur Uebersicht]                |
+| [Neu laden]   [Zur Uebersicht]                              |
 | Fehler 500                       Referenz                    |
 +-------------------------------------------------------------+
 ```

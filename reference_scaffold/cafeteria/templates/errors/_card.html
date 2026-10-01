@@ -1,4 +1,5 @@
 {% from '_brand_logo.html' import brand_logo %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% macro render_error(error) -%}
 {% set frame = error.frame if error.frame else 'auth' %}
 {% set params = error.message_params if error.message_params is mapping else {} %}
@@ -63,16 +64,10 @@
       {% if csrf_token is defined %}
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       {% endif %}
-      <button type="submit" class="eh-action{% if action.primary %} eh-action-primary{% endif %}" data-semantic="{{ action.semantic }}">
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/vendor/tabler-icons/tabler-icons.svg#tabler-{{ semantic.resolved_icon }}"></use></svg>
-        <span class="eh-action-label">{{ t(label_key) }}</span>
-      </button>
+      {{ icon_button(action.semantic, mode='text', text=t(label_key), class='eh-action' ~ (' eh-action-primary' if action.primary else '')) }}
     </form>
     {% else %}
-    <a class="eh-action{% if action.primary %} eh-action-primary{% endif %}" href="{{ action.href }}" data-semantic="{{ action.semantic }}">
-      <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/vendor/tabler-icons/tabler-icons.svg#tabler-{{ semantic.resolved_icon }}"></use></svg>
-      <span class="eh-action-label">{{ t(label_key) }}</span>
-    </a>
+    {{ icon_button(action.semantic, href=action.href, mode='text', text=t(label_key), class='eh-action' ~ (' eh-action-primary' if action.primary else '')) }}
     {% endif %}
     {% endfor %}
   </div>

@@ -330,9 +330,10 @@ def _minimal(view: ErrorView) -> str:
     labels = {'actions.login': 'Anmelden', 'actions.reload': 'Neu laden', 'navigation.overview': 'Zur Übersicht'}
     links = ' '.join(f'<a href="{escape(item["href"])}">{labels[item["semantic"]]}</a>' for item in view.recovery)
     detail = escape(view.message_params.get('detail', ''))
+    detail_html = f'<p>{detail}</p>' if detail.strip() else ''
     return (f'<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" '
         f'content="width=device-width,initial-scale=1"><title>{title} · Dishboard</title>'
-        f'<main id="main-content"><h1>{title}</h1><p>{message}</p><p>{detail}</p>{links}'
+        f'<main id="main-content"><h1>{title}</h1><p>{message}</p>{detail_html}{links}'
         f'<p>{view.code} · {view.http_status} · Referenz: {view.request_id}</p></main></html>')
 
 

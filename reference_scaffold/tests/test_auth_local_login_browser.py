@@ -236,7 +236,7 @@ def test_auth_local_login_layout_contrast_and_tab_order(live_site, browser):  # 
         page.keyboard.press('Tab')
         assert page.evaluate('document.activeElement.id') == 'password'
         page.keyboard.press('Tab')
-        assert page.evaluate('document.activeElement.className') == 'auth-submit'
+        expect(page.locator('.auth-submit')).to_be_focused()
         box_shadow = page.evaluate('getComputedStyle(document.activeElement).boxShadow')
         assert box_shadow not in ('none', ''), box_shadow
         page.keyboard.press('Tab')

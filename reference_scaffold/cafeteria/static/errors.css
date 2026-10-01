@@ -73,7 +73,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0;
   box-sizing: border-box;
   max-width: 100%;
   min-width: 2.75rem;
@@ -91,7 +91,9 @@
   white-space: normal;
   cursor: pointer;
 }
-.eh-action-primary { border-color: transparent; color: var(--sh-white); background: var(--sh-magenta); }
+.dishboard-admin .eh-card .eh-action { min-height: 2.75rem; }
+.eh-action-primary,
+.eh-action-primary:focus { border-color: transparent; color: var(--sh-white); background: var(--sh-magenta); }
 .eh-action:hover { border-color: var(--sh-teal-700); }
 .eh-action-primary:hover { border-color: transparent; color: var(--sh-white); background: var(--sh-teal-950); }
 .eh-action:focus { outline: none; box-shadow: var(--sh-focus); }
