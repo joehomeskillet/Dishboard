@@ -124,6 +124,8 @@ def test_affected_entries_dialog_and_background_targets(
         trigger.press('Enter')
         dialog = page.locator('#week-check-entries')
         expect(dialog).to_be_visible()
+        if not javascript:
+            assert dialog.evaluate('el => el.matches(":target")')
         expect(dialog.locator('details, summary, form')).to_have_count(0)
         expect(dialog.locator('[data-read-detail-close]')).to_have_count(1)
         expect(dialog.locator('#course-issues')).to_contain_text('Allergenangaben fehlen')
@@ -138,7 +140,12 @@ def test_affected_entries_dialog_and_background_targets(
         close.click()
         expect(dialog).to_be_hidden()
         expect(trigger).to_be_focused()
+        expect(trigger).to_be_in_viewport()
         after = page.evaluate(geometry)
+        if not javascript:
+            assert not dialog.evaluate('el => el.matches(":target")')
+            if trigger.evaluate('el => el.getBoundingClientRect().top + scrollY > innerHeight'):
+                assert after['scroll'] > 0
         (tmp_path / 'geometry.json').write_text(json.dumps({
             'revision': source_revision(), 'viewport': [width, height],
             'javascript': javascript, 'before': before, 'during': during, 'after': after,
@@ -155,7 +162,14 @@ def test_affected_entries_dialog_and_background_targets(
         expect(page.locator('main')).to_have_attribute('data-status', 'review_open')
         expect(page.locator('#week-publish-form [type="submit"]')).to_be_disabled()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        for actual in (during, after):
-            assert abs(actual['scroll'] - before['scroll']) <= 1
+        for phase, actual in (('during', during), ('after', after)):
+            # No-JS close returns to its anchor (orchestrator decision 19:55).
+            anchor_return = not javascript and phase == 'after'
+            if not anchor_return:
+                assert abs(actual['scroll'] - before['scroll']) <= 1
+            scroll_adjustment = actual['scroll'] - before['scroll'] if anchor_return else 0
             for expected, found in zip(before['boxes'], actual['boxes'], strict=True):
-                assert all(abs(found[key] - expected[key]) <= 1 for key in expected), (expected, found)
+                assert all(
+                    abs(found[key] + (scroll_adjustment if key == 'y' else 0) - expected[key]) <= 1
+                    for key in expected
+                ), (expected, found)
