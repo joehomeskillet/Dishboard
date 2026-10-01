@@ -49,7 +49,7 @@ def weeks_ui(request, live_branding, database_engine, browser):
         page = context.new_page()
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
-        page.on('requestfailed', lambda req: errors.append(req.failure))
+        page.on('requestfailed', lambda req: errors.append(f'{req.resource_type} {req.url}: {req.failure}'))
         page.on('console', lambda msg: errors.append(msg.text) if msg.type == 'error'
                 and not msg.text.startswith('Failed to load resource: the server responded with a status of') else None)
         yield page, database_engine, _scope(database_engine, actor, profile), family, javascript, app
@@ -188,16 +188,17 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
     _views(page, tmp_path, 'empty')
     assert _snapshot(engine) == before
     expect(page.locator('main .btn-primary')).to_have_count(1)
-    page.locator('[data-empty-kind="none"]').get_by_role('link', name='Anlegen', exact=True).click()
+    expect(page.locator('[data-empty-kind="none"]').get_by_role('link', name='Anlegen', exact=True)).to_have_count(0)
     expect(page.locator('#new-week-date')).to_be_visible()
     create = page.get_by_role('link', name='Neue Woche anlegen', exact=True)
     expect(create).to_have_text('')
+    create.click()
+    expect(page.locator('#new-week-date')).to_be_focused()
     if javascript:
-        create.click()
         _focus(page, create)
-        expect(page.locator('#new-week-date')).to_be_hidden()
-        page.keyboard.press('Enter')
         expect(page.locator('#new-week-date')).to_be_visible()
+        page.keyboard.press('Enter')
+        expect(page.locator('#new-week-date')).to_be_focused()
         page.keyboard.press('Tab')
         expect(page.locator('#new-week-date')).to_be_focused()
     else:
@@ -218,6 +219,8 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
         page.wait_for_load_state()
         if expected == 303:
             page.wait_for_url(f'**/admin/{family}?week={WEEK}')
+            # Finish the asynchronous sprite probe before deliberately leaving each page.
+            page.wait_for_load_state('networkidle')
             _goto(page, path)
             _views(page, tmp_path, 'normal')
             row = page.locator('tr[data-week-id]')
@@ -228,15 +231,18 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
             expect(open_week).to_have_attribute('href', f'/admin/{family}?week={WEEK}')
             open_week.click()
             assert page.url.endswith(f'/admin/{family}?week={WEEK}')
+            page.wait_for_load_state('networkidle')
             _goto(page, path)
             row.get_by_role('link', name='Vorschau für Woche ab 31.08.2026', exact=True).click()
             assert '/preview?week=' in page.url
+            page.wait_for_load_state('networkidle')
             _goto(page, path)
             expect(row.locator('[data-semantic="actions.more"]')).to_have_count(0)
             row.get_by_role('link', name='Woche ab 31.08.2026 kopieren', exact=True).click()
             expect(page.locator('main')).to_have_attribute('data-source-week', str(WEEK))
             expect(page.locator('main')).to_have_attribute('data-target-week', str(WEEK + timedelta(days=7)))
             expect(page.locator('#copy-description')).to_contain_text('in die leere Woche')
+            page.wait_for_load_state('networkidle')
             _goto(page, path)
             page.locator('#new-week-title').click()
             page.locator('#new-week-date').fill(str(WEEK))
