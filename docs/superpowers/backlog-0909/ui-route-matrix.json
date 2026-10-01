@@ -10483,7 +10483,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "26deddeca498b620a40a4d172fc73ad55bcbb656af95491ada0bb77efa802f3a",
+      "sha256": "22fba68ebbfcd53365dbd8226ed2d40e299596947267518b28ba8333959fce34",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10505,7 +10505,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "b93bc62fb28f5f2ba4963672418bcf4d6fac191b3fc946b238cde26ab4e18fd8",
+      "sha256": "7c2343c7cbd36a53d8118e4e784646560bac33f0022e565789281bcd0cb424da",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10837,7 +10837,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "bacc894f570b0e704abee567288ca2ff899621092d1cd408a8843b78cbe17269",
+      "sha256": "bd3cf433500aa19bfae55471123436204b55a7b585e00aaed7c2a1db13fd5822",
       "used_by_endpoints": [
         "admin.cafeteria"
       ],
@@ -11219,7 +11219,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "a7f4c062f01c12447fcb9034f42faa58e713076ec0da8eb2b435ce1ac65d39d4",
+      "sha256": "05de7519b1de3e936fd433d2f5bcf0cb7680ae95adea1237acb665a615b8f18b",
       "used_by_endpoints": [
         "admin.kitchen_calendar"
       ],
@@ -11239,7 +11239,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "f21036b6e68f2cf224e6819660394af324f9f2184772d5118616bb3a89321cdc",
+      "sha256": "65a537ce440bdb8f6f46f8627e593346604f917f1cbf5f2177e07b4ac662ae4a",
       "used_by_endpoints": [
         "admin.kitchen_event_create",
         "admin.kitchen_event_edit",
@@ -11447,7 +11447,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "e92f3cc9cce21787d1f035607640ce8852b98d9c8ffc6f859907801545d5e809",
+      "sha256": "bf693620853d9cf032f38df228ba7f6c7920128e59b30ccae1844f7b30b17982",
       "used_by_endpoints": [
         "admin.patienten"
       ],
@@ -11863,7 +11863,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "ac32bba32d7706edf42276808a0a5b2a3f0b8b82ed155ec186325393d30be25a",
+      "sha256": "1b92364a5924c79efa72e0736fe0d11a4a8fe7bcdf7d4422d7570056063f0b9a",
       "used_by_endpoints": [
         "admin.week_management"
       ],
@@ -11884,7 +11884,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "835f360b0719a5920e544c5ee022fef2c3358fbd575629445a3093efefb83562",
+      "sha256": "be401aa39587930a9ba9147daa9a971f57dae308e76a97d23ebd059b9a8b9b26",
       "used_by_endpoints": [
         "admin.week_review_get"
       ],
