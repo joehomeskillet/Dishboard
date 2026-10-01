@@ -400,6 +400,11 @@
     text-align: left;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  .dishboard-admin .ui-sem-control[form="week-review-form"].admin-btn-loading::after {
+    animation: none;
+  }
+}
 @media (max-width: 991.98px) {
   .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-controls {
     position: static;
