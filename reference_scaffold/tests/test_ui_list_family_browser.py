@@ -88,12 +88,36 @@ MEASURE_JS = r"""() => {
     return !outer || !root.contains(outer);
   });
   const iconNames = (el) => [...el.querySelectorAll('use')].map((use) => (use.getAttribute('href') || use.getAttribute('xlink:href') || '').split('#').pop()).filter(Boolean);
+  // Icon-first §5.4 / UC-G0e: these hub links name another destination.
+  // Keep their geometry/text measurements; only object-action text is a deviation.
+  const namedDestination = (el) => {
+    if (!['/admin/vorlagen', '/admin/screens'].includes(location.pathname)) return false;
+    if (!el.matches('a[href]')) return false;
+    const url = new URL(el.href, location.href);
+    if (url.origin !== location.origin) return false;
+    const text = visibleText(el), semantic = el.dataset.semantic, path = url.pathname;
+    const assignment = /^\/admin\/screens\/(cafeteria|patienten)\/wochenvorlage$/.test(path);
+    if (location.pathname === '/admin/vorlagen') {
+      return (assignment && semantic === 'actions.edit' && text === 'Zuordnen') ||
+        (path === '/admin/cafeteria/preview/print' && semantic === 'actions.print' && text === 'PDF Mitarbeitende');
+    }
+    if (location.pathname !== '/admin/screens') return false;
+    if (assignment) return semantic === 'actions.edit' && text === 'Zuweisen';
+    if (semantic !== 'actions.open') return false;
+    if (/^\/(cafeteria|patienten)\/heute\/$/.test(path) || /^\/signage\/(cafeteria|patienten)\/tag$/.test(path)) return text === 'Tagesplan';
+    if (/^\/(cafeteria\/wochenangebot|patienten\/wochenplan)\/ohne-bilder\/$/.test(path)) return text === 'Ohne Bilder';
+    if (/^\/signage\/(cafeteria|patienten)\/woche$/.test(path)) return text === 'Wochenplan';
+    // admin_app binds the two signage week endpoints to these fixture URLs.
+    if (/^\/preview\/(cafeteria|patient)$/.test(path)) return text === 'Wochenplan';
+    return /^\/(cafeteria\/wochenangebot|patienten\/wochenplan)\/$/.test(path) && ['Öffnen', 'Wochenplan'].includes(text);
+  };
   const packActions = (acts) => {
     const texts = acts.map(visibleText).filter(Boolean);
     const icons = [...new Set(acts.flatMap(iconNames))];
     return {
       count: acts.length,
       withText: texts.length,
+      objectWithText: acts.filter(el => visibleText(el) && !namedDestination(el)).length,
       texts: texts.slice(0, 8),
       icons: icons.slice(0, 8),
       family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins',
@@ -367,7 +391,7 @@ MEASURE_JS = r"""() => {
       row: {height: Math.round(first.getBoundingClientRect().height), divider: dividerStyle.borderBottomWidth + ' ' + dividerStyle.borderBottomStyle + ' ' + dividerStyle.borderBottomColor, background: rowStyle.backgroundColor, radius: rowStyle.borderRadius, shadow: rowStyle.boxShadow === 'none' ? 'none' : 'vorhanden', card: sample.some(isCard)},
       primary, secondary,
       status: statusEl ? [...statusEl.classList].sort().join('.') : 'keine',
-      rowActions: {count: worst.count, withText: Math.max(0, ...rowPacks.map((pack) => pack.withText), 0), texts, icons, family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins', hits: worst.hits},
+      rowActions: {count: worst.count, withText: Math.max(0, ...rowPacks.map((pack) => pack.withText), 0), objectWithText: Math.max(0, ...rowPacks.map(pack => pack.objectWithText)), texts, icons, family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins', hits: worst.hits},
       budget: {
         totalRows: group.rows.length,
         directActionsMax: Math.max(0, ...rowBudgets.map((b) => b.directActions)),
@@ -401,6 +425,39 @@ def test_filter_and_empty_overflow_measurement():
             assert measured['filters'] == 2
             assert measured['filtersWithText'] == 1
             assert measured['emptyOverflow'] == 1
+        finally:
+            browser.close()
+
+
+def test_named_hub_destinations_keep_metrics_without_exempting_object_actions():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox'])
+        try:
+            page = browser.new_page()
+            page.route('http://list.test/**', lambda route: route.fulfill(body='<main></main>', content_type='text/html'))
+            for source, target, key, label in (
+                ('vorlagen', '/admin/screens/cafeteria/wochenvorlage', 'actions.edit', 'Zuordnen'),
+                ('vorlagen', '/admin/cafeteria/preview/print?week=2026-08-31', 'actions.print', 'PDF Mitarbeitende'),
+                ('screens', '/cafeteria/heute/', 'actions.open', 'Tagesplan'),
+                ('screens', '/patienten/wochenplan/ohne-bilder/', 'actions.open', 'Ohne Bilder'),
+                ('screens', '/signage/patienten/woche', 'actions.open', 'Wochenplan'),
+                ('screens', '/preview/patient', 'actions.open', 'Wochenplan'),
+                ('screens', '/admin/screens/patienten/wochenvorlage', 'actions.edit', 'Zuweisen'),
+            ):
+                page.goto(f'http://list.test/admin/{source}')
+                page.set_content(f'<main><table><tbody><tr><td><a class="btn" data-semantic="{key}" '
+                                 f'href="{target}">{label}</a></td></tr></tbody></table></main>')
+                pack = page.evaluate(MEASURE_JS)['lists'][0]['rowActions']
+                assert pack['count'] == pack['withText'] == 1
+                assert pack['texts'] == [label] and pack['objectWithText'] == 0
+                link = page.locator('a')
+                for attribute, value in (('href', '/admin/object/1'), ('href', 'https://other.test' + target),
+                                         ('data-semantic', 'actions.delete')):
+                    link.evaluate('(el, change) => el.setAttribute(...change)', [attribute, value])
+                    assert page.evaluate(MEASURE_JS)['lists'][0]['rowActions']['objectWithText'] == 1
+                    link.evaluate('(el, original) => { el.href = original[0]; el.dataset.semantic = original[1]; }', [target, key])
+                link.evaluate("el => el.textContent = 'Bearbeiten'")
+                assert page.evaluate(MEASURE_JS)['lists'][0]['rowActions']['objectWithText'] == 1
         finally:
             browser.close()
 
@@ -717,7 +774,7 @@ def _measure(page) -> dict:
     return {**data, 'lists': [{
         'key': 'keine-1', 'label': 'keine Datenliste', 'kind': 'keine', 'total': 0,
         'container': None, 'header': None, 'row': None, 'primary': None, 'secondary': None,
-        'status': 'keine', 'rowActions': {'count': 0, 'withText': 0, 'texts': [], 'icons': [], 'family': 'keins', 'hits': []},
+        'status': 'keine', 'rowActions': {'count': 0, 'withText': 0, 'objectWithText': 0, 'texts': [], 'icons': [], 'family': 'keins', 'hits': []},
     }]}
 
 
@@ -754,8 +811,8 @@ def _flatten(slug: str, title: str, path: str, width: int, height: int, data: di
             'header_sig': _sig_header(item['header']), 'primary_sig': _sig_text(item['primary']),
             'secondary_sig': _sig_text(item['secondary']),
             'card': bool(row and row['card']),
-            'row_count': item['rowActions']['count'], 'row_text': bool(item['rowActions']['withText']),
-            'header_text': bool(header_pack['withText']), 'header_filled': header_pack['filled'],
+            'row_count': item['rowActions']['count'], 'row_text': bool(item['rowActions']['objectWithText']),
+            'header_text': bool(header_pack['objectWithText']), 'header_filled': header_pack['filled'],
             'filter_text': data['filtersWithText'], 'empty_overflow': data['emptyOverflow'],
             'double_markers': data['doubleMarkers'], 'empty_info': data['emptyInfo'],
             'action_texts': data['actionTexts'],

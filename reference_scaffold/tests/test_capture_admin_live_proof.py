@@ -87,7 +87,7 @@ def test_planning_pages_are_required_even_when_legacy_workflow_fails(tmp_path: P
         result.count.return_value = 0 if selector in ('input[type="password"]', '.tooltip') else 1
         if selector == 'main.admin-main':
             result.get_attribute.return_value = 'wrong' if fault == 'wrong_profile' else profile
-        if selector.startswith('nav[aria-label="Profil"]'):
+        if selector == 'nav.admin-segments a[aria-current="page"]':
             result.get_attribute.return_value = urlsplit(page.url).path
             if fault == 'empty_query' and page.url.endswith('/menues'):
                 result.get_attribute.return_value += '?q='

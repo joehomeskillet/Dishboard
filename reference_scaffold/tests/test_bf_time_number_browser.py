@@ -86,7 +86,7 @@ def test_t18_recipe_quantity_keeps_six_places_and_rejects_comma(
         page = context.new_page()
         page.goto(base + f'/admin/rezepte/{created.public_id}', wait_until='load')
         page.locator('[id="ingredients.0.quantity"]').fill('1.234567')
-        page.locator('.admin-compact-toolbar [data-semantic="actions.save"]').click()
+        page.locator('.admin-form-footer [form="recipe-editor"][data-semantic="actions.save"]').click()
         expect(page.locator('[id="ingredients.0.quantity"]')).to_be_visible()
         shown = page.locator('[id="ingredients.0.quantity"]').input_value()
         assert Decimal(shown) == Decimal('1.234567')
@@ -94,7 +94,7 @@ def test_t18_recipe_quantity_keeps_six_places_and_rejects_comma(
             stored = store.get_recipe(engine, created.public_id).payload['ingredients'][0]['quantity']
         assert Decimal(str(stored)) == Decimal('1.234567')
         page.locator('[id="ingredients.0.quantity"]').fill('2,5')
-        page.locator('.admin-compact-toolbar [data-semantic="actions.save"]').click()
+        page.locator('.admin-form-footer [form="recipe-editor"][data-semantic="actions.save"]').click()
         expect(page.locator('#recipe-error')).to_contain_text('Dezimalzahl')
         invalid = page.locator('textarea[aria-invalid="true"]')
         expect(invalid).to_have_count(1)

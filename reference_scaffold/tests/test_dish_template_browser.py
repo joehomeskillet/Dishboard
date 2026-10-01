@@ -438,7 +438,10 @@ def test_accompaniment_radio_is_native_keyboard_operable_and_visible(
         EVIDENCE.mkdir(parents=True, exist_ok=True)
         EVIDENCE.chmod(0o700)
         form_shot = EVIDENCE / f'accompaniment-form-{width}x{height}-js-{javascript}.png'
-        page.screenshot(path=str(form_shot), full_page=True)
+        # A full-page capture changes Chromium's focus-scroll state at 360px:
+        # focusing Save then scrolls away between pointerdown and pointerup.
+        # Keep the interaction viewport intact; capture the full result below.
+        page.screenshot(path=str(form_shot), full_page=False)
         form_shot.chmod(0o600)
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Speichern', exact=True).click()

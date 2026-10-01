@@ -260,6 +260,10 @@ def test_ops_dom_audit_on_actual_operations_template_without_network(browser, wi
         page = context.new_page()
         page.set_content(f'<a href="{tool.OPS_PATH}" aria-current="page">Bereiche & Zeiten</a>' + html)
         assert all(page.evaluate(tool.OPS_AUDIT).values())
+        page.locator('#saved-exceptions > summary').evaluate("element => element.textContent = 'Andere Angaben'")
+        assert page.evaluate(tool.OPS_AUDIT)['exceptions_section'] is False
+        page.locator('#saved-exceptions').evaluate('element => element.remove()')
+        assert page.evaluate(tool.OPS_AUDIT)['exceptions_section'] is False
         page.locator('#patient-slot_7_DINNER_end').evaluate("element => element.type = 'text'")
         audit = page.evaluate(tool.OPS_AUDIT)
         assert audit['patient_native_times'] is False

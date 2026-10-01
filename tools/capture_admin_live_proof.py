@@ -243,12 +243,7 @@ def capture_viewport(
                     check(f'{stage}.nav_current', sidebar.locator(
                         f'a[href="{path}"][aria-current="page"]',
                     ).count() == 1)
-                    active_profile = page.locator(
-                        'nav[aria-label="Profil"] a[aria-current="page"], '
-                        'nav[aria-label="Profil"] a[aria-current="true"]',
-                    )
-                    if active_profile.count() == 0:
-                        active_profile = page.locator('.admin-filter-bar a[aria-current="true"]')
+                    active_profile = page.locator('nav.admin-segments a[aria-current="page"]')
                     check(f'{stage}.profile_tab', active_profile.count() == 1
                           and _profile_tab_matches(active_profile.get_attribute('href'), base, path))
                     rows = main.locator('[data-menu-id], [data-week-id]')
