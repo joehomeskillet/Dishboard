@@ -114,7 +114,7 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
         assert page.url.endswith(template)
         page.goto('/admin/gerichtvorlagen')
         page.get_by_role('link', name='Gericht zur Suppe', exact=True).click()
-        page.locator('#template-recipe-details > summary').click()
+        expect(page.locator('#template-recipe-details > summary')).to_have_count(0)
         page.get_by_role('link', name='Rezept: Suppe', exact=True).click()
         assert page.url.endswith(f'/admin/rezepte/{recipe}/ansicht')
         expect(page.get_by_role('link', name='Standard · Revision 1 (aktiv)', exact=True)).to_be_visible()

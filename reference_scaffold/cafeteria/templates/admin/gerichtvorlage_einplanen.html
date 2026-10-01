@@ -10,7 +10,11 @@
   {% set _ = status_items.append({'label': 'Mahlzeit', 'value': meals.get(values.meal, values.meal), 'variant': 'neutral'}) %}
 {% endif %}
 {% call page_header('Gerichtvorlagen', description='Als Menü einplanen · ' ~ values.title, status_items=status_items) %}
-{{ icon_button('actions.back', aria_label='Zur Vorlage ' ~ values.title, href=url_for('admin.dish_template_edit', public_id=public_id), icon_only=true) }}
+{% if values.template_context %}
+{{ icon_button('actions.back', aria_label='Zur Vorlage ' ~ values.title, href=url_for('admin.dish_template_edit', public_id=public_id), mode='icon') }}
+{% else %}
+{{ icon_button('actions.open', text='Vorlage prüfen', href=url_for('admin.dish_template_edit', public_id=public_id), mode='text', emphasis='primary') }}
+{% endif %}
 {% endcall %}
 {% endblock %}
 {% block content %}
@@ -70,17 +74,15 @@
     </div>
     <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
       {{ icon_button('actions.refresh', text='Ziel aktualisieren', name='action', value='refresh') }}
-      {{ hint('Nach Wechsel von Bereich oder Woche verfügbare Tage und Mahlzeiten aktualisieren.', 'planning-refresh-hint') }}
+      {{ hint('Nach Wechsel von Bereich oder Woche verfügbare Tage und Mahlzeiten aktualisieren.', 'planning-refresh-hint', mode='inline') }}
     </div>
     <p class="mt-3 mb-0 text-break" role="status" id="planning-summary">{{ values.title }} → {{ area_labels.get(values.area, values.area) }} · {{ summary_day }} · {{ meals.get(values.meal, values.meal) }} · {{ dict(types).get(values.option, values.option) }}</p>
     <noscript><p class="form-hint">«Ziel aktualisieren» übernimmt Ihre Auswahl in die Zusammenfassung.</p></noscript>
     <p class="form-hint mt-2">Erst «Menü speichern» übernimmt das Menü in den Plan.</p>
     {% set continue_primary %}{{ icon_button('actions.next', aria_label='Weiter zum Menü', title='Weiter zum Menü', name='action', value='continue') }}{% endset %}
-    {{ form_footer(continue_primary, url_for('admin.dish_template_edit', public_id=public_id)) }}
+    {{ form_footer(continue_primary) }}
   </div>
 </form>
-{% else %}
-{{ icon_button('actions.open', text='Vorlage prüfen', href=url_for('admin.dish_template_edit', public_id=public_id), emphasis='primary') }}
 {% endif %}
 {% endblock %}
 {% block page_scripts %}<script src="{{ url_for('static', filename='admin-gerichtvorlagen.js') }}" defer></script>{% endblock %}

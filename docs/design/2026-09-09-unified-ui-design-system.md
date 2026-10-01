@@ -108,6 +108,16 @@ vollständiger Filterreset bleiben wegen unterschiedlicher Parameter getrennt.
 Leseansicht und Editor bleiben getrennte Aufgaben. Der gemeinsame Filterdialog
 ist als DELTA-2b-Vertragslücke offen, ohne lokalen Ersatz.
 
+### Gerichtvorlagen: UI-DELTA-Verbraucher (DELTA-3-18, 2026-10-01)
+
+Rezeptkontext und Planungshinweis stehen statisch sichtbar. Die native
+Einplanen-Aktion trägt ausschliesslich den eindeutigen Text «Einplanen».
+Identische Rücksprünge bleiben im Kopf; der Formularfuss enthält die
+Schreibaktionen. Suchreset steht in der Toolbar, der alleinige Archivfilter
+wird durch seinen bestehenden Filterchip aufgehoben. Fehlende optionale
+Menüart und Beilage lassen ihre Tabellenzellen leer. D-77 bleibt bis zum
+gemeinsamen Filterdialog in DELTA-2b offen.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt
