@@ -268,6 +268,7 @@ def test_unpublished_screen_links_show_each_source_message(
         page.on('response', record_status)
         page.goto('/admin/screens')
         for target in sorted(TARGETS):
+            page.mouse.move(0, 0)
             page.goto('/admin/screens')
             page.keyboard.press('Escape')
             expect(page.get_by_role('tooltip')).to_have_count(0)
