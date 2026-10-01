@@ -334,10 +334,10 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         page = context.new_page()
         page.goto(f'{origin}/admin/{family}/wochen')
 
-        # The create form stays closed until the icon action opens it.
+        # UI-DELTA keeps the complete create form visible; the icon focuses its date.
         form = page.locator('#new-week-form')
         expect(form).to_have_count(1)
-        expect(page.locator('#new-week-date')).to_be_hidden()
+        expect(page.locator('#new-week-date')).to_be_visible()
 
         page.locator('#new-week-title').click()
         expect(page.locator('#new-week-date')).to_be_visible()

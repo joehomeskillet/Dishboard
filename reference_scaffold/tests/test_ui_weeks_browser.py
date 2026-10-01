@@ -207,7 +207,7 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
     token = _fields(page, form)['_csrf']
     page.locator('#new-week-date').fill('2026-09-01')
     page.locator('#new-week-name').fill('Eigene Woche <script>')
-    page.locator('.week-create .admin-disclosure > summary').click()
+    expect(page.locator('#new-week-note')).to_be_visible()
     page.locator('#new-week-note').fill('Hinweis behalten')
     for expected in (400, 303, 409):
         if expected == 303:
@@ -241,11 +241,11 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
             page.locator('#new-week-title').click()
             page.locator('#new-week-date').fill(str(WEEK))
             page.locator('#new-week-name').fill('Eigene Woche <script>')
-            page.locator('.week-create .admin-disclosure > summary').click()
+            expect(page.locator('#new-week-note')).to_be_visible()
             page.locator('#new-week-note').fill('Hinweis behalten')
             before = _snapshot(engine)
         else:
-            expect(page.locator('#new-week-form.show #new-week-date')).to_be_visible()
+            expect(page.locator('#new-week-form #new-week-date')).to_be_visible()
             expect(page.locator('#new-week-error')).to_be_visible()
             expect(page.locator('#new-week-name')).to_have_value('Eigene Woche <script>')
             expect(page.locator('#new-week-note')).to_have_value('Hinweis behalten')
@@ -260,11 +260,11 @@ def test_management_states_creation_copy_and_pagination(weeks_ui, tmp_path):
     _goto(page, path)
     _views(page, tmp_path, 'dense-long')
     expect(page.locator('tr[data-week-id]')).to_have_count(12)
-    expect(page.locator('.page-header-subtitle')).to_have_count(0)
+    expect(page.locator('.week-list-summary')).to_have_count(0)
     expect(page.locator('.week-filter .active')).to_have_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
     page.get_by_role('navigation', name='Wochenseiten').get_by_role('link', name='Weiter').click()
     expect(page.locator('tr[data-week-id]')).to_have_count(2)
-    expect(page.locator('.page-header-subtitle')).to_have_count(0)
+    expect(page.locator('.week-list-summary')).to_have_count(0)
     expect(page.locator('.week-filter .active')).to_have_text('Cafeteria' if family == 'cafeteria' else 'Patienten')
     _views(page, tmp_path, 'last-page', CORE)
     (tmp_path / 'fixture.json').write_text(json.dumps({

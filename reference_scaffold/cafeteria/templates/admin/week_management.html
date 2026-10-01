@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, pagination, field, empty_state, disclosure_section, empty_value, segment_switch %}
+{% from 'admin/_macros.html' import page_header, pagination, field, empty_state, segment_switch %}
 {% from 'ui/_semantic.html' import sem_icon, icon_button, row_actions, status_badge_sem %}
 {% set layout_variant = 'standard' %}
 {% block title %}Wochenübersicht · {{ area_names[profile] }}{% endblock %}
@@ -7,17 +7,27 @@
 {% set workflow_nav = 'management' %}
 {% block main_attributes %}data-week-management{% endblock %}
 {% block page_header %}
+{% call page_header('Wochenübersicht') %}
+  {% if can_write %}
+  {{ icon_button('actions.add', href='#new-week-date', id='new-week-title', aria_label='Neue Woche anlegen', emphasis='primary', attrs={'data-error-link': 'true', 'aria-controls': 'new-week-form'}) }}
+  {% endif %}
+{% endcall %}
+{% endblock %}
+{% block content %}
+        {{ segment_switch([
+          {'key': 'cafeteria', 'label': 'Cafeteria', 'href': url_for('admin.week_management', family='cafeteria')},
+          {'key': 'patienten', 'label': 'Patienten', 'href': url_for('admin.week_management', family='patienten')}
+        ], family, label=t('admin.area.label'), class='admin-filter-bar week-filter mb-3') }}
 {% set list_summary = none %}
 {# Only an unpaginated result establishes totals; never count one page as all weeks. #}
 {% if page == 1 and not has_next %}
   {% set open_reviews = rows|selectattr('status', 'equalto', 'review_open')|list|length %}
   {% if rows %}{% set list_summary = rows|length ~ ' gespeicherte Wochen' ~ (' · ' ~ open_reviews ~ ' Wochen zu prüfen' if open_reviews else '') %}{% endif %}
 {% endif %}
-{% call page_header('Wochenübersicht', description=list_summary) %}
-        {% if can_write %}
-        <div class="week-create">
-          {{ icon_button('actions.add', href='#new-week-date', id='new-week-title', aria_label='Neue Woche anlegen', emphasis='primary', attrs={'data-bs-toggle': 'collapse', 'data-bs-target': '#new-week-form', 'aria-controls': 'new-week-form'}) }}
-          <div class="collapse{% if error or values.shared_note %} show{% endif %}" id="new-week-form">
+{% if list_summary %}<p class="week-list-summary text-secondary">{{ list_summary }}</p>{% endif %}
+{% if can_write %}
+<section class="week-create mb-3" id="new-week-form" aria-labelledby="new-week-heading">
+  <h2 class="h3" id="new-week-heading">Neue Woche</h2>
           <form method="post" action="{{ url_for('admin.week_create', family=family) }}" class="admin-form" data-loading aria-labelledby="new-week-title"{% if error %} aria-describedby="new-week-error"{% endif %}>
             <div class="card-body">
               {% if error %}<div class="alert alert-danger error error-region" id="new-week-error" role="alert" tabindex="-1">{{ sem_icon('status.warning') }} {{ error }}</div>{% endif %}
@@ -31,10 +41,8 @@
                   {{ field('title', 'Wochentitel', values.title, id='new-week-name', required=true) }}
                 </div>
                 <div class="col-12">
-                  {% call disclosure_section(has_content=values.shared_note, has_error=error) %}
                   <label class="form-label" for="new-week-note">Wochenhinweis (optional)</label>
                   <textarea id="new-week-note" class="form-control" name="shared_note" rows="2">{{ values.shared_note }}</textarea>
-                  {% endcall %}
                 </div>
               </div>
             </div>
@@ -42,16 +50,8 @@
               <div class="btn-list ms-auto">{{ icon_button('actions.add', emphasis='secondary') }}</div>
             </div>
           </form>
-          </div>
-        </div>
-        {% endif %}
-{% endcall %}
-{% endblock %}
-{% block content %}
-        {{ segment_switch([
-          {'key': 'cafeteria', 'label': 'Cafeteria', 'href': url_for('admin.week_management', family='cafeteria')},
-          {'key': 'patienten', 'label': 'Patienten', 'href': url_for('admin.week_management', family='patienten')}
-        ], family, label=t('admin.area.label'), class='admin-filter-bar week-filter mb-3') }}
+</section>
+{% endif %}
         <section class="card" aria-labelledby="saved-weeks-title">
           <h2 class="visually-hidden" id="saved-weeks-title">Gespeicherte Wochen</h2>
           <div class="week-list"{% if rows or has_next or page > 1 %} role="region" aria-label="Wochenliste" tabindex="0"{% endif %}>
@@ -94,8 +94,7 @@
             </tbody>
           </table>
           {% else %}
-          {% call empty_state('none', 'Noch keine gespeicherten Wochen auf dieser Seite.', 'Öffnen Sie «Neue Woche anlegen», um einen Plan vorzubereiten.' if can_write else 'Für das Anlegen einer Woche benötigen Sie Bearbeitungsrechte.', compact=true) %}
-            {% if can_write %}{{ icon_button('actions.add', href='#new-week-date', emphasis='secondary', attrs={'data-bs-toggle': 'collapse', 'data-bs-target': '#new-week-form', 'aria-controls': 'new-week-form'}) }}{% endif %}
+          {% call empty_state('none', 'Noch keine gespeicherten Wochen auf dieser Seite.', 'Legen Sie mit dem Formular eine Woche an.' if can_write else 'Für das Anlegen einer Woche benötigen Sie Bearbeitungsrechte.', compact=true) %}
           {% endcall %}
           {% endif %}
           {% if has_next or page > 1 %}

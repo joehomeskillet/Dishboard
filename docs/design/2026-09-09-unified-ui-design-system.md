@@ -45,6 +45,12 @@ Rezeptsuche bleibt ein eigenständiges GET-Formular; die sechs Gangentscheidunge
 bleiben gemeinsam im bestehenden POST-Formular samt CSRF und Versionsfeldern.
 Sprunglinks führen weiterhin direkt zum zugehörigen Auswahlfeld.
 
+DELTA-3-06: Die Wochenanlage samt optionalem Hinweis steht unterhalb der
+Bereichswahl. Der Kopfzugang fokussiert das Datumsfeld; die leere Liste bietet
+keinen zweiten gleichen Auslöser. Wochenstatistik und Vorschau-Status folgen
+der jeweiligen Bereichsnavigation. Kopierbestätigungen nutzen Textaktionen;
+einseitige Ausgabezeiten enthalten keine Platzhalter.
+
 **Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
 Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere
 sind die Inline-Aufklapper in R06/R12/R17/R19/R21/R34, M03/M04/M19/M25/M55/M57

@@ -114,17 +114,14 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
                 expect(toggle).to_have_attribute('aria-expanded', 'false')
                 expect(toggle).to_be_focused()
             if route == 'wochen':
-                # R18 uses the shared icon trigger and Tabler collapse, not details.
+                # UI-DELTA uses a focus link to the visible native form.
                 trigger = page.get_by_role('link', name='Neue Woche anlegen', exact=True)
                 expect(trigger).to_have_attribute('aria-controls', 'new-week-form')
                 trigger.focus()
                 trigger.press('Enter')
                 expect(page.locator('#new-week-date')).to_be_visible()
                 expect(page.get_by_label('Wochentitel', exact=True)).to_be_visible()
-                # The optional week note sits in a closed «Weitere Optionen» disclosure; open it natively before measuring.
-                note = page.locator('details:has(#new-week-note):not([open])')
-                if note.count():
-                    note.last.locator('summary').click()
+                expect(page.locator('#new-week-form details, #new-week-form summary')).to_have_count(0)
                 expect(page.locator('#new-week-note')).to_be_visible()
             for control in page.locator('input[type="date"]:visible, input[name="title"]:visible, textarea:visible, button[type="submit"]:visible').all():
                 minimum = control.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
