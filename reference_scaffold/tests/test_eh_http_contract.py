@@ -220,6 +220,24 @@ def test_eh_t12_t21_auth_csrf_then_business_logic(auth_app):
     stale = client.post('/admin/patienten/header', data={'_csrf': 'invalid'})
     assert stale.status_code == 400
     assert 'FORM_STALE' in stale.text
+    assert 'CSRF-Prüfung fehlgeschlagen.' in stale.text
+    assert 'Location' not in stale.headers
+    assert stale.headers['Cache-Control'] == 'no-store'
+
+
+@pytest.mark.parametrize('candidate', (None, '', 'UNTRUSTED-CSRF-VALUE'))
+def test_csrf_failure_keeps_domain_text_without_echoing_token(auth_app, candidate):
+    app, _, _ = auth_app
+    client = app.test_client()
+    client.get('/auth/local')
+    data = {} if candidate is None else {'csrf_token': candidate}
+    response = client.post('/auth/local', data=data)
+    assert response.status_code == 400
+    assert 'FORM_STALE' in response.text
+    assert 'CSRF-Prüfung fehlgeschlagen.' in response.text
+    assert 'UNTRUSTED-CSRF-VALUE' not in response.text
+    assert 'Location' not in response.headers
+    assert response.headers['Cache-Control'] == 'no-store'
 
 
 def test_eh_t13_t25_http_descriptions_headers_and_direct_responses(auth_app):
