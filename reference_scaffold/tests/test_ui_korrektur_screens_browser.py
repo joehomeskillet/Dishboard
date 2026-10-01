@@ -66,10 +66,9 @@ def _assert_rendered_icons_and_targets(page: Page) -> None:
         if 'ui-sem-control--icon-only' in classes:
             assert box['height'] == box['width'] == semantic_min
         else:
-            # G0 .admin-hint-trigger is an icon at the control token, without ui-sem-control.
-            icon = 'ui-sem-control' in classes or 'admin-hint-trigger' in classes
-            minimum = semantic_min if icon else 44
-            assert box['height'] >= minimum and box['width'] >= minimum
+            # G0: every control uses the pointer token. Text such as the
+            # Darstellung disclosure may grow past it; 44px is not a fine-pointer floor.
+            assert box['height'] >= semantic_min and box['width'] >= semantic_min
 
 
 @pytest.mark.parametrize(
