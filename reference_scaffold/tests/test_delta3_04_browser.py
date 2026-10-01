@@ -53,6 +53,8 @@ def test_static_forms_and_full_note_dialog(
         page.keyboard.press('Enter')
         dialog = page.locator('#' + trigger.get_attribute('aria-controls'))
         expect(dialog).to_be_visible()
+        if not javascript:
+            assert dialog.evaluate('el => el.matches(":target")')
         expect(dialog.locator('.shared-note')).to_have_text(LONG_NOTE.strip())
         expect(dialog.locator('details, summary, form')).to_have_count(0)
         if javascript:
@@ -65,14 +67,26 @@ def test_static_forms_and_full_note_dialog(
             dialog.locator('[data-read-detail-close]').click()
         expect(dialog).to_be_hidden()
         expect(trigger).to_be_focused()
+        expect(trigger).to_be_in_viewport()
         after = page.evaluate(GEOMETRY)
+        if not javascript:
+            assert not dialog.evaluate('el => el.matches(":target")')
+            if trigger.evaluate('el => el.getBoundingClientRect().top + scrollY > innerHeight'):
+                assert after['scroll'] > 0
         (tmp_path / 'geometry.json').write_text(json.dumps(
             {'viewport': [width, height], 'revision': source_revision(),
              'before': before, 'during': during, 'after': after}, indent=2))
-        for actual in (during, after):
-            assert abs(actual['scroll'] - before['scroll']) <= 1
+        for phase, actual in (('during', during), ('after', after)):
+            # No-JS close returns to its anchor (orchestrator decision 19:55).
+            anchor_return = not javascript and phase == 'after'
+            if not anchor_return:
+                assert abs(actual['scroll'] - before['scroll']) <= 1
+            scroll_adjustment = actual['scroll'] - before['scroll'] if anchor_return else 0
             for expected, found in zip(before['boxes'], actual['boxes'], strict=True):
-                assert all(abs(found[key] - expected[key]) <= 1 for key in expected), (expected, found)
+                assert all(
+                    abs(found[key] + (scroll_adjustment if key == 'y' else 0) - expected[key]) <= 1
+                    for key in expected
+                ), (expected, found)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
 
 
