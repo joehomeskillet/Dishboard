@@ -336,10 +336,13 @@ def test_t34_open_close_does_not_duplicate_listeners(site) -> None:  # noqa: F81
             expect(page.locator('#create-local-user > summary')).to_have_count(0)
             expect(page.locator('#create-local-user form')).to_be_visible()
             _goto(page, '/admin/einkaufslisten')
-            _cycle(
-                page, '#einkaufsliste-neu-extra',
-                page.locator('#einkaufsliste-neu-extra > summary'), 't34-shopping', javascript,
-            )
+            expect(page.locator('#einkaufsliste-neu-extra > summary')).to_have_count(0)
+            expect(page.locator('#note')).to_be_visible()
+            expect(page.locator('#menu_week_public_id')).to_be_visible()
+            before = _ids(page)
+            page.locator('#note').focus()
+            page.locator('#menu_week_public_id').focus()
+            assert _ids(page) == before
             _goto(page, '/admin/cafeteria')
             _cycle(
                 page, 'details.admin-week-settings',

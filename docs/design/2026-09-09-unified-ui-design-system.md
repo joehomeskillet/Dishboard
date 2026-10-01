@@ -150,6 +150,17 @@ Authorize mit sichtbarem Autorisierungszustand; Popup und Authentifizierungsabla
 bleiben bei der Originalkomponente. Die Operationsaufklapper bleiben als D-119
 offen dokumentiert; Vendor-Dateien und gemeinsame Renderer sind unverändert.
 
+### Einkauf und Bestellung: UI-DELTA (DELTA-3-22, 2026-10-01)
+
+Anlage- und Bedarfsfelder stehen statisch in ihren bisherigen nativen Formularen.
+Notiz, Bedarfspolitik und Belegabgrenzung bleiben unmittelbar lesbar. Die
+Bestellvorschau nutzt den gemeinsamen Lesedialog; Öffnen und Schliessen verändern
+weder Mengen noch Versionen. Der Kopfrücksprung bleibt, der identische Abbruchlink
+im Korbfuss entfällt. Identische Anlege-Sprünge stehen nur im Kopf; der Submit
+bleibt erhalten. Fehlende optionale Einheiten bleiben tatsächlich leere Zellen.
+Einkaufslisten-Segmente nutzen `page_header(..., segments=...)` vor Zählwerten,
+Anlegeformular und Fehlern. Leere gemeinsame Aktionswrapper (P-07) bleiben offen.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt

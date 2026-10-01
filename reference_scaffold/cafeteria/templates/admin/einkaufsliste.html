@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, field, select, form_errors, empty_state, disclosure_section, hint %}
+{% from 'admin/_macros.html' import page_header, icon, field, select, form_errors, empty_state, hint %}
 {% from 'ui/_semantic.html' import icon_button, row_actions, status_badge_sem %}
 {% set workflow_nav = 'shopping_lists' %}
 {% block title %}Einkaufslisten · {{ detail.title }}{% endblock %}
@@ -58,10 +58,10 @@
   </div>
 </form>
 {% endif %}
-{% if detail.note %}{% call disclosure_section(title='Weitere Optionen', id='einkaufsliste-extra', has_content=detail.note, has_error=false) %}
+{% if detail.note %}<section id="einkaufsliste-extra" class="mb-3" aria-label="Notiz">
   <div class="text-secondary">Notiz</div>
-  <div class="text-break">{{ detail.note or '—' }}</div>
-{% endcall %}{% endif %}
+  <div class="text-break">{{ detail.note }}</div>
+</section>{% endif %}
 {% if can_write and not detail.archived_at and is_latest_view %}
 <section class="shopping-compute mb-3" aria-labelledby="berechnen-title">
   <h2 class="h3" id="berechnen-title">Neu berechnen</h2>
@@ -109,7 +109,8 @@
     {% endfor %}
     {% if component_error %}<div class="invalid-feedback d-block field-error mb-3" id="component_ids-error">{{ component_error }}</div>{% endif %}
     <fieldset class="mb-3">
-      <legend class="form-label">Bedarfspolitik {{ hint('Blattbedarf rechnet Rohzutaten. Vorbereiteter Bedarf nutzt vorhandene Zubereitungen.', 'einkauf-policy-hint') }}</legend>
+      <legend class="form-label">Bedarfspolitik</legend>
+      {{ hint('Blattbedarf rechnet Rohzutaten. Vorbereiteter Bedarf nutzt vorhandene Zubereitungen.', 'einkauf-policy-hint', mode='inline') }}
       {% for code, label in policies %}
       {%- set policy_field = 'policy' if loop.first else 'policy-' ~ code -%}
       <label class="form-check me-3{% if policy_error %} is-invalid{% endif %}" for="{{ policy_field }}">
@@ -190,7 +191,8 @@
 {% endif %}
 {%- set item_actions = can_write and is_latest_view -%}
 <section class="shopping-manual" aria-labelledby="manuell-title">
-  <h2 class="h3" id="manuell-title">Manuelle Positionen {% if not is_latest_view %}{{ hint('Aktueller Stand, nicht Teil des Belegs.', 'einkauf-manual-hint') }}{% endif %}</h2>
+  <h2 class="h3" id="manuell-title">Manuelle Positionen</h2>
+  {% if not is_latest_view %}{{ hint('Aktueller Stand, nicht Teil des Belegs.', 'einkauf-manual-hint', mode='inline') }}{% endif %}
   {% if detail.manual_items %}
   <table class="table table-vcenter shopping-manual-table admin-table admin-table--stack">
     <thead>
@@ -235,7 +237,7 @@
         {% else %}
         <td class="text-break" data-label="Text">{{ item.item_text }}</td>
         <td data-label="Menge">{% if item.quantity %}{{ item.quantity }} {{ unit_names.get(item.unit_code, item.unit_code) }}{% endif %}</td>
-        <td data-label="Einheit">{{ unit_names.get(item.unit_code, item.unit_code or '—') }}</td>
+        <td data-label="Einheit">{{ unit_names.get(item.unit_code, item.unit_code or '') }}</td>
         <td data-label="Status">{% if item.checked %}{{ status_badge_sem('status.done', text='Abgehakt', variant='active') }}{% else %}{{ status_badge_sem('status.pending', text='Offen', variant='neutral') }}{% endif %}</td>
         {% endif %}
       </tr>

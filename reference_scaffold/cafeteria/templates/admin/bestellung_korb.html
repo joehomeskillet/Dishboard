@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, disclosure_section, form_errors, form_footer %}
-{% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
+{% from 'admin/_macros.html' import page_header, form_errors, form_footer %}
+{% from 'ui/_semantic.html' import icon_button, status_badge_sem, read_detail_trigger, read_detail_dialog %}
 {# Status labels only; no send action or state transition. #}
 {% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
 {% set workflow_nav = 'orders' %}
@@ -12,6 +12,7 @@
 {% endblock %}
 {% block page_header %}
 {% call page_header(t('navigation.orders.label'), description=basket.supplier_name, back=icon_button('actions.back', href=url_for('admin.order_home'))) %}
+{{ read_detail_trigger('korb-vorschau', 'actions.preview', 'Bestellkorb ' ~ basket.supplier_name) }}
 {{ icon_button('actions.download', href=url_for('admin.order_basket_csv', public_id=basket.public_id), object=basket.supplier_name) }}
 {% endcall %}
 {% endblock %}
@@ -61,9 +62,10 @@
 </tr>
 </tbody>
 </table>
-{{ form_footer(primary=icon_button('actions.save'), cancel_url=url_for('admin.order_home'), sticky=true, form_id='basket-save') }}
+{{ form_footer(primary=icon_button('actions.save'), cancel_url=none, sticky=true, form_id='basket-save') }}
 </form>
-{% call disclosure_section(title=t('ui.order_more.label'), id='korb-weitere', open=false, has_error=error_form|default('') == 'demand') %}
+<section id="korb-weitere" aria-labelledby="korb-bedarf-title">
+<h2 class="h3" id="korb-bedarf-title">Bedarf übernehmen</h2>
 <form method="post" action="{{ url_for('admin.order_basket_from_demand', public_id=basket.public_id) }}" class="row g-2" id="basket-demand" tabindex="-1">
 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
 <input type="hidden" name="row_version" value="{{ kept_version }}">
@@ -78,8 +80,8 @@
 <div class="col-12 col-md-auto d-flex align-items-end">{{ icon_button('actions.add_existing', emphasis='secondary') }}</div>
 <p class="text-secondary mb-0">Gebinde runden nur die Bestellmenge. Es entsteht kein Journal und kein Sendauftrag.</p>
 </form>
-{% endcall %}
-{% call disclosure_section(title=t('actions.preview.label'), id='korb-vorschau', open=false) %}
+</section>
+{% call read_detail_dialog('korb-vorschau', t('actions.preview.label'), 'Bestellkorb ' ~ basket.supplier_name) %}
 <pre class="order-preview">{{ preview }}</pre>
 {% endcall %}
 </div>

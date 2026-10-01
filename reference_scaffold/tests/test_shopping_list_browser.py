@@ -141,7 +141,8 @@ def test_full_lifecycle_create_compute_check_recompute_and_manual_item(
         expect(page.get_by_role('heading', level=1)).to_have_text('Einkaufslisten')
         expect(page.get_by_text('Noch keine Einkaufslisten', exact=True)).to_be_visible()
         expect(page.get_by_label('Titel', exact=True)).to_be_visible()
-        page.locator('.empty-action').get_by_role('link', name='Anlegen', exact=True).click()
+        expect(page.locator('main a[href="#title"]')).to_have_count(1)
+        page.locator('#einkaufsliste-neu-title').click()
         expect(page.get_by_label('Titel', exact=True)).to_be_focused()
         page.get_by_label('Titel', exact=True).fill('Browser Einkaufsliste')
         with page.expect_navigation(wait_until='load'):
@@ -397,15 +398,13 @@ def _assert_shopping_frame(browser_instance, base, cookie, list_id):
                         return Boolean(table) && getComputedStyle(table.querySelector('tbody')).display === 'block';
                     }''')
                     assert stacked, (javascript, width)
-                hint = page.locator('details.admin-hint').first
-                summary = hint.locator('summary')
-                expect(summary).to_be_visible()
-                summary.focus()
-                expect(summary).to_be_focused()
-                if hint.get_attribute('open') is None:
-                    page.keyboard.press('Enter')
-                expect(hint).to_have_attribute('open', '')
-                page.keyboard.press('Enter')
+                expect(page.locator('details.admin-hint')).to_have_count(0)
+                expect(page.locator('#einkauf-policy-hint')).to_be_visible()
+                expect(page.locator('#einkauf-policy-hint')).to_have_text(
+                    'Blattbedarf rechnet Rohzutaten. Vorbereiteter Bedarf nutzt vorhandene Zubereitungen.'
+                )
+                page.locator('#policy').focus()
+                expect(page.locator('#policy')).to_be_focused()
             if javascript:
                 page.set_viewport_size({'width': 1440, 'height': 900})
                 assert page.goto(f'{base}/admin/einkaufslisten/{list_id}').status == 200

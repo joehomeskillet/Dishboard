@@ -18,6 +18,8 @@ keine bereits erfolgte Migration auf den neuen Lesedialog.
 
 | `/admin/api`, `/api/v1/docs` | DELTA-3-21: Admin, leer/aktiv/abgelaufen/widerrufen/Fehler; statische Metadaten und native Formulare, Textwiderruf mit Bestätigung, Publikationsstatus einmal. Swagger Authorize im Textmodus über offiziellen Plugin-Hook; D-119 bleibt offen. | `test_delta3_21_browser.py`, `test_icon_api_browser.py`, `test_admin_api_page.py`, `test_admin_api_key_policy.py`; tatsächliche Gate- und Sichtnachweise im Paketreport. |
 
+| `/admin/einkaufslisten[/<id>]`, `/admin/bestellung[/korb/<id>]` | DELTA-3-22: Publisher, leer/befüllt/Fehler/Nur-Lesen, JS/NoJS; statische Formulare und Hinweise, optionale Einheiten leer, ein Rücksprung je Ziel. Gemeinsamer Lesedialog für Korbvorschau; Listensegmente vor variablen Inhalten. P-07 gemeinsam offen. | `test_delta3_22_browser.py` prüft 1440/390 fein/grob, FormData/Versionen und Dialoggeometrie ≤1 CSS-px; `test_order_admin.py`, `test_shopping_list_browser.py`; Pflichtläufe im Paketreport. |
+
 ## UC-P2-A — Wochenplanung und Kalender, 2026-10-01
 
 | Route | Rolle / Zustand / gemeinsames Muster | Nachweis |

@@ -312,7 +312,8 @@ def test_demand_error_keeps_both_values(b3, food, quantity, target):  # noqa: F8
     kept = OrderForms(response.text).forms[path]
     assert kept['food_public_id'] == food and kept['need_quantity'] == quantity
     assert f'id="{target}-error"' in response.text
-    assert 'id="korb-weitere" open' in response.text
+    assert '<section id="korb-weitere"' in response.text
+    assert '<details id="korb-weitere"' not in response.text
 
 
 def test_cost_input_error_keeps_kind_revision_and_extra(b3):  # noqa: F811
