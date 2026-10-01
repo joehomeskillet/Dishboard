@@ -144,7 +144,7 @@ def test_registry_source_schema_and_frozen_resolution():
     # BF-E1-F4 adds publish.unpublished; BF-E1-F1 adds status.unsaved.
     assert len(seeds) == 187
     # UC-G0 and DA/EH/BF share status.unsaved and publish.unpublished (deduplicated in the UC merge).
-    assert len(registry) == 251
+    assert len(registry) == 252
     assert registry['status.unsaved'].role == 'warning'
     assert not registry['status.unsaved'].icon_only_allowed
     for locale, expected in (('de', 'Nicht gespeichert'), ('en', 'Not saved')):

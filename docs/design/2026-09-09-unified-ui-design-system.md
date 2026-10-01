@@ -57,8 +57,10 @@ Detailseite oder den gemeinsamen Lesedialog.
 - `{% call read_detail_dialog(id, title, object) %}…{% endcall %}` und
   `read_detail_trigger(id, key, object)` aus `ui/_semantic.html` bilden die
   DELTA-3-Schnittstelle. Pro Objekt eine eindeutige ID; keine verschachtelten
-  Formulare oder Inhaltsakkordeons. Zweckschlüssel: `ui.read_detail.review`
-  und `ui.read_detail.schedule`, beide DE/EN. Titel und Objektkontext bleiben
+  Formulare oder Inhaltsakkordeons. Zweckschlüssel: `ui.read_detail.review`,
+  `ui.read_detail.schedule` und `ui.read_detail.day` (Tageseinträge, Datum als
+  `object`), jeweils DE/EN. Generische Aktionen wie `actions.open` behalten
+  ihren lokalisierten Objektbezug in Name und Tooltip. Titel und Objektkontext bleiben
   Text; Inhalt ist vorhandenes vertrauenswürdig gerendertes Template-Markup.
   Der native Dialog überlagert die Fläche, fokussiert den Titel, schliesst
   mit Escape oder genau einem sichtbaren Textzugang «Schliessen» und gibt Fokus
@@ -67,6 +69,17 @@ Detailseite oder den gemeinsamen Lesedialog.
   bleiben im sichtbaren Dialograhmen.
   Ohne JS öffnen Anker und `:target` denselben überlagernden Inhalt; der
   Schliesslink führt zum Auslöser. Native Modalität/Fokusführung benötigt JS.
+  **DELTA-2c:** Sprunglinks im Dialog auf vorhandene Hintergrundziele derselben
+  URL (Pfad und Query unverändert) schliessen den Dialog und setzen Fokus und
+  Scrollposition auf das Ziel. Nicht fokussierbare Abschnitte erhalten bis zum
+  Fokusverlust `tabindex=-1`. Dabei erfolgt kein Rücksprung zum Auslöser;
+  Escape und Schliesszugang behalten den normalen Rückgabevertrag. Dialoginterne,
+  fehlende und ungültig kodierte Anker werden nicht als Hintergrundsprung behandelt.
+  Leere `list_row`-Aktionsslots erzeugen keine Aktionsgruppe; reine Symbolaktionen
+  und bestehende native Formularverträge bleiben erhalten. Die erweiterten
+  Legacy-Aufrufe sind als Ratchet an ihre Aufrufsignaturen gebunden: Entfernen
+  erlaubt, neue oder ersetzte Aufrufe nicht. Kein Mindestbestand an `show_text`-
+  Aufrufen behindert deren Migration zu explizitem `mode='text'`.
 
 ### DELTA-2b: Filterdialog und aktive Filter (2026-10-01)
 
