@@ -1713,6 +1713,16 @@ Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeu
 
 ##### Modul Rezepte (2026-09-20)
 
+**DELTA-3-09 (2026-10-01, UI-DELTA §0.1):** Im Rezepteditor sind Zutatenzusätze,
+vollständige Anleitungen, Kennzeichnungen, Bilder und Quellen statische
+Formularabschnitte. Die bisherigen Inhaltsaufklapper und Schrittkurzfassungen
+entfallen; Feldnamen, IDs, POST-Werte und Fehlerfokus bleiben erhalten.
+Abschnittslinks verwenden den Textmodus und stehen vor der KI-Warnung.
+Der Symbol-Rückweg im Kopf erhält den Listenkontext; sein identischer Zweitzugang
+im Speicherfuss entfällt. Archivbestätigungen verwenden reine Textaktionen.
+Nachweise: `test_delta3_09_browser.py`, `test_recipe_density_browser.py` und
+paketbezogener DELTA-3-09-Report.
+
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Ein-Direktaktions-/Menü-Regel der Übersicht und Verwerfen unter „Weitere Aktionen“ sind abgelöst. Verwerfen startet direkt den bestehenden Bestätigungsschritt. Historische Prüfbelege werden nicht zur Direktaktionsabnahme umgedeutet.
 
 Die Rezeptübersicht verwendet M22/M23: Suche und Kennzeichnung zuerst, Titel-,

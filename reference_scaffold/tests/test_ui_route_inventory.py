@@ -94,7 +94,7 @@ def test_every_template_file_is_in_the_matrix() -> None:
 
 
 def test_each_route_has_owning_mp_or_explicit_unmapped() -> None:
-    allowed_unmapped = {'static', 'health.live', 'health.ready'}
+    allowed_unmapped = {'static', 'favicon', 'health.live', 'health.ready'}
     for row in _matrix()['routes']:
         mp = row['owning_mp']
         assert mp, row['endpoint']

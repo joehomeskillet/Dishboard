@@ -2,6 +2,7 @@
 import pytest
 from test_eh_http_contract import assert_login_redirect
 import io
+import re
 from PIL import Image
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -312,11 +313,14 @@ def test_view_is_complete_readonly_and_rejects_unknown_query_without_form_contex
     viewed = client.get(path + '/ansicht?yield=8')
     assert viewed.status_code == 200, viewed.text
     for text_value in ('Entwurf · nicht festgeschrieben', 'Nur lesen', 'Zweite Zeile',
-                       'Vorbereitung: 5 Minuten', 'Kochzeit: 12 Minuten', 'Zubereitung',
+                       'Zubereitung',
                        'Zutaten und Mengen', 'Kennzeichnungen: Nicht erfasst', 'Herkunft ansehen',
                        'Keine Gerichtvorlage', 'Zum Drucken zuerst einen Stand festhalten',
                        'Ansicht &amp; Herkunft'):
         assert text_value in viewed.text
+    rendered_text = ' '.join(re.sub(r'<[^>]+>', ' ', viewed.text).split())
+    for text_value in ('Vorbereitung: 5 Minuten', 'Kochzeit: 12 Minuten'):
+        assert text_value in rendered_text
     assert 'name="_form_context"' not in viewed.text
     assert 'name="row_version"' not in viewed.text
     for query in ('yield=NaN', 'yield=0', 'yield=1&yield=2', 'page=1', 'recipe=bad'):

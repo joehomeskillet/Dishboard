@@ -49,7 +49,8 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
             if isinstance(call.node, nodes.Name) and call.node.name == 'form_footer':
                 calls.append((path, call))
     assert len(calls) == 15, 'Review compatibility inventory when consumers change'
-    migrated = {'_course_editor.html', '_week_service.html', '_week_settings.html', 'menu_editor.html'}
+    migrated = {'_course_editor.html', '_week_service.html', '_week_settings.html',
+                'menu_editor.html', 'rezepte_editor.html'}
     assert {path.name for path, _ in calls if path.name in migrated} == migrated
     with semantic_app.test_request_context('/'):
         before = env.from_string(LEGACY).module.form_footer
@@ -84,6 +85,9 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
                     {% if not cell.template_proposal %}{{ icon_button('actions.save', aria_label=t('menu.save_return.aria'), emphasis='secondary', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'}) }}{% endif %}
                     {{ icon_button('actions.cancel', href=g.get('menu_collection_return') or back_url) }}
                 ''').render(**data)
+            elif path.name == 'rezepte_editor.html':
+                # UI-DELTA §0.1/R-09: canonical return is in the header; save keeps its form.
+                expected = save
             else:
                 expected = icon_button('actions.save', emphasis=(
                     'secondary' if path.name == '_week_service.html' else None))
@@ -101,7 +105,9 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    assert len(calls) == 74, 'Review compatibility inventory when consumers change'
+    # UI-DELTA §0.1/D-31/D-33: four recipe-editor consumers became static sections.
+    assert len(calls) == 70, 'Review compatibility inventory when consumers change'
+    assert not any(path.name == 'rezepte_editor.html' for path, _ in calls)
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
     assert len(extended) == 10

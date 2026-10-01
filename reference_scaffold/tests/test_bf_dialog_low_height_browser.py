@@ -132,7 +132,7 @@ def _surfaces(recipe: str) -> tuple[tuple[str, str, str, str], ...]:
 
 
 def test_t24_remove_and_close_move_focus_to_successor(site) -> None:  # noqa: F811
-    """Removing a row focuses the successor; closing a disclosure returns to its trigger."""
+    """Removing a row focuses the successor; static fields stay visible after Escape."""
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     recipe = _recipe(client)
@@ -153,30 +153,14 @@ def test_t24_remove_and_close_move_focus_to_successor(site) -> None:  # noqa: F8
             if not in_form:
                 _shot(page, f't24-tab-js{int(javascript)}')
             assert in_form
-            opened = page.evaluate('document.getElementById("ingredient-details-0").open')
-            if javascript:
-                trigger = page.locator('[data-recipe-toggle="ingredient-details-0"]')
-                if not opened:
-                    trigger.click()
-                page.locator('#ingredient-details-0 input, #ingredient-details-0 select, #ingredient-details-0 textarea').first.focus()
-                page.keyboard.press('Escape')
-                closed = page.evaluate("""() => !document.getElementById('ingredient-details-0').open
-                  && document.activeElement === document.querySelector('[data-recipe-toggle="ingredient-details-0"]')""")
-                if not closed:
-                    _shot(page, 't24-escape')
-                expect(trigger).to_be_focused()
-                assert not page.evaluate('document.getElementById("ingredient-details-0").open')
-            else:
-                summary = page.locator('#ingredient-details-0 > summary')
-                if not opened:
-                    summary.click()
-                summary.click()
-                closed = page.evaluate("""() => !document.getElementById('ingredient-details-0').open
-                  && document.activeElement === document.querySelector('#ingredient-details-0 > summary')""")
-                if not closed:
-                    _shot(page, 't24-summary-close')
-                expect(summary).to_be_focused()
-                assert not page.evaluate('document.getElementById("ingredient-details-0").open')
+            detail = page.locator('#ingredient-details-0')
+            expect(detail.locator('summary')).to_have_count(0)
+            field = detail.locator('input, select, textarea').first
+            field.focus()
+            page.keyboard.press('Escape')
+            expect(field).to_be_focused()
+            expect(field).to_be_visible()
+            expect(detail).to_be_visible()
         finally:
             page.context.close()
 
@@ -313,15 +297,18 @@ def test_t34_open_close_does_not_duplicate_listeners(site) -> None:  # noqa: F81
             page.context.add_init_script(LISTENER)
         try:
             _goto(page, recipe)
-            if javascript:
-                _cycle(
-                    page, '#ingredient-details-0',
-                    page.locator('[data-recipe-toggle="ingredient-details-0"]'),
-                    't34-ingredient', True,
-                )
-            else:
-                _cycle(page, '#ingredient-details-0', page.locator('#ingredient-details-0 > summary'), 't34-ingredient', False)
-            _cycle(page, '#recipe-source', page.locator('#recipe-source > summary'), 't34-source', javascript)
+            # UI-DELTA §0.1: former recipe disclosures are static, including no-JS.
+            original = page.locator('#recipe-editor').evaluate('f => [...new FormData(f)]')
+            for selector in ('#ingredient-details-0', '#recipe-source'):
+                section = page.locator(selector)
+                expect(section.locator('summary')).to_have_count(0)
+                field = section.locator('input:not([type="hidden"]), select, textarea').first
+                for _ in range(20):
+                    field.focus()
+                    field.press('Escape')
+                    expect(field).to_be_focused()
+                    expect(section).to_be_visible()
+            assert page.locator('#recipe-editor').evaluate('f => [...new FormData(f)]') == original
             duplicate = _ids(page)
             if duplicate:
                 _shot(page, f't34-ids-recipe-js{int(javascript)}')

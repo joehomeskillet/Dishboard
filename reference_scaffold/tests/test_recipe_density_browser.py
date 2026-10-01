@@ -17,7 +17,7 @@ from test_recipe_store_db import line, payload, snapshot
 from test_rendered_ui import browser  # noqa: F401
 
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/ui-density-0913/recipes'
+EVIDENCE = Path('/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/claude-session-2026-09-29/audit/DELTA/DELTA-3-09/density')
 VIEWPORTS = ((1440, 900), (390, 844), (1024, 768), (768, 1024), (1920, 1080), (2560, 1440), (320, 900))
 
 
@@ -71,7 +71,7 @@ def test_recipe_density_evidence(b3, master_server, browser, count):  # noqa: F8
 @pytest.mark.parametrize('state', ['readonly', 'archived'])
 @pytest.mark.parametrize('javascript', [False, True])
 @pytest.mark.parametrize('width', [390, 1440])
-def test_readonly_preparation_reopens_after_escape(
+def test_readonly_preparation_stays_visible_after_escape(
     b3, master_server, browser, monkeypatch, state, javascript, width,  # noqa: F811
 ):
     _, owner, client, _ = b3
@@ -99,13 +99,12 @@ def test_readonly_preparation_reopens_after_escape(
         page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
         page.goto(base + path, wait_until='networkidle')
         detail = page.locator('#step-details-0')
-        summary = detail.locator(':scope > summary')
         field = page.locator('[name="steps.0.instruction"]')
-        expect(summary).to_have_accessible_name('Details für Schritt 1')
-        expect(page.locator('[data-recipe-toggle="step-details-0"]')).to_be_hidden()
+        expect(detail.locator('summary')).to_have_count(0)
+        expect(page.locator('[data-recipe-toggle="step-details-0"]')).to_have_count(0)
         expect(page.get_by_role('button', name='Speichern', exact=True)).to_have_count(0)
-        for focus in (page.locator('a[href="#ingredients-heading"]'), summary):
-            expect(detail).to_have_attribute('open', '')
+        for focus in (page.locator('a[href="#ingredients-heading"]'), page.locator('a[href="#steps-heading"]')):
+            expect(detail).to_be_visible()
             focus.focus()
             expect(focus).to_be_focused()
             if javascript and focus.get_attribute('data-ui-tooltip'):
@@ -113,20 +112,10 @@ def test_readonly_preparation_reopens_after_escape(
                 expect(tooltip).to_be_visible()
                 page.keyboard.press('Escape')
                 expect(tooltip).to_be_hidden()
-                expect(detail).to_have_attribute('open', '')
+                expect(detail).to_be_visible()
             page.keyboard.press('Escape')
-            if javascript:
-                expect(detail).not_to_have_attribute('open', '')
-            else:
-                expect(detail).to_have_attribute('open', '')
-            expect(summary).to_be_visible()
-            summary.focus()
-            expect(summary).to_be_focused()
-            if not javascript:
-                page.keyboard.press('Enter')
-                expect(detail).not_to_have_attribute('open', '')
-            page.keyboard.press('Space')
-            expect(detail).to_have_attribute('open', '')
+            expect(focus).to_be_focused()
+            expect(detail).to_be_visible()
             expect(field).to_be_visible()
             expect(field).to_be_disabled()
             expect(field).to_have_value(instruction)
@@ -165,11 +154,10 @@ def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, brows
         page.locator('[name="ingredients.0.quantity"]').fill('2.5')
         page.locator('[name="ingredients.0.unit_code"]').select_option('KG')
         details = page.locator('#ingredient-details-0')
-        toggle = page.locator('[data-recipe-toggle="ingredient-details-0"]') if javascript else details.locator('summary').first
-        toggle.click()
+        expect(details).to_be_visible()
+        expect(details.locator('summary')).to_have_count(0)
         page.get_by_label('Gruppe', exact=True).first.fill('Suppe')
         page.get_by_label('Zutatennotiz', exact=True).first.fill('Fein würfeln')
-        toggle.click()
         expect(page.locator('[name="ingredients.0.quantity"]')).to_have_value('2.5')
         assert not posts and snapshot(owner) == before
         if javascript:
@@ -200,13 +188,13 @@ def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, brows
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Zutat 2 davor einfügen', exact=True).click()
         expect(page.locator('[name="ingredients.1.ingredient_text"]')).to_be_focused()
-        expect(page.locator('#ingredient-details-1')).to_have_attribute('open', '')
+        expect(page.locator('#ingredient-details-1')).to_be_visible()
         page.locator('[name="ingredients.1.ingredient_text"]').fill('Neue Zutat')
         with page.expect_navigation(wait_until='load'):
             page.get_by_role('button', name='Zutat 2 entfernen', exact=True).click()
         expect(page.locator('[name="ingredients.1.ingredient_text"]')).to_be_focused()
         assert snapshot(owner) == before
-        # A required, unchanged step may be collapsed; its exact text is still submitted.
+        # Permanently visible required instructions retain their exact native POST value.
         page.get_by_role('button', name='Speichern', exact=True).focus()
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
@@ -224,7 +212,7 @@ def test_compact_rows_keep_native_post_values_and_focus(b3, master_server, brows
 
 
 @pytest.mark.parametrize('javascript', [False, True])
-def test_required_step_in_closed_details_opens_and_focuses(b3, master_server, browser, javascript):  # noqa: F811
+def test_required_step_stays_visible_and_focuses(b3, master_server, browser, javascript):  # noqa: F811
     _, owner, client, _ = b3
     path = reference(client)
     base, cookie = master_server
@@ -239,19 +227,13 @@ def test_required_step_in_closed_details_opens_and_focuses(b3, master_server, br
         page.goto(base + path, wait_until='networkidle')
         page.evaluate('document.fonts.ready')
         detail = page.locator('#step-details-0')
-        toggle = page.locator('[data-recipe-toggle="step-details-0"]') if javascript else detail.locator('summary').first
-        if javascript:
-            toggle.click()
+        expect(detail.locator('summary')).to_have_count(0)
         field = page.locator('[name="steps.0.instruction"]')
         field.fill('')
-        if javascript:
-            toggle.click()
-            expect(detail).not_to_have_attribute('open', '')
-        else:
-            expect(toggle).to_be_hidden()
+        expect(detail).to_be_visible()
         page.get_by_role('button', name='Speichern', exact=True).focus()
         page.keyboard.press('Enter')
-        expect(detail).to_have_attribute('open', '')
+        expect(detail).to_be_visible()
         expect(field).to_be_focused()
         assert field.get_attribute('required') is not None
         assert not posts and not errors and snapshot(owner) == before
@@ -260,15 +242,16 @@ def test_required_step_in_closed_details_opens_and_focuses(b3, master_server, br
         page.screenshot(path=str(destination / f'required-error-js{javascript}.png'), full_page=True)
         if javascript:
             expect(field).to_have_attribute('aria-invalid', 'true')
-            toggle.click()
-            expect(toggle).to_contain_text('Fehler')
-            toggle.click()
+            expect(page.locator('[data-recipe-error-badge]')).to_have_count(0)
+            error = page.locator('[id="steps.0.instruction-error"]')
+            expect(error).to_be_visible()
             long_instruction = ('Vollständiger Text.\n' * 100).rstrip('\n')
             field.fill(long_instruction)
             page.keyboard.press('Escape')
-            expect(toggle).to_be_focused()
-            expect(detail).not_to_have_attribute('open', '')
-            expect(page.locator('[data-recipe-step-summary]').first).to_contain_text('…')
+            expect(field).to_be_focused()
+            expect(detail).to_be_visible()
+            expect(field).to_have_value(long_instruction)
+            expect(error).to_have_count(0)
             page.get_by_role('button', name='Speichern', exact=True).click()
             assert fields(client, path)['steps.0.instruction'] == long_instruction
 
@@ -329,9 +312,16 @@ def test_reference_density_and_mobile_targets(b3, master_server, browser, touch)
         expect(page.locator('.admin-compact-column-labels')).to_contain_text('Menge')
         expect(page.locator('.admin-compact-column-labels')).to_contain_text('Einheit')
         boxes = [row.bounding_box() for row in rows.all()]
-        assert len(boxes) == 4 and all(box and box['height'] <= 72 and box['y'] + box['height'] < 900 for box in boxes)
+        assert len(boxes) == 4 and all(box for box in boxes)
+        # UI-DELTA §0.1/D-02 replaces collapsed row density with visible fields.
+        for row in rows.all():
+            expect(row.locator('[name$=".food_public_id"]')).to_be_visible()
+            expect(row.locator('[name$=".group_label"]')).to_be_visible()
+            expect(row.locator('[name$=".note"]')).to_be_visible()
+            line_box = row.locator('.admin-compact-line').bounding_box()
+            assert line_box and line_box['height'] <= 72
         preparation = page.locator('[data-recipe-step]').first.bounding_box()
-        assert preparation and preparation['y'] < 900
+        assert preparation and preparation['y'] >= boxes[-1]['y'] + boxes[-1]['height']
         for width, height in VIEWPORTS:
             page.set_viewport_size({'width': width, 'height': height})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -392,7 +382,7 @@ def test_warning_unavailable_selection_and_readonly_remain_accessible(
         expect(page.locator('[name="ingredients.0.quantity"]')).to_be_disabled()
         expect(page.locator('[name="steps.0.instruction"]')).to_be_visible()
         expect(page.locator('[name="steps.0.instruction"]')).to_be_disabled()
-        page.locator('#ingredient-details-0 > summary').click()
+        expect(page.locator('#ingredient-details-0 > summary')).to_have_count(0)
         expect(page.locator('[name="ingredients.0.food_public_id"]')).to_be_visible()
         expect(page.get_by_role('button', name='Speichern', exact=True)).to_have_count(0)
         expect(page.locator('.alert-warning')).to_be_visible()

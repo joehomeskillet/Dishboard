@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import re
 from uuid import uuid4
 
 import pytest
@@ -384,7 +385,9 @@ def test_document_partial_retains_legacy_and_exact_child_contents_without_curren
                     assert line in html
     else:
         assert 'Keine Schritte gespeichert.' in html and 'Menge nicht erfasst' in html
-        assert 'Einheit nicht erfasst' in html and 'Kochzeit: 0 Minuten' in html
+        assert 'Einheit nicht erfasst' in html
+        # Definition terms and values are separate elements; retain the exact zero value.
+        assert 'Kochzeit: 0 Minuten' in ' '.join(re.sub(r'<[^>]+>', ' ', html).split())
         assert 'Vorbereitung:' not in html
         assert values['source']['note'] in html and 'KI-unterstützte Angaben;' in html
         assert 'Nur ein Kochhinweis' in html

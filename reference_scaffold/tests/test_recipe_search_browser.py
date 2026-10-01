@@ -183,11 +183,11 @@ def test_editor_disclosures_preserve_complete_native_post(
                     expect(quantity).to_be_visible()
                     expect(quantity).to_have_accessible_name('Mengen für ' + original_payload['title'] + ' berechnen')
                     assert 'berechnen' in quantity.get_attribute('aria-label').lower()
-                    source = page.locator('#recipe-source > summary')
-                    source.focus()
-                    page.keyboard.press('Enter')
+                    expect(page.locator('#recipe-source > summary')).to_have_count(0)
                     expect(page.get_by_label('Quellennotiz', exact=True)).to_be_visible()
-                    page.keyboard.press('Enter')
+                    page.get_by_label('Quellennotiz', exact=True).focus()
+                    page.keyboard.press('Escape')
+                    expect(page.get_by_label('Quellennotiz', exact=True)).to_be_visible()
                     assert sorted(map(tuple, form.evaluate('f => [...new FormData(f)]'))) == expected
                     with page.expect_request(lambda request: request.method == 'POST') as submitted:
                         page.get_by_role('button', name='Speichern', exact=True).click()

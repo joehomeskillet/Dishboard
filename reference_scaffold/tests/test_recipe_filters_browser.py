@@ -176,14 +176,22 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                     assert row_style == ('grid' if width < 768 else 'table-row')
                 if name == 'rezepte':
                     page.locator('.admin-filter-more > summary').click()
-                help_control = page.locator('.admin-hint > summary').first
-                help_control.focus()
-                expect(help_control).to_be_focused()
-                page.keyboard.press('Enter')
-                expect(help_control.locator('..')).to_have_attribute('open', '')
-                expect(page.locator('#' + help_control.get_attribute('aria-describedby'))).to_be_visible()
+                if name == 'conflict':
+                    expect(page.locator('#copy-hint')).to_be_visible()
+                    expect(page.locator('main .admin-hint > summary')).to_have_count(0)
+                    page.locator('main textarea').first.focus()
+                    page.keyboard.press('Escape')
+                    expect(page.locator('main textarea').first).to_be_focused()
+                    expect(page.locator('#copy-hint')).to_be_visible()
+                else:
+                    help_control = page.locator('.admin-hint > summary').first
+                    help_control.focus()
+                    expect(help_control).to_be_focused()
+                    page.keyboard.press('Enter')
+                    expect(help_control.locator('..')).to_have_attribute('open', '')
+                    expect(page.locator('#' + help_control.get_attribute('aria-describedby'))).to_be_visible()
+                    page.keyboard.press('Enter')
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                page.keyboard.press('Enter')
                 if name == 'revisionen':
                     expected = page.locator('#recipe-freeze-form').evaluate('f => [...new FormData(f)]')
                     freeze = page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)

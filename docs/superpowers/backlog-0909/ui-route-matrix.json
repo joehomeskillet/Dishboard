@@ -17,7 +17,7 @@
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 161,
+    "route_count": 162,
     "template_count": 103,
     "html_route_count": 80,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
@@ -8183,6 +8183,47 @@
         "browser_status": "not_run",
         "usability_status": "not_run",
         "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen. Beilagen-Abnahme 2026-09-14 (MP-REC-ACC-ACCEPT, tests/test_menu_accompaniment_flow_accept.py): optionale «Dazu:»-Zeile, Fit 1920×1080 und 3840×2160 (A9); Belege .claude/evidence/acc-accept-0914/ (nicht versioniert); Status bleibt not_run bis Capture-Lauf."
+      }
+    },
+    {
+      "endpoint": "favicon",
+      "rule": "/favicon.ico",
+      "methods": [
+        "GET"
+      ],
+      "blueprint": "",
+      "classification": "static",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": [
+        "anonymous"
+      ],
+      "method_roles": {},
+      "layout_variant": "none",
+      "owning_mp": "unmapped",
+      "family_variants": [],
+      "module": "cafeteria",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": [
+          "A01"
+        ],
+        "owning_mp": "MP-UI-DENSITY-SHELL",
+        "core_task": "Bestehende Favicon-Antwort; kein eigenständiger UI-Screen",
+        "example_url": "/favicon.ico",
+        "example_semantics": "Feste öffentliche Asset-URL, keine Live-Identität.",
+        "fixture_source": "reference_scaffold/tests/test_favicon.py",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "DELTA-3-09 Pflichtgate: bestehende Registrierung nachgetragen; keine Produkt- oder Screenshot-Baselineänderung."
       }
     },
     {

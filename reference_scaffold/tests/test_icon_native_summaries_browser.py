@@ -160,7 +160,7 @@ def unavailable_server(screen_app):  # noqa: F811
 
 @pytest.mark.parametrize('width', [1440, 390])
 @pytest.mark.parametrize('javascript', [True, False])
-def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
+def test_unavailable_retry_text_is_a_native_get_after_failed_assignment(
     screen_app, database_engine, unavailable_server, browser, monkeypatch, tmp_path, width, javascript,  # noqa: F811
 ):
     client, _ = _login(screen_app, database_engine, ['Cafeteria.Admin'])
@@ -200,7 +200,10 @@ def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
             expect(retry).to_contain_text('Neu laden')
             assert retry.get_attribute('aria-label') == 'Neu laden: Aktualisieren'
             assert retry.get_attribute('data-ui-tooltip') == retry.get_attribute('aria-label')
-            expect(retry.locator('svg[aria-hidden="true"]')).to_have_count(1)
+            # UI-DELTA §0.1: recovery actions have text only, including rendered pseudo-content.
+            expect(retry.locator('svg')).to_have_count(0)
+            assert 'ui-sem-control--text' in retry.get_attribute('class').split()
+            assert retry.evaluate("el => ['::before', '::after'].map(p => getComputedStyle(el, p).content)") == ['none', 'none']
             assert retry.evaluate('el => el.getBoundingClientRect().width >= 36')
             expect(retry).to_have_attribute('href', path)
             retry.focus()

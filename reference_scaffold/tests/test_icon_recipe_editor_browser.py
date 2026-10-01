@@ -64,13 +64,9 @@ def test_recipe_editor_icons_preserve_native_state(
         assert form.get_attribute('action') == path
         if state != 'active':
             expect(form.locator('fieldset')).to_have_attribute('disabled', '')
-            expect(page.locator('[data-recipe-toggle="step-details-0"]')).to_be_hidden()
-            summary = page.locator('#step-details-0 > summary')
-            expect(summary).to_have_text('')
-            expect(summary).to_have_accessible_name('Details für Schritt 1')
-            summary.press('Enter')
-            expect(page.locator('#step-details-0')).not_to_have_attribute('open', '')
-            summary.press('Space')
+            expect(page.locator('[data-recipe-toggle="step-details-0"]')).to_have_count(0)
+            expect(page.locator('#step-details-0 > summary')).to_have_count(0)
+            page.keyboard.press('Escape')
             expect(page.locator('[name="steps.0.instruction"]')).to_be_visible()
             expect(page.locator('[name="steps.0.instruction"]')).to_be_disabled()
             expect(page.get_by_role('button', name='Speichern', exact=True)).to_have_count(0)
@@ -116,17 +112,17 @@ def test_recipe_editor_icons_preserve_native_state(
             page.screenshot(path=str(tmp_path / f'editor-{section}-{width}-js{javascript}.png'),
                             full_page=False)
         ingredient = page.locator('#ingredient-details-0')
-        toggle = page.locator('[data-recipe-toggle="ingredient-details-0"]') if javascript else ingredient.locator(':scope > summary')
         before_toggle = form.evaluate('f => [...new FormData(f)]')
-        toggle.press('Enter')
-        expect(ingredient).to_have_attribute('open', '')
-        toggle.press('Enter')
-        expect(ingredient).not_to_have_attribute('open', '')
+        expect(ingredient).to_be_visible()
+        expect(ingredient.locator('summary')).to_have_count(0)
+        page.get_by_label('Gruppe', exact=True).first.focus()
+        page.keyboard.press('Escape')
+        expect(ingredient).to_be_visible()
         assert form.evaluate('f => [...new FormData(f)]') == before_toggle
         assert not posts
         if not javascript:
-            expect(page.locator('#step-details-0')).to_have_attribute('open', '')
-            expect(page.locator('#step-details-0 > summary')).to_be_hidden()
+            expect(page.locator('#step-details-0')).to_be_visible()
+            expect(page.locator('#step-details-0 > summary')).to_have_count(0)
             expect(page.locator('[name="steps.0.instruction"]')).to_be_visible()
         page.get_by_label('Beschreibung', exact=True).fill('Ungespeichert · vollständig erhalten')
         page.get_by_label('Titel', exact=True).fill('')
