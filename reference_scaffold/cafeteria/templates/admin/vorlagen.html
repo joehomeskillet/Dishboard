@@ -188,11 +188,9 @@
         <td data-label="Version"><p class="admin-list-secondary print-tpl-meta mb-0">{% if catalog.active.template.id == choice.id %}Version {{ catalog.active.version }}{% else %}{{ empty_value() }}{% endif %}</p></td>
         <td class="admin-table-status" data-label="Status">{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_badge_sem('status.inactive') }}{% endif %}</td>
         <td class="admin-table-actions" data-label="Aktionen">
-          {# ponytail: row_actions erzwingt show_text=false. Die Zuordnung verlässt diese Vorlage Richtung Bereichsseite und braucht den sichtbaren Zielnamen. Upgrade: show_text pro Eintrag in row_actions. #}
-          <div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=screen_object) }}">
-            {{ icon_button('actions.preview', href=url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id), aria_label=screen_object ~ ' prüfen') }}
-            {% if loop.first %}{{ icon_button('actions.edit', href=url_for('admin.screen_template_assignment', family=screen_family), aria_label=area_names[choice.profile] ~ ' · Wochenvorlage zuordnen', text='Zuordnen', show_text=true) }}{% endif %}
-          </div>
+          {{ row_actions([
+            {'key': 'actions.preview', 'href': url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id), 'aria_label': screen_object ~ ' prüfen'}
+          ] + ([{'key': 'actions.edit', 'href': url_for('admin.screen_template_assignment', family=screen_family), 'aria_label': area_names[choice.profile] ~ ' · Wochenvorlage zuordnen', 'text': 'Zuordnen', 'show_text': true}] if loop.first else []), object=screen_object) }}
         </td>
       </tr>
       {% endfor %}
