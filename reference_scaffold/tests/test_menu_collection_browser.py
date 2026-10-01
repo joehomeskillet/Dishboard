@@ -442,10 +442,21 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
                     for name, route in routes.items():
                         assert page.goto(origin + route).status == 200
                         page.evaluate('document.fonts.ready')
+                        if name in {'menu_editor', 'components'}:
+                            # UI-DELTA §0.1: compare the same exposed form content,
+                            # not today's static fields with yesterday's closed sections.
+                            page.locator('main details').evaluate_all(
+                                'nodes => nodes.forEach(node => { node.open = true; })')
+                            page.locator('main [data-edit-row]').evaluate_all('''buttons => buttons.forEach(
+                                button => button.closest('[data-row]').classList.add('is-editing'))''')
                         key = f'{name}-{width}'
                         measurements.setdefault(key, {})[version] = page.evaluate('''() => ({
                             height: document.documentElement.scrollHeight,
                             width: document.documentElement.scrollWidth,
+                            visibleFields: [...document.querySelectorAll('main input[name], main select[name], main textarea[name]')]
+                                .filter(e => e.type !== 'hidden' && e.getClientRects().length
+                                    && getComputedStyle(e).visibility !== 'hidden')
+                                .map(e => `${e.name}:${e.type}`).sort(),
                             rows: [...document.querySelectorAll('main table tbody tr')].map(e => e.getBoundingClientRect().height)
                         })''')
                         # Compare actual successful fields and submitter contracts without recording secrets.
@@ -491,6 +502,8 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
     for key, pair in measurements.items():
         before, after = pair['before'], pair['after']
         assert after['width'] <= int(key.rsplit('-', 1)[1]), (key, pair)
+        if key.startswith(('menu_editor-', 'components-')):
+            assert after['visibleFields'] == before['visibleFields'], (key, pair)
         if key.startswith('components-'):
             # Shared search/filter has two identical unnamed GET submitters.
             # Both preserve the original payload; every other form attribute stays exact.
