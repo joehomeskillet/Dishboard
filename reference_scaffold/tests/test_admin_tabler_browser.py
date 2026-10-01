@@ -120,6 +120,7 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
                 trigger.focus()
                 trigger.press('Enter')
                 expect(page.locator('#new-week-date')).to_be_visible()
+                expect(page.locator('#new-week-date')).to_be_focused()
                 expect(page.get_by_label('Wochentitel', exact=True)).to_be_visible()
                 expect(page.locator('#new-week-form details, #new-week-form summary')).to_have_count(0)
                 expect(page.locator('#new-week-note')).to_be_visible()
@@ -130,7 +131,8 @@ def test_tabler_lists_preserve_navigation_and_tablet_layout(page_context, admin_
                 assert control.bounding_box()['height'] >= minimum, (width, control.evaluate('(el) => el.outerHTML'))
             if route == 'wochen':
                 trigger.click()
-                expect(page.locator('#new-week-date')).to_be_hidden()
+                expect(page.locator('#new-week-date')).to_be_visible()
+                expect(page.locator('#new-week-date')).to_be_focused()
             if width < 992:
                 toggle.focus()
                 page.keyboard.press('Escape')
