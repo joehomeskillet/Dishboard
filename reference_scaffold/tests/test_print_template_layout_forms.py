@@ -255,8 +255,8 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
         expect(page.locator('iframe')).to_be_visible()
         if profile == 'patient':
             assert page.locator('option[value="prices"]').count() == 0
-        page.locator('#template-week-layout > summary').click()
-        page.get_by_text('Raster, Bilder und Abstände', exact=True).click()
+        expect(page.locator('#template-week-layout')).to_be_visible()
+        expect(page.get_by_role('heading', name='Raster, Bilder und Abstände', exact=True)).to_be_visible()
         page.get_by_label('Wochenraster', exact=True).select_option(changed_grid)
         _targets(page)
         with page.expect_response(lambda response: response.request.method == 'POST') as result:
@@ -268,7 +268,7 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
             expect(page.get_by_label('Layout beim Speichern', exact=True)).to_be_focused()
         expect(page.get_by_label('Wochenraster', exact=True)).to_have_value(changed_grid)
         page.get_by_label('Layout beim Speichern', exact=True).select_option('custom')
-        page.locator('summary').filter(has_text='Reihenfolge im Kopfbereich').click()
+        expect(page.get_by_role('heading', name='Reihenfolge im Kopfbereich', exact=True)).to_be_visible()
         first = page.get_by_label('Reihenfolge im Kopfbereich · Position 1', exact=True)
         first.focus()
         page.keyboard.press('ArrowDown')
@@ -278,12 +278,13 @@ def test_native_layout_controls_keyboard_errors_and_no_js_save(editor_app, edito
         page.get_by_label('Reihenfolge im Kopfbereich · Position 2', exact=True).select_option('logo')
         page.get_by_role('button', name='Vorlage speichern', exact=True).click()
         expect(page.get_by_role('heading', name='Vorlage · Version 2', exact=True)).to_be_visible()
-        page.locator('#template-week-layout > summary').click()
+        expect(page.locator('#template-week-layout > summary')).to_have_count(0)
         expect(page.get_by_text('Individuelles Wochenlayout gespeichert.', exact=False)).to_be_visible()
         _targets(page)
         page.screenshot(path=str(tmp_path / f'layout-editor-{family}-{width}-js-{javascript}.png'), full_page=True, caret='initial')
-        for summary in page.locator('#template-week-layout details > summary').all():
-            summary.click()
+        expect(page.locator('#template-week-layout details, #template-week-layout summary')).to_have_count(0)
+        for control in page.locator('#template-week-layout select').all():
+            expect(control).to_be_visible()
         _targets(page)
         page.locator('form.card').filter(has=page.locator('#template-name')).screenshot(
             path=str(tmp_path / f'layout-controls-{family}-{width}-js-{javascript}.png'), caret='initial')

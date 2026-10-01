@@ -55,7 +55,8 @@ def test_view_print_route_matrix_and_native_links(view_print, recipe_editor, rec
             if label == 'print-template':
                 expect(page.locator('#recipe-search')).to_have_attribute('maxlength', '200')
                 expect(page.locator('#recipe-search')).to_have_attribute('name', 'q')
-                page.locator('[data-recipe-selection] > summary').click()
+                expect(page.locator('[data-recipe-selection]')).to_be_visible()
+                expect(page.locator('[data-recipe-selection] > summary')).to_have_count(0)
                 original_yield = page.get_by_role('link', name='Originalausbeute verwenden', exact=True)
                 expect(original_yield).to_have_accessible_name('Originalausbeute verwenden')
                 assert 'Originalausbeute' in (original_yield.get_attribute('aria-label') or '')

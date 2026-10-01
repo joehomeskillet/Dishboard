@@ -66,28 +66,35 @@ def test_recipe_selection_icons_keep_names_revisions_and_native_gets(
         assert page.goto(BASE).status == 200
         page.screenshot(path=str(tmp_path / f'recipe-initial-{width}-js{javascript}.png'), full_page=True)
         selection = page.locator('[data-recipe-selection]')
-        _keyboard(page, selection, javascript)
-        search = selection.locator('details').first
-        _keyboard(page, search, javascript)
+        expect(selection).to_be_visible()
+        expect(selection.locator(':scope > summary')).to_have_count(0)
+        search = selection.locator('section[aria-labelledby="recipe-search-heading"]')
+        expect(search).to_be_visible()
+        expect(search.locator(':scope > summary')).to_have_count(0)
         expect(search.get_by_text('Suppe', exact=True)).to_be_visible()
         search.get_by_role('link', name='Gespeicherte Stände für Suppe auswählen', exact=True).click()
         query = parse_qs(urlsplit(page.url).query)
         assert query['recipe'] == [recipe] and 'recipe_revision' not in query
-        revisions = selection.locator('details').last
-        _keyboard(page, revisions, javascript)
+        revisions = selection.locator('section[aria-labelledby="recipe-revisions-heading"]')
+        expect(revisions).to_be_visible()
+        expect(revisions.locator(':scope > summary')).to_have_count(0)
         expect(revisions.get_by_role('heading', name='Suppe', exact=True)).to_be_visible()
         saved = page.get_by_label('Gespeicherter Rezeptstand', exact=True)
         expect(saved.locator(f'option[value="{revision.public_id}"]')).to_contain_text('Gespeicherter Stand 1')
         saved.select_option(revision.public_id)
         page.get_by_role('button', name='Gespeicherten Stand verwenden', exact=True).click()
         assert parse_qs(urlsplit(page.url).query)['recipe_revision'] == [revision.public_id]
-        expect(selection).not_to_have_attribute('open', '')
-        _icon(selection.locator(':scope > summary'))
-        assert 'Suppe' in selection.locator(':scope > summary').get_attribute('aria-label')
+        expect(selection).to_be_visible()
+        expect(selection.locator(':scope > summary')).to_have_count(0)
+        expect(selection.get_by_role('heading', name='Ausgewählt: Suppe · Gespeicherter Stand 1', exact=True)).to_be_visible()
         page.screenshot(path=str(tmp_path / f'recipe-selected-{width}-js{javascript}.png'), full_page=True)
         page.get_by_label('Vorlagenname', exact=True).fill('Mein ungespeicherter Vorlagenname')
         fields = page.locator('main form').evaluate_all('forms => forms.map(f => [...new FormData(f)])')
-        _keyboard(page, selection, javascript)
+        yield_field = page.get_by_label('Gewünschte Ausbeute', exact=True)
+        yield_field.focus()
+        page.keyboard.press('Escape')
+        expect(yield_field).to_be_focused()
+        expect(selection).to_be_visible()
         assert page.locator('main form').evaluate_all('forms => forms.map(f => [...new FormData(f)])') == fields
         expect(page.get_by_role('heading', name='Ausgewählt: Suppe · Gespeicherter Stand 1', exact=True)).to_be_visible()
         expect(page.get_by_label('Vorlagenname', exact=True)).to_have_value('Mein ungespeicherter Vorlagenname')
@@ -97,7 +104,7 @@ def test_recipe_selection_icons_keep_names_revisions_and_native_gets(
         query = parse_qs(urlsplit(page.url).query)
         assert query['recipe'] == [recipe] and query['recipe_revision'] == [revision.public_id]
         assert query['yield'] == ['8']
-        selection.locator(':scope > summary').press('Enter')
+        expect(selection.locator(':scope > summary')).to_have_count(0)
         expect(page.get_by_label('Gewünschte Ausbeute', exact=True)).to_have_value('8')
         page.screenshot(path=str(tmp_path / f'recipe-open-{width}-js{javascript}.png'), full_page=True)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')

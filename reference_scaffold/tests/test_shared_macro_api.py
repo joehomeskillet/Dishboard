@@ -50,7 +50,7 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
                 calls.append((path, call))
     assert len(calls) == 15, 'Review compatibility inventory when consumers change'
     migrated = {'_course_editor.html', '_week_service.html', '_week_settings.html',
-                'menu_editor.html', 'rezepte_editor.html'}
+                'menu_editor.html', 'rezepte_editor.html', 'print_template_editor.html'}
     assert {path.name for path, _ in calls if path.name in migrated} == migrated
     with semantic_app.test_request_context('/'):
         before = env.from_string(LEGACY).module.form_footer
@@ -88,6 +88,10 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
             elif path.name == 'rezepte_editor.html':
                 # UI-DELTA §0.1/R-09: canonical return is in the header; save keeps its form.
                 expected = save
+            elif path.name == 'print_template_editor.html':
+                # UI-DELTA §0.1/R-53: header keeps the identical catalogue return.
+                expected = icon_button('actions.save', type='submit',
+                                       aria_label='Entwurf speichern' if populated else 'Vorlage speichern')
             else:
                 expected = icon_button('actions.save', emphasis=(
                     'secondary' if path.name == '_week_service.html' else None))
@@ -106,9 +110,9 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
     # UI-DELTA §0.1: editor and revision disclosures became static or use the detail page.
-    assert len(calls) == 65, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 61, 'Review compatibility inventory when consumers change'
     migrated_disclosures = {'rezepte_editor.html', 'rezepte_revision.html', 'rezepte_revisionen.html',
-                           'rezepte_images.html', 'rezepte_import.html'}
+                           'rezepte_images.html', 'rezepte_import.html', 'print_template_editor.html'}
     assert not any(path.name in migrated_disclosures for path, _ in calls)
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]

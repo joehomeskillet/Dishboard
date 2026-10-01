@@ -2329,6 +2329,16 @@ geschlossene Vorschauen, Feldreihenfolge, No-JS, Tastatur und echten 200-%-Zoom.
 
 ##### Modul Vorlagen & Druck (2026-09-20)
 
+**DELTA-3-12 (2026-10-01, UI-DELTA §0.1):** In den Druckeditoren stehen
+Gestaltung, Texte, Layout, Rezeptauswahl, Aktivierung, Versionen, Kopie und
+Archivierung in statischen Abschnitten. Die Vorlagen-/Wochenauswahl steht vor
+Statushinweisen. Der Katalogrückweg bleibt im Kopf; die PDF-Vorschau besitzt
+einen Zugang im Vorschaubereich. Fehler- und Sicherheitsbestätigungen zeigen
+reinen Text. Die native Pflicht-Checkbox mit externer Formularzuordnung,
+unveränderliche Revisionen und alle GET-/POST-Felder bleiben erhalten.
+Die gemeinsame Filter-Vertragslücke D-45 bleibt offen.
+Nachweise: `test_delta3_12_browser.py` und paketbezogener DELTA-3-12-Report.
+
 **Polish P3: editoren (2026-09-24).** Aktive und archivierte Vorlagen verwenden
 `admin-status--active/neutral` mit Icon und Text. Die Wochenauswahl hat eine
 Tastaturhilfe; der Unterschied zur veröffentlichten Ausgabe bleibt inline.
