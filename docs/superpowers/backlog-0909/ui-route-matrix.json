@@ -11050,7 +11050,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "24e684ffa465cf54caa7f20dfbb50f26de09d91183215269020d82b3adfbb461",
+      "sha256": "725417aa834b21e2b25ac8748cefdba77d53c8dc4f71a96c992620ebb84c7c6d",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11069,7 +11069,7 @@
       "kind": "page",
       "extends": [],
       "includes": [],
-      "sha256": "b42050cf1b7c593cfb1f5dd7b8e84c7d99699731a59c2e658337628d24ec7eee",
+      "sha256": "8f609ba8702d4b6935174bf7981c19239720bdd8b45eb43b20f352bedf4e649d",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -11325,7 +11325,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "20cdf32a37b8c15fb0f186c59ec268b1894f352023caf340582ae4fc76f6e24b",
+      "sha256": "70c32ae5f83d61a71b9ea616e884c6022d6fc9389ae778a730b418c2a00d54c8",
       "used_by_endpoints": [
         "admin.local_user_detail",
         "admin.local_user_events",
@@ -11515,7 +11515,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "e45d5ed2c6e6d4bd7b053b996b7109e4cfc8a0ffc240dbc596b7afa4b5455239",
+      "sha256": "8d397455bb026c05a2cc8c2357bea97b74a4b1b6a16eeae4cd148553c8dde890",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -11535,7 +11535,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "bd531a7684356fd6615b8a58c9afde78a83b1ab8bf368b19a6569a287d6ae6f1",
+      "sha256": "5937fcb6670a6d45f790d07ffd38e731cddd0e387804adf4b99cdb5896141da8",
       "used_by_endpoints": [
         "admin.recipe_print_template_editor"
       ],
@@ -11794,7 +11794,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "14781d0a135cc84c8dcb75d48c7df624a69abde53288af2a55f3851d9f34f6f5",
+      "sha256": "dd3d67c714f7fb38244badd5e69ed3862a2679a2656657b8e60bcc29d2f04f7c",
       "used_by_endpoints": [
         "admin.screen_template_assignment",
         "public.cafeteria_week",
