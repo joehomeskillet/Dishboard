@@ -84,7 +84,14 @@ def test_calendar_template_uses_shared_statusbar_and_primary_action(
         expect(header.get_by_role('heading', level=1)).to_contain_text('September')
         expect(header.get_by_role('region', name='Kalendersteuerung')).to_have_count(1)
         expect(header).to_contain_text('Keine Tage geplant')
-        expect(header.get_by_role('group', name='Bereich filtern')).to_be_visible()
+        filters = header.get_by_role('navigation', name='Bereich filtern')
+        expect(filters).to_be_visible()
+        expect(filters.get_by_role('link')).to_have_text(['Beide', 'Cafeteria', 'Patienten'])
+        expect(filters.locator('[aria-current="page"]')).to_have_text('Beide')
+        for profile in ('both', 'cafeteria', 'patient'):
+            with admin_app.test_request_context():
+                target = url_for('admin.kitchen_calendar', year=2026, month=9, profiles=profile)
+            expect(filters.locator(f'a[href="{target}"]')).to_have_count(1)
         primary = header.locator('.btn-primary')
         if can_write:
             expect(primary).to_have_count(1)
@@ -120,7 +127,7 @@ def test_anlass_template_preserves_post_fields_and_shared_patterns() -> None:
     assert 'status_items=event_status' in text
     assert 'data-sticky' not in text
     assert "icon_button('actions.save')" in text
-    assert "icon_button('actions.cancel', href=url_for('admin.kitchen_calendar'))" in text
+    assert "form_footer(save_action, url_for('admin.kitchen_calendar'))" in text
     assert 'disclosure_section(' in text
     assert 'Anlass anlegen' in text
     assert 'Anlass bearbeiten' in text

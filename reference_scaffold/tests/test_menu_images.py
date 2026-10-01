@@ -97,9 +97,8 @@ def test_public_routes_serve_matching_local_images_only(
 def test_saved_admin_templates_share_exact_image_matching(
     app: Flask, profile: str, family: str, template: str,  # noqa: F811
 ) -> None:
-    if template == 'admin/menu_collection.html':
-        from cafeteria.ui import register_ui
-        register_ui(app)
+    from cafeteria.ui import register_ui
+    register_ui(app)
     option = deepcopy(app.config['TEST_SNAPSHOTS'][profile]['days'][0]['services'][0]['options'][0])
     filename = menu_image(option)
     assert filename
