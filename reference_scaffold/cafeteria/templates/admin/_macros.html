@@ -499,7 +499,15 @@
 {%- endmacro %}
 
 {% set render_actions = actions %}
-{%- macro empty_value() -%}<span class="admin-empty-value">—</span>{%- endmacro %}
+{%- macro empty_value() -%}<span class="admin-empty-value">{{ t(sem('status.not_recorded').label_key) }}</span>{%- endmacro %}
+
+{# Text emptiness is not truthiness: preserve 0/False. Composed icon-only slots
+   explicitly declare presence; empty captured markup is absent by default. #}
+{%- macro optional_slot(value, present=none) -%}
+  {%- if present is not none and present is not boolean -%}{{ sem('list_row: presence must be boolean') }}{%- endif -%}
+  {%- set content = value|string|striptags if value is escaped else value|string -%}
+  {%- if value is not none and present is not sameas false and (present is sameas true or content|trim) -%}{{ value }}{%- endif -%}
+{%- endmacro %}
 
 {%- macro sort_header(label, key, current, direction, url) -%}
 <th scope="col" aria-sort="{{ ('descending' if direction == 'desc' else 'ascending') if key == current else 'none' }}"><a class="admin-sort-header" href="{{ url }}">{{ label }}{% if key == current %}{{ icon('chevron-down' if direction == 'desc' else 'chevron-up') }}{% endif %}</a></th>
@@ -507,14 +515,19 @@
 
 {# DEPRECATED: new homogeneous lists use table.admin-table.admin-table--stack
    with title | meta | status | actions. P1/P2 own existing consumer migration. #}
-{%- macro list_row(name=none, subtitle=none, state=none, action=none, markings=none, overflow=0, more_actions=none, primary=none, secondary=none, meta=none, status=none, actions=none) -%}
+{%- macro list_row(name=none, subtitle=none, state=none, action=none, markings=none, overflow=0, more_actions=none, primary=none, secondary=none, meta=none, status=none, actions=none, status_present=none, meta_present=none, subtitle_present=none, markings_present=none) -%}
 {%- set primary_content = primary if primary is not none else name -%}
-{%- set secondary_content = secondary if secondary is not none else subtitle -%}
+{%- if not optional_slot(primary_content) -%}{{ sem('list_row: primary must be nonempty text') }}{%- endif -%}
+{%- set secondary_content = optional_slot(secondary if secondary is not none else subtitle, subtitle_present) -%}
+{%- set meta_content = optional_slot(meta, meta_present) -%}
+{%- set marking_content = optional_slot(markings, markings_present) -%}
+{%- set status_content = optional_slot(status, status_present) -%}
+{%- if not status_content and status_present is not sameas false and optional_slot(state) -%}{%- set status_content = status_badge(state) -%}{%- endif -%}
 <div class="admin-list-row">
-  <div class="admin-list-name"><strong class="admin-list-primary">{{ empty_value() if primary_content is none or primary_content == '' else primary_content }}</strong>{% if secondary_content is not none %}<div class="admin-list-subtitle admin-list-secondary" title="{{ secondary_content|striptags }}">{{ secondary_content }}</div>{% endif %}</div>
-  {% if meta is not none %}<div class="admin-list-meta">{{ empty_value() if meta == '' else meta }}</div>{% endif %}
-  {% if markings or overflow %}<div class="admin-list-markings">{{ markings or '' }}{% if overflow %}{{ label('+' ~ overflow, detail=overflow ~ ' weitere Kennzeichnungen') }}{% endif %}</div>{% endif %}
-  <div class="admin-list-status">{{ status if status is not none and status != '' else status_badge(state) if state is not none and state != '' else empty_value() }}</div>
+  <div class="admin-list-name"><strong class="admin-list-primary">{{ primary_content }}</strong>{% if secondary_content %}<div class="admin-list-subtitle admin-list-secondary" title="{{ secondary_content|striptags }}">{{ secondary_content }}</div>{% endif %}</div>
+  {% if meta_content %}<div class="admin-list-meta">{{ meta_content }}</div>{% endif %}
+  {% if marking_content or overflow %}<div class="admin-list-markings">{{ marking_content }}{% if overflow %}{{ label('+' ~ overflow, detail=overflow ~ ' weitere Kennzeichnungen') }}{% endif %}</div>{% endif %}
+  {% if status_content %}<div class="admin-list-status">{{ status_content }}</div>{% endif %}
   <div class="admin-list-actions{% if more_actions and more_actions|trim %} admin-row-actions{% endif %}" role="group" aria-label="{{ t('ui.action_group.object', object=primary_content|striptags) if primary_content else t('ui.action_group.aria') }}">
     {% if actions is not none %}{{ actions }}{% elif action %}{{ render_actions(secondary=[action]) }}{% endif %}
     {% if more_actions and more_actions|trim %}{{ more_actions }}{% endif %}

@@ -179,7 +179,8 @@ def test_cookbook_view_empty_and_unavailable_recipe(reading_book, browser, monke
         missing = page.locator('main tbody tr').nth(1)
         expect(missing).to_contain_text('Rezept nicht verfügbar')
         expect(missing.locator('a')).to_have_count(0)
-        expect(missing.locator('.admin-empty-value')).to_have_text('—')
+        # UI-DELTA §0.1/P-02: missing recipe yield is named explicitly.
+        expect(missing.locator('.admin-empty-value')).to_have_text('Nicht erfasst')
         assert page.goto(data['base'] + f'/admin/kochbuecher/{book.public_id}/ansicht').status == 200
         expect(page.locator('main').get_by_text('0 Rezepte', exact=True)).to_be_visible()
         expect(page.locator('main').get_by_text('Noch keine Rezepte zugeordnet.', exact=True)).to_be_visible()

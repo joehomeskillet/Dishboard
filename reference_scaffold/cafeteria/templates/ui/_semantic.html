@@ -45,8 +45,8 @@
   {%- if blank and 'rel' not in attrs -%}{{ ' ' }}rel="noopener"{%- endif -%}
 {%- endmacro %}
 
-{% macro icon_button(key, href=none, name=none, value=none, icon_only=true, type='submit', id=none, form=none, consequence_key=none, size='default', text=none, aria_label=none, title=none, class='', emphasis=none, attrs=none, object=none, show_text=false, direct=false, disabled_reason=none, disabled_reason_active=true) -%}
-  {# icon_only is retained for positional compatibility; only show_text opts into text. #}
+{% macro icon_button(key, href=none, name=none, value=none, icon_only=true, type='submit', id=none, form=none, consequence_key=none, size='default', text=none, aria_label=none, title=none, class='', emphasis=none, attrs=none, object=none, show_text=false, direct=false, disabled_reason=none, disabled_reason_active=true, mode=none) -%}
+  {# Explicit mode wins. Legacy icon_only never opts into visible text. #}
   {{- require_consequence(key, consequence_key) -}}
   {%- set item = sem(key) -%}
   {%- if emphasis not in [none, 'primary', 'secondary', 'danger'] -%}{{ action_contract_error('invalid emphasis') }}{%- endif -%}
@@ -54,9 +54,12 @@
   {%- set role = emphasis if emphasis is not none else item.role -%}
   {%- if role == 'danger' -%}{{ require_consequence('actions.delete', consequence_key) }}{%- endif -%}
   {%- if icon_only is not boolean or show_text is not boolean -%}{{ action_contract_error('icon_only and show_text must be boolean') }}{%- endif -%}
+  {%- if mode is not none and mode not in ['icon', 'text'] -%}{{ action_contract_error('mode must be icon or text') }}{%- endif -%}
+  {%- set show_text = mode == 'text' if mode is not none else show_text -%}
   {%- if text is not none and (text is not string or not text|trim) -%}{{ action_contract_error('text must be nonempty text') }}{%- endif -%}
   {%- if show_text and text is not none and (text|length > 18 or text.split()|length > 2) -%}{{ action_contract_error('visible text must contain at most 2 words and 18 characters') }}{%- endif -%}
   {%- set visible_text = t(item.label_key) if text is none else text -%}
+  {%- if show_text and not visible_text|striptags|trim -%}{{ action_contract_error('text must be nonempty text') }}{%- endif -%}
   {%- if aria_label is not none and (aria_label is not string or not aria_label|trim) -%}{{ action_contract_error('aria_label must be nonempty text') }}{%- endif -%}
   {%- if object is not none and (object is not string or not object|trim) -%}{{ action_contract_error('object must be nonempty text') }}{%- endif -%}
   {%- set accessible_name = aria_label if aria_label is not none else t(key ~ '.object', object=object) if object is not none and item.category == 'actions' else t('ui.action_object', object=object, action=t(item.aria_key)) if object is not none else text if text is not none else t(item.aria_key) -%}
@@ -82,22 +85,25 @@
   {%- endif -%}
   {%- set variant = 'btn-primary' if role == 'primary' else 'btn-danger' if role == 'danger' else '' -%}
   {%- if disabled_reason and href is none -%}<span class="ui-sem-disabled" tabindex="{{ 0 if disabled_reason_active else -1 }}" role="group" aria-label="{{ accessible_name }}" aria-describedby="{{ attrs['aria-describedby'] }}" data-ui-tooltip="{{ tooltip }}">{%- endif -%}
-  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}{% if not show_text %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}"{% if not disabled_reason or href is not none %} data-ui-tooltip="{{ tooltip }}"{% endif %} aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}{% if href is not none %}{% if disabled_reason and disabled_reason_active %} role="link"{% else %} href="{{ href }}"{% endif %}{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}{{ action_attrs(attrs) }}>{{ sem_icon(key) }}{% if show_text %}<span>{{ visible_text }}</span>{% endif %}</{{ 'a' if href is not none else 'button' }}>
+  <{{ 'a' if href is not none else 'button' }} class="btn ui-sem-control {{ variant }}{% if show_text %} ui-sem-control--text{% else %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}"{% if not disabled_reason or href is not none %} data-ui-tooltip="{{ tooltip }}"{% endif %} aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}{% if href is not none %}{% if disabled_reason and disabled_reason_active %} role="link"{% else %} href="{{ href }}"{% endif %}{% else %} type="{{ type }}"{% if name is not none %} name="{{ name }}"{% endif %}{% if value is not none %} value="{{ value }}"{% endif %}{% if form %} form="{{ form }}"{% endif %}{% endif %}{{ action_attrs(attrs) }}>{% if show_text %}<span>{{ visible_text }}</span>{% else %}{{ sem_icon(key) }}{% endif %}</{{ 'a' if href is not none else 'button' }}>
   {%- if disabled_reason and href is none %}</span>{% endif %}
   {% if description_id %}<span class="visually-hidden" id="{{ description_id }}">{% if disabled_reason %}<span data-disabled-reason{% if not disabled_reason_active %} hidden{% endif %}>{{ disabled_reason|forceescape }}</span>{% endif %}{% if direct and consequence_key %} {{ t(sem(consequence_key).label_key) }}{% endif %}</span>{% endif %}{% if consequence_key and not direct %}<p class="ui-sem-consequence">{{ t(sem(consequence_key).label_key) }}</p>{% endif %}
 {%- endmacro %}
 
 {# Native disclosure only: the owning details supplies content and any safe form.
    Menu entries may opt into text; ordinary triggers use the shared icon geometry. #}
-{% macro icon_summary(key, id=none, aria_label=none, object=none, class='', show_text=false, attrs=none) -%}
+{% macro icon_summary(key, id=none, aria_label=none, object=none, class='', show_text=false, attrs=none, mode=none) -%}
   {%- set item = sem(key) -%}
   {%- if show_text is not boolean -%}{{ action_contract_error('show_text must be boolean') }}{%- endif -%}
+  {%- if mode is not none and mode not in ['icon', 'text'] -%}{{ action_contract_error('mode must be icon or text') }}{%- endif -%}
+  {%- set show_text = mode == 'text' if mode is not none else show_text -%}
   {%- if aria_label is not none and (aria_label is not string or not aria_label|trim) -%}{{ action_contract_error('aria_label must be nonempty text') }}{%- endif -%}
   {%- if object is not none and (object is not string or not object|trim) -%}{{ action_contract_error('object must be nonempty text') }}{%- endif -%}
   {%- set accessible_name = aria_label|forceescape if aria_label is not none else t(key ~ '.object', object=object) if object is not none and item.category == 'actions' else t('ui.action_object', object=object, action=t(item.aria_key)) if object is not none else t(item.aria_key) -%}
   {%- set visible_text = t(item.label_key) -%}
+  {%- if show_text and not visible_text|striptags|trim -%}{{ action_contract_error('text must be nonempty text') }}{%- endif -%}
   {%- if show_text and visible_text|lower not in accessible_name|lower -%}{%- set accessible_name = visible_text ~ ': ' ~ accessible_name -%}{%- endif -%}
-  <summary class="btn ui-sem-control{% if item.role == 'danger' %} btn-danger{% endif %}{% if not show_text %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" data-ui-tooltip="{{ accessible_name }}" aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}{{ action_attrs(attrs) }}>{{ sem_icon(key) }}{% if show_text %}<span>{{ visible_text }}</span>{% endif %}</summary>
+  <summary class="btn ui-sem-control{% if item.role == 'danger' %} btn-danger{% endif %}{% if show_text %} ui-sem-control--text{% else %} ui-sem-control--icon-only{% endif %}{% if class %} {{ class }}{% endif %}" data-semantic="{{ key }}" data-ui-tooltip="{{ accessible_name }}" aria-label="{{ accessible_name }}"{% if id %} id="{{ id }}"{% endif %}{{ action_attrs(attrs) }}>{% if show_text %}<span>{{ visible_text }}</span>{% else %}{{ sem_icon(key) }}{% endif %}</summary>
 {%- endmacro %}
 
 {# Explicit state only: missing data never implies saved, approved or published.
@@ -145,7 +151,7 @@
   {% if items %}
   <div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=object) if object is not none else t('ui.action_group.aria') }}">
     {% for item in items %}
-      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none), object=item.object|default(object), show_text=item.show_text|default(false), direct=true, disabled_reason=item.disabled_reason|default(none), disabled_reason_active=item.disabled_reason_active|default(true)) }}
+      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none), object=item.object|default(object), show_text=item.show_text|default(false), direct=true, disabled_reason=item.disabled_reason|default(none), disabled_reason_active=item.disabled_reason_active|default(true), mode=item.mode|default(none), icon_only=item.icon_only|default(true)) }}
     {% endfor %}
   </div>
   {% endif %}
@@ -164,6 +170,24 @@
     {# Native close path: works without JavaScript and never submits the owning form. #}
     <form method="dialog" class="ui-sem-dialog-cancel">{{ icon_button('actions.cancel', type='submit', show_text=true) }}</form>
     {{ caller() if caller else '' }}
+  </dialog>
+{%- endmacro %}
+
+{# DELTA-2 read-only detail interface. Caller owns unique id and trusted content.
+   The anchor and :target keep the same content reachable without JavaScript. #}
+{% macro read_detail_trigger(id, key, object) -%}
+  {{ icon_button(key, href=('#' ~ id)|forceescape, id=(id ~ '-trigger')|forceescape,
+      aria_label=t(sem(key).aria_key, object=object),
+      attrs={'data-read-detail': id, 'aria-controls': id}) }}
+{%- endmacro %}
+
+{% macro read_detail_dialog(id, title, object) -%}
+  <dialog class="ui-sem-dialog ui-read-detail" id="{{ id|forceescape }}" aria-labelledby="{{ id|forceescape }}-title" aria-describedby="{{ id|forceescape }}-context">
+    <h2 id="{{ id|forceescape }}-title" tabindex="-1">{{ title|forceescape }}</h2>
+    <p id="{{ id|forceescape }}-context">{{ object|forceescape }}</p>
+    <div class="ui-read-detail-content" tabindex="0" role="region" aria-labelledby="{{ id|forceescape }}-title">{{ caller() if caller else '' }}</div>
+    {{ icon_button('actions.close', href=('#' ~ id ~ '-trigger')|forceescape, mode='text',
+        attrs={'data-read-detail-close': ''}) }}
   </dialog>
 {%- endmacro %}
 

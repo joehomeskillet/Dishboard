@@ -29,6 +29,14 @@
   padding: 0; flex: 0 0 var(--ui-control-size);
 }
 .dishboard-admin .ui-sem-control--icon-only .icon { margin: 0; }
+/* DELTA B-03: text controls reserve no icon column, gap or generated glyph. */
+.dishboard-admin .ui-sem-control--text,
+.ui-sem-control--text { gap: 0; list-style: none; }
+.ui-sem-control--text::-webkit-details-marker { display: none; }
+.dishboard-admin .ui-sem-control--text::before,
+.dishboard-admin .ui-sem-control--text::after,
+.ui-sem-control--text::before,
+.ui-sem-control--text::after { content: none; }
 .dishboard-admin summary.ui-sem-control--icon-only > .ui-sem-summary-error {
   position: absolute;
   inset-block-start: 0;
@@ -103,6 +111,31 @@
   background: var(--app-surface);
   border: 1px solid var(--app-border);
 }
+/* Native modal, with the same overlay reachable by anchor without JavaScript.
+   Reserve the actual document scrollbar before locking; never compensate twice. */
+html:has(.ui-read-detail) { scrollbar-gutter: stable; }
+html:has(.ui-read-detail:modal, .ui-read-detail:target) { overflow: hidden; }
+.ui-read-detail {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(42rem, calc(100% - var(--app-space-8)));
+  max-height: calc(100dvh - var(--app-space-8));
+  padding: var(--app-space-4);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--app-radius-card);
+  box-shadow: var(--app-card-shadow);
+  overflow-wrap: anywhere;
+}
+.ui-read-detail[open], .ui-read-detail:target {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.ui-read-detail:target { z-index: var(--tblr-modal-zindex, 1055); }
+.ui-read-detail-content { margin-block: var(--app-space-4); overflow: auto; }
+.ui-read-detail > [data-read-detail-close] { justify-self: end; }
+.ui-read-detail > [tabindex]:focus { outline: var(--app-focus-width) solid var(--app-focus); }
 .dishboard-admin .admin-hint { min-width: 0; margin-block: var(--app-space-1); }
 .dishboard-admin .admin-hint-trigger {
   display: inline-flex; align-items: center; justify-content: center;

@@ -67,7 +67,7 @@
                   <a class="admin-list-primary" href="{{ url_for('admin.' ~ family, week=row.week_start.isoformat()) }}"><time datetime="{{ row.week_start.isoformat() }}">{{ row.week_start.strftime('%d.%m.%Y') }}</time>{% if row.next_week %} – <time datetime="{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).isoformat() }}">{{ row.week_start.fromordinal(row.week_start.toordinal() + 6).strftime('%d.%m.%Y') }}</time>{% endif %}</a>
                   <div class="admin-list-secondary">KW {{ row.week_start.isocalendar().week }} / {{ row.week_start.isocalendar().year }}{% if not row.next_week %} · Wochenbeginn{% endif %}</div>
                 </td>
-                <td data-label="Titel" class="text-break admin-list-meta">{{ row.title or empty_value() }}</td>
+                <td data-label="Titel" class="text-break admin-list-meta">{{ row.title or '' }}</td>
                 <td data-label="Status" class="admin-table-status">
                   {% set week_status_key = {
                     'live': 'publish.published', 'review_open': 'review.pending', 'changed': 'publish.changed',

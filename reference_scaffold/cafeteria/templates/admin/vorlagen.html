@@ -185,7 +185,7 @@
       {% set screen_object = area_names[choice.profile] ~ ' · ' ~ choice.name %}
       <tr>
         <th scope="row" data-label="Vorlage"><span class="admin-list-primary admin-list-name">{{ screen_object }}</span></th>
-        <td data-label="Version"><p class="admin-list-secondary print-tpl-meta mb-0">{% if catalog.active.template.id == choice.id %}Version {{ catalog.active.version }}{% else %}{{ empty_value() }}{% endif %}</p></td>
+        <td data-label="Version">{% if catalog.active.template.id == choice.id %}<p class="admin-list-secondary print-tpl-meta mb-0">Version {{ catalog.active.version }}</p>{% endif %}</td>
         <td class="admin-table-status" data-label="Status">{% if catalog.active.template.id == choice.id %}{{ status_badge_sem('status.active') }}{% else %}{{ status_badge_sem('status.inactive') }}{% endif %}</td>
         <td class="admin-table-actions" data-label="Aktionen">
           {{ row_actions([

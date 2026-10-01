@@ -136,7 +136,7 @@
 .dishboard-admin .btn-danger:active { filter: brightness(var(--app-action-active-brightness)); }
 .dishboard-admin .btn:is(:disabled, [aria-disabled="true"]) { border-style: dashed; cursor: not-allowed; }
 .dishboard-admin a[aria-disabled="true"] { cursor: not-allowed; text-decoration: line-through; }
-.dishboard-admin .admin-btn-loading::after {
+.dishboard-admin .ui-sem-control--icon-only.admin-btn-loading::after {
   position: absolute;
   content: ''; width: 1em; height: 1em; flex: none;
   margin-inline-start: var(--app-space-2);

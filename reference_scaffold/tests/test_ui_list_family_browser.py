@@ -112,7 +112,10 @@ MEASURE_JS = r"""() => {
     return /^\/(cafeteria\/wochenangebot|patienten\/wochenplan)\/$/.test(path) && ['Öffnen', 'Wochenplan'].includes(text);
   };
   const packActions = (acts) => {
-    const texts = acts.map(visibleText).filter(Boolean);
+    // UI-DELTA §0.1/B-03 supersedes mandatory icon-only actions: explicit
+    // text mode is valid, while a mixed renderer remains a deviation.
+    const texts = acts.filter(el => !el.matches('.ui-sem-control--text') ||
+      el.querySelector('svg, img')).map(visibleText).filter(Boolean);
     const icons = [...new Set(acts.flatMap(iconNames))];
     return {
       count: acts.length,

@@ -90,7 +90,7 @@
 {% for item in current.rev.edition_json.intervals %}
 <tr>
 <td data-label="Gültig ab">{{ item.valid_from }}</td>
-<td data-label="Gültig bis">{{ item.valid_to or empty_value() }}</td>
+<td data-label="Gültig bis">{{ item.valid_to or '' }}</td>
 <td data-label="Preis">{{ item.unit_price }} {{ item.currency }} / {{ item.unit.code }}</td>
 </tr>
 {% endfor %}

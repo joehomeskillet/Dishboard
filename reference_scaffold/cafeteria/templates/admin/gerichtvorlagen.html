@@ -8,7 +8,7 @@
 {% macro accompaniment_state(item, icon_visible=true) %}
 {% if item.accompaniment_default == 'soup' %}{% if icon_visible %}{{ icon('soup') }}{% endif %}Suppe
 {% elif item.accompaniment_default == 'salad' %}{% if icon_visible %}{{ icon('salad') }}{% endif %}Salat
-{% else %}{{ empty_value() }}{% endif %}
+{% endif %}
 {% endmacro %}
 {% macro recipe_state(item) %}
 {% if item.recipe_public_id %}

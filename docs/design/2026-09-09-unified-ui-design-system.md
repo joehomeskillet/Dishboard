@@ -26,6 +26,54 @@ Fachliche Informationen, notwendige Warnungen, Berechtigungen und Schutzschritte
 
 ## Grundmuster (UC-G0, 2026-09-30)
 
+### DELTA-2: exklusive Renderer und Lesedetails (2026-10-01)
+
+**Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
+Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere
+sind die Inline-Aufklapper in R06/R12/R17/R19/R21/R34, M03/M04/M19/M25/M55/M57
+und den historischen Modulbeschreibungen als Inhaltsmuster abgelöst. Native
+Navigation/Selects bleiben zulässig; Daten, Fehlerschutz und Formularwege bleiben.
+`disclosure_section` bleibt nur als Übergangs-API bis zur Verbrauchermigration
+DELTA-3 erhalten. Neue ergänzende Leseinhalte nutzen eine passende vorhandene
+Detailseite oder den gemeinsamen Lesedialog.
+
+- `icon_button(..., mode='icon'|'text')` und `icon_summary(..., mode=...)`
+  rendern exklusiv Symbol oder Text. `row_actions` reicht `mode` weiter.
+  Explizites `mode` hat Vorrang; ohne `mode` ergibt `show_text=true` Text,
+  andernfalls Symbol, unabhängig von Legacy-`icon_only`. Boolean-Parameter
+  bleiben typgeprüft. Leere Textlabels sind Komponentenfehler. Textmodus hat
+  keine Iconlücke, keinen Spinner und keinen Pseudoelement-Pfeil; sichtbarer
+  Text gehört zum zugänglichen Namen. Die alte Icon-plus-Text-Ausnahme für
+  Anmelden/Fehlerseiten sowie R18, R44 und M64 ist abgelöst.
+- `list_row` lässt optionale Status-, Meta-, Untertitel- und Markierungsslots
+  samt Wrapper weg, wenn sie `none`, leer, nur Leerraum oder leeres Markup sind.
+  `status_present`, `meta_present`, `subtitle_present`, `markings_present`
+  erlauben dem Aufrufer explizite Präsenzangaben für zusammengesetzte Inhalte,
+  insbesondere reine Fachsymbole. `0`, `false` und negative Werte bleiben.
+  Ein fehlender Pflichtname ist ein Komponentenfehler. `empty_value()` liefert
+  bei ausdrücklich fachlich fehlenden Daten «Nicht erfasst» (DE/EN), niemals
+  einen Strich. Optionale echte Tabellenzellen bleiben leer und behalten ihre
+  Spaltenzuordnung; R47/M66s alter Leerstrichvertrag ist abgelöst.
+- `{% call read_detail_dialog(id, title, object) %}…{% endcall %}` und
+  `read_detail_trigger(id, key, object)` aus `ui/_semantic.html` bilden die
+  DELTA-3-Schnittstelle. Pro Objekt eine eindeutige ID; keine verschachtelten
+  Formulare oder Inhaltsakkordeons. Zweckschlüssel: `ui.read_detail.review`
+  und `ui.read_detail.schedule`, beide DE/EN. Titel und Objektkontext bleiben
+  Text; Inhalt ist vorhandenes vertrauenswürdig gerendertes Template-Markup.
+  Der native Dialog überlagert die Fläche, fokussiert den Titel, schliesst
+  mit Escape oder genau einem sichtbaren Textzugang «Schliessen» und gibt Fokus
+  und Scrollposition zurück. Die Dokument-Scrollbarreserve bleibt stabil.
+  Bei langen Inhalten scrollt nur der Inhaltsbereich; Titel und Schliesszugang
+  bleiben im sichtbaren Dialograhmen.
+  Ohne JS öffnen Anker und `:target` denselben überlagernden Inhalt; der
+  Schliesslink führt zum Auslöser. Native Modalität/Fokusführung benötigt JS.
+
+Vertragstests: `test_delta_renderer_contract.py`; Browser:
+`test_delta_renderer_browser.py` (berechnete Symbol-/Text-/Pseudo-Sichtbarkeit,
+Loading/Disabled, No-JS, Fokus, Folgezeile und Scrollposition mit ≤1 CSS-px).
+Das ist ein gemeinsamer Komponentenvertrag; die app-weite Migration bleibt
+Aufgabe von DELTA-3/4/5. Palette und Tokens bleiben unverändert.
+
 Dieser Komponentenvertrag konkretisiert die SDD UI-CONSISTENCY vom 2026-09-30
 und BF-01/BF-02. Für gemeinsame Steuergrößen und Listenform ersetzt er ältere,
 widersprechende Größenangaben weiter unten. Direkte Symbolaktionen, fachliche
