@@ -417,11 +417,14 @@ def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser)
         expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
         _assert_no_horizontal_scroll(page)
         page.get_by_role('link', name='Lagerorte').click()
-        storage_hint = page.locator('summary[aria-describedby="storage-list-hint"]')
-        storage_hint.focus()
-        expect(storage_hint).to_be_focused()
-        page.keyboard.press('Enter')
-        expect(page.locator('#storage-list-hint')).to_be_visible()
+        storage_hint = page.locator('#storage-list-hint')
+        expect(storage_hint).to_be_visible()
+        expect(storage_hint).to_have_text(
+            'Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.')
+        assert not storage_hint.evaluate("el => Boolean(el.closest('details'))")
+        hint_box = storage_hint.bounding_box()
+        toolbar = page.locator('.grundlagen-master').bounding_box()
+        assert hint_box['y'] >= toolbar['y'] + toolbar['height'] - 1, (hint_box, toolbar)
 
 
 def test_p4_stammdaten_inventory_counts_sum():

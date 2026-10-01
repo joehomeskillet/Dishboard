@@ -41,14 +41,6 @@
         {% set archived_weeks = rows|selectattr('workflow_state', 'equalto', 'archived')|list %}
         {% set noted_rows = rows|selectattr('description')|list + rows|selectattr('note')|list %}
         {% set show_status = review_mixed or warnings.missing or warnings.review or warnings.stale or archived_weeks or noted_rows %}
-        {% if warnings.open or warnings.missing or warnings.review or warnings.stale %}
-        <p class="admin-list-secondary" id="menu-review-summary" role="status">
-          {% if warnings.open and not review_mixed %}{{ warnings.open }} {{ 'Menü' if warnings.open == 1 else 'Menüs' }}: Prüfung offen.{% elif review_mixed %}{{ warnings.open }} von {{ rows|length }} Menüs: Prüfung offen.{% endif %}
-          {% if warnings.missing %} {{ warnings.missing }} {{ 'Menü' if warnings.missing == 1 else 'Menüs' }}: Allergenangaben nicht erfasst. Nicht erfasste Allergene bedeuten nicht allergenfrei.{% endif %}
-          {% if warnings.review %} {{ warnings.review }} {{ 'Menü' if warnings.review == 1 else 'Menüs' }}: Allergenprüfung offen.{% endif %}
-          {% if warnings.stale %} {{ warnings.stale }} Menüs mit geändertem Bausteinstand benötigen erneute Prüfung. Erneute Prüfung erforderlich.{% endif %}
-        </p>
-        {% endif %}
         <div class="menu-toolbar mb-3">
                 {% set menu_profiles = {
                   'cafeteria': url_for('admin.menu_collection', family='cafeteria') if not query else url_for('admin.menu_collection', family='cafeteria', q=query),
@@ -68,6 +60,14 @@
                 </div>
               </div>
         </div>
+        {% if warnings.open or warnings.missing or warnings.review or warnings.stale %}
+        <p class="admin-list-secondary" id="menu-review-summary" role="status">
+          {% if warnings.open and not review_mixed %}{{ warnings.open }} {{ 'Menü' if warnings.open == 1 else 'Menüs' }}: Prüfung offen.{% elif review_mixed %}{{ warnings.open }} von {{ rows|length }} Menüs: Prüfung offen.{% endif %}
+          {% if warnings.missing %} {{ warnings.missing }} {{ 'Menü' if warnings.missing == 1 else 'Menüs' }}: Allergenangaben nicht erfasst. Nicht erfasste Allergene bedeuten nicht allergenfrei.{% endif %}
+          {% if warnings.review %} {{ warnings.review }} {{ 'Menü' if warnings.review == 1 else 'Menüs' }}: Allergenprüfung offen.{% endif %}
+          {% if warnings.stale %} {{ warnings.stale }} Menüs mit geändertem Bausteinstand benötigen erneute Prüfung. Erneute Prüfung erforderlich.{% endif %}
+        </p>
+        {% endif %}
         <div class="tab-content">
         <div class="tab-pane active" id="menu-list" role="tabpanel" aria-labelledby="menu-list-tab" tabindex="0">
           <div class="card dishboard-menu-results" role="region" aria-label="Menüliste" tabindex="0">
