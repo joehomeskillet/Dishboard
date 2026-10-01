@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, empty_state, empty_value %}
+{% from 'admin/_macros.html' import page_header, empty_state %}
 {% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% set workflow_nav = 'cookbooks' %}
 {% set count = book.recipe_public_ids|length %}
@@ -31,7 +31,7 @@
             {% if not recipe.active %}{{ status_badge_sem('status.archived', status='archived') }}{% endif %}
             {% else %}<span class="admin-list-primary">Rezept nicht verfügbar</span>{% endif %}
           </th>
-          <td class="admin-list-meta" data-label="Ausbeute">{% if recipe %}{{ recipe.payload.servings }} {{ recipe.payload.servings_unit_code }}{% else %}{{ empty_value() }}{% endif %}</td>
+          <td class="admin-list-meta" data-label="Ausbeute">{% if recipe %}{{ recipe.payload.servings }} {{ recipe.payload.servings_unit_code }}{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

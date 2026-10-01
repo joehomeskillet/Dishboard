@@ -105,7 +105,9 @@ Der Archivhinweis im Kochbucheditor steht einmal statisch bei den Angaben;
 verwenden explizit den Textmodus. Anlegen bleibt im Listenkopf; ein identischer
 Suchreset bleibt in der Toolbar. Suchreset mit erhaltenem Archivfilter und
 vollständiger Filterreset bleiben wegen unterschiedlicher Parameter getrennt.
-Leseansicht und Editor bleiben getrennte Aufgaben. Der gemeinsame Filterdialog
+Leseansicht und Editor bleiben getrennte Aufgaben. Fehlt ein zugeordnetes Rezept,
+steht «Rezept nicht verfügbar» in der Rezeptspalte; die Ausbeute-Zelle bleibt leer.
+Der gemeinsame Filterdialog
 ist als DELTA-2b-Vertragslücke offen, ohne lokalen Ersatz.
 
 ### Gerichtvorlagen: UI-DELTA-Verbraucher (DELTA-3-18, 2026-10-01)
