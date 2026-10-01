@@ -280,28 +280,38 @@ def test_sticky_toolbar_clears_focus_and_virtual_keyboard(b3, master_server, bro
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         page.goto(base + path)
-        toolbar = page.locator('[data-sticky-form]')
-        expect(toolbar).to_have_css('position', 'sticky')
+        footer = page.locator('[data-sticky-form="recipe-editor"]')
+        expect(footer).to_have_css('position', 'sticky')
+        expect(footer.locator('[data-semantic="actions.save"]')).to_be_in_viewport()
         field = page.locator('[name="ingredients.2.quantity"]')
         field.evaluate('''e => {
-            window.scrollBy(0, e.getBoundingClientRect().top - 20);
+            const bar = document.querySelector('[data-sticky-form="recipe-editor"]').getBoundingClientRect();
+            window.scrollBy(0, e.getBoundingClientRect().bottom - bar.top + 8);
             e.focus({preventScroll: true});
         }''')
-        page.wait_for_function('''() => document.activeElement.getBoundingClientRect().top
-            >= document.querySelector('[data-sticky-form]').getBoundingClientRect().bottom''')
+        page.wait_for_function('''() => {
+            const active = document.activeElement;
+            const field = active.getBoundingClientRect();
+            const bar = document.querySelector('[data-sticky-form="recipe-editor"]').getBoundingClientRect();
+            const hit = document.elementFromPoint(field.left + field.width / 2, field.top + field.height / 2);
+            return active.name === 'ingredients.2.quantity'
+                && field.bottom <= bar.top
+                && field.top >= 0
+                && !!hit && (hit === active || active.contains(hit));
+        }''')
         expect(field).to_be_focused()
         page.evaluate('''() => {
             Object.defineProperty(visualViewport, 'height', {configurable: true, value: 430});
             visualViewport.dispatchEvent(new Event('resize'));
         }''')
-        expect(toolbar).to_have_css('position', 'static')
+        expect(footer).to_have_css('position', 'static')
         page.evaluate('''() => {
             delete visualViewport.height;
             visualViewport.dispatchEvent(new Event('resize'));
         }''')
-        expect(toolbar).to_have_css('position', 'sticky')
+        expect(footer).to_have_css('position', 'sticky')
         page.set_viewport_size({'width': 390, 'height': 600})
-        expect(toolbar).to_have_css('position', 'static')
+        expect(footer).to_have_css('position', 'static')
 
 
 @pytest.mark.parametrize('touch', [False, True])
