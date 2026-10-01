@@ -3,6 +3,11 @@
   font-weight: 600;
 }
 
+html:has(#food-core-form) {
+  /* Keep native focus changes immediate across the static ingredient forms. */
+  scroll-behavior: auto;
+}
+
 .grundlagen-list .admin-list-row {
   min-width: 0;
   flex-wrap: nowrap;

@@ -189,6 +189,8 @@ Rezeptauswahl, Zutatenfelder einschliesslich optionaler Angaben, Preisformular,
 Verknüpfungen, Herkunft, Kennzeichnungen, Allergene/Kostformen, Prüfung und Status
 stehen statisch. Native Checkbox-Auswahl bleibt erhalten; jeder Speicherbereich
 behält sein eigenes Formular. Unbefristete Preise sind ausdrücklich bezeichnet.
+Zutatenformularseiten verwenden sofortiges Scrollen bei nativen Fokuswechseln;
+Preisfehler bleiben per Maus und Tastatur auch ohne JavaScript bedienbar.
 Der identische Rückweg steht einmal über dem Formular; Standortkonflikte zeigen
 Text-Recovery und bewahren alle ursprünglichen Eingaben. Umbuchung und Zählung
 bleiben sichtbar, Lagerauswahl führt per Anker zum Detailbereich. Nicht erfasster

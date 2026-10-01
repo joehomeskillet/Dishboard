@@ -148,7 +148,8 @@ def test_t06_cancel_context_change_and_restore_radio_value(food_page, family, na
 
 
 @pytest.mark.parametrize('javascript', (True, False), ids=('js', 'no-js'))
-def test_price_error_retains_inputs_opens_section_and_does_not_write(b3, master_server, browser, javascript, tmp_path):  # noqa: F811
+@pytest.mark.parametrize('entry', ('pointer', 'keyboard'))
+def test_price_error_retains_inputs_opens_section_and_does_not_write(b3, master_server, browser, javascript, entry, tmp_path):  # noqa: F811
     _, owner, client, _ = b3
     path = create(client, name='BF Preisfehler')
     before = snapshot(owner)
@@ -158,7 +159,13 @@ def test_price_error_retains_inputs_opens_section_and_does_not_write(b3, master_
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         assert page.goto(path).status == 200
-        _open(page, '#unit_price').fill('ungueltiger-preis')
+        price_input = page.locator('#unit_price')
+        if entry == 'pointer':
+            price_input.click()
+        else:
+            page.locator('#unit_code').press('Shift+Tab')
+        expect(price_input).to_be_focused()
+        price_input.fill('ungueltiger-preis')
         page.locator('#valid_from').fill('2026-09-30')
         page.locator('#valid_to').fill('2026-10-31')
         page.locator('#unit_code').fill('KG')
