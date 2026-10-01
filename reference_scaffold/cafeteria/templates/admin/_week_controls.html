@@ -1,5 +1,6 @@
 {# Shared week status, actions, and publish modal. Context: family, week_value, week_csrf, status, status_label, iso_week, title, cells, open_checks, filled_slots, publish_blocked, can_publish, week_row_version, schedule_defaults_csrf. #}
-{% from 'ui/_semantic.html' import icon_button, sem_icon, row_actions, status_badge_sem %}
+{% from 'admin/_macros.html' import disclosure_section %}
+{% from 'ui/_semantic.html' import icon_button, row_actions, status_badge_sem %}
 {% if status == 'live' %}
   {% set publish_label = 'Erneut veröffentlichen' %}
   {% set status_plain = 'Veröffentlicht · entspricht dem gespeicherten Stand' %}
@@ -85,8 +86,7 @@
     {{ icon_button('actions.preview', href='/admin/' ~ family ~ '/preview?week=' ~ week_value, attrs={'target': '_blank', 'rel': 'noopener'}) }}
     {{ icon_button('actions.check', href='/admin/' ~ family ~ '/wochen/pruefung?week=' ~ week_value, aria_label='Wochenangaben prüfen', class='admin-week-review-link') }}
     {% if course_issues is defined and course_issues['items'] %}
-    <details id="course-issues" class="admin-week-issues">
-      <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.check" data-ui-tooltip="Gangangaben prüfen" aria-label="Gangangaben prüfen">{{ sem_icon('actions.check') }}</summary>
+    {% call disclosure_section(title='Gangangaben prüfen', id='course-issues', details_class='admin-week-issues', summary_key='actions.check') %}
       <ul class="list-unstyled mb-0">
         {% for item in course_issues['items'] %}
         <li>
@@ -94,7 +94,7 @@
         </li>
         {% endfor %}
       </ul>
-    </details>
+    {% endcall %}
     {% endif %}
     {{ row_actions([
       {'key': 'actions.export', 'href': url_for('admin.export_csv', profile_code=csv_profile), 'aria_label': 'CSV exportieren'},
@@ -116,11 +116,10 @@
 
 {% if can_publish %}
 <noscript>
-  <details class="admin-week-nojs-publish">
-    <summary>Veröffentlichung bestätigen</summary>
+  {% call disclosure_section(title='Veröffentlichung bestätigen', details_class='admin-week-nojs-publish') %}
     <p>Gespeicherte Woche: KW {{ iso_week }} · {{ title }}. Bitte prüfen, ob alle Angaben korrekt sind.</p>
     {{ icon_button('actions.publish', form='week-publish-form', aria_label=publish_label, text='Veröffentlichen', show_text=true, emphasis='secondary', attrs={'disabled': publish_blocked, 'aria-describedby': 'week-publish-guidance' if publish_blocked else none}) }}
-  </details>
+  {% endcall %}
 </noscript>
 
 <div class="modal modal-blur fade" id="week-publish-modal" tabindex="-1" aria-labelledby="week-publish-title" aria-hidden="true">

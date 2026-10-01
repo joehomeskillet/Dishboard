@@ -1,5 +1,6 @@
 {# Compact meal service summary + existing POST form. #}
-{% from 'ui/_semantic.html' import icon_button, sem_icon %}
+{% from 'admin/_macros.html' import disclosure_section, form_footer %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% set service = meal_cell %}
 {% set state = service.service_state if service else 'open' %}
 {% set start = service.service_start if service else '' %}
@@ -34,8 +35,7 @@
   <span>Hinweis: {{ notice }}</span>
   {% endif %}
 </div>
-<details class="admin-week-service"{% if service_open %} open{% endif %}>
-<summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="actions.edit" data-ui-tooltip="Ausgabeangaben ändern" aria-label="Ausgabeangaben ändern">{{ sem_icon('actions.edit') }}</summary>
+{% call disclosure_section(title='Ausgabeangaben ändern', open=service_open, details_class='admin-week-service', summary_key='actions.edit') %}
   <form method="post" data-dirty-form action="/admin/{{ family }}/service" class="card card-sm mb-3 admin-week-service-form">
     <div class="card-body">
       {{ form_errors(service_errors.values()|list) }}
@@ -68,9 +68,9 @@
           {{ field('service_end', 'Ende', service_values.get('service_end', end), type='text' if service_error else 'time', id=end_id, error=service_errors.get('service_end'), autofocus=service_errors.get('service_end'), hint='HH:MM' if service_error else none) }}
         </div>
         <div class="col-12">
-          {{ icon_button('actions.save', emphasis='secondary') }}
+          {{ form_footer(icon_button('actions.save', emphasis='secondary'), cancel_url=none) }}
         </div>
       </div>
     </div>
   </form>
-</details>
+{% endcall %}

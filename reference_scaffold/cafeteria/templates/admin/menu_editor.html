@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, hint, label, list_row %}
+{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, form_footer, hint, label, list_row %}
 {% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon, row_actions %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set layout_variant = 'standard' %}
@@ -335,10 +335,12 @@
       {% endcall %}
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
-        {{ icon_button('actions.save', text='Menü speichern', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'} if cell.template_proposal else {}) }}
         {# Native secondary submit: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}
-        {% if not cell.template_proposal %}{{ icon_button('actions.save', aria_label=t('menu.save_return.aria'), emphasis='secondary', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'}) }}{% endif %}
-        {{ icon_button('actions.cancel', href=g.get('menu_collection_return') or back_url) }}
+        {{ form_footer(
+          icon_button('actions.save', text='Menü speichern', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'} if cell.template_proposal else {}),
+          cancel_url=g.get('menu_collection_return') or back_url,
+          secondary=icon_button('actions.save', aria_label=t('menu.save_return.aria'), emphasis='secondary', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'}) if not cell.template_proposal else none,
+          action_order=['primary', 'secondary', 'cancel']) }}
       </div>
     </form>
   </div>

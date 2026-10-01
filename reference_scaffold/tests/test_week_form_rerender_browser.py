@@ -55,8 +55,8 @@ def test_week_form_errors_save_and_stale_resubmit(week_page, admin_engine, famil
     page, client = week_page
     page.goto(f'/admin/{family}?week={WEEK}')
     form = _locator(page, family, kind)
-    assert form.locator('xpath=..').get_attribute('open') is None
-    form.locator('xpath=..').locator('summary').click()
+    assert form.locator('xpath=ancestor::details[1]').get_attribute('open') is None
+    form.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
     if kind == 'header':
         field, entered = 'title', '   '
         form.locator('[name="title"]').fill(entered)
@@ -103,7 +103,7 @@ def test_week_form_errors_save_and_stale_resubmit(week_page, admin_engine, famil
     # Keep the browser's original version while another writer saves a newer one.
     page.goto(f'/admin/{family}?week={WEEK}')
     form = _locator(page, family, kind)
-    form.locator('xpath=..').locator('summary').click()
+    form.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
     old_version = form.locator('[name="row_version"]').input_value()
     competing = _form(client.get(f'/admin/{family}?week={WEEK}'), family, kind)['fields']
     target = 'title' if kind == 'header' else 'notice'
