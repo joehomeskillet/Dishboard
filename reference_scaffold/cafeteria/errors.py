@@ -393,6 +393,11 @@ def authentication_required(*, invalid: bool = False) -> Response:
 class FormStale(BadRequest):
     """Typed CSRF failure; existing domain handlers still own their 400 input context."""
 
+    def __init__(self, description: str | None = 'CSRF-Prüfung fehlgeschlagen.',
+                 response: Response | None = None) -> None:
+        # An instance description keeps the domain detail visible in error_view.
+        super().__init__(description=description, response=response)
+
 
 def _session_is_authenticated(sess) -> bool:
     user = sess.get('user')
