@@ -140,13 +140,15 @@ def test_preview_and_list_are_native_readonly_with_exact_prepared_selection(prep
         expect(freeze).to_have_accessible_name('Gespeicherten Stand festhalten')
         expect(freeze).to_have_attribute('data-semantic', 'data.revision')
         proof(page, tmp_path / f'freeze-preview-{width}.png', expected_status=200, requests=methods.copy())
-        detail = page.get_by_text('Prüfnachweis anzeigen', exact=True)
-        detail.focus()
-        expect(detail).to_be_focused()
-        page.keyboard.press('Enter')
-        expect(page.locator('details[open]')).to_have_count(1)
-        page.keyboard.press('Enter')
-        expect(page.locator('details[open]')).to_have_count(0)
+        expect(page.locator('#recipe-dependency-proof')).to_be_visible()
+        digest = page.locator('#recipe-dependency-proof code').inner_text()
+        assert len(digest) == 64 and all(char in '0123456789abcdef' for char in digest)
+        expect(page.locator('main details, main summary')).to_have_count(0)
+        freeze.focus()
+        page.keyboard.press('Escape')
+        expect(freeze).to_be_focused()
+        expect(page.locator('#recipe-dependency-proof')).to_be_visible()
+        expect(page.locator('#recipe-dependency-proof code')).to_have_text(digest)
         assert all(method == 'GET' for method in methods) and errors == []
         assert full_state(owner) == before
 

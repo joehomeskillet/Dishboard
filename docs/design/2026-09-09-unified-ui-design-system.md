@@ -1723,6 +1723,15 @@ im Speicherfuss entfällt. Archivbestätigungen verwenden reine Textaktionen.
 Nachweise: `test_delta3_09_browser.py`, `test_recipe_density_browser.py` und
 paketbezogener DELTA-3-09-Report.
 
+**DELTA-3-10 (2026-10-01, UI-DELTA §0.1):** Rezeptblätter zeigen Originalmengen
+und Herkunft unter statischen, lokalisierten Überschriften, auch im Druck und
+bei eingebetteten Zubereitungen. Technische Angaben und vollständiger Snapshot
+der unveränderlichen Revision bleiben sichtbar. Der Prüfnachweis zum Festhalten
+steht direkt im Verlauf; die Prüfsumme einzelner Stände bleibt über deren
+bestehenden Öffnen-Link erreichbar. PDF und HTML bleiben getrennte Ziele.
+Nachweise: `test_delta3_10_browser.py`, Rezeptblatt-/Revisionstests und
+paketbezogener DELTA-3-10-Report.
+
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Ein-Direktaktions-/Menü-Regel der Übersicht und Verwerfen unter „Weitere Aktionen“ sind abgelöst. Verwerfen startet direkt den bestehenden Bestätigungsschritt. Historische Prüfbelege werden nicht zur Direktaktionsabnahme umgedeutet.
 
 Die Rezeptübersicht verwendet M22/M23: Suche und Kennzeichnung zuerst, Titel-,

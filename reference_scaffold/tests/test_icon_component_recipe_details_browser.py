@@ -91,19 +91,20 @@ def test_detail_actions_native_roles_profiles_and_print(
                                     assert page.locator(f'main a[href="{root}"]').count() == 0
                                 expect(document.locator('.recipe-amount').first).to_have_text('800 G')
                                 for selector, name, content in (
-                                    ('.recipe-originals', 'Originalmengen ansehen', 'Originalausbeute: 4 PORTION'),
-                                    ('.recipe-provenance', 'Herkunft ansehen', 'Gilt für:'),
+                                    ('.recipe-originals', 'Originalmengen', 'Originalausbeute: 4 PORTION'),
+                                    ('.recipe-provenance', 'Herkunft', 'Gilt für:'),
                                 ):
-                                    summary = document.locator(selector + ' > summary')
-                                    expect(summary).to_have_attribute('aria-label', name)
-                                    if summary.inner_text().strip():
-                                        failures.append((label, state, selector, 'visible action text'))
-                                    _check_action(page, summary, javascript)
-                                    summary.focus()
-                                    page.keyboard.press('Enter')
+                                    heading = document.locator(selector + ' > h2')
+                                    expect(heading).to_have_text(name)
+                                    expect(heading).to_be_visible()
+                                    expect(document.locator(selector + ' summary')).to_have_count(0)
+                                    expect(heading.locator('svg')).to_have_count(0)
+                                    assert heading.evaluate('el => el.tabIndex') == -1
                                     expect(document.locator(selector)).to_contain_text(content)
-                                    assert document.locator(selector).get_attribute('open') is not None
-                                    metrics = summary.evaluate('''el => ({
+                                    expect(document.locator(selector)).to_be_visible()
+                                    page.keyboard.press('Escape')
+                                    expect(document.locator(selector)).to_be_visible()
+                                    metrics = heading.evaluate('''el => ({
                                         text: el.textContent.trim(), width: el.getBoundingClientRect().width,
                                         height: el.getBoundingClientRect().height,
                                         after: getComputedStyle(el, '::after').content
@@ -116,33 +117,30 @@ def test_detail_actions_native_roles_profiles_and_print(
                                     page.evaluate('document.fonts.ready')
                                     for selector, text in (('.recipe-originals', 'Originalmengen'),
                                                            ('.recipe-provenance', 'Herkunft')):
-                                        summary = document.locator(selector + ' > summary')
-                                        printed = summary.evaluate('''el => {
+                                        heading = document.locator(selector + ' > h2')
+                                        printed = heading.evaluate('''el => {
                                             const style = getComputedStyle(el);
                                             const after = getComputedStyle(el, '::after');
-                                            const label = el.dataset.printLabel;
+                                            const label = el.innerText.trim();
                                             const canvas = document.createElement('canvas').getContext('2d');
-                                            canvas.font = [after.fontStyle, after.fontWeight, after.fontSize, after.fontFamily].join(' ');
+                                            canvas.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
                                             const textWidth = canvas.measureText(label).width;
-                                            const gap = parseFloat(style.columnGap) || 0;
                                             const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
                                             const border = parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
-                                            const iconWidth = el.querySelector('svg').getBoundingClientRect().width;
                                             return {
                                                 text: el.textContent.trim(), after: after.content,
                                                 width: el.getBoundingClientRect().width,
                                                 height: el.getBoundingClientRect().height,
-                                                textWidth, afterWidth: parseFloat(after.width),
-                                                afterHeight: parseFloat(after.height), lineHeight: parseFloat(after.lineHeight),
-                                                requiredWidth: textWidth + iconWidth + gap + padding + border,
-                                                gap, padding, font: canvas.font,
+                                                textWidth, lineHeight: parseFloat(style.lineHeight),
+                                                requiredWidth: textWidth + padding + border,
+                                                padding, font: canvas.font,
                                             };
                                         }''')
-                                        assert text in printed['text'] or text in printed['after']
+                                        assert printed['text'] == text and printed['after'] == 'none'
+                                        expect(heading.locator('svg')).to_have_count(0)
                                         if (printed['width'] + 1 < printed['requiredWidth']
-                                                or printed['afterWidth'] + 1 < printed['textWidth']
-                                                or printed['afterHeight'] > printed['lineHeight'] + 1):
-                                            failures.append((label, selector, 'printed label wraps or escapes its control', printed))
+                                                or printed['height'] > printed['lineHeight'] + 1):
+                                            failures.append((label, selector, 'printed heading wraps or escapes its section', printed))
                                         measurements.append(dict(case=label, media='print', selector=selector, **printed))
                                     page.screenshot(path=str(tmp_path / f'{label}-print.png'), full_page=True)
                                     page.emulate_media(media='screen')
@@ -157,20 +155,21 @@ def test_detail_actions_native_roles_profiles_and_print(
                     admin_app.config['UI_LOCALE'] = locale
                     assert page.goto(root + '/revisionen/' + revision).status == 200
                     for selector, key, english in (
-                        ('.recipe-originals', 'recipe.original_quantities', 'View original quantities'),
-                        ('.recipe-provenance', 'recipe.provenance', 'View provenance'),
+                        ('.recipe-originals', 'recipe.original_quantities', 'Original quantities'),
+                        ('.recipe-provenance', 'recipe.provenance', 'Provenance'),
                     ):
                         with admin_app.app_context():
-                            name, printed = translate(key + '.aria'), translate(key + '.label')
-                        summary = page.locator(selector + ' > summary')
-                        expect(summary).to_have_accessible_name(name)
-                        expect(summary).to_have_attribute('data-ui-tooltip', name)
-                        expect(summary).to_have_attribute('data-print-label', printed)
+                            name = translate(key + '.label')
+                        heading = page.locator(selector + ' > h2')
+                        expect(heading).to_have_accessible_name(name)
+                        expect(heading).to_have_text(name)
+                        expect(heading).to_be_visible()
+                        expect(page.locator(selector + ' summary')).to_have_count(0)
                         if locale == 'en':
                             assert name == english
                         if locale == 'xx':
-                            assert name.startswith('[!! ') and printed.startswith('[!! ')
-                        _check_action(page, summary, True)
+                            assert name.startswith('[!! ')
+                        assert heading.evaluate("el => getComputedStyle(el, '::after').content") == 'none'
                     page.screenshot(path=str(tmp_path / f'locale-{locale}-390.png'), full_page=True)
             admin_app.config['UI_LOCALE'] = 'de'
             with playwright.chromium.launch_persistent_context(
@@ -192,10 +191,15 @@ def test_detail_actions_native_roles_profiles_and_print(
                     assert page.evaluate('devicePixelRatio') == 2
                     assert page.evaluate('innerWidth') == 720
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                    summary = page.locator(selector + ' > summary')
-                    _check_action(page, summary, True)
-                    page.keyboard.press('Enter')
-                    assert page.locator(selector).get_attribute('open') is not None
+                    if name == 'recipe':
+                        expect(page.locator(selector + ' > h2')).to_have_text('Originalmengen')
+                        expect(page.locator(selector)).to_contain_text('Originalausbeute: 4 PORTION')
+                        expect(page.locator(selector + ' summary')).to_have_count(0)
+                    else:
+                        summary = page.locator(selector + ' > summary')
+                        _check_action(page, summary, True)
+                        page.keyboard.press('Enter')
+                        assert page.locator(selector).get_attribute('open') is not None
                     page.screenshot(path=str(tmp_path / f'{name}-native-zoom200.png'), full_page=True)
         finally:
             browser.close()

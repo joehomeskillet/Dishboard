@@ -176,13 +176,15 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                     assert row_style == ('grid' if width < 768 else 'table-row')
                 if name == 'rezepte':
                     page.locator('.admin-filter-more > summary').click()
-                if name == 'conflict':
-                    expect(page.locator('#copy-hint')).to_be_visible()
+                if name in ('conflict', 'revisionen'):
+                    hint_id = '#copy-hint' if name == 'conflict' else '#history-hint'
+                    expect(page.locator(hint_id)).to_be_visible()
                     expect(page.locator('main .admin-hint > summary')).to_have_count(0)
-                    page.locator('main textarea').first.focus()
+                    focus_target = page.locator('main textarea').first if name == 'conflict' else page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)
+                    focus_target.focus()
                     page.keyboard.press('Escape')
-                    expect(page.locator('main textarea').first).to_be_focused()
-                    expect(page.locator('#copy-hint')).to_be_visible()
+                    expect(focus_target).to_be_focused()
+                    expect(page.locator(hint_id)).to_be_visible()
                 else:
                     help_control = page.locator('.admin-hint > summary').first
                     help_control.focus()

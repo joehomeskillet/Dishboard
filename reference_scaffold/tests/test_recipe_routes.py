@@ -314,7 +314,7 @@ def test_view_is_complete_readonly_and_rejects_unknown_query_without_form_contex
     assert viewed.status_code == 200, viewed.text
     for text_value in ('Entwurf · nicht festgeschrieben', 'Nur lesen', 'Zweite Zeile',
                        'Zubereitung',
-                       'Zutaten und Mengen', 'Kennzeichnungen: Nicht erfasst', 'Herkunft ansehen',
+                       'Zutaten und Mengen', 'Kennzeichnungen: Nicht erfasst', 'Herkunft</h2>',
                        'Keine Gerichtvorlage', 'Zum Drucken zuerst einen Stand festhalten',
                        'Ansicht &amp; Herkunft'):
         assert text_value in viewed.text

@@ -335,7 +335,7 @@ def test_reading_document_and_explicit_revision_calculator_keep_exact_stand(a3):
         body = detail.text.split('<article id="recipe-document"', 1)[1].split('</article>', 1)[0]
         assert not any(tag in body for tag in ('<input', '<select', '<textarea', '<form', '<table'))
         assert '0.1875 KG' in body and 'Berechnete Ausbeute:' in body
-        assert 'Originalmengen ansehen' in body and '0.125' in body
+        assert 'Originalmengen</h2>' in body and '0.125' in body
         assert 'Allergenangaben sind in diesen Rezeptdaten nicht erfasst.' in body
         assert '10 Minuten' in body and '0 Minuten' in body
     calculator = client.get(frozen.location + '?mode=scale&yield=6')

@@ -105,9 +105,10 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    # UI-DELTA §0.1/D-31/D-33: four recipe-editor consumers became static sections.
-    assert len(calls) == 70, 'Review compatibility inventory when consumers change'
-    assert not any(path.name == 'rezepte_editor.html' for path, _ in calls)
+    # UI-DELTA §0.1: editor and revision disclosures became static or use the detail page.
+    assert len(calls) == 67, 'Review compatibility inventory when consumers change'
+    migrated_disclosures = {'rezepte_editor.html', 'rezepte_revision.html', 'rezepte_revisionen.html'}
+    assert not any(path.name in migrated_disclosures for path, _ in calls)
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
     assert len(extended) == 10

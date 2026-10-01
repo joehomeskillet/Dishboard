@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, pagination, disclosure_section, hint, empty_state %}
+{% from 'admin/_macros.html' import page_header, icon, pagination, hint, empty_state %}
 {% from 'ui/_semantic.html' import icon_label, icon_button, row_actions %}
 {% from 'admin/rezepte_ansicht.html' import print_reference %}
 {% set workflow_nav = 'recipes' %}
@@ -8,7 +8,7 @@
 {% block content %}
 {{ print_reference(print_template) }}
 <section class="card mb-3" id="recipe-freeze"><div class="card-body">
-<div class="d-flex align-items-center gap-2"><h2 class="card-title">Gespeicherten Stand festhalten</h2>{{ hint('Die Rezept-History enthält festgehaltene Zutaten, Mengen, Herkunft und Bilder.', 'history-hint') }}</div>
+<div class="d-flex flex-wrap align-items-center gap-2"><h2 class="card-title">Gespeicherten Stand festhalten</h2>{{ hint('Die Rezept-History enthält festgehaltene Zutaten, Mengen, Herkunft und Bilder.', 'history-hint', mode='inline') }}</div>
 <p>Der aktuelle Entwurf und ungespeicherte Änderungen bleiben getrennt. Bearbeiten legt keinen neuen Stand an.</p>
 {% if preview %}
 {% if not preview.complete %}<div class="alert alert-warning" role="alert" id="freeze-incomplete" tabindex="-1" autofocus><div class="text-body">Dieser Entwurf ist noch unvollständig. Erfassen Sie mindestens eine Zutat und wählen Sie für jede Zutat ein Lebensmittel, eine positive Menge und eine Einheit.{% if can_write %} <a href="{{ url_for('admin.recipe_edit', recipe_id=recipe.public_id) }}">Rezept ergänzen</a>{% endif %}</div></div>{% endif %}
@@ -37,11 +37,11 @@
 </form>
 {% elif preview.complete %}<p class="mb-0">Sie können diesen Stand ansehen. Zum Festschreiben ist die Berechtigung zum Bearbeiten von Rezepten erforderlich.</p>{% endif %}
 </div></section>
-<div class="mb-3">{% call disclosure_section(title='Prüfnachweis anzeigen', variant='card') %}<div class="text-break">Prüfsumme des geprüften Zutatenstands: <code>{{ preview.dependency_hash_sha256 }}</code></div>{% endcall %}</div>
+<p class="mb-3 text-break" id="recipe-dependency-proof">Prüfsumme des geprüften Zutatenstands: <code>{{ preview.dependency_hash_sha256 }}</code></p>
 {% endif %}
 <section class="card" id="recipe-history"><div class="card-header"><h2 class="card-title">Alle gespeicherten Stände</h2></div>
 {% if revisions %}<table class="table table-vcenter card-table admin-table admin-table--stack"><thead><tr><th scope="col">Stand</th><th scope="col">Erstellt</th><th scope="col">Nachweis</th><th scope="col">Aktion</th></tr></thead><tbody>
-{% for item in revisions %}<tr><th scope="row" class="admin-list-primary" data-label="Stand">Gespeicherter Stand {{ item.revision_number }}</th><td data-label="Erstellt"><time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at|datetime_short }}</time></td><td class="text-break" data-label="Nachweis">Revision {{ item.revision_number }}{% call disclosure_section() %}<p class="mt-2 mb-0 text-break"><strong>Prüfsumme:</strong> <code>{{ item.content_hash_sha256 }}</code></p>{% endcall %}</td><td class="admin-table-actions" data-label="Aktion">{{ row_actions([{'key': 'actions.open', 'href': url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id), 'icon_only': true, 'aria_label': 'Gespeicherten Stand ' ~ item.revision_number ~ ' ansehen'}, {'key': 'actions.open_pdf', 'href': url_for('admin.recipe_revision_pdf', recipe_id=recipe.public_id, revision_id=item.public_id), 'icon_only': true, 'aria_label': 'PDF von Stand ' ~ item.revision_number ~ ' öffnen'}], object='Stand ' ~ item.revision_number) }}</td></tr>{% endfor %}
+{% for item in revisions %}<tr><th scope="row" class="admin-list-primary" data-label="Stand">Gespeicherter Stand {{ item.revision_number }}</th><td data-label="Erstellt"><time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at|datetime_short }}</time></td><td class="text-break" data-label="Nachweis">Revision {{ item.revision_number }}</td><td class="admin-table-actions" data-label="Aktion">{{ row_actions([{'key': 'actions.open', 'href': url_for('admin.recipe_revision', recipe_id=recipe.public_id, revision_id=item.public_id), 'mode': 'icon', 'aria_label': 'Gespeicherten Stand ' ~ item.revision_number ~ ' ansehen'}, {'key': 'actions.open_pdf', 'href': url_for('admin.recipe_revision_pdf', recipe_id=recipe.public_id, revision_id=item.public_id), 'mode': 'icon', 'aria_label': 'PDF von Stand ' ~ item.revision_number ~ ' öffnen'}], object='Stand ' ~ item.revision_number) }}</td></tr>{% endfor %}
 </tbody></table>{% else %}<div class="card-body">{{ empty_state('none', 'Noch keine gespeicherten Stände vorhanden.', 'Den aktuellen Entwurf zuerst festhalten.') }}</div>{% endif %}
 </section>
 {{ pagination(page, has_next, url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page-1), url_for('admin.recipe_revisions', recipe_id=recipe.public_id, page=page+1), 'Seiten der gespeicherten Stände') }}
