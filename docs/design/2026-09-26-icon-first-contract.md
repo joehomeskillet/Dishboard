@@ -297,6 +297,9 @@ actions.edit mit dem bestehenden vollständigen Namen.
 
 `text_exception` ist feste Enum: `none`, `menu_item`, `confirmation`,
 `navigation`, `status_warning`. Kein beliebiger Begründungstext.
+
+> **Abgelöst durch UI-DELTA-2026-10-01 §0.1 (B):** Die Textausnahme `status_warning` für Mischbuttons (Icon plus Text) ist abgelöst; jeder Button zeigt exklusiv Symbol oder Text, auch bei Warnungen und Anmeldungen. — siehe [UI-DELTA](2026-10-01-ui-delta-sdd.md).
+
 `menu_item` setzt nur action_menu, `confirmation` nur bestehender
 Bestätigungsdialog; `navigation` nur fachliche Navigation/Profilauswahl, nicht
 „Öffnen“ als Zeilenaktion. `status_warning` nur tatsächlich erklärungsbedürftiger
@@ -394,6 +397,8 @@ Zähler in bestehendem UI-Modul kollisionsfreie DOM-IDs, nicht Objektname/Slug.
 Wrapper leiten von derselben Basis Trigger-/Panel-/Tooltip-IDs ab.
 aria-controls verweist auf vorhandenes Panel, aria-expanded folgt offen/geschlossen.
 Keine Default-ID „semantic-confirm“ mehrfach auf derselben Seite.
+
+> **Abgelöst durch UI-DELTA-2026-10-01 §0.1 (D):** Die Erlaubnis für `inline=true` bei `disclosure_section` als Detailzugang im Dokumentfluss ist abgelöst. Inhaltsaufklapper in Tabellenzeilen sind nicht mehr zulässig. — siehe [UI-DELTA](2026-10-01-ui-delta-sdd.md).
 
 `list_row` erhält gemeinsame optionale Details. `inline=true` bei
 disclosure_section bedeutet Detailzugang am **lesbaren Datensatznamen** mit Chevron;

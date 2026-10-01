@@ -56,6 +56,7 @@ Formular-/Inhaltsabschnitten, geöffneten Menüs und eindeutigen Sicherheitsbest
 Alle verfügbaren Aktionen direkt als einheitliche Symbole zeigen; keine Mehr-/Drei-Punkte-Menüs.
 Schmale Breiten nutzen sichtbaren Umbruch gemäss [SDD Direkte Symbolaktionen](docs/design/2026-09-29-direct-symbol-actions-sdd.md).
 Fachliche Details bleiben bei Bedarf erreichbar.
+Vorrang hat das [SDD UI-DELTA](docs/design/2026-10-01-ui-delta-sdd.md): keine inhaltlichen Auf-/Zuklappbereiche in Arbeitsflächen (Ersatz: statisch, gemeinsamer Lesedialog oder bestehende Detailseite), keine Strich-Platzhalter für fehlende optionale Werte, Redundanz nur bei nachgewiesen gleicher Wirkung bereinigen, jeder Aktionsbutton zeigt entweder ein Symbol oder Text – nie beides, auch auf Anmelde-, Fehler- und Bestätigungsseiten –, und Hinweise stehen nie vor der Bereichsnavigation.
 Gemeinsame Filter verwenden, Normalzustände nicht doppelt anzeigen und gleiche
 Warnursachen bündeln; einzelne Probleme und ihre Bedeutung bleiben erreichbar.
 Nicht erfasst bleibt ungleich allergenfrei, fehlender Bestand ungleich null;

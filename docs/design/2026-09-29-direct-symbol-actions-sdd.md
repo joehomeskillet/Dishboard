@@ -63,6 +63,8 @@ Die Aufzählung ist ein Mindestprüfumfang. Ermittle vorhandene Routen und Oberf
 
 ### 2.2 Was ausdrücklich nicht pauschal entfernt wird
 
+> **Abgelöst durch UI-DELTA-2026-10-01 §0.1 (D):** Die Ausnahme für fachliche Akkordeons und Inhaltsaufklapper gilt nicht mehr; diese dürfen nicht im Dokumentfluss aufklappen. — siehe [UI-DELTA](2026-10-01-ui-delta-sdd.md).
+
 Navigationsuntermenüs, echte Auswahllisten, Filterpanels, fachliche Akkordeons und Detailabschnitte dürfen bestehen bleiben. Sie sind kein generisches Versteck für bereits verfügbare Befehle. Ein Dialog für ein Formular, eine Vorschau oder eine Sicherheitsbestätigung ist ebenfalls zulässig. Ein Dialog, der nach Klick auf „…“ lediglich dieselbe Aktionsliste anzeigt, ist nicht zulässig.
 
 Fachliche Inhalte bleiben lesbar: Namen, Mengen, Formularlabels, Warnungen, Allergene, Statusinformationen und Bestätigungstexte werden nicht blind in Symbole verwandelt. Öffentliche Website- und Signage-Ansichten erhalten keine neuen Verwaltungsaktionen.
