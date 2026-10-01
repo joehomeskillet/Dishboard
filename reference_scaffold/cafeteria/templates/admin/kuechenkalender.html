@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
 {% from 'admin/_macros.html' import page_header, icon, label, segment_switch %}
-{% from 'ui/_semantic.html' import icon_button %}
+{% from 'ui/_semantic.html' import icon_button, read_detail_trigger, read_detail_dialog %}
 {% set workflow_nav = 'calendar' %}
 {% set layout_variant = 'calendar' %}
 {% block title %}Küchenkalender · Menüplanung{% endblock %}
@@ -56,8 +56,8 @@
 {% macro menu_href(family, week_start, day, meal, type_code) %}
 {{ url_for('admin.menu_get', family=family, week=week_start.isoformat(), day=day.isoformat(), meal=meal, option=type_code) }}
 {% endmacro %}
-{% macro day_body(cell) %}
-  {% set day_ns = namespace(visible_count=0, overflow=[]) %}
+{% macro day_body(cell, variant, full=false) %}
+  {% set day_ns = namespace(visible_count=0, overflow=0) %}
   {% for event in cell.events %}
   <a class="kitchen-cal-event admin-list-meta" href="{{ url_for('admin.kitchen_event_edit', public_id=event.public_id) }}">{{ event.title }}</a>
   {% endfor %}
@@ -75,28 +75,28 @@
           {% if meal.courses.dessert %}{% if meal.courses.dessert.state == 'not_offered' %}Kein Dessert{% else %}Dessert: {{ meal.courses.dessert.title }}{% endif %}{% endif %}
         </p>
         {% endif %}
-        {% for item in meal.visible %}
-          {% if day_ns.visible_count < 3 %}
+        {% for item in meal.visible + meal.extra %}
+          {% if full or day_ns.visible_count < 3 %}
           <a class="kitchen-cal-dish admin-list-meta" href="{{ menu_href(group.family, meal.week_start, cell.date, meal.meal_code, item.type_code) }}" title="{{ item.title }}">{{ item.title }}</a>
           {% set day_ns.visible_count = day_ns.visible_count + 1 %}
           {% else %}
-          {% set _ = day_ns.overflow.append({'item': item, 'group': group, 'meal': meal}) %}
+          {% set day_ns.overflow = day_ns.overflow + 1 %}
           {% endif %}
-        {% endfor %}
-        {% for item in meal.extra %}
-        {% set _ = day_ns.overflow.append({'item': item, 'group': group, 'meal': meal}) %}
         {% endfor %}
       </div>
       {% endfor %}
     </section>
     {% endfor %}
     {% if day_ns.overflow %}
-    <details class="kitchen-cal-more">
-      <summary>+ {{ day_ns.overflow|length }} weitere</summary>
-      {% for entry in day_ns.overflow %}
-      <a class="kitchen-cal-dish admin-list-meta" href="{{ menu_href(entry.group.family, entry.meal.week_start, cell.date, entry.meal.meal_code, entry.item.type_code) }}" title="{{ entry.item.title }}">{{ entry.item.title }}</a>
-      {% endfor %}
-    </details>
+    {% set detail_id = 'calendar-day-' ~ variant ~ '-' ~ cell.date.isoformat() %}
+    {% set day_label = cell.date.strftime('%d.%m.%Y') %}
+    <div class="kitchen-cal-more d-flex align-items-center gap-1">
+      {{ read_detail_trigger(detail_id, 'ui.read_detail.day', day_label) }}
+      <span class="admin-list-meta">{{ day_ns.overflow }} weitere Einträge</span>
+    </div>
+    {% call read_detail_dialog(detail_id, 'Tageseinträge', day_label) %}
+      {{ day_body(cell, variant, full=true) }}
+    {% endcall %}
     {% endif %}
   {% endif %}
 {% endmacro %}
@@ -122,7 +122,7 @@
           </a>
           {% if cell.is_today %}{{ label('Heute', 'info', class='kitchen-cal-today-mark') }}{% endif %}
         </div>
-        {% if cell.groups or cell.events %}{{ day_body(cell) }}{% endif %}
+        {% if cell.groups or cell.events %}{{ day_body(cell, 'grid') }}{% endif %}
       </td>
       {% endfor %}
     </tr>
@@ -140,7 +140,7 @@
           <a href="{{ plan_href(cell.date, (cell.groups[0].family if cell.groups else plan_family), cell.plan_week_start) }}">{{ cell.list_label }}{% if cell.is_today %} · Heute{% endif %}</a>
         </h2>
       </div>
-      {% if cell.groups or cell.events %}{{ day_body(cell) }}{% endif %}
+      {% if cell.groups or cell.events %}{{ day_body(cell, 'list') }}{% endif %}
     </li>
     {% endfor %}
   {% endfor %}

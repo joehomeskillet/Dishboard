@@ -56,8 +56,12 @@ einseitige Ausgabezeiten enthalten keine Platzhalter.
 
 DELTA-3-07: Leere Kalendertage führen ausschliesslich über ihren Tageskopf in
 die zugehörige Woche. Anlasszeit und Notiz stehen statisch im bestehenden
-Formular. Die Kalender-Overflowmigration D-25 bleibt offen: Der gemeinsame
-Lesedialog benötigt einen passenden Tagesdetail-Zweck samt Objektname.
+Formular. Zusätzliche Tageseinträge öffnen über den gemeinsamen Zweck
+«Einträge am {Datum} anzeigen» einen Lesedialog mit allen Anlässen und Menüs
+des Tages. Die Zahl weiterer Einträge bleibt nichtinteraktiv daneben sichtbar.
+Raster und mobile Liste erhalten eindeutige IDs; ihre drei direkt sichtbaren
+Menüs und fachlichen Zielparameter bleiben erhalten. Vollständige No-JS-
+Geometrieabnahme des gemeinsamen Schliessen-Ankers bleibt offen.
 
 **Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
 Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere

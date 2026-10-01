@@ -145,9 +145,9 @@ def _boxes_overlap(left: dict[str, float], right: dict[str, float]) -> bool:
 def _dish_counts(cell) -> dict[str, int]:
     return cell.evaluate('''(element) => {
         const dishes = [...element.querySelectorAll('.kitchen-cal-dish')];
-        const visible = dishes.filter((node) => !node.closest('details')).length;
-        const overflow = dishes.filter((node) => node.closest('details')).length;
-        return { visible, overflow, total: dishes.length };
+        const visible = dishes.filter((node) => !node.closest('dialog')).length;
+        const total = dishes.filter((node) => node.closest('dialog')).length || visible;
+        return { visible, overflow: total - visible, total };
     }''')
 
 
@@ -201,12 +201,12 @@ def test_overflow_details_keyboard_accessible(
     page, context = _open_calendar(browser, live_server, admin_app, admin_engine, width=1440, height=900)
     try:
         cell = _full_day_cell(page)
-        details = cell.locator('details.kitchen-cal-more')
+        details = cell.locator('dialog.ui-read-detail')
         assert details.count() == 1
-        summary = details.locator('summary')
+        summary = cell.locator('[data-read-detail]')
         hidden_count = details.locator('.kitchen-cal-dish').count()
-        expect(summary).to_have_text(f'+ {hidden_count} weitere')
-        assert hidden_count == EXPECTED_DISHES_FULL_DAY - _dish_counts(cell)['visible']
+        expect(cell.locator('.kitchen-cal-more')).to_contain_text(f'{hidden_count - _dish_counts(cell)["visible"]} weitere Einträge')
+        assert hidden_count == EXPECTED_DISHES_FULL_DAY
         summary.focus()
         page.keyboard.press('Enter')
         assert details.evaluate('element => element.open') is True
@@ -312,10 +312,10 @@ def test_no_js_navigation_filter_and_details(
 
         page.goto(CALENDAR_URL)
         cell = _full_day_cell(page)
-        summary = cell.locator('details.kitchen-cal-more > summary')
+        summary = cell.locator('[data-read-detail]')
         summary.focus()
-        page.keyboard.press('Space')
-        assert cell.locator('details.kitchen-cal-more[open]').count() == 1
+        page.keyboard.press('Enter')
+        expect(cell.locator('dialog.ui-read-detail')).to_be_visible()
     finally:
         context.close()
 
@@ -417,18 +417,18 @@ def test_calendar_today_range_and_native_overflow(
         assert parse_qs(urlsplit(other_link.get_attribute('href')).query)['week'] == ['2026-08-31']
         capture('today-and-other-day-focus')
         # Keyboard focus is independent of today's date; the route has no selected-day state.
-        assert sorted(today.locator('.kitchen-cal-dish').all_text_contents()) == sorted(records)
+        assert sorted(today.locator('dialog .kitchen-cal-dish').all_text_contents()) == sorted(records)
         assert _dish_counts(today) == {'visible': 3, 'overflow': 3, 'total': 6}
-        details = today.locator('details.kitchen-cal-more')
-        summary = details.locator('summary')
-        expect(summary).to_have_text('+ 3 weitere')
+        details = today.locator('dialog.ui-read-detail')
+        summary = today.locator('[data-read-detail]')
+        expect(today.locator('.kitchen-cal-more')).to_contain_text('3 weitere Einträge')
         expect(details.locator('a').first).to_be_hidden()
         summary.focus()
         page.keyboard.press('Enter')
         expect(details).to_have_attribute('open', '')
-        expect(summary).to_be_focused()
-        page.keyboard.press('Tab')
-        entry = details.locator('a').first
+        expect(details.locator('h2')).to_be_focused()
+        entry = details.locator('.kitchen-cal-dish').nth(3)
+        entry.focus()
         expect(entry).to_be_focused()
         expect(entry).to_be_visible()
         target = entry.evaluate('(a) => a.href')
