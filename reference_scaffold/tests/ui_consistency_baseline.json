@@ -86,8 +86,8 @@
     "local_filters": 0,
     "list_typography_overrides": 0,
     "local_status": 0,
-    "local_footers": 1,
-    "raw_details": 3,
+    "local_footers": 0,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/_course_line.html": {
@@ -113,7 +113,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/_local_user_forms.html": {
@@ -204,7 +204,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 2,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/_week_menu_card.html": {
@@ -217,7 +217,7 @@
     "list_typography_overrides": 0,
     "local_status": 2,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/_week_service.html": {
@@ -230,7 +230,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/_week_settings.html": {
@@ -243,7 +243,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/_workflow_sidebar.html": {
@@ -1647,7 +1647,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/kochbuch_ansicht.html": {

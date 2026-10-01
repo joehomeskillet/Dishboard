@@ -1,5 +1,5 @@
 {# Atomic soup+dessert editor. Context: meal_cell, day_iso, meal_code, meal_label, family, week_value, week_csrf, recipe_page, shared, exceptions. #}
-{% from 'admin/_macros.html' import disclosure_section %}
+{% from 'admin/_macros.html' import disclosure_section, form_footer %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set recipe_choices = (recipe_page.choices if recipe_page is defined else []) %}
 {% set recipe_retained = (recipe_page.retained if recipe_page is defined else []) %}
@@ -32,8 +32,7 @@
               </optgroup>
               {% endif %}
 {% endmacro %}
-<details class="admin-week-course-editor" id="{{ form_id }}"{% if course_open %} open{% endif %}>
-  <summary>{{ icon('chevron-right') }}Gänge planen</summary>
+{% call disclosure_section(title='Gänge planen', id=form_id, open=course_open, details_class='admin-week-course-editor') %}
   {% include 'admin/_course_recipe_search.html' %}
   <form method="post" action="/admin/{{ family }}/courses" class="card card-sm mb-0">
     <div class="card-body">
@@ -50,8 +49,7 @@
         recipe_public_id=course_values.get(kind ~ '_recipe', course.recipe_public_id|default(''))) %}
       <input type="hidden" name="{{ kind }}_public_id" value="{{ course.public_id|default('', true) }}">
       <input type="hidden" name="{{ kind }}_row_version" value="{{ course.row_version|default(0) }}">
-      <details class="admin-compact-details mb-2"{% if course.state == 'planned' or course.recipe_public_id|default('') or course_open %} open{% endif %}>
-      <summary>{{ icon('chevron-right') }}{{ kind_label }}{% if course.state == 'unplanned' %} planen{% else %} · Details{% endif %}</summary>
+      {% call disclosure_section(title=kind_label ~ (' planen' if course.state == 'unplanned' else ' · Details'), open=course.state == 'planned' or course.recipe_public_id|default('') or course_open, details_class='mb-2') %}
       <fieldset class="mb-2">
         <legend class="visually-hidden">{{ kind_label }}</legend>
         <div class="row g-2">
@@ -71,7 +69,7 @@
           </div>
         </div>
       </fieldset>
-      </details>
+      {% endcall %}
       {% endfor %}
       {% call disclosure_section(title='Weitere Optionen', id=form_id ~ '-exceptions', has_content=exceptions|length > 0, has_error=course_open) %}
         <p class="form-label">Abweichungen je Menü</p>
@@ -87,8 +85,7 @@
               recipe_public_id=course_values.get(prefix ~ '_recipe', override.recipe_public_id|default(''))) %}
             <input type="hidden" name="{{ option_code }}_{{ kind }}_public_id" value="{{ override.public_id|default('', true) }}">
             <input type="hidden" name="{{ option_code }}_{{ kind }}_row_version" value="{{ override.row_version|default(0) }}">
-            <details class="admin-compact-details mb-2"{% if override.state in ('planned', 'not_offered') or override.recipe_public_id|default('') or course_open %} open{% endif %}>
-            <summary>{{ icon('chevron-right') }}{{ option_label }} · {{ kind_label }}</summary>
+            {% call disclosure_section(title=option_label ~ ' · ' ~ kind_label, open=override.state in ('planned', 'not_offered') or override.recipe_public_id|default('') or course_open, details_class='mb-2') %}
             <div class="row g-2 mb-2">
               <div class="col-12 col-md-4">
                 <label class="form-label" for="{{ form_id }}-{{ option_code }}-{{ kind }}-state">{{ option_label }} · {{ kind_label }}</label>
@@ -105,13 +102,11 @@
                 </select>
               </div>
             </div>
-            </details>
+            {% endcall %}
           {% endfor %}
         {% endfor %}
       {% endcall %}
-      <div class="admin-form-footer"><div class="admin-form-main">
-        {{ icon_button('actions.save') }}
-      </div></div>
+      {{ form_footer(icon_button('actions.save'), cancel_url=none) }}
     </div>
   </form>
-</details>
+{% endcall %}

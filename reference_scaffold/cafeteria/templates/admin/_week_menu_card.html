@@ -1,5 +1,5 @@
 {% from '_food_symbols.html' import symbol, allergen_text %}
-{% from 'admin/_macros.html' import label as ui_label %}
+{% from 'admin/_macros.html' import label as ui_label, disclosure_section %}
 {% from 'ui/_semantic.html' import status_badge_sem, sem_icon, icon_button %}
 {% set hint_len = (cell.description|default('') ~ cell.note|default(''))|length %}
 {% set slot_name = cell.title if cell.title else 'Noch kein Gericht' %}
@@ -94,11 +94,10 @@
       {% endif %}
       {% if cell.title and (cell.description or cell.note) %}
         {% if hint_len >= 140 %}
-        <details class="admin-week-note">
-          <summary>Hinweis anzeigen</summary>
+        {% call disclosure_section(title='Hinweis anzeigen', details_class='admin-week-note') %}
           {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
           {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}
-        </details>
+        {% endcall %}
         {% else %}
           {% if cell.description %}<p class="menu-description">{{ cell.description }}</p>{% endif %}
           {% if cell.note %}<p class="shared-note">{{ cell.note }}</p>{% endif %}

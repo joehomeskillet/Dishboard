@@ -120,6 +120,21 @@
 .dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-settings, .admin-week-service, .admin-week-note) > summary::-webkit-details-marker {
   display: none;
 }
+/* Keep the established planning density when G0d adds shared disclosure classes. */
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-settings, .admin-week-service, .admin-week-note, .admin-week-course-editor, .admin-week-check-entries) > summary {
+  margin-top: 0;
+  padding: 0;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-issues, .admin-week-nojs-publish) > summary {
+  margin-top: 0;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] :is(.admin-week-check-entries, .admin-week-issues, .admin-week-nojs-publish) {
+  margin-bottom: 0;
+}
+/* G0d icon summaries retain action orientation; only chevrons indicate opening. */
+.dishboard-admin :is(.admin-week-service, .admin-week-issues)[open] > summary.ui-sem-control--icon-only > .icon {
+  transform: none;
+}
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-overview-form {
   margin: var(--app-space-4) 0 0;
 }

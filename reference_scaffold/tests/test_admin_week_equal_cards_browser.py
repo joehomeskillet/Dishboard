@@ -24,7 +24,9 @@ pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehl
 @pytest.mark.parametrize('family,profile,total', [
     ('cafeteria', 'staff_guest', 2), ('patienten', 'patient', 4),
 ])
-@pytest.mark.parametrize('width,height,touch', [(1440, 900, False), (390, 844, True)])
+@pytest.mark.parametrize('width,height,touch', [
+    (1440, 900, False), (1440, 900, True), (390, 844, False), (390, 844, True),
+])
 @pytest.mark.parametrize('javascript', [True, False])
 def test_week_patterns_keep_empty_and_filled_slots_actionable(
     browser, live_server, admin_app, admin_engine, tmp_path,  # noqa: F811
@@ -71,8 +73,41 @@ def test_week_patterns_keep_empty_and_filled_slots_actionable(
             page.locator('.admin-day-card, .patient-admin-day').first.scroll_into_view_if_needed()
             page.screenshot(path=str(evidence / f'{name}-{state}-day.png'))
             assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
-        (evidence / f'{name}-metrics.json').write_text(json.dumps(metrics, indent=2) + '\n')
         editor_url = page.locator('.admin-week-card-action a').first.get_attribute('href')
+        # Exercise native disclosures before/after migration with identical fixtures.
+        for section in ('settings', 'service', 'course-editor', 'check-entries'):
+            details = page.locator(f'details.admin-week-{section}').first
+            summary = details.locator(':scope > summary')
+            summary.focus()
+            page.keyboard.press('Enter')
+            expect(details).to_have_attribute('open', '')
+            if section == 'service':
+                # Opening a disclosure must not rotate its edit action into another symbol.
+                assert summary.locator('svg').evaluate("el => getComputedStyle(el).transform") == 'none'
+            metrics[section] = details.evaluate('''element => {
+                const rect = element.getBoundingClientRect();
+                const style = getComputedStyle(element.querySelector('summary'));
+                return {height: rect.height, width: rect.width,
+                    summaryHeight: element.querySelector('summary').getBoundingClientRect().height,
+                    summaryGap: style.gap, summaryPadding: style.padding,
+                    overflow: document.documentElement.scrollWidth > innerWidth + 1};
+            }''')
+            assert not metrics[section]['overflow'], metrics[section]
+            summary.scroll_into_view_if_needed()
+            page.screenshot(path=str(evidence / f'{name}-{section}-open.png'))
+            save = details.locator('form[method="post"] [data-semantic="actions.save"]')
+            if section != 'check-entries':
+                expect(save).to_have_count(1)
+                save.scroll_into_view_if_needed()
+                page.screenshot(path=str(evidence / f'{name}-{section}-footer.png'))
+            summary.focus()
+            page.keyboard.press('Space')
+            expect(details).not_to_have_attribute('open', '')
+        if not javascript:
+            fallback = page.locator('.admin-week-nojs-publish')
+            fallback.locator('summary').click()
+            expect(fallback.locator('button')).to_have_attribute('form', 'week-publish-form')
+            page.screenshot(path=str(evidence / f'{name}-publish-open.png'))
         with admin_app.test_request_context():
             event_url = url_for('admin.kitchen_event_new', date=DAY)
         # Same fixture and viewport also document the neighbouring G0 migrations.
@@ -87,10 +122,26 @@ def test_week_patterns_keep_empty_and_filled_slots_actionable(
             assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
             page.evaluate('document.fonts.ready')
             page.screenshot(path=str(evidence / f'{name}-{route_name}.png'))
+            if route_name == 'menu':
+                footer = page.locator('form[data-menu-editor] .admin-actions[data-sticky]')
+                actions = footer.locator('button, a')
+                expect(actions).to_have_count(3)
+                expect(actions.nth(0)).to_have_attribute('data-semantic', 'actions.save')
+                expect(actions.nth(1)).to_have_attribute('formaction', f'/admin/{family}/menu?return_to=week')
+                expect(actions.nth(2)).to_have_attribute('data-semantic', 'actions.cancel')
+                footer.scroll_into_view_if_needed()
+                metrics['menu-footer'] = footer.evaluate('''element => ({
+                    height: element.getBoundingClientRect().height,
+                    width: element.getBoundingClientRect().width,
+                    overflow: document.documentElement.scrollWidth > innerWidth + 1,
+                })''')
+                assert not metrics['menu-footer']['overflow'], metrics['menu-footer']
+                page.screenshot(path=str(evidence / f'{name}-menu-footer.png'))
             assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
+        (evidence / f'{name}-metrics.json').write_text(json.dumps(metrics, indent=2) + '\n')
         assert page.goto(f'/admin/{family}?week={DAY}').status == 200
         assert metrics['empty']['empty'], 'Both profiles need the compact first-slot empty state'
-        for state_metrics in metrics.values():
+        for state_metrics in (metrics['empty'], metrics['filled']):
             assert not state_metrics['overflow'], state_metrics
             for index, course in enumerate(state_metrics['courses']):
                 assert abs(course['line']['right'] - course['action']['right']) <= 1, course

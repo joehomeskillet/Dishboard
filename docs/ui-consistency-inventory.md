@@ -4,19 +4,24 @@
 
 | Route | Rolle / Zustand / gemeinsames Muster | Nachweis |
 |---|---|---|
-| `/admin/cafeteria`, `/admin/patienten` | Admin, leer und befüllt, JS/No-JS: derselbe `day_card`-Aufruf, Tag/Datum/Erfassungsstand, kompakter Leerzustand und rechts ausgerichtete Slotaktionen. Bestehende Prüf-, Publikations- und Formularzustände bleiben getrennt. | `test_admin_week_equal_cards_browser.py`: zweimal16 bestanden; `test_ui_korrektur_week_browser.py`: zweimal37 bestanden. 1440 fein / 390 grob, datengleiche Vorher/Nachher-Bilder und Messwerte in `audit/UC/P2-A/`. |
+| `/admin/cafeteria`, `/admin/patienten` | Admin, leer/befüllt, JS/No-JS: gemeinsamer `day_card`; Service, Wochenangaben, Gänge/Suche, Hinweise, Prüfung und native Publikationsbestätigung über `disclosure_section`. Save-only-Füsse über `form_footer(cancel_url=none)`. Dirty-Formulare, CAS/CSRF, Zustandsdimensionen und direkte Aktionen erhalten. | UC-P2-A2: `test_admin_week_equal_cards_browser.py` prüft 1440/390 × fein/grob × JS/No-JS, Enter/Space, Aktionsreihenfolge und Überlauf. Datengleiche Vorher/Nachher-Bilder und Dichtemessung in `audit/UC/P2-A2/`; vollständige Gate-Ergebnisse im UC-P2-A2-Report. |
 | `/admin/<family>/wochen`, `/admin/kuechenkalender` | Gemeinsamer `segment_switch`, aktive Navigation mit `aria-current="page"`; Wochenstatus aus der Registry. | Paketläufe und Wiederholungen im UC-P2-A-Report; Kalender- und Wochenlistenbilder in derselben Matrix. |
 | `/admin/<family>/wochen/pruefung`, `/admin/kuechenkalender/anlass` | Prüfung und Publikation bleiben getrennt; Review-Chips aus der Registry. Anlass verwendet gemeinsamen `form_footer` mit unveränderter Reihenfolge Abbrechen/Speichern. | Native Formular-/Review-Gates und Bilder in `audit/UC/P2-A/`; tatsächliche Endergebnisse im Report. |
-| `/admin/<family>/menu` | Bestehende Direktaktionen, Richtungszeichen, Kontext und Speicherschutz unverändert. G0-Größenvertrag 36 px fein / 44 px grob in Pakettests nachgeführt. | Menüeditor-Matrix und Pflichtläufe im UC-P2-A-Report. |
+| `/admin/<family>/menu` | `form_footer(action_order=['primary', 'secondary', 'cancel'])` in unveränderter Sticky-/Navigationshülle. Speichern, Speichern und zurück, Abbrechen behalten Namen, native Formularziele und Kontext. Direktaktionen, Richtungszeichen und Speicherschutz unverändert. | UC-P2-A2: Footer-Aufnahmen bei 1440/390 × fein/grob × JS/No-JS; native Submit-/Dirty-/Reflow-Gates im UC-P2-A2-Report. |
 
-Paketstatus BLOCKED durch gemeinsame G0-Vertragslücken und fremde BF-/EH-Testkonflikte.
-Vollständige Gates und konkrete Abnahmegrenzen im Report: `.claude/state/claude-session-2026-09-29/reports/UC-P2-A-report.md`
-im Integrationsworktree `icon-first-r18`. G0-Nachträge: Disclosure-Attribute/Klassen und
-Icon-Summary fehlen; Footer ohne zusätzliche Abbrechen-Aktion beziehungsweise mit
-bestehender Aktionsreihenfolge fehlen. Betroffene native Disclosures und Footer
-bleiben erhalten. Kalenderregeln in `admin-tabler.css` bleiben G0-Besitz.
-Eigene Baseline-Zähler sinken; keine fremden Baseline-Einträge angehoben.
-Tatsächliche Paketbasis→jetzt: Listen5→4, Filter4→2, Status9→5, Footer2→1,
+UC-P2-A dokumentiert historische G0-Lücken und BF-/EH-Testkonflikte.
+UC-P2-A2 migriert die betroffenen Aufrufstellen auf die inzwischen vorhandene G0d-API;
+aktuelle Verifikation: `.claude/state/claude-session-2026-09-29/reports/UC-P2-A2-report.md`
+im Integrationsworktree `icon-first-r18`. Eigene sieben Wochen-/Gang-Partials:
+`raw_details` 10 → 0, `local_footers` 1 → 0; keine andere Kategorie steigt.
+Menüeditor-Modusabschnitte mit dynamischen Badges bleiben unverändert.
+Die A2-Pflichtmatrix bleibt durch bekannte EH-1e-Fälle blockiert:
+403-Fehlerseiten mit Shell-Submitbuttons und fehlende fachliche CSRF-Fehlertexte.
+Diese gemeinsamen Fehlerseiten und die zugehörigen Assertions sind unverändert.
+Zusätzlich bleibt BF-E3 durch einen unveränderten Rezepteditor-Speicherselektor
+ausserhalb A2 blockiert; Details und tatsächliche Laufresultate stehen im A2-Report.
+Kalenderregeln in `admin-tabler.css` bleiben G0-Besitz.
+Historischer UC-P2-A-Vergleich (vor A2): Listen5→4, Filter4→2, Status9→5, Footer2→1,
 Details15→14, feste Pixelhöhen6→0. Frühere DA-Senkungen zählen separat.
 Nur eigene Inventarzeilen aktualisiert; die globale historische TOTAL-Zeile
 bleibt dem gemeinsamen Abschluss vorbehalten.

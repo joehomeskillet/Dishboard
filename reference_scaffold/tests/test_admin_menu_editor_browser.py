@@ -277,7 +277,7 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
         assert bar.evaluate('el => getComputedStyle(el).position') == expected_position
         primary = bar.get_by_role('button', name='Menü speichern', exact=True)
         expect(primary).to_have_class(re.compile(r'\bbtn-primary\b'))
-        assert bar.evaluate('el => getComputedStyle(el).flexWrap') == 'wrap'
+        assert bar.locator('.admin-form-footer').evaluate('el => getComputedStyle(el).flexWrap') == 'wrap'
         button_boxes = []
         for button in bar.locator('.btn').all():
             button_box = _box(button)

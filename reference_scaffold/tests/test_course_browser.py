@@ -522,7 +522,7 @@ def test_native_course_add_edit_preserves_neighbor_slots(
             for index in range(50):
                 _recipe(admin_engine, actor, scope.location_id, f'AAA Seitenauswahl {index:02d}')
             search = editor.locator('form[method="get"]')
-            search.locator('..').locator('summary').click()
+            search.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
             search.locator('[name="recipe_search"]').fill('ZZZ Eingereichtes Dessert')
             with page.expect_navigation(wait_until='domcontentloaded'):
                 search.get_by_role('button').first.click()
