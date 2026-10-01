@@ -1,5 +1,18 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## DELTA-2 — gemeinsame Renderer, 2026-10-01
+
+`disclosure_section` ist für Inhaltsaufklapper durch UI-DELTA §0.1/D-02 abgelöst;
+vorhandene Seiten warten auf DELTA-3. Die historische Matrix darunter belegt
+keine bereits erfolgte Migration auf den neuen Lesedialog.
+
+| Route / Umfang | Rolle / Zustand / Muster | Nachweis |
+|---|---|---|
+| Gemeinsame `icon_button`, `icon_summary`, `row_actions` | DB-freie DE/EN-Renderer; Symbol oder Text, alle Legacy-Kombinationen; Namen und native Attribute erhalten | `test_delta_renderer_contract.py`, `test_delta_renderer_browser.py`; tatsächliche Gate-Ausgaben im DELTA-2-Report |
+| Gemeinsame `list_row`, `empty_value` | Optional leer ohne Wrapper; 0/false/negative Werte; fachlich fehlend ausdrücklich benannt; Tabellenzellen bleiben zugeordnet | `test_delta_renderer_contract.py`; minimale Tabellenverbraucher-Anpassung |
+| Gemeinsamer Lesedialog (Migrationsschnittstelle, noch keine Produktseitenmigration) | `read_detail_trigger`/`read_detail_dialog`; Titel, Objekt, ein Text-Schliesszugang, Fokus/Escape; No-JS-Ankeroverlay | `test_delta_renderer_browser.py`: 1440/1024/768/390/1920, fein/grob, JS/No-JS, Geometrie/Scrollposition; Messprotokolle im Test-`tmp_path` |
+| `/admin/kochbuecher` | Tabelle besitzt bereits keinen `status=' '`-Workaround; Öffnen und Bearbeiten bleiben getrennt | `test_cookbooks_browser.py`, `test_icon_cookbook_view_browser.py` |
+
 ## UC-P2-A — Wochenplanung und Kalender, 2026-10-01
 
 | Route | Rolle / Zustand / gemeinsames Muster | Nachweis |

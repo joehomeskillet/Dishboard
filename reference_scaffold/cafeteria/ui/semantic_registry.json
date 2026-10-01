@@ -2717,6 +2717,28 @@
     "role": "neutral"
   },
   {
+    "key": "ui.read_detail.review",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "info-circle",
+    "label_key": "ui.read_detail.review.label",
+    "tooltip_key": "ui.read_detail.review.tooltip",
+    "aria_key": "ui.read_detail.review.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.read_detail.schedule",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "calendar",
+    "label_key": "ui.read_detail.schedule.label",
+    "tooltip_key": "ui.read_detail.schedule.tooltip",
+    "aria_key": "ui.read_detail.schedule.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
     "key": "ui.disclosure.has_content",
     "category": "ui",
     "ascii": "[i]",

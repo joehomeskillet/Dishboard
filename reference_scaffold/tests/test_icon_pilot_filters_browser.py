@@ -117,7 +117,9 @@ def test_recipe_shared_filters_keep_queries_paging_and_role_actions(
         expect(page.locator('.recipe-row')).to_have_count(50)
         assert parse_qs(urlsplit(page.url).query) == {key: [value] for key, value in params.items()}
         expect(form.locator('.admin-filter-more')).to_have_attribute('open', '')
-        expect(page.locator('.recipe-row .admin-status--info')).to_have_count(50)
+        # The base already renders semantic draft badges; assert that meaning
+        # rather than the superseded presentation class.
+        expect(page.locator('.recipe-row [data-semantic="publish.draft"]')).to_have_count(50)
         for name in ('text', 'q', 'ingredient', 'tag'):
             expect(form.locator(f'[name="{name}"]')).to_have_value(params[name])
         expect(form.locator('[name="archived"]')).to_be_checked()

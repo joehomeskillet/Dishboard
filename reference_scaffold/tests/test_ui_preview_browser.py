@@ -149,11 +149,14 @@ def _assert_actions(page: Page) -> None:
         elif 'ui-sem-control' in classes:
             assert link.inner_text().strip()
             assert link.get_attribute('aria-label')
+            # UI-DELTA §0.1/B-03: the labelled back action is text-only.
+            assert link.locator('svg').count() == 0
+            assert link.inner_text().strip() in link.get_attribute('aria-label')
         else:
             assert link.inner_text().strip()
         assert box is not None and box['height'] >= minimum and box['width'] >= minimum, box
     uses = page.locator('.preview-links use, .preview-published use')
-    assert uses.count() == 3
+    assert uses.count() == 2
     for use in uses.all():
         assert use.evaluate('el => el.getBBox().width > 0'), use.get_attribute('href')
         assert use.evaluate('el => el.closest("svg").getAttribute("aria-hidden")') == 'true'

@@ -128,7 +128,8 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
                     expect(page.locator('.cost-lines tbody tr')).to_have_count(6)
                     assert 'CHF' not in page.locator('.cost-lines').inner_text()
                     expect(page.get_by_text('Unvollständig — fehlender Preis oder fehlende Umrechnung, nicht als 0.')).to_be_visible()
-                    assert page.locator('.cost-lines tbody tr td:last-child').all_inner_texts() == ['—'] * 6
+                    # UI-DELTA §0.1/P-02 names missing prices; it never invents zero.
+                    assert page.locator('.cost-lines tbody tr td:last-child').all_inner_texts() == ['Nicht erfasst'] * 6
                 else:
                     expect(page.locator('.cost-calculation p .admin-status--success')).to_have_text('vollständig')
                     expect(page.locator('.cost-calculation p')).to_contain_text('0.00 CHF' if state == 'zero' else '6.00 CHF')

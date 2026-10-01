@@ -103,6 +103,35 @@
         form.append(chips);
     });
 
+    // Shared read-only modal. Anchor/:target is the non-expanding No-JS path.
+    document.querySelectorAll('[data-read-detail]').forEach(trigger => {
+        const dialog = document.getElementById(trigger.dataset.readDetail);
+        if (!dialog?.matches('dialog.ui-read-detail') || typeof dialog.showModal !== 'function') return;
+        trigger.addEventListener('click', event => {
+            if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            const x = window.scrollX;
+            const y = window.scrollY;
+            dialog.showModal();
+            dialog.querySelector('[tabindex="-1"]')?.focus({preventScroll: true});
+            dialog.scrollTop = 0;
+            dialog.querySelector('.ui-read-detail-content').scrollTop = 0;
+            window.scrollTo(x, y);
+            dialog.addEventListener('close', () => {
+                trigger.focus({preventScroll: true});
+                window.scrollTo(x, y);
+            }, {once: true});
+        });
+    });
+    document.querySelectorAll('[data-read-detail-close]').forEach(close => {
+        close.addEventListener('click', event => {
+            const dialog = close.closest('dialog');
+            if (!dialog?.open) return;
+            event.preventDefault();
+            dialog.close();
+        });
+    });
+
     // Optional modal enhancement; without JS the open dialog lives in details.
     document.querySelectorAll('.admin-hint[data-hint-mode="dialog"]').forEach(details => {
         const dialog = details.querySelector('dialog');
@@ -220,7 +249,9 @@
             window.tabler.Tooltip.getInstance(link).hide();
             if (link.contains(event.target) || tip.contains(event.target) || link === summary) dismissedOwned = true;
         });
-        if (dismissedOwned) {
+        // Read dialogs close on the first Escape, including from their text close
+        // control. Hide its tooltip without cancelling the native dialog action.
+        if (dismissedOwned && !event.target.closest('dialog.ui-read-detail[open]')) {
             event.preventDefault();
             event.stopImmediatePropagation();
         }

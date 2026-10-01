@@ -821,7 +821,8 @@ def test_p2b_labels_rows_actions_and_sorting_without_js(width, tmp_path):
         expect(group.locator('details, summary')).to_have_count(0)
         expect(page.locator('th[aria-sort]')).to_have_attribute('aria-sort', 'ascending')
         expect(page.locator('th[aria-sort] a')).to_have_attribute('href', '?sort=name&direction=desc')
-        assert page.locator('.admin-empty-value').all_text_contents() == ['—', '—']
+        # UI-DELTA §0.1/P-02: explicitly missing data is named, never a dash.
+        assert page.locator('.admin-empty-value').all_text_contents() == ['Nicht erfasst', 'Nicht erfasst']
         row = page.locator('#row .admin-list-row')
         table_row = page.locator('tbody tr')
         if width >= 768:

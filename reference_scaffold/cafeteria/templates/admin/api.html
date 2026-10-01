@@ -127,9 +127,9 @@
                 <td data-label="Veröffentlicht">
                   {% if channel.published %}<span data-status="live">{{ status_badge_sem('publish.published') }}</span>{% else %}<span data-status="incomplete">{{ status_badge_sem('publish.unpublished', variant='warning') }}</span>{% endif %}
                 </td>
-                <td data-label="Revision">{{ channel.revision_id or empty_value() }}</td>
+                <td data-label="Revision">{{ channel.revision_id if channel.revision_id is not none else '' }}</td>
                 <td data-label="Woche">
-                  {% if channel.week_start and channel.week_end %}{{ channel.week_start }} – {{ channel.week_end }}{% else %}{{ empty_value() }}{% endif %}
+                  {% if channel.week_start and channel.week_end %}{{ channel.week_start }} – {{ channel.week_end }}{% endif %}
                 </td>
               </tr>
               {% endfor %}

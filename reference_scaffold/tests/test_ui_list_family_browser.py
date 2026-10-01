@@ -89,7 +89,10 @@ MEASURE_JS = r"""() => {
   });
   const iconNames = (el) => [...el.querySelectorAll('use')].map((use) => (use.getAttribute('href') || use.getAttribute('xlink:href') || '').split('#').pop()).filter(Boolean);
   const packActions = (acts) => {
-    const texts = acts.map(visibleText).filter(Boolean);
+    // UI-DELTA §0.1/B-03 supersedes mandatory icon-only actions: explicit
+    // text mode is valid, while a mixed renderer remains a deviation.
+    const texts = acts.filter(el => !el.matches('.ui-sem-control--text') ||
+      el.querySelector('svg, img')).map(visibleText).filter(Boolean);
     const icons = [...new Set(acts.flatMap(iconNames))];
     return {
       count: acts.length,

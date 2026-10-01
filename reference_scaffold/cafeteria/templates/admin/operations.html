@@ -202,7 +202,7 @@
     <tbody>{% for item in exceptions %}<tr>
       <th scope="row" data-label="Datum / Bereich" class="admin-list-primary"><a href="{{ url_for('admin.' ~ families[item.profile_code], week=item.week_start.isoformat()) }}">{{ item.service_date.strftime('%d.%m.%Y') }} · {{ area_names[item.profile_code] }} · {{ meal_labels[item.meal_code] }}</a></th>
       <td data-label="Betrieb"><span data-kind="{{ item.kind }}">{{ label({'closure': 'Schliessung', 'time': 'Andere Zeit', 'open': 'Zusätzlich offen'}[item.kind], 'neutral', icon='calendar-week') }}</span><div class="admin-list-secondary">{{ state_labels[item.service_state] }}</div></td>
-      <td data-label="Zeiten / Hinweis">{% if item.service_start or item.service_end %}{{ item.service_start or '–' }}–{{ item.service_end or '–' }}{% elif not item.notice %}{{ empty_value() }}{% endif %}{% if item.notice %}<div class="admin-list-secondary">{{ item.notice }}</div>{% endif %}</td>
+      <td data-label="Zeiten / Hinweis">{% if item.service_start or item.service_end %}{{ item.service_start if item.service_start else empty_value() }}–{{ item.service_end if item.service_end else empty_value() }}{% endif %}{% if item.notice %}<div class="admin-list-secondary">{{ item.notice }}</div>{% endif %}</td>
       <td data-label="Woche" class="admin-list-meta">{{ item.week_start.strftime('%d.%m.%Y') }}</td>
     </tr>{% endfor %}</tbody>
   </table></div>

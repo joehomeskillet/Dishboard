@@ -144,7 +144,7 @@ def test_registry_source_schema_and_frozen_resolution():
     # BF-E1-F4 adds publish.unpublished; BF-E1-F1 adds status.unsaved.
     assert len(seeds) == 187
     # UC-G0 and DA/EH/BF share status.unsaved and publish.unpublished (deduplicated in the UC merge).
-    assert len(registry) == 248
+    assert len(registry) == 250
     assert registry['status.unsaved'].role == 'warning'
     assert not registry['status.unsaved'].icon_only_allowed
     for locale, expected in (('de', 'Nicht gespeichert'), ('en', 'Not saved')):
@@ -1188,7 +1188,11 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
     assert (control.get_text(strip=True), control['aria-label']) == (visible, aria)
     assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
     assert control['data-ui-tooltip'] == aria
-    assert control.select_one('use')['href'].endswith('#tabler-' + icon)
+    # UI-DELTA §0.1/B-03 replaces the former icon-plus-text exception.
+    if visible:
+        assert control.select_one('svg') is None
+    else:
+        assert control.select_one('use')['href'].endswith('#tabler-' + icon)
     if key == 'data.revision':
         assert (control['type'], control['form']) == ('submit', 'recipe-freeze-form')
 

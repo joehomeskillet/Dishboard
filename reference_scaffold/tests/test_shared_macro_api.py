@@ -47,7 +47,14 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'form_footer':
                 calls.append((path, call))
-    assert len(calls) == 11, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 15, 'Review compatibility inventory when consumers change'
+    # UC-P2 adopted the extended API after this frozen pre-G0d fixture.
+    # Its four new calls have no pre-G0d equivalent; keep all eleven old calls.
+    calls = [(path, call) for path, call in calls if not any(
+        kw.key == 'action_order' or kw.key == 'cancel_url'
+        and isinstance(kw.value, nodes.Const) and kw.value.value is None
+        for kw in call.kwargs)]
+    assert len(calls) == 11
     with semantic_app.test_request_context('/'):
         before = env.from_string(LEGACY).module.form_footer
         after = env.get_template('admin/_macros.html').module.form_footer
@@ -82,7 +89,12 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    assert len(calls) == 64, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 74, 'Review compatibility inventory when consumers change'
+    # Ten subsequent UC-P2 calls use G0d options absent from the frozen API.
+    calls = [(path, call) for path, call in calls if not any(
+        kw.key in {'details_class', 'details_attrs', 'summary_class', 'summary_attrs',
+                   'summary_key', 'summary_object'} for kw in call.kwargs)]
+    assert len(calls) == 64
     text = 'Suppe <&>' if populated else ''
     values = dict.fromkeys([
         'note', 'shared_note', 'menu_week_public_id', 'prepared_recipe_choice', 'label',

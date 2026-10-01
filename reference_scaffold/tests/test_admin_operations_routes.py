@@ -211,7 +211,9 @@ def test_exception_menu_preservation_weekend_guard_and_status_mismatch(client, d
     assert saved is not None
     assert re.search(r'class="admin-list-primary"><a href="/admin/patienten\?week=2026-08-31">', saved.group())
     assert 'data-semantic="actions.open"' not in saved.group()
-    assert '<span class="admin-empty-value">—</span>' in saved.group()
+    # UI-DELTA §0.1/P-03: optional empty table cells retain their columns.
+    assert re.search(r'<td data-label="Zeiten / Hinweis">\s*</td>', saved.group())
+    assert '<span class="admin-empty-value">—</span>' not in saved.group()
     assert '<div class="admin-list-secondary">' in saved.group()
     assert '<span class="admin-list-primary">' in body
     assert '<span class="admin-list-meta">' in body
