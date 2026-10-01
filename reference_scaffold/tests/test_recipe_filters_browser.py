@@ -37,7 +37,7 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         assert response.status == 200 and response.headers['cache-control'] == 'no-store'
         form = page.locator('form[action="/admin/rezepte"]')
         assert form.get_attribute('method') == 'get'
-        form.locator('.admin-filter-more > summary').focus()
+        form.locator('[data-semantic="view.filter"]').focus()
         page.keyboard.press('Enter')
         for label in ('Nach Rezepttitel suchen', 'Zutat', 'Kennzeichnung'):
             control = page.get_by_label(label, exact=True)
@@ -53,7 +53,7 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         with page.expect_navigation(wait_until='load'):
             page.keyboard.press('Enter')
         expect(page.locator('.recipe-row')).to_have_count(50)
-        expect(page.locator('form[role="search"] .admin-filter-more')).to_have_attribute('open', '')
+        expect(page.locator('form[role="search"] .admin-filter-dialog')).not_to_be_visible()
         expect(page.get_by_role('searchbox', name='Suchen', exact=True)).to_have_attribute('maxlength', '200')
         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_have_attribute('maxlength', '200')
         filters = {'q': ['Seitensuppe'], 'ingredient': ['rüebli'], 'tag': [tag], 'archived': ['1']}
@@ -82,7 +82,7 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         expect(page.get_by_label('Zutat', exact=True)).to_have_value('')
         expect(page.get_by_label('Kennzeichnung', exact=True)).to_have_value('')
         expect(page.get_by_label('Archivierte einschliessen', exact=True)).not_to_be_checked()
-        form.locator('.admin-filter-more > summary').click()
+        form.locator('[data-semantic="view.filter"]').click()
         page.get_by_label('Kennzeichnung', exact=True).select_option(filter_catalog['tag'])
         page.get_by_label('Zutat', exact=True).fill('keine solche Zutat')
         page.get_by_role('button', name='Übernehmen', exact=True).click()
@@ -175,15 +175,19 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                     row_style = table.locator('tbody tr').first.evaluate('e => getComputedStyle(e).display')
                     assert row_style == ('grid' if width < 768 else 'table-row')
                 if name == 'rezepte':
-                    page.locator('.admin-filter-more > summary').click()
-                help_control = page.locator('.admin-hint > summary').first
-                help_control.focus()
-                expect(help_control).to_be_focused()
-                page.keyboard.press('Enter')
-                expect(help_control.locator('..')).to_have_attribute('open', '')
-                expect(page.locator('#' + help_control.get_attribute('aria-describedby'))).to_be_visible()
-                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                page.keyboard.press('Enter')
+                    page.locator('[data-semantic="view.filter"]').click()
+                    expect(page.locator('#text-hint')).to_be_visible()
+                    expect(page.locator('.admin-filter-dialog details')).to_have_count(0)
+                    page.locator('.admin-filter-dialog [data-read-detail-close]').click()
+                else:
+                    help_control = page.locator('.admin-hint > summary').first
+                    help_control.focus()
+                    expect(help_control).to_be_focused()
+                    page.keyboard.press('Enter')
+                    expect(help_control.locator('..')).to_have_attribute('open', '')
+                    expect(page.locator('#' + help_control.get_attribute('aria-describedby'))).to_be_visible()
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+                    page.keyboard.press('Enter')
                 if name == 'revisionen':
                     expected = page.locator('#recipe-freeze-form').evaluate('f => [...new FormData(f)]')
                     freeze = page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)

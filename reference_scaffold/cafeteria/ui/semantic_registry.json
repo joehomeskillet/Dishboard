@@ -935,6 +935,17 @@
     "role": "neutral"
   },
   {
+    "key": "ui.filter.count",
+    "category": "ui",
+    "ascii": "[n]",
+    "icon": "filter",
+    "label_key": "ui.filter.count.label",
+    "tooltip_key": "ui.filter.count.tooltip",
+    "aria_key": "ui.filter.count.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
     "key": "view.reset",
     "category": "view",
     "ascii": "[R]",

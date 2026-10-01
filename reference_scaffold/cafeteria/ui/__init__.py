@@ -6,6 +6,7 @@ import os
 from flask import Flask, current_app
 
 from .i18n import Translator, load_locales, translate
+from .filter_state import filter_chips
 from .semantics import Semantic, SemanticError, load_registry, validate_locales
 
 
@@ -43,7 +44,7 @@ def register_ui(app: Flask) -> None:
         locales, production=app.config.get('APP_ENV') == 'production' and not app.testing,
     )
     app.jinja_env.globals.update(t=translate, sem=sem, require_icon_only=require_icon_only,
-                                require_consequence=require_consequence)
+                                require_consequence=require_consequence, filter_chips=filter_chips)
 
     @app.context_processor
     def ui_locale_context():

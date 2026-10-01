@@ -662,7 +662,8 @@ def test_capture_pointer_target_sizes_and_overlaps(monkeypatch, tmp_path, browse
         assert (row['max_touch_points'] > 0) is (pointer == 'coarse')
         assert row['minimum_target_size'] == (44 if pointer else 36)
         assert row['screenshot_full_page'] is (pointer is None)
-        with Image.open(row['screenshot']) as screenshot:
+        # Capture stores paths inside the checkout relative to ROOT, not pytest's cwd.
+        with Image.open(ROOT / row['screenshot']) as screenshot:
             pixels = screenshot.convert('RGB')
             assert sum(pixels.getpixel((x, 321)) == (0, 0, 0) for x in range(50)) == (44 if pointer else 36)
             assert screenshot.width == row['viewport']['width']

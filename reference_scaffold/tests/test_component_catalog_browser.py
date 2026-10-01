@@ -277,9 +277,9 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     expect(page.locator('main')).to_have_attribute('data-active', '0')
     page.goto(list_path)
     assert page.locator(f'.component-row[data-public-id="{public_id}"]').count() == 0
-    page.locator('.admin-filter-more summary').click()
+    page.locator('[data-semantic="view.filter"]').click()
     page.locator('#f-status').select_option('all')
-    page.get_by_role('button', name='Suchen', exact=True).click()
+    page.get_by_role('button', name='Übernehmen', exact=True).click()
     row = page.locator(f'.component-row[data-public-id="{public_id}"]')
     expect(row).to_contain_text('Archiviert')
     expect(row.get_by_role('link', name=long_name, exact=True)).to_have_count(0)

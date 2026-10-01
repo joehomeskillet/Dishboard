@@ -144,7 +144,7 @@ def test_registry_source_schema_and_frozen_resolution():
     # BF-E1-F4 adds publish.unpublished; BF-E1-F1 adds status.unsaved.
     assert len(seeds) == 187
     # UC-G0 and DA/EH/BF share status.unsaved and publish.unpublished (deduplicated in the UC merge).
-    assert len(registry) == 250
+    assert len(registry) == 251
     assert registry['status.unsaved'].role == 'warning'
     assert not registry['status.unsaved'].icon_only_allowed
     for locale, expected in (('de', 'Nicht gespeichert'), ('en', 'Not saved')):
@@ -467,13 +467,15 @@ def test_c3_shared_filter_trigger_is_named_icon_with_optional_count(semantic_app
         html = render_template_string(
             "{% from 'ui/_semantic.html' import filter_trigger %}{{ filter_trigger('test-filter', count, true) }}",
             count=count)
-    summary = BeautifulSoup(html, 'html.parser').summary
+    doc = BeautifulSoup(html, 'html.parser')
+    summary = doc.select_one('[data-semantic="view.filter"]')
     assert summary['aria-label'] == 'Filter'
     assert summary['data-ui-tooltip'] == 'Filter'
     assert summary.select_one('use')['href'].endswith('#tabler-filter')
-    assert summary.select_one('.admin-filter-count').has_attr('hidden') == (count == 0)
+    assert doc.select_one('.admin-filter-count').has_attr('hidden') == (count == 0)
+    assert not summary.select('.admin-filter-count')
     assert summary.has_attr('aria-describedby') == bool(count)
-    assert summary.get_text(strip=True) == str(count)
+    assert not summary.get_text(strip=True)
 
 
 def test_registry_icons_in_sprite():
@@ -956,7 +958,8 @@ def test_p2c_filter_contract(semantic_app, macro, template, opened):
     assert doc.input['maxlength'] == '200' and doc.input['aria-describedby'] == 'search-help'
     assert doc.form['data-loading'] == '\"<>&'
     assert doc.form['action'] == '/search' and doc.form['method'] == 'get'
-    assert doc.details.has_attr('open') == opened
+    assert not doc.select('details.admin-filter-more')
+    assert not doc.dialog.has_attr('open')
 
 
 @pytest.mark.parametrize('locale', ['de', 'en'])
@@ -976,18 +979,19 @@ def test_wp2c_single_filter_entry_chips_and_context(semantic_app, locale):
     doc = BeautifulSoup(html, 'html.parser')
     trigger = doc.select_one('[data-semantic="view.filter"]')
     assert len(doc.select('[data-semantic="view.filter"]')) == 1
-    assert trigger.get_text(strip=True) == '2'
+    assert trigger.get_text(strip=True) == ''
+    assert doc.select_one('.admin-filter-count').get_text(strip=True) == '2'
     assert trigger.select_one('use')['href'].endswith('#tabler-filter')
     assert len(doc.select('.admin-filter-chips a')) == 2
     assert doc.select_one('[data-semantic="view.reset"]')['href'] == '/reset'
     assert doc.select_one('.admin-filter-profile').get_text(strip=True) == 'Patienten'
-    assert doc.select_one('.admin-filter-profile').find_parent('details') is None
+    assert doc.select_one('.admin-filter-profile').find_parent('dialog') is None
     assert doc.select_one('input[name="text"]')['value'] == 'Soup'
     assert doc.select_one('.admin-filter-slots input[name="archived"]')['value'] == '1'
     for control in doc.select('[data-semantic="view.search"], [data-semantic="view.reset"], [data-semantic="actions.apply"]'):
         assert not control.get_text(strip=True)
     clean = BeautifulSoup(empty, 'html.parser')
-    assert not clean.select('.admin-filter-more, .admin-filter-chips, [data-semantic="view.reset"]')
+    assert not clean.select('.admin-filter-dialog, .admin-filter-chips, [data-semantic="view.reset"]')
 
 
 @pytest.mark.parametrize('locale,more_name', [('de', 'Aktionen für Broccoli'), ('en', 'Actions for Broccoli')])
@@ -1023,7 +1027,7 @@ def test_wp2c_chip_names_are_text_even_for_markup(semantic_app):
     doc = BeautifulSoup(html, 'html.parser')
     assert not doc.select('img, script')
     assert doc.select_one('.admin-filter-chip').get_text(strip=True) == str(name)
-    assert doc.select_one('.admin-filter-chip')['aria-label'].startswith(str(name))
+    assert doc.select_one('.admin-filter-chip a')['aria-label'].startswith(str(name))
 
 
 @pytest.mark.parametrize('locale,more,details', [

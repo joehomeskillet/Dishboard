@@ -195,7 +195,7 @@ def test_c3_labels_have_no_one_sided_border_or_clipped_content(width, tmp_path):
         {{ label('Beilage', 'category') }}{{ label('Prüfung offen', 'warning') }}
         {{ label('Aktiv', 'active', icon='circle-check') }}
         {{ page_header('Status', status_items=[{'label':'Prüfung', 'value':1, 'variant':'warning'}]) }}
-        <details class="admin-filter-more">{{ filter_trigger(count=2) }}Filterinhalt</details>
+        {{ filter_trigger(count=2) }}
         {% call disclosure_section('Weitere Optionen') %}Zusatzangaben{% endcall %}
         {{ hint('Diese Hilfe hat Inhalt.', 'help') }}{{ hint('', 'empty-help') }}
         {{ form_footer({'label':'Speichern', 'name':'intent', 'value':'save'}, '#cancel') }}'''
@@ -358,9 +358,9 @@ def test_wp2c_filter_chips_remove_one_value_and_keep_other_fields():
     def verify(page):
         expect(page.locator('[data-semantic="view.filter"]')).to_have_count(1)
         expect(page.locator('.admin-filter-count')).to_have_text('2')
-        expect(page.locator('.admin-filter-chips button')).to_have_count(2)
+        expect(page.locator('.admin-filter-chips a')).to_have_count(2)
         with page.expect_navigation():
-            page.get_by_role('button', name='Archiviert: Zurücksetzen', exact=True).click()
+            page.get_by_role('link', name='Archiviert: Zurücksetzen', exact=True).click()
         assert parse_qs(urlsplit(page.url).query) == {'q': ['Reis'], 'kind': ['soup'], 'revision': ['keep']}
 
     _run_polish_check(markup, verify)
@@ -597,6 +597,9 @@ def test_shared_patterns_semantics_reflow_focus_and_targets(shared_site, javascr
             assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
             if summary.locator('..').get_attribute('open') is None:
                 page.keyboard.press('Enter')
+        # UI-DELTA §0.1: inspect filter controls and glyphs in their open dialog.
+        page.locator('[data-semantic="view.filter"]').click()
+        expect(page.locator('.admin-filter-dialog')).to_be_visible()
         targets = page.locator('main :is(button, a.btn, select, input:not([type="hidden"]), summary)').all()
         for target in targets:
             if not target.is_visible():
@@ -611,6 +614,7 @@ def test_shared_patterns_semantics_reflow_focus_and_targets(shared_site, javascr
         for glyph in page.locator('main svg use').all():
             assert glyph.evaluate('el => el.getBBox().width > 0'), glyph.get_attribute('href')
         page.screenshot(path=str(tmp_path / f'shared-{width}-{javascript}.png'), full_page=True)
+        page.locator('.admin-filter-dialog [data-read-detail-close]').click()
         page.set_viewport_size({'width': width, 'height': 450})
         expect(page.locator('.admin-form-footer')).to_have_css('position', 'static')
         page.get_by_label('Notiz', exact=True).focus()
@@ -625,7 +629,7 @@ def test_filter_get_parameters_and_disclosure_content(shared_site):
         expect(page.locator('#optional')).to_have_attribute('open', '')
         expect(page.locator('#optional summary')).to_contain_text('enthält Angaben')
         # The rendered search value is active even when the legacy flag is false.
-        expect(page.locator('[data-semantic="view.reset"]')).to_have_count(1)
+        expect(page.locator('form > [data-semantic="view.reset"]')).to_have_count(1)
         with page.expect_navigation():
             page.get_by_role('searchbox').press('Enter')
         assert parse_qs(urlsplit(page.url).query) == {'query': ['Reis'], 'category': ['soup'], 'source': ['Küche']}

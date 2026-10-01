@@ -43,11 +43,11 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     params = {'q': 'Filterprobe', 'category': 'side', 'usage': 'used', 'allergen': 'GLUTEN',
               'presence': 'contains', 'label': 'VEGAN', 'origin': 'CH', 'status': 'active'}
     form.get_by_role('searchbox', name='Suchen', exact=True).fill(params['q'])
-    page.locator('.admin-filter-more summary').click()
+    page.locator('[data-semantic="view.filter"]').click()
     for key, value in params.items():
         if key != 'q':
             form.locator(f'[name="{key}"]').select_option(value)
-    form.get_by_role('button', name='Suchen', exact=True).click()
+    form.get_by_role('button', name='Übernehmen', exact=True).click()
     expect(page.locator('#component-result-count')).to_contain_text('1 Treffer')
     expect(page.locator('.component-row')).to_have_count(1)
     expect(page.locator('.component-row')).to_have_attribute('data-public-id', str(match['public_id']))
@@ -57,23 +57,30 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     for key, value in params.items():
         expect(form.locator(f'[name="{key}"]')).to_have_value(value)
     expect(form.locator('#f-origin option:checked')).to_have_text('Schweiz')
-    page.locator('.admin-filter-more summary').click()
     summary = page.locator('.admin-filter-chips')
     expect(summary).to_contain_text('Verwendet')
     expect(summary).to_contain_text('Enthält')
     expect(summary).to_contain_text('Schweiz')
     expect(summary).to_be_visible()
     expect(form.get_by_role('link', name='Zurücksetzen', exact=True)).to_be_visible()
-    page.locator('.admin-filter-more summary').press('Enter')
+    page.locator('[data-semantic="view.filter"]').press('Enter')
     expect(form.locator('#f-allergen')).to_have_value('GLUTEN')
     _assert_component_controls_fit(page)
+    # Dialog fields must fit their selected value, independent of viewport grid classes.
+    for selector in ('#f-cat', '#f-allergen'):
+        assert form.locator(selector).evaluate('''select => {
+            const style = getComputedStyle(select);
+            const canvas = document.createElement('canvas').getContext('2d');
+            canvas.font = style.font;
+            return canvas.measureText(select.selectedOptions[0].textContent.trim()).width <=
+                select.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) + 1;
+        }''')
     page.screenshot(path=str(tmp_path / f'component-filters-{family}-{width}.png'), full_page=True)
 
     form.locator('#f-origin').select_option('DE')
-    form.get_by_role('button', name='Suchen', exact=True).click()
+    form.get_by_role('button', name='Übernehmen', exact=True).click()
     expect(page.locator('#component-result-count')).to_contain_text('0 Treffer')
     expect(page.get_by_text('Keine Bausteine passen zu diesen Filtern.', exact=True)).to_be_visible()
-    page.locator('.admin-filter-more summary').click()
     expect(summary).to_contain_text('Deutschland')
     expect(summary).to_be_visible()
     form.get_by_role('link', name='Zurücksetzen', exact=True).click()
@@ -82,21 +89,20 @@ def test_filter_controls_combine_reset_and_keep_exact_results(request, family, p
     expect(form.locator('#component-search')).to_have_value('')
     expect(form.locator('#f-status')).to_have_value('active')
 
-    page.locator('.admin-filter-more summary').click()
+    page.locator('[data-semantic="view.filter"]').click()
     form.locator('#f-allergen').select_option('unknown')
     form.locator('#f-origin').select_option('unknown')
-    form.get_by_role('button', name='Suchen', exact=True).click()
+    form.get_by_role('button', name='Übernehmen', exact=True).click()
     expect(page.locator('#component-result-count')).to_contain_text('1 Treffer')
     expect(page.locator('.component-row')).to_contain_text('Filterprobe Unbekannt')
     expect(form.locator('#f-origin option:checked')).to_have_text('Nicht erfasst')
     expect(page.locator('#component-allergen-filter-hint')).to_contain_text('keine bestätigte Allergenfreiheit')
-    page.locator('.admin-filter-more summary').click()
     expect(summary).to_contain_text('Nicht erfasst')
     expect(summary).to_be_visible()
     form.get_by_role('link', name='Zurücksetzen', exact=True).click()
-    page.locator('.admin-filter-more summary').click()
+    page.locator('[data-semantic="view.filter"]').click()
     form.locator('#f-status').select_option('archived')
-    form.get_by_role('button', name='Suchen', exact=True).click()
+    form.get_by_role('button', name='Übernehmen', exact=True).click()
     expect(page.locator('#component-result-count')).to_contain_text('1 Treffer')
     expect(page.locator('.component-row')).to_have_attribute('data-active', '0')
     expect(page.locator('.component-row')).to_contain_text('Filterprobe Archiviert')

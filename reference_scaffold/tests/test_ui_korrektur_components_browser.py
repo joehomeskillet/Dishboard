@@ -310,10 +310,10 @@ def test_create_edit_archive_payloads_unchanged(
         assert saved_payload['row_version']
 
         page.goto(list_path)
-        page.locator('.admin-filter-more summary').click()
+        page.locator('[data-semantic="view.filter"]').click()
         page.locator('#f-status').select_option('all')
         with page.expect_request(lambda request: request.method == 'GET' and 'status=all' in request.url) as filtered:
-            page.get_by_role('button', name='Suchen', exact=True).click()
+            page.get_by_role('button', name='Übernehmen', exact=True).click()
         query = parse_qs(urlsplit(filtered.value.url).query, keep_blank_values=True)
         assert set(query) == {'q', 'category', 'status', 'usage', 'allergen', 'presence', 'label', 'origin'}
         assert query['status'] == ['all']

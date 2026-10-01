@@ -61,49 +61,9 @@
         Array.from(menu.querySelectorAll('.ui-sem-action-items :is(a[href], button):not(:disabled)'))
             .find(control => control.getClientRects().length && !control.closest('[hidden], [inert]'))?.focus();
     }, true);
-    // Legacy HTML filter slots gain chips from their rendered successful controls.
-    // Explicit chips remain server-owned and work without JavaScript.
-    document.querySelectorAll('.admin-filter-bar[data-filter-remove-label]').forEach(form => {
-        if (form.querySelector('[data-filter-chips="explicit"]')) return;
-        const panel = form.querySelector('.admin-filter-slots');
-        if (!panel) return;
-        const selected = Array.from(panel.querySelectorAll('input[name], select[name]')).filter(control => {
-            if (control.disabled || ['hidden', 'submit', 'button'].includes(control.type)) return false;
-            if (['checkbox', 'radio'].includes(control.type)) return control.checked;
-            if (control.tagName === 'SELECT') return control.selectedIndex > 0;
-            return control.value.trim() !== '';
-        });
-        const count = form.querySelector('.admin-filter-count');
-        if (count && !count.hasAttribute('data-filter-count-explicit')) {
-            count.textContent = selected.length;
-            count.hidden = !selected.length;
-            if (selected.length) count.parentElement.setAttribute('aria-describedby', count.id);
-        }
-        if (!selected.length) return;
-        const chips = document.createElement('div');
-        chips.className = 'admin-filter-chips';
-        selected.forEach(control => {
-            const chip = document.createElement('button');
-            chip.type = 'button';
-            chip.className = 'btn admin-filter-chip';
-            const label = control.tagName === 'SELECT' ? control.selectedOptions[0].textContent
-                : ['checkbox', 'radio'].includes(control.type) ? control.labels?.[0]?.textContent : control.value;
-            chip.textContent = (label || control.name).trim();
-            chip.setAttribute('aria-label', chip.textContent + ': ' + form.dataset.filterRemoveLabel);
-            const removeIcon = form.querySelector('[data-filter-chip-icon]');
-            if (removeIcon) chip.append(removeIcon.content.cloneNode(true));
-            chip.addEventListener('click', () => {
-                if (['checkbox', 'radio'].includes(control.type)) control.checked = false;
-                else if (control.tagName === 'SELECT') control.selectedIndex = 0;
-                else control.value = '';
-                form.requestSubmit();
-            });
-            chips.append(chip);
-        });
-        form.append(chips);
-    });
+    // Filter chips are server-rendered, including legacy slots: no late list shift.
 
-    // Shared read-only modal. Anchor/:target is the non-expanding No-JS path.
+    // Shared read/filter modal. Anchor/:target is the non-expanding No-JS path.
     document.querySelectorAll('[data-read-detail]').forEach(trigger => {
         const dialog = document.getElementById(trigger.dataset.readDetail);
         if (!dialog?.matches('dialog.ui-read-detail') || typeof dialog.showModal !== 'function') return;
@@ -118,6 +78,12 @@
             dialog.querySelector('.ui-read-detail-content').scrollTop = 0;
             window.scrollTo(x, y);
             dialog.addEventListener('close', () => {
+                // Native close may focus the opener before this event. Dismiss
+                // its tooltip so it cannot cover another opener for this dialog.
+                escapeFocus.add(trigger);
+                const tip = actionTooltip(trigger);
+                if (tip) tip.dataset.dismissed = 'true';
+                window.tabler?.Tooltip.getInstance(trigger)?.hide();
                 trigger.focus({preventScroll: true});
                 window.scrollTo(x, y);
             }, {once: true});
@@ -258,7 +224,7 @@
     }, true);
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
-        const menu = event.target.closest('.ui-sem-actions[open], .admin-filter-more[open]');
+        const menu = event.target.closest('.ui-sem-actions[open]');
         if (!menu) return;
         menu.open = false;
         focusAfterEscape(menu.querySelector(':scope > summary'));

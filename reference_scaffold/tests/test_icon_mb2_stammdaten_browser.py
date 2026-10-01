@@ -32,7 +32,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                 page.on('dialog', lambda dialog: dialog.accept())
                 for family in ('cafeteria', 'patienten'):
                     page.goto(f'/admin/{family}/komponenten')
-                    expect(page.locator('.admin-filter-more')).to_have_count(1)
+                    expect(page.locator('.admin-filter-dialog')).to_have_count(1)
                     expect(page.locator('#f-cat')).to_be_hidden()
                     expect(page.locator('#f-status')).to_be_hidden()
                     expect(page.locator('#create-component > summary')).to_be_hidden()
@@ -57,9 +57,10 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                         page.locator('.component-secondary-actions form [data-semantic="actions.activate"]').click()
                     assert response.value.status == 303
                     page.goto(f'/admin/{family}/komponenten')
-                    page.locator('.admin-filter-more summary').click()
+                    page.locator('[data-semantic="view.filter"]').click()
                     expect(page.locator('#f-cat')).to_be_visible()
                     expect(page.locator('#f-status')).to_be_visible()
+                    page.locator('.admin-filter-dialog [data-read-detail-close]').click()
                     page.locator('.page-header [data-semantic="actions.add"]').click()
                     expect(page.locator('#c-name')).to_be_visible()
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')

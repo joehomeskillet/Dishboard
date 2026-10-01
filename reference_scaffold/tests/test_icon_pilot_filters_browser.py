@@ -93,30 +93,31 @@ def test_recipe_shared_filters_keep_queries_paging_and_role_actions(
         expect(form.locator('input[name="text"]')).to_have_attribute('id', 'text')
         expect(form.locator('input[name="text"]')).to_have_attribute('aria-describedby', 'text-hint')
         expect(form.locator('input[name="text"]')).to_have_attribute('maxlength', '200')
-        trigger = form.locator('.admin-filter-more > summary')
+        trigger = form.locator('[data-semantic="view.filter"]')
         expect(trigger).to_have_count(1)
         expect(trigger).to_have_attribute('data-semantic', 'view.filter')
         expect(trigger).to_have_text('', use_inner_text=True)
-        expect(trigger.locator('.admin-filter-count')).to_be_hidden()
+        expect(form.locator('.admin-filter-count')).to_be_hidden()
         expect(form.locator('button[data-semantic="view.filter"]')).to_have_count(0)
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('.page-header [data-semantic="actions.add"]')).to_have_count(0 if readonly else 1)
         if readonly:
             expect(form.locator('.btn-primary')).to_have_attribute('data-semantic', 'view.search')
             expect(page.locator('.recipe-row [data-semantic="actions.edit"]')).to_have_count(0)
+        form.locator('[name="text"]').fill('Seitensuppe')
         trigger.focus()
         expect(trigger).to_be_focused()
         page.keyboard.press('Enter')
         params = {'text': 'Seitensuppe', 'q': 'Seitensuppe', 'ingredient': 'rüebli',
                   'tag': tag, 'archived': '1'}
-        for name in ('text', 'q', 'ingredient'):
+        for name in ('q', 'ingredient'):
             form.locator(f'[name="{name}"]').fill(params[name])
         form.locator('[name="tag"]').select_option(tag)
         form.locator('[name="archived"]').check()
         form.get_by_role('button', name='Übernehmen', exact=True).press('Enter')
         expect(page.locator('.recipe-row')).to_have_count(50)
         assert parse_qs(urlsplit(page.url).query) == {key: [value] for key, value in params.items()}
-        expect(form.locator('.admin-filter-more')).to_have_attribute('open', '')
+        expect(form.locator('.admin-filter-dialog')).not_to_be_visible()
         drafts = page.locator('.recipe-row [data-semantic="publish.draft"]')
         expect(drafts).to_have_count(50)
         expect(drafts).to_have_text(['Entwurf'] * 50)
