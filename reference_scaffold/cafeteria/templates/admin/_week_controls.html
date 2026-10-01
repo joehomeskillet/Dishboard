@@ -116,10 +116,10 @@
 
 {% if can_publish %}
 <noscript>
-  {% call disclosure_section(title='Veröffentlichung bestätigen', details_class='admin-week-nojs-publish') %}
+  <section class="admin-week-nojs-publish" aria-label="Veröffentlichung bestätigen">
     <p>Gespeicherte Woche: KW {{ iso_week }} · {{ title }}. Bitte prüfen, ob alle Angaben korrekt sind.</p>
-    {{ icon_button('actions.publish', form='week-publish-form', aria_label=publish_label, text='Veröffentlichen', show_text=true, emphasis='secondary', attrs={'disabled': publish_blocked, 'aria-describedby': 'week-publish-guidance' if publish_blocked else none}) }}
-  {% endcall %}
+    {{ icon_button('actions.publish', form='week-publish-form', aria_label=publish_label, text='Veröffentlichen', mode='text', emphasis='secondary', attrs={'disabled': publish_blocked, 'aria-describedby': 'week-publish-guidance' if publish_blocked else none}) }}
+  </section>
 </noscript>
 
 <div class="modal modal-blur fade" id="week-publish-modal" tabindex="-1" aria-labelledby="week-publish-title" aria-hidden="true">
@@ -130,7 +130,6 @@
       <input type="hidden" name="row_version" value="{{ week_row_version }}">
       <div class="modal-header">
         <h5 class="modal-title" id="week-publish-title">Woche veröffentlichen</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schliessen"></button>
       </div>
       <div class="modal-body">
         <p>Bitte prüfen, ob alle Angaben korrekt sind.</p>
@@ -144,8 +143,8 @@
         </ul>
       </div>
       <div class="modal-footer">
-        {{ icon_button('actions.cancel', type='button', attrs={'data-bs-dismiss': 'modal'}) }}
-        {{ icon_button('actions.publish', aria_label=publish_label, text='Veröffentlichen', show_text=true, emphasis='secondary', attrs={'disabled': publish_blocked}) }}
+        {{ icon_button('actions.cancel', type='button', mode='text', attrs={'data-bs-dismiss': 'modal'}) }}
+        {{ icon_button('actions.publish', aria_label=publish_label, text='Veröffentlichen', mode='text', emphasis='secondary', attrs={'disabled': publish_blocked}) }}
       </div>
     </form>
   </div>

@@ -150,10 +150,8 @@ def test_wp21_nojs_publish_keeps_exact_payload(admin_app, admin_engine, live_ser
         page.goto(f'/admin/{family}?week={DAY}')
         form = page.locator('#week-publish-form')
         before = dict(form.locator('input[name]').evaluate_all('els => els.map(e => [e.name, e.value])'))
-        summary = page.locator('.admin-week-nojs-publish > summary')
-        summary.focus()
-        page.keyboard.press('Enter')
-        page.keyboard.press('Tab')
+        expect(page.locator('.admin-week-nojs-publish summary')).to_have_count(0)
+        page.locator('.admin-week-nojs-publish button').focus()
         expect(page.locator('.admin-week-nojs-publish button')).to_be_focused()
         with page.expect_response(lambda response: response.request.method == 'POST') as published:
             page.keyboard.press('Enter')
@@ -577,7 +575,7 @@ def test_publish_guidance_correction_review_and_publish(
             expect(page.locator('#week-publish-modal')).to_be_visible()
             confirm = publish_form.get_by_role('button', name=re.compile('Veröffentlichen'))
         else:
-            page.locator('.admin-week-nojs-publish > summary').click()
+            expect(page.locator('.admin-week-nojs-publish summary')).to_have_count(0)
             confirm = page.locator('.admin-week-nojs-publish button')
         published = submit(confirm, f'/admin/{family}/publish')
         assert published == {key: [value] for key, value in expected_publish.items()}

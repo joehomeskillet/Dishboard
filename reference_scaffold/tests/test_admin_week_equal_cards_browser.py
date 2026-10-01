@@ -105,7 +105,8 @@ def test_week_patterns_keep_empty_and_filled_slots_actionable(
             expect(details).not_to_have_attribute('open', '')
         if not javascript:
             fallback = page.locator('.admin-week-nojs-publish')
-            fallback.locator('summary').click()
+            expect(fallback.locator('summary')).to_have_count(0)
+            expect(fallback).to_be_visible()
             expect(fallback.locator('button')).to_have_attribute('form', 'week-publish-form')
             page.screenshot(path=str(evidence / f'{name}-publish-open.png'))
         with admin_app.test_request_context():

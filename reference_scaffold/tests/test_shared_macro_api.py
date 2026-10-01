@@ -101,10 +101,11 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    assert len(calls) == 74, 'Review compatibility inventory when consumers change'
+    # UI-DELTA §0.1: weekend hint and native publication fallback are static.
+    assert len(calls) == 72, 'Review compatibility inventory when consumers change'
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
-    assert len(extended) == 10
+    assert len(extended) == 9
     assert {path.name for path, _ in extended} == {
         '_course_editor.html', '_course_recipe_search.html', '_week_check_summary.html',
         '_week_controls.html', '_week_menu_card.html', '_week_service.html', '_week_settings.html',

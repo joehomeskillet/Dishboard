@@ -28,6 +28,12 @@ Fachliche Informationen, notwendige Warnungen, Berechtigungen und Schutzschritte
 
 ### DELTA-2: exklusive Renderer und Lesedetails (2026-10-01)
 
+DELTA-3-03 (Wochenplanung): Wochenendhinweise stehen statisch in der Inhaltszone.
+Die No-JS-Veröffentlichungsbestätigung ist ein statischer Abschnitt; im Dialog
+bleiben die Textaktionen «Abbrechen» und «Veröffentlichen». Das zusätzliche
+Schliesskreuz und der doppelte Erste-Slot-Zugang entfallen. Prüfdetailmigration
+D-15/D-16 bleibt bis zum gemeinsamen Dialogvertrag für Sprunglinks offen.
+
 **Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
 Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere
 sind die Inline-Aufklapper in R06/R12/R17/R19/R21/R34, M03/M04/M19/M25/M55/M57
