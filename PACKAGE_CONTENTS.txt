@@ -1461,6 +1461,7 @@ reference_scaffold/tests/test_eh_http_contract.py
 reference_scaffold/tests/test_eh_integration_browser.py
 reference_scaffold/tests/test_eh_pages_browser.py
 reference_scaffold/tests/test_eh_return_target.py
+reference_scaffold/tests/test_favicon.py
 reference_scaffold/tests/test_fhir_mapping.py
 reference_scaffold/tests/test_fhir_routes.py
 reference_scaffold/tests/test_food_legends_admin.py

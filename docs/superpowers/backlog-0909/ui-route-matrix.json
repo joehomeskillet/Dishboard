@@ -11069,7 +11069,7 @@
       "kind": "page",
       "extends": [],
       "includes": [],
-      "sha256": "8f609ba8702d4b6935174bf7981c19239720bdd8b45eb43b20f352bedf4e649d",
+      "sha256": "4d2a374d498ae61f0ca418834ac05a131967b1f7b5256b0a36581df33c147487",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -11515,7 +11515,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "8d397455bb026c05a2cc8c2357bea97b74a4b1b6a16eeae4cd148553c8dde890",
+      "sha256": "ac87719e8435d812b5ec96f729c04bb9e8306e604a004c16adb17a510c6298d1",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"
@@ -11535,7 +11535,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "5937fcb6670a6d45f790d07ffd38e731cddd0e387804adf4b99cdb5896141da8",
+      "sha256": "c3a635dbfd7b4d6a63955d3fba39c69fe7e4f107e265f1d1dda7a9885923e8c6",
       "used_by_endpoints": [
         "admin.recipe_print_template_editor"
       ],
@@ -11794,7 +11794,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "dd3d67c714f7fb38244badd5e69ed3862a2679a2656657b8e60bcc29d2f04f7c",
+      "sha256": "670cf85d99ba712f97aa24c77486ace13ff1f5a76fb997f53a89017cd8dd9ec3",
       "used_by_endpoints": [
         "admin.screen_template_assignment",
         "public.cafeteria_week",
@@ -12009,7 +12009,7 @@
       "includes": [
         "errors/_card.html"
       ],
-      "sha256": "61b8b15ace9ad6f83b25ded49aa7e24ae5e55d93f069a99f293bfcd9c489f9e4",
+      "sha256": "df663c8b820ba0d1db3ab8f7396386b4dc19074c5a359de9025074389baeb922",
       "used_by_endpoints": [
         "auth.callback",
         "auth.local_login",
