@@ -17,12 +17,12 @@
 {% set context = review.context %}
 {% if review.receipt %}
 <div class="alert alert-success d-block text-break py-2" role="status">
-  <p class="mb-1">{{ label('Geprüft', 'success', status='success') }} Wochenkopf und Ausgabeangaben für diesen gespeicherten Stand.</p>
+  <p class="mb-1">{{ status_badge_sem('review.approved', text='Geprüft', status='success') }} Wochenkopf und Ausgabeangaben für diesen gespeicherten Stand.</p>
   <p class="mb-0">Dieser Stand wurde von {{ review.receipt.actor_name }} am {{ review.receipt.occurred_at|datetime_short }} geprüft.</p>
 </div>
 {% else %}
 <div class="alert alert-warning d-block py-2">
-  <p class="mb-1">{{ label('Noch zu prüfen', 'warning', status='review_open') }}</p>
+  <p class="mb-1">{{ status_badge_sem('review.pending', text='Noch zu prüfen', status='review_open') }}</p>
   <p class="mb-0">Für den gespeicherten Wochenkopf und seine Ausgabeangaben liegt keine gültige Prüfung vor. Nach Änderungen ist eine erneute Prüfung erforderlich.</p>
 </div>
 {% endif %}
@@ -59,7 +59,7 @@
   {% endfor %}
 </div>
 {% else %}
-{{ empty_state('none', 'Noch keine Ausgabeangaben gespeichert.', 'Später ergänzte Ausgabeangaben müssen erneut geprüft werden.') }}
+{{ empty_state('none', 'Noch keine Ausgabeangaben gespeichert.', 'Später ergänzte Ausgabeangaben müssen erneut geprüft werden.', compact=true) }}
 {% endif %}
 {% if not review.receipt and can_write %}
 <form id="week-review-form" method="post" action="{{ url_for('admin.week_review_post', family=family) }}" class="mb-3" data-loading>

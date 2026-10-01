@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, label %}
+{% from 'admin/_macros.html' import page_header, icon, label, segment_switch %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'calendar' %}
 {% set layout_variant = 'calendar' %}
@@ -38,11 +38,11 @@
     {{ icon_button('time.today', href=url_for('admin.kitchen_calendar', year=today.year, month=today.month, profiles=profiles), text='Heute') }}
     {% endif %}
   </div>
-  <div class="kitchen-cal-filters" role="group" aria-label="Bereich filtern">
-    <a class="btn{% if profiles == 'both' %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='both') }}"{% if profiles == 'both' %} aria-current="true"{% endif %}>{% if profiles == 'both' %}{{ icon('check') }}{% endif %}Beide</a>
-    <a class="btn{% if profiles == 'cafeteria' %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='cafeteria') }}"{% if profiles == 'cafeteria' %} aria-current="true"{% endif %}>{% if profiles == 'cafeteria' %}{{ icon('check') }}{% endif %}Cafeteria</a>
-    <a class="btn{% if profiles == 'patient' %} active{% endif %}" href="{{ url_for('admin.kitchen_calendar', year=year, month=month, profiles='patient') }}"{% if profiles == 'patient' %} aria-current="true"{% endif %}>{% if profiles == 'patient' %}{{ icon('check') }}{% endif %}Patienten</a>
-  </div>
+  {{ segment_switch([
+    {'key': 'both', 'label': 'Beide', 'href': url_for('admin.kitchen_calendar', year=year, month=month, profiles='both')},
+    {'key': 'cafeteria', 'label': 'Cafeteria', 'href': url_for('admin.kitchen_calendar', year=year, month=month, profiles='cafeteria')},
+    {'key': 'patient', 'label': 'Patienten', 'href': url_for('admin.kitchen_calendar', year=year, month=month, profiles='patient')}
+  ], profiles, label='Bereich filtern', class='kitchen-cal-filters') }}
   {% if can_write %}
   {{ icon_button('actions.add', href=url_for('admin.kitchen_event_new', date=jump_value + '-01'), object='Anlass') }}
   {% endif %}

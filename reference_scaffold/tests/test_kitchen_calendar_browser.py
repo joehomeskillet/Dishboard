@@ -289,7 +289,7 @@ def test_single_primary_and_active_filter(
     page, context = _open_calendar(browser, live_server, admin_app, admin_engine, width=1440, height=900)
     try:
         assert page.locator('main .btn-primary').count() == 1
-        active = page.locator('.kitchen-cal-filters .btn.active[aria-current="true"]')
+        active = page.locator('.kitchen-cal-filters .nav-link.active[aria-current="page"]')
         assert active.count() == 1
         assert 'Beide' in (active.inner_text() or '')
     finally:
@@ -396,7 +396,7 @@ def test_calendar_today_range_and_native_overflow(
         expect(page.locator('#calendar-jump')).to_have_value('2026-09')
         today_action = page.locator('.kitchen-cal-month-nav a[aria-label="Heute"]')
         expect(today_action).to_have_attribute('aria-current', 'true')
-        expect(page.locator('.kitchen-cal-filters [aria-current="true"]')).to_have_text('Beide')
+        expect(page.locator('.kitchen-cal-filters [aria-current="page"]')).to_have_text('Beide')
         if width == 1440:
             expect(grid).to_be_visible()
             expect(agenda).to_be_hidden()
@@ -450,7 +450,7 @@ def test_calendar_today_range_and_native_overflow(
         response = page.goto(CALENDAR_URL)
         assert response.status == 200
         follow(page.locator('.kitchen-cal-filters a').filter(has_text='Cafeteria'))
-        expect(page.locator('.kitchen-cal-filters [aria-current="true"]')).to_have_text('Cafeteria')
+        expect(page.locator('.kitchen-cal-filters [aria-current="page"]')).to_have_text('Cafeteria')
         expect(page.locator('#calendar-jump')).to_have_value('2026-09')
         expect(today_action).to_have_attribute('aria-current', 'true')
         capture('independent-profile-selection')
@@ -466,7 +466,7 @@ def test_calendar_today_range_and_native_overflow(
             capture('adjacent-month-day')
         follow(today_action)
         expect(page.locator('#calendar-jump')).to_have_value('2026-09')
-        expect(page.locator('.kitchen-cal-filters [aria-current="true"]')).to_have_text('Cafeteria')
+        expect(page.locator('.kitchen-cal-filters [aria-current="page"]')).to_have_text('Cafeteria')
         expect(today_action).to_have_attribute('aria-current', 'true')
         assert posts == []
     finally:

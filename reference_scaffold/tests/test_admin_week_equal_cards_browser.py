@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 import json
+import os
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
-from flask import Flask
+from flask import Flask, url_for
 from playwright.sync_api import Browser, Page, expect
 from sqlalchemy import Engine
 
@@ -18,6 +19,94 @@ from cafeteria.menu_images import CATALOG
 from test_admin_screens_preview_browser import _capture_card_visuals
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
+
+
+@pytest.mark.parametrize('family,profile,total', [
+    ('cafeteria', 'staff_guest', 2), ('patienten', 'patient', 4),
+])
+@pytest.mark.parametrize('width,height,touch', [(1440, 900, False), (390, 844, True)])
+@pytest.mark.parametrize('javascript', [True, False])
+def test_week_patterns_keep_empty_and_filled_slots_actionable(
+    browser, live_server, admin_app, admin_engine, tmp_path,  # noqa: F811
+    family, profile, total, width, height, touch, javascript,
+):
+    """Both profiles keep the day context and right-aligned planning actions."""
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    cookie = client.get_cookie('session')
+    evidence = Path(os.environ.get('UC_WEEK_EVIDENCE_DIR', tmp_path))
+    evidence.mkdir(parents=True, exist_ok=True)
+    name = f'{family}-{width}-{"coarse" if touch else "fine"}-js{int(javascript)}'
+    metrics = {}
+    with browser.new_context(
+        base_url=live_server, viewport={'width': width, 'height': height},
+        has_touch=touch, java_script_enabled=javascript, reduced_motion='reduce',
+    ) as context:
+        context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        for state in ('empty', 'filled'):
+            if state == 'filled':
+                _save(admin_engine, profile, _staff_values() if total == 2 else _patient_values())
+            assert page.goto(f'/admin/{family}?week={DAY}').status == 200
+            assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
+            page.evaluate('document.fonts.ready')
+            metrics[state] = page.evaluate('''() => {
+                const day = document.querySelector('.admin-day-card, .patient-admin-day');
+                const box = element => {
+                    const r = element.getBoundingClientRect();
+                    return {x: r.x, y: r.y, width: r.width, height: r.height, right: r.right};
+                };
+                return {
+                    coarse: matchMedia('(pointer: coarse), (any-pointer: coarse)').matches,
+                    overflow: document.documentElement.scrollWidth > innerWidth + 1,
+                    day: box(day), head: box(day.querySelector('.admin-week-day-head')),
+                    empty: !!document.querySelector('.empty--compact'),
+                    slots: [...day.querySelectorAll('.menu-slot')].map(box),
+                    actions: [...day.querySelectorAll('.admin-week-card-action')].map(box),
+                    courses: [...day.querySelectorAll('.admin-week-course-line')].map(element => ({
+                        line: box(element), action: box(element.querySelector('a')),
+                    })),
+                };
+            }''')
+            page.screenshot(path=str(evidence / f'{name}-{state}.png'))
+            page.locator('.admin-day-card, .patient-admin-day').first.scroll_into_view_if_needed()
+            page.screenshot(path=str(evidence / f'{name}-{state}-day.png'))
+            assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
+        (evidence / f'{name}-metrics.json').write_text(json.dumps(metrics, indent=2) + '\n')
+        editor_url = page.locator('.admin-week-card-action a').first.get_attribute('href')
+        with admin_app.test_request_context():
+            event_url = url_for('admin.kitchen_event_new', date=DAY)
+        # Same fixture and viewport also document the neighbouring G0 migrations.
+        for route_name, route in (
+            ('weeks', f'/admin/{family}/wochen'),
+            ('review', f'/admin/{family}/wochen/pruefung?week={DAY}'),
+            ('calendar', '/admin/kuechenkalender?jump=2026-09'),
+            ('event', event_url),
+            ('menu', editor_url),
+        ):
+            assert page.goto(route).status == 200
+            assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
+            page.evaluate('document.fonts.ready')
+            page.screenshot(path=str(evidence / f'{name}-{route_name}.png'))
+            assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
+        assert page.goto(f'/admin/{family}?week={DAY}').status == 200
+        assert metrics['empty']['empty'], 'Both profiles need the compact first-slot empty state'
+        for state_metrics in metrics.values():
+            assert not state_metrics['overflow'], state_metrics
+            for index, course in enumerate(state_metrics['courses']):
+                assert abs(course['line']['right'] - course['action']['right']) <= 1, course
+                menu_actions = state_metrics['actions'][index]
+                assert abs(course['action']['right'] - menu_actions['right']) <= 1, (course, menu_actions)
+        day = page.locator('article.admin-day-card').first
+        expect(day.locator('.admin-week-day-count')).to_have_text(f'{total} von {total} Menükarten erfasst')
+        expect(day.locator('.menu-slot')).to_have_count(total)
+        expect(day.locator('[data-semantic="status.unsaved"]')).to_have_count(0)
+        first_action = day.locator('.admin-week-card-action a').first
+        expect(first_action).to_be_visible()
+        href = first_action.get_attribute('href')
+        first_action.focus()
+        page.keyboard.press('Enter')
+        expect(page).to_have_url(live_server + href)
+        expect(page.locator('form input[name="row_version"]')).not_to_have_count(0)
 
 
 @pytest.mark.parametrize('width,height', [(1440, 900), (390, 844), (320, 844)])
@@ -170,7 +259,7 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
                 if control.evaluate("el => el.matches('.ui-sem-control--icon-only')"):
                     assert box['width'] == box['height'] == 36
                 else:
-                    assert box['width'] >= 48 and box['height'] >= 48
+                    assert box['width'] >= 36 and box['height'] >= 36
             page.locator('.admin-day-card, .patient-admin-day').last.screenshot(
                 path=str(tmp_path / f'{family}-equal-cards-{width}.png'),
             )

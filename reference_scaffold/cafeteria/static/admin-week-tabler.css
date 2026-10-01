@@ -192,18 +192,6 @@
   gap: var(--app-space-1);
   min-width: 0;
 }
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack > .admin-week-service {
-  order: 1;
-}
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack > .admin-week-course[data-course="soup"] {
-  order: 2;
-}
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack > .admin-menu-options {
-  order: 3;
-}
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-stack > .admin-week-course[data-course="dessert"] {
-  order: 4;
-}
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-course {
   margin: 0;
 }
@@ -224,7 +212,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--app-space-2);
-  min-height: 48px;
+  min-height: var(--app-control-min-height);
   cursor: pointer;
   list-style: none;
 }

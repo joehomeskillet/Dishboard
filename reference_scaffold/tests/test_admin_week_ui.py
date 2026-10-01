@@ -84,9 +84,9 @@ def _assert_layout(page: Page, height: int) -> None:
         const target = element.type === 'checkbox' ? element.closest('label') : element;
         if (!target.getClientRects().length || getComputedStyle(target).visibility === 'hidden') return [];
         const box = target.getBoundingClientRect();
-        // Icon-first section 7 changes icon actions only; text controls keep 44 px.
+        // G0 uses the same pointer-dependent target size for all controls.
         const coarse = matchMedia('(pointer: coarse), (any-pointer: coarse)').matches;
-        const minimum = !coarse && element.matches('.ui-sem-control--icon-only') ? 36 : 44;
+        const minimum = coarse ? 44 : 36;
         return box.width < minimum || box.height < minimum || box.x < 0 || box.right > innerWidth + 1
             ? [{tag: element.tagName, classes: element.className,
                 name: element.getAttribute('aria-label') || element.textContent.trim(),
@@ -209,8 +209,8 @@ def test_week_status_and_native_actions_are_visible_and_remain_available(
         assert modal.locator('button').evaluate_all('''buttons => buttons.every(button => {
             const box = button.getBoundingClientRect();
             const coarse = matchMedia('(pointer: coarse), (any-pointer: coarse)').matches;
-            // Icon-only actions use 36/44 px; confirmation text buttons keep 44 px.
-            const minimum = !coarse && button.matches('.ui-sem-control--icon-only') ? 36 : 44;
+            // G0 uses 36 px for fine pointers and 44 px for coarse pointers.
+            const minimum = coarse ? 44 : 36;
             return box.width >= minimum && box.height >= minimum && box.left >= 0 && box.right <= innerWidth + 1;
         })''')
         modal.get_by_role('button', name='Abbrechen', exact=True).click()

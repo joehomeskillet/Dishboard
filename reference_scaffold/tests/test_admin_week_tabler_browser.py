@@ -217,7 +217,7 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     ).all():
         box = control.bounding_box()
         icon_only = control.evaluate("el => el.matches('.ui-sem-control--icon-only')")
-        assert box is not None and box['height'] >= (action_size if icon_only else 48), control.evaluate('(el) => el.outerHTML')
+        assert box is not None and box['height'] >= action_size, control.evaluate('(el) => el.outerHTML')
         if icon_only:
             assert box['width'] >= action_size, box
     if width in (360, 1280):
@@ -364,7 +364,7 @@ def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engi
     root = Path(__file__).resolve().parents[2]
     names = ('_course_editor', '_course_line', '_course_recipe_search', '_service_courses',
              '_week_controls', '_week_menu_card', '_week_service', '_week_settings',
-             'cafeteria', 'copy', 'kuechenkalender', 'week_management', 'week_review')
+             'cafeteria', 'patienten', 'copy', 'kuechenkalender', 'week_management', 'week_review')
     sources = {}
     for name in names:
         path = f'admin/{name}.html'

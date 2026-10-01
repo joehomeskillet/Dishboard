@@ -43,7 +43,7 @@ def _shot(page, name: str, *, native=False, viewport_only=False) -> None:
     for action in page.locator('main .btn, main summary').all():
         if action.is_visible():
             box = action.bounding_box()
-            minimum = action.evaluate("e => e.matches('.ui-sem-control') ? (matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36) : 48")
+            minimum = action.evaluate("e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
             assert box['height'] >= minimum and box['width'] >= minimum
             assert box['x'] >= 0 and box['x'] + box['width'] <= page.evaluate('innerWidth') + 1
     destination = EVIDENCE_DIR / f'{name}.png'
@@ -278,10 +278,13 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
             # 4. Status statement with table Klartext
             status_cell = first_row.locator('td[data-label="Status"]')
             expect(status_cell.locator('.badge')).to_be_visible()
+            expect(status_cell.locator('.badge')).to_have_attribute(
+                'data-semantic', 'status.not_recorded' if family == 'patienten' else 'publish.published',
+            )
             # Status should contain clear text explanation
             status_text = status_cell.inner_text()
             assert any(term in status_text for term in (
-                'Veröffentlicht', 'Noch nicht veröffentlicht', 'Prüfung offen', 'Unvollständig', 'Noch keine Menüs erfasst',
+                'Veröffentlicht', 'Noch nicht veröffentlicht', 'Prüfung offen', 'Unvollständig', 'Nicht erfasst',
             ))
 
             # 5. One direct row action; with n rows it is neutral, the page keeps a single primary action.

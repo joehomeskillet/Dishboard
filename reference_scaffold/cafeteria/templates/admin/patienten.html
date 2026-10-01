@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, field, page_header, status_badge, form_errors %}
+{% from 'admin/_macros.html' import icon, field, page_header, status_badge, form_errors, empty_state, disclosure_section %}
 {% block title %}Wochenplan · {{ area_names[profile] }}{% endblock %}
 {% set layout_variant = 'workspace' %}
 {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
@@ -47,67 +47,14 @@
 {% include 'admin/_week_controls.html' %}
 {% include 'admin/_week_settings.html' %}
 
+{% from 'admin/_week_controls.html' import day_card with context %}
+{% if status == 'empty' %}
+{{ empty_state('none', 'Noch keine Gerichte erfasst', 'Mit dem ersten Menü beginnen.', compact=true) }}
+{% endif %}
+
 <section class="patient-admin-table" aria-label="Patienten-Wochenraster">
-  {% for day_name in weekdays %}
-  {% set day_cells = cells | selectattr('day_label', 'equalto', day_name) | list %}
-  {% set lunch_cells = day_cells | selectattr('meal', 'equalto', 'LUNCH') | list %}
-  {% set dinner_cells = day_cells | selectattr('meal', 'equalto', 'DINNER') | list %}
-  {% set lunch = lunch_cells | first %}
-  {% set dinner = dinner_cells | first %}
-  {% set day_iso = day_cells[0].day if day_cells else '' %}
-  {% set service_index = loop.index0 %}
-  <article class="patient-admin-day card">
-    <div class="card-header admin-week-day-head">
-      <h2>{{ day_name }}</h2>
-      <time datetime="{{ day_iso }}">{{ day_cells and day_cells[0].day_short }}</time>
-      {% set filled = day_cells|selectattr('row_version', 'gt', 0)|list|length %}
-      {% if filled < 4 %}
-      <span class="text-secondary admin-week-day-count">{{ filled }} von 4 Menükarten erfasst</span>
-      {% endif %}
-    </div>
-    <div class="card-body patient-admin-meals">
-      <div class="patient-admin-meal">
-        {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=lunch, day_iso=day_iso, service_index=service_index %}
-        {% set shared = lunch.shared_courses|default({}) %}
-        {% set exceptions = lunch.meal_exceptions|default({}) %}
-        <div class="admin-week-meal-stack">
-          {% include 'admin/_week_service.html' %}
-          <div class="row g-3 admin-menu-options">
-            {% for cell in lunch_cells %}
-            {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
-            {% with show_prices=false %}
-            {% include 'admin/_week_menu_card.html' %}
-            {% endwith %}
-            {% endfor %}
-          </div>
-          {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
-          {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
-        </div>
-      {% include 'admin/_course_editor.html' %}
-      {% endwith %}
-      </div>
-      <div class="patient-admin-meal">
-        {% with meal_code='DINNER', meal_label='Abend', meal_cell=dinner, day_iso=day_iso, service_index=service_index %}
-        {% set shared = dinner.shared_courses|default({}) %}
-        {% set exceptions = dinner.meal_exceptions|default({}) %}
-        <div class="admin-week-meal-stack">
-          {% include 'admin/_week_service.html' %}
-          <div class="row g-3 admin-menu-options">
-            {% for cell in dinner_cells %}
-            {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
-            {% with show_prices=false %}
-            {% include 'admin/_week_menu_card.html' %}
-            {% endwith %}
-            {% endfor %}
-          </div>
-          {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
-          {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
-        </div>
-      {% include 'admin/_course_editor.html' %}
-      {% endwith %}
-      </div>
-    </div>
-  </article>
+  {% for day, grouped in cells|groupby('day') %}
+  {{ day_card(day, grouped, declarations, loop.index0) }}
   {% endfor %}
 </section>
 {{ legend(declarations.options, tabler=true) }}

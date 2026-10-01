@@ -50,7 +50,7 @@ def _assert_visible_editor_labels(page: Page) -> None:
         label_box, field_box = _box(label), _box(field)
         assert label_box['height'] > 10
         assert label_box['y'] + label_box['height'] <= field_box['y'] + 1
-        assert field_box['height'] >= 48
+        assert field_box['height'] >= field.evaluate("e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
         if field.is_enabled():
             label.click()
             expect(field).to_be_focused()
@@ -266,7 +266,7 @@ def test_editor_viewport_matrix_split_touch_and_sticky_bar(page_context: Page, f
             box = control.bounding_box()
             if box is None or not box['width']:
                 continue
-            minimum = 36 if control.evaluate('el => el.classList.contains("ui-sem-control")') else 48
+            minimum = control.evaluate("e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
             assert box['height'] >= minimum, (width, control.evaluate('el => el.outerHTML'))
             assert box['x'] + box['width'] <= width + 1, (width, control.evaluate('el => el.outerHTML'))
 
@@ -519,7 +519,7 @@ def test_prices_only_for_staff_and_compact_view_keeps_targets(page_context: Page
             control = control.locator('xpath=ancestor::label[1]')
         box = control.bounding_box()
         if box and box['width']:
-            minimum = 36 if control.evaluate('el => el.classList.contains("ui-sem-control")') else 48
+            minimum = control.evaluate("e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
             assert box['height'] >= minimum, control.evaluate('el => el.outerHTML')
     page.reload()
     expect(page.locator('main#main-content')).to_have_attribute('data-density', 'compact')

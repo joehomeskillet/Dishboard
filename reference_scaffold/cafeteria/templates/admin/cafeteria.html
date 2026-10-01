@@ -1,6 +1,6 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
-{% from 'admin/_macros.html' import icon, field, page_header, status_badge, form_errors %}
+{% from 'admin/_macros.html' import icon, field, page_header, status_badge, form_errors, empty_state, disclosure_section %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% block title %}Wochenplan · {{ area_names[profile] }}{% endblock %}
 {% set layout_variant = 'workspace' %}
@@ -41,7 +41,7 @@
 {{ overview_header('Cafeteria', week_header_description) }}
 {% include 'admin/_week_check_summary.html' %}
 {% if last_cell.day_label == 'Sonntag' %}
-<div class="container-xl"><details class="admin-compact-details" id="weekend-hint"><summary>Wochenendbetrieb</summary><p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p></details></div>
+<div class="container-xl">{% call disclosure_section('Wochenendbetrieb', id='weekend-hint') %}<p class="form-hint mb-0">Wochenendbetrieb: Samstag und Sonntag sind im Raster.</p>{% endcall %}</div>
 {% endif %}
 {% endblock %}
 {% block content %}
@@ -53,48 +53,16 @@
 {% include 'admin/_week_controls.html' %}
 {% include 'admin/_week_settings.html' %}
 
+{% from 'admin/_week_controls.html' import day_card with context %}
 {% if status == 'empty' %}
-<div class="alert alert-info admin-notice">
-  Noch keine Gerichte erfasst
-  {% if first_slot %}
-  <p class="mb-0 mt-2">{{ icon_button('actions.open', href=first_slot.edit_url, text='Erster Slot', aria_label='Erster Slot öffnen') }}</p>
-  {% endif %}
-</div>
+{% call empty_state('none', 'Noch keine Gerichte erfasst', 'Mit dem ersten Menü beginnen.', compact=true) %}
+  {{ icon_button('actions.open', href=cells[0].edit_url, text='Erster Slot', aria_label='Erster Slot öffnen') }}
+{% endcall %}
 {% endif %}
 
 <section class="admin-week-days d-block d-md-grid" aria-label="Wochenübersicht Cafeteria">
   {% for day, grouped in day_cells|groupby('day') %}
-  {% set day_row = grouped|first %}
-  <article class="card admin-day-card mb-3 mb-md-0">
-    <div class="card-header admin-week-day-head">
-      <h2>{{ day_row.day_label }}</h2>
-      <time datetime="{{ day }}">{{ day_row.day_short }}</time>
-      {% set filled = grouped|selectattr('row_version', 'gt', 0)|list|length %}
-      {% if filled < 2 %}
-      <span class="text-secondary admin-week-day-count">{{ filled }} von 2 Menükarten erfasst</span>
-      {% endif %}
-    </div>
-    <div class="card-body">
-      {% with meal_code='LUNCH', meal_label='Mittag', meal_cell=day_row, day_iso=day, service_index=loop.index0 %}
-      {% set shared = day_row.shared_courses|default({}) %}
-      {% set exceptions = day_row.meal_exceptions|default({}) %}
-      <div class="admin-week-meal-stack">
-        {% include 'admin/_week_service.html' %}
-        <div class="row g-3 admin-menu-options">
-          {% for cell in grouped %}
-          {% if cell.title %}{% set declarations.options = declarations.options + [cell] %}{% endif %}
-          {% with show_prices=true %}
-          {% include 'admin/_week_menu_card.html' %}
-          {% endwith %}
-          {% endfor %}
-        </div>
-        {% with kind='soup' %}{% include 'admin/_course_line.html' %}{% endwith %}
-        {% with kind='dessert' %}{% include 'admin/_course_line.html' %}{% endwith %}
-      </div>
-      {% include 'admin/_course_editor.html' %}
-      {% endwith %}
-    </div>
-  </article>
+  {{ day_card(day, grouped, declarations, loop.index0) }}
   {% endfor %}
 </section>
 {{ legend(declarations.options, tabler=true) }}
