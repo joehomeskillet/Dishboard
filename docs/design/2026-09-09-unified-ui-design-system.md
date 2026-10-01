@@ -161,6 +161,17 @@ bleibt erhalten. Fehlende optionale Einheiten bleiben tatsächlich leere Zellen.
 Einkaufslisten-Segmente nutzen `page_header(..., segments=...)` vor Zählwerten,
 Anlegeformular und Fehlern. Leere gemeinsame Aktionswrapper (P-07) bleiben offen.
 
+### Einstellungen und Kalkulation: UI-DELTA (DELTA-3-23, 2026-10-01)
+
+Markenverlauf, Übernahmeformular, Reset und kurze Upload-/Darstellungs-/CSV-Hinweise
+stehen statisch. Versionszeilen sind reine Textlinks; aktive Marke ist einmal im
+Verlauf erreichbar. Der Kopf zeigt in jedem Auswahlzustand dieselben Statusfelder,
+Versionslinks erhalten den Verlaufskontext per Anker. Speichern, Aktivieren und
+Übernehmen behalten getrennte native Formulare und Versionsprüfungen.
+Die weitere Menürevision bleibt als optionales Feld sichtbar. Zutaten-IDs stehen
+direkt als Sekundärtext jeder Kalkulationszeile. Fehlende Mengen heissen «Ohne
+Mengenangabe», fehlende Beträge «Nicht berechenbar»; Nullwerte bleiben echte Werte.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt

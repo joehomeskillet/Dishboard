@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import page_header, disclosure_section, icon %}
+{% from 'admin/_macros.html' import page_header, icon %}
 {% from 'ui/_semantic.html' import icon_button, icon_label, sem_icon %}
 {% set workflow_nav = 'import' %}
 {% set layout_variant = 'standard' %}
@@ -82,13 +82,13 @@
         </div>
         {{ icon_button('actions.preview', type='submit', text='Prüfen', title='CSV-Datei prüfen', aria_label='Vorschau prüfen', emphasis=('primary' if not ready else none)) }}
       </div>
-      {% call disclosure_section(id='csv-more', has_content=result, has_error=invalid) %}
+      <div id="csv-more">
           <p class="mb-2">Cafeteria und Patientenplan verwenden getrennte Formate. Eine Datei enthält genau einen Plan und eine Kalenderwoche.</p>
           {% if result %}
           <p class="mb-1">Spalten der geprüften Datei:</p>
           <p class="text-break mb-0">{% if result.headers %}{{ result.headers|join(', ') }}{% else %}Keine Spalten gelesen.{% endif %}</p>
           {% endif %}
-      {% endcall %}
+      </div>
     </div>
   </form>
 </div>

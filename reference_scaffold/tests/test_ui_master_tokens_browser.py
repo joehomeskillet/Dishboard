@@ -381,14 +381,11 @@ def test_viewports_and_real_routes(site, width, height, padding, tmp_path):
 
 
 def _open_display_reset(page):
-    # Rare actions are collapsed by default; measure them after native disclosure.
+    # UI-DELTA: the same native reset is directly reachable with its consequence.
     reset = page.locator('#display-reset-btn')
-    expect(reset).to_be_hidden()
-    summary = page.locator('#display-more > summary')
-    summary.focus()
-    page.keyboard.press('Enter')
+    expect(page.locator('#display-more summary')).to_have_count(0)
     expect(reset).to_be_visible()
-    page.keyboard.press('Tab')
+    reset.focus()
     expect(reset).to_be_focused()
     expect(reset).to_have_attribute('name', 'action')
     expect(reset).to_have_attribute('value', 'reset')

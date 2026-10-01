@@ -324,7 +324,8 @@ def test_cost_input_error_keeps_kind_revision_and_extra(b3):  # noqa: F811
     })
     assert response.status_code == 400
     assert 'value="nicht-eine-uuid"' in response.text and 'value="extra-wert"' in response.text
-    assert 'value="prepared" selected' in response.text and 'id="cost-options" open' in response.text
+    assert 'value="prepared" selected' in response.text and 'id="cost-options"' in response.text
+    assert '<details' not in response.text
 
 
 def test_cost_receipt_conflict_keeps_inputs_without_second_receipt(b3):  # noqa: F811
@@ -403,7 +404,8 @@ def _review_browser_case(case, page, origin, ctx, post_status):
         page.goto(origin + '/admin/kalkulation')
         page.locator('#revision_public_id').fill('11111111-1111-4111-8111-111111111111')
         page.locator('#kind').select_option('menu')
-        page.locator('#cost-options > summary').click()
+        expect(page.locator('#cost-options > summary')).to_have_count(0)
+        expect(page.locator('#menu_revision_public_id')).to_be_visible()
         page.locator('#menu_revision_public_id').fill('invalid-extra')
         assert post_status(page.locator('main .btn-primary')) == 400
         expect(page.locator('#menu_revision_public_id-error')).to_be_visible()
@@ -479,7 +481,8 @@ def _cost(page, origin, post_status) -> None:
     assert page.goto(origin + '/admin/kalkulation', wait_until='load').status == 200
     page.locator('#revision_public_id').fill('nicht-eine-uuid')
     page.locator('#kind').select_option('menu')
-    page.locator('#cost-options > summary').click()
+    expect(page.locator('#cost-options > summary')).to_have_count(0)
+    expect(page.locator('#menu_revision_public_id')).to_be_visible()
     page.locator('#menu_revision_public_id').fill('extra-wert')
     status = post_status(page.locator('main .btn-primary'))
     assert status == 400

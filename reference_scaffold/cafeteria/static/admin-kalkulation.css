@@ -7,38 +7,19 @@
   margin: 0;
 }
 
-.cost-calculation .cost-extra:not(.cost-extra-filled) {
-  display: none;
-}
-
-.cost-calculation:has(#kind option[value="menu"]:checked) .cost-extra {
-  display: block;
-}
-
-/* Older browsers retain the optional field through native disclosure. */
-@supports not selector(:has(*)) {
-  .cost-calculation .cost-extra:not(.cost-extra-filled) {
-    display: block;
-  }
-}
-
 .dishboard-admin .cost-lines.admin-table tbody td {
   overflow-wrap: anywhere;
 }
 
-#cost-line-details li {
-  overflow-wrap: anywhere;
-}
-
-.cost-calculation .admin-disclosure > summary {
-  list-style: none;
-}
-
 @media (max-width: 767.98px) {
-  .cost-lines.admin-table--stack tbody tr {
+  .dishboard-admin .cost-lines.admin-table--stack tbody tr {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0;
     padding-block: var(--app-space-2);
+  }
+  .cost-lines.admin-table--stack td:first-child,
+  .cost-lines.admin-table--stack td:last-child {
+    grid-column: 1 / -1;
   }
   .cost-lines.admin-table--stack [data-label]::before {
     display: inline;

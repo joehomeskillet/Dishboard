@@ -151,8 +151,8 @@ def test_branding_editor_separates_saved_draft_from_publication(
         expect(page.locator('form[data-brand-action="activate"]')).to_have_attribute(
             "data-confirm", re.compile(r"Version 1")
         )
-        expect(page.locator("#brand-more summary")).to_contain_text("Weitere Optionen")
-        expect(page.locator("#brand-more")).not_to_have_attribute("open", "")
+        expect(page.locator("#brand-more summary")).to_have_count(0)
+        expect(page.locator(".brand-history-row").first).to_be_visible()
         expect(page.frame_locator("iframe").get_by_role("button")).to_have_count(0)
 
 
@@ -208,7 +208,7 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         expect(page.locator("dl.admin-statusbar")).to_contain_text("Klarer Entwurf")
         expect(page.locator("[role='status']")).to_contain_text("Klarer Entwurf")
 
-        page.locator("#brand-more summary").click()
+        expect(page.locator("#brand-more summary")).to_have_count(0)
         restore = page.get_by_role("button", name="Version 2 als neuen Entwurf übernehmen", exact=True)
         expect(restore).to_have_attribute("data-semantic", "actions.apply")
         expect(restore.locator("span")).to_have_count(0)
@@ -219,7 +219,7 @@ def test_branding_forms_keep_exact_targets_and_fields_without_javascript(
         restore.click()
         expect(page).to_have_url(re.compile(r"/admin/design/marke\?revision=3$"))
 
-        page.locator("#brand-more summary").click()
+        expect(page.locator("#brand-more summary")).to_have_count(0)
         reset = page.get_by_role("button", name="Südhang Standard als Entwurf anlegen", exact=True)
         expect(reset).to_have_attribute("data-semantic", "actions.add")
         expect(reset).to_have_attribute("data-ui-tooltip", "Südhang Standard als neuen Entwurf anlegen")
@@ -334,13 +334,7 @@ def test_branding_editor_keyboard_navigation(
         expect(page.locator("#brand-logo-select")).to_be_focused()
 
         page.keyboard.press("Tab")
-        upload_hint = page.locator('[aria-describedby="brand-upload-hint"]').filter(has=page.locator('svg'))
-        expect(upload_hint).to_be_focused()
-        expect(page.locator('#brand-upload-hint')).to_be_hidden()
-        page.keyboard.press("Enter")
         expect(page.locator('#brand-upload-hint')).to_be_visible()
-        page.keyboard.press("Enter")
-        page.keyboard.press("Tab")
         expect(page.locator("#brand-upload")).to_be_focused()
 
         page.keyboard.press("Tab")
@@ -450,10 +444,8 @@ def test_branding_rendered_icons_reject_missing_symbols(
         page = context.new_page()
         page.set_viewport_size({"width": 1440, "height": 900})
         page.goto(BRAND_PATH)
-        summary = page.locator("#brand-more summary")
-        summary.focus()
-        page.keyboard.press("Enter")
-        expect(page.locator("#brand-more")).to_have_attribute("open", "")
+        expect(page.locator("#brand-more summary")).to_have_count(0)
+        expect(page.locator(".brand-history-row").first).to_be_visible()
         reset = page.get_by_role("button", name="Südhang Standard als Entwurf anlegen", exact=True)
         expect(reset).to_be_visible()
         expect(reset.locator("span")).to_have_count(0)
@@ -546,10 +538,9 @@ def test_branding_frame_viewports_statusbar_and_no_overflow(
                             assert metric["open"] == 0, metric
                             if width == 1440:
                                 assert metric["iframe"] <= 280, metric
-                                page.locator("#brand-more summary").click()
+                                expect(page.locator("#brand-more summary")).to_have_count(0)
                                 row = page.locator(".brand-history-row").first.bounding_box()
                                 assert row is not None and row["height"] <= 96, row
-                                page.locator("#brand-more summary").click()
                             if width == 360:
                                 assert metric["iframe"] <= 240, metric
                                 assert page.evaluate(

@@ -61,13 +61,10 @@ def test_display_frame_viewports_nojs_and_keyboard(
                             ['admin_content_width', 'contained'], ['admin_menu_images', 'show'],
                         ]
                         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-                        help_trigger = page.locator('.admin-hint > summary').first
-                        help_trigger.focus()
-                        expect(help_trigger).to_be_focused()
-                        help_trigger.press('Enter')
+                        expect(page.locator('.display-setting-field summary')).to_have_count(0)
+                        page.locator('#admin-density').focus()
+                        expect(page.locator('#admin-density')).to_be_focused()
                         expect(page.locator('#admin-density-hint')).to_be_visible()
-                        help_trigger.press('Enter')
-                        expect(page.locator('#admin-density-hint')).to_be_hidden()
                         assert _display_metrics(page)['fields'] == metrics['fields']
                         expect(page.get_by_role('heading', level=1)).to_have_text('Darstellung')
                         status = page.locator('.admin-statusbar')
@@ -77,14 +74,13 @@ def test_display_frame_viewports_nojs_and_keyboard(
                         expect(page.locator('main .btn-primary')).to_have_accessible_name('Speichern')
                         _assert_controls(page)
                         page.screenshot(path=str(tmp_path / f'display-frame-{width}-{javascript}.png'), full_page=True)
-                        summary = page.locator('#display-more > summary')
-                        summary.focus()
-                        page.keyboard.press('Enter')
-                        expect(page.locator('#display-reset-btn')).to_be_visible()
-                        assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-                        assert summary.bounding_box()['height'] >= 36
-                        page.keyboard.press('Enter')
-                        expect(page.locator('#display-reset-btn')).to_be_hidden()
+                        reset = page.locator('#display-reset-btn')
+                        expect(reset).to_be_visible()
+                        reset.focus()
+                        expect(reset).to_be_focused()
+                        assert reset.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+                        assert reset.bounding_box()['height'] >= 36
+                        expect(page.locator('#display-reset-hint')).to_be_visible()
                         page.get_by_label('Abstände', exact=True).select_option('comfortable')
                         page.get_by_label('Schriftgrösse', exact=True).select_option('large')
                         page.get_by_label('Inhaltsbreite', exact=True).select_option('full')
@@ -143,9 +139,7 @@ def test_display_reset_and_error_keep_native_form_contract(
         for action in ('save', 'reset'):
             csrf = page.locator('#display-settings-form > input[name="_csrf"]').input_value()
             if action == 'reset':
-                summary = page.locator('#display-more > summary')
-                summary.focus()
-                page.keyboard.press('Enter')
+                expect(page.locator('#display-more summary')).to_have_count(0)
                 expect(page.locator('#display-reset-hint')).to_contain_text('für alle Benutzer')
                 expect(page.locator('main')).to_have_attribute('data-density', 'comfortable')
             with page.expect_response(lambda r: r.request.method == 'POST' and r.url.endswith(PATH)) as posted:
@@ -171,7 +165,7 @@ def test_display_reset_and_error_keep_native_form_contract(
         expect(page.locator('#admin-density')).to_have_attribute('aria-invalid', 'true')
         expect(page.locator('#admin-density-error')).to_have_text('Bitte eine der angebotenen Optionen auswählen.')
         expect(page.get_by_label('Schriftgrösse', exact=True)).to_have_value('large')
-        expect(page.locator('#display-more')).to_have_attribute('open', '')
+        expect(page.locator('#display-reset-btn')).to_be_visible()
         expect(page.locator('main')).to_have_attribute('data-density', 'compact')
         page.locator('.error-region a').first.click()
         if javascript:
@@ -255,11 +249,9 @@ def test_compact_default_without_local_control_preserves_help_and_targets(
             _assert_controls(page)
         page.goto(PATH)
         expect(page.get_by_label('Abstände', exact=True)).to_have_value('compact')
-        density_help = page.locator('.admin-hint > summary[aria-describedby="admin-density-hint"]')
-        density_help.focus()
-        density_help.press('Enter')
+        page.locator('#admin-density').focus()
+        expect(page.locator('#admin-density')).to_be_focused()
         expect(page.locator('#admin-density-hint')).to_be_visible()
-        density_help.press('Enter')
         expect(page.get_by_label('Inhaltsbreite', exact=True)).to_have_value('contained')
         expect(page.locator('#admin-content-width-hint')).to_contain_text('volle Breite')
         # K7-A, Entscheidungsdokument §10: compact = Master-Card-Inset (16 px mobil, 24 px ab 768 px)

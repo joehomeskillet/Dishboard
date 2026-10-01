@@ -20,6 +20,8 @@ keine bereits erfolgte Migration auf den neuen Lesedialog.
 
 | `/admin/einkaufslisten[/<id>]`, `/admin/bestellung[/korb/<id>]` | DELTA-3-22: Publisher, leer/befüllt/Fehler/Nur-Lesen, JS/NoJS; statische Formulare und Hinweise, optionale Einheiten leer, ein Rücksprung je Ziel. Gemeinsamer Lesedialog für Korbvorschau; Listensegmente vor variablen Inhalten. P-07 gemeinsam offen. | `test_delta3_22_browser.py` prüft 1440/390 fein/grob, FormData/Versionen und Dialoggeometrie ≤1 CSS-px; `test_order_admin.py`, `test_shopping_list_browser.py`; Pflichtläufe im Paketreport. |
 
+| `/admin/design/marke`, `/admin/design/darstellung`, `/admin/import-preview`, `/admin/kalkulation[/vorschau]` | DELTA-3-23: Admin, Standard/Entwurf/Fehler/Vorschau; statische Hinweise und Zusatzformulare, reiner Textverlauf, Kontextanker. Kalkulation leer/unvollständig/vollständig/null/ohne Menge; ID pro Zeile und konkrete Fehlangaben. | `test_delta3_23_browser.py`, native Branding-/Display-/CSV-/Cost-Suiten; tatsächliche Gates und Bilder im Paketreport. |
+
 ## UC-P2-A — Wochenplanung und Kalender, 2026-10-01
 
 | Route | Rolle / Zustand / gemeinsames Muster | Nachweis |

@@ -553,17 +553,13 @@ def test_import_copy_review_disclosures_keep_payloads_and_keyboard(site) -> None
         try:
             _goto(page, '/admin/import-preview')
             upload = page.locator('#csv-upload')
-            expect(upload.locator('details')).not_to_have_attribute('open', '')
+            expect(upload.locator('details, summary')).to_have_count(0)
             names = set(upload.locator('[name]').evaluate_all('nodes => nodes.map(node => node.name)'))
             assert names == {'_csrf', 'file'}
-            summary = upload.locator('details summary').first
-            summary.focus()
-            expect(summary).to_be_focused()
-            page.keyboard.press('Enter')
-            expect(upload.locator('details').first).to_have_attribute('open', '')
-            expect(upload.locator('details').first).to_contain_text('getrennte Formate')
-            page.keyboard.press('Enter')
-            expect(upload.locator('details').first).not_to_have_attribute('open', '')
+            expect(upload.locator('#csv-more')).to_be_visible()
+            expect(upload.locator('#csv-more')).to_contain_text('getrennte Formate')
+            page.locator('#file').focus()
+            expect(page.locator('#file')).to_be_focused()
             assert set(upload.locator('[name]').evaluate_all('nodes => nodes.map(node => node.name)')) == names
 
             _goto(page, f'/admin/cafeteria/copy?week={target}')

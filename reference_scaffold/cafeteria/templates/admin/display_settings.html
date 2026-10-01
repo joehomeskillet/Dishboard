@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, select, field, hint as help_hint, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, select, field, hint as help_hint %}
 {% from 'ui/_semantic.html' import icon_button, icon_label %}
 {% set workflow_nav = 'design' %}
 {% set layout_variant = 'standard' %}
@@ -34,17 +34,17 @@
         ] %}
         <div class="col-12 col-md-6 display-setting-field">
           {{ select(key, label, choices=choices, value=display_values[key], id=key|replace('_', '-'), error=display_errors.get(key)) }}
-          {% if hint and key != 'admin_menu_images' %}{{ help_hint(hint, key|replace('_', '-') ~ '-hint') }}{% endif %}
+          {% if hint and key != 'admin_menu_images' %}{{ help_hint(hint, key|replace('_', '-') ~ '-hint', mode='inline') }}{% endif %}
         </div>
         {% endfor %}
       </div>
     </div>
     <div class="card-footer display-form-actions">
       <div class="admin-form-footer">
-        {% call disclosure_section(id='display-more', has_error=display_errors) %}
+        <div id="display-more">
             <p class="form-hint" id="display-reset-hint">Standardwerte speichern setzt für alle Benutzer Kompakt, Normal, Begrenzt und Anzeigen.</p>
             {{ icon_button('view.reset', id='display-reset-btn', name='action', value='reset', aria_label='Standardwerte speichern', attrs={'aria-describedby': 'display-reset-hint'}) }}
-        {% endcall %}
+        </div>
         <div class="admin-form-main">
           {{ icon_button('actions.preview', name='action', value='preview') }}
           {{ icon_button('actions.save', name='action', value='save') }}

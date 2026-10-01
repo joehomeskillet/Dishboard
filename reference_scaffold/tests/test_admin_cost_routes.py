@@ -7,11 +7,12 @@ from urllib.parse import parse_qs
 
 import pytest
 from flask import Flask, render_template, request, url_for
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import expect
 from werkzeug.serving import make_server
 
 from cafeteria.template_filters import register_template_filters
 from cafeteria.ui import register_ui
+from test_rendered_ui import browser  # noqa: F401
 
 
 def test_kalkulation_template_preview_not_send() -> None:
@@ -42,7 +43,7 @@ EXTRA_ID = '44444444-4444-4444-8444-444444444444'
 
 
 @pytest.fixture(scope='module')
-def cost_layout_site():
+def cost_layout_site(browser):  # noqa: F811
     """Real template, shell and local assets; synthetic context, no DB writes.
 
     Requests to the product's POST endpoints are captured by the browser test,
@@ -67,7 +68,9 @@ def cost_layout_site():
         amount = '0.00' if state == 'zero' else '1.00'
         projection = None if state == 'empty' else {
             'complete': complete, 'total': ('0.00' if state == 'zero' else '6.00') if complete else None,
-            'lines': [{'food_public_id': FOOD_ID, 'quantity': '250', 'unit_code': 'G',
+            'lines': [{'food_public_id': FOOD_ID,
+                       'quantity': None if state == 'missing' else '0' if state == 'zero' else '250',
+                       'unit_code': 'G',
                        'status': 'complete' if complete else 'incomplete',
                        'amount': amount if complete else None}] * 6,
             'price_revisions': {FOOD_ID: PRICE_ID} if complete else {},
@@ -84,12 +87,7 @@ def cost_layout_site():
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True, args=['--no-sandbox'])
-            try:
-                yield browser, f'http://127.0.0.1:{server.server_port}'
-            finally:
-                browser.close()
+        yield browser, f'http://127.0.0.1:{server.server_port}'
     finally:
         server.shutdown()
         thread.join(timeout=5)
@@ -99,8 +97,8 @@ def cost_layout_site():
 @pytest.mark.parametrize('width', [360, 768, 1024, 1440])
 @pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
 def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, width, javascript, tmp_path):
-    browser, origin = cost_layout_site
-    with browser.new_context(viewport={'width': width, 'height': 900}, java_script_enabled=javascript,
+    chromium, origin = cost_layout_site
+    with chromium.new_context(viewport={'width': width, 'height': 900}, java_script_enabled=javascript,
                              reduced_motion='reduce', locale='de-CH', timezone_id='Europe/Zurich') as context:
         page = context.new_page()
         errors = []
@@ -113,8 +111,8 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             expect(page.locator('main .btn-primary')).to_have_count(1)
             expect(page.locator('.admin-statusbar')).to_have_count(0)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-            assert page.locator('main details[open]').count() == 0
-            assert page.locator('#menu_revision_public_id').is_hidden()
+            assert page.locator('main details, main summary').count() == 0
+            expect(page.locator('#menu_revision_public_id')).to_be_visible()
             if state == 'empty':
                 expect(page.locator('main')).to_contain_text('Fehlender Preis bleibt unvollständig, nie 0.')
                 expect(page.locator('#kind')).to_be_visible()
@@ -122,14 +120,14 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             else:
                 expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Bestätigen')
                 expect(page.locator('.cost-lines tbody tr')).to_have_count(6)
-                assert FOOD_ID not in page.locator('.cost-lines').inner_text()
+                expect(page.locator('.cost-lines .admin-list-secondary')).to_have_text([FOOD_ID] * 6)
                 if state == 'incomplete':
                     expect(page.locator('.cost-lines .admin-status--warning')).to_have_count(6)
                     expect(page.locator('.cost-lines tbody tr')).to_have_count(6)
                     assert 'CHF' not in page.locator('.cost-lines').inner_text()
                     expect(page.get_by_text('Unvollständig — fehlender Preis oder fehlende Umrechnung, nicht als 0.')).to_be_visible()
                     # UI-DELTA §0.1/P-02 names missing prices; it never invents zero.
-                    assert page.locator('.cost-lines tbody tr td:last-child').all_inner_texts() == ['Nicht erfasst'] * 6
+                    assert page.locator('.cost-lines tbody tr td:last-child').all_inner_texts() == ['Nicht berechenbar'] * 6
                 else:
                     expect(page.locator('.cost-calculation p .admin-status--success')).to_have_text('vollständig')
                     expect(page.locator('.cost-calculation p')).to_contain_text('0.00 CHF' if state == 'zero' else '6.00 CHF')
@@ -153,7 +151,10 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             page.keyboard.press('Tab')
             expect(page.locator('#revision_public_id')).to_be_focused()
             if measured['row'] is not None:
-                assert measured['row'] < (109 if width == 360 else 72)
+                # D-91 adds a visible ID; retain the previous spacing budget around it.
+                added_id_height = page.locator('.cost-lines .admin-list-secondary').first.bounding_box()['height']
+                measured['identifier_height'] = added_id_height
+                assert measured['row'] - (added_id_height if width == 360 else 0) < (109 if width == 360 else 72), measured
                 if width >= 768:
                     pad = page.evaluate(
                         "() => getComputedStyle(document.querySelector('.cost-lines tbody td')).paddingTop",
@@ -167,29 +168,24 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
                 assert box['height'] >= minimum
             page.screenshot(path=str(tmp_path / f'cost-{state}-{width}-{javascript}.png'), full_page=True)
 
-        # Native select + disclosure works without JavaScript; optional values still submit.
+        # UI-DELTA: native select and visible optional field work without JavaScript.
         page.goto(origin + '/__cost_layout__/empty')
         page.locator('main .btn-primary').click()
         expect(page.locator('#revision_public_id')).to_be_focused()
         page.locator('#revision_public_id').fill(REVISION_ID)
         page.locator('#kind').select_option('menu')
-        summary = page.locator('#cost-options > summary')
-        expect(summary).to_be_visible()
+        extra = page.locator('#menu_revision_public_id')
+        expect(page.locator('#cost-options > summary')).to_have_count(0)
+        expect(extra).to_be_visible()
         page.locator('#as_of').focus()
         # Chromium's native date control has multiple keyboard segments.
         for _ in range(6):
             page.keyboard.press('Tab')
-            if summary.evaluate('el => el === document.activeElement'):
+            if extra.evaluate('el => el === document.activeElement'):
                 break
-        expect(summary).to_be_focused()
-        assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-        page.keyboard.press('Enter')
-        expect(page.locator('#cost-options')).to_have_attribute('open', '')
-        page.keyboard.press('Tab')
-        expect(page.locator('#menu_revision_public_id')).to_be_focused()
-        page.locator('#menu_revision_public_id').fill(EXTRA_ID)
-        summary.press('Enter')
-        expect(page.locator('#cost-options')).not_to_have_attribute('open', '')
+        expect(extra).to_be_focused()
+        assert extra.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+        extra.fill(EXTRA_ID)
 
         captured = []
 
@@ -206,7 +202,8 @@ def test_kalkulation_layout_status_keyboard_and_form_contract(cost_layout_site, 
             'menu_revision_public_id': [EXTRA_ID], 'as_of': ['2026-09-20'],
         }
         page.goto(origin + '/__cost_layout__/complete?kind=menu&extra=' + EXTRA_ID)
-        expect(page.locator('#cost-options')).to_have_attribute('open', '')
+        expect(page.locator('#menu_revision_public_id')).to_be_visible()
+        expect(page.locator('#menu_revision_public_id')).to_have_value(EXTRA_ID)
         with page.expect_request('**/admin/kalkulation/beleg'):
             page.locator('main .btn-primary').press('Enter')
         page.wait_for_load_state()
