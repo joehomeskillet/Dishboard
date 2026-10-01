@@ -453,6 +453,12 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
                         measurements.setdefault(key, {})[version] = page.evaluate('''() => ({
                             height: document.documentElement.scrollHeight,
                             width: document.documentElement.scrollWidth,
+                            regions: [...document.querySelectorAll('main .card, main .card-header, main .card-body, main fieldset, main form > div, main .form-hint')]
+                                .filter(e => e.getClientRects().length).map(e => ({
+                                    tag: e.tagName, id: e.id, classes: e.className,
+                                    text: e.innerText.slice(0, 80),
+                                    top: e.getBoundingClientRect().top, height: e.getBoundingClientRect().height
+                                })),
                             visibleFields: [...document.querySelectorAll('main input[name], main select[name], main textarea[name]')]
                                 .filter(e => e.type !== 'hidden' && e.getClientRects().length
                                     && getComputedStyle(e).visibility !== 'hidden')
