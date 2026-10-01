@@ -50,6 +50,59 @@ Die ungenutzte zweite Kopfkomponente `status_bar` entfällt. `label` bleibt der
 interne Renderer, `status_badge`/`status` bleiben vorläufige Adapter für vorhandene
 fachliche Zuordnungen. Kategorie- und Herkunftslabels werden nicht zu Status erklärt.
 
+### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
+
+`disclosure_section` behält seine bisherigen Positionsparameter und ergänzt
+`details_class`, `details_attrs`, `summary_class`, `summary_attrs`, `summary_key`
+und `summary_object`. Klassen werden den gemeinsamen Klassen hinzugefügt.
+Attribut-Mappings verwenden die gemeinsame `action_attrs`-Allowlist: insbesondere
+`data-*`, `aria-describedby`, `aria-controls`, `aria-expanded`, `hidden` und
+`tabindex`. Unzulässige Namen (etwa Eventhandler, `style`, `class`) und rohe
+HTML-Strings werden abgewiesen; Werte und Klassen werden auch bei `Markup`
+escaped. Boolean-Attribute erwarten echte Boolean-Werte; `none` lässt Attribute
+weg. Die Details-ID bleibt im bestehenden Parameter `id`, der Offen-Zustand in
+`open`/`has_content`/`has_error`. Aufrufer-Mappings werden nicht verändert.
+
+Ohne `summary_key` bleibt die beschriftete Zusammenfassung erhalten. Ein gesetzter
+Registry-Schlüssel nutzt unmittelbar `icon_summary`: native Summary, gemeinsames
+Icon, `ui-sem-control--icon-only`, lokalisierter zugänglicher Name und identischer
+Tooltip, 36/44-px-Bedienfläche. `summary_object` ergänzt den Objektkontext; ein
+expliziter `title` liefert stattdessen den zugänglichen Namen. `has_content` und
+`has_error` öffnen auch diese Variante serverseitig. Fachliche Angaben und Fehler
+stehen im Inhalt; ein Symbol ersetzt keine erforderliche Fehlererklärung.
+
+```jinja
+{% call disclosure_section(id='service-details', details_class='mt-2',
+    details_attrs={'data-service-details': true},
+    summary_key='ui.disclosure.details', summary_object=service_name,
+    summary_class='align-self-start', summary_attrs={'aria-controls':'service-fields'}) %}
+  <div id="service-fields">… vorhandene Felder …</div>
+{% endcall %}
+```
+
+`form_footer(primary, cancel_url=none, ..., action_order=none)` lässt Abbrechen
+bei fehlender URL weg. `primary` bleibt der vorhandene Mapping-/HTML-Slot;
+`secondary` bleibt eine Liste vorhandener Aktions-Mappings oder ein HTML-Slot.
+Mehrere Aktionen behalten ihre native Formzuordnung, Namen, Werte und Reihenfolge.
+Für eine andere Gruppenreihenfolge muss `action_order` genau einmal `primary`,
+`secondary` und `cancel` enthalten; fehlende oder doppelte Gruppen sind Fehler.
+Leere Gruppen erzeugen keine Aktion. Standard bleibt sekundär / Abbrechen /
+primär. `rare`, `danger` und Sticky-Vertrag bleiben unverändert. Pro Formular
+bleibt eine hervorgehobene Speicherhandlung; weitere Speicherwege sind sekundär.
+
+```jinja
+{{ form_footer(save_action) }}
+{{ form_footer(save_action, cancel_url, secondary=[save_and_back_action],
+    action_order=['primary', 'secondary', 'cancel']) }}
+```
+
+Diese Erweiterung migriert keine Seite. DB-freie Tests in
+`test_shared_macro_api.py` rendern sämtliche elf aktuellen Formularfuss- und
+64 Disclosure-Aufrufe aus ihren echten Jinja-Aufrufausdrücken mit synthetischem Kontext bytegleich zur
+eingefrorenen vorherigen API; zusätzliche Matrix prüft bisherige Footer- und
+Disclosure-Optionen. `test_ui_semantic_macros_browser.py` prüft neue Optionen mit
+JS/No-JS, feinem/grobem Zeiger, Tastatur, nativen POSTs und schmaler/breiter Ansicht.
+
 ### Statusdimensionen und Belege
 
 `status_badge_sem(key, detail=...)` rendert sichtbaren lokalisierten Text, ein Symbol
@@ -147,7 +200,8 @@ Darstellung, Marke, Import, Schnittstellen) verwenden die Grundmuster statt loka
 - `raw_details` der Paketdateien 20 → 4: nur die beiden Icon-Zusammenfassungen der API-Schlüsseltabelle
   (Details, Widerruf mit Sicherheitsbestätigung) und die zwei Icon-Zusammenfassungen der
   Bereiche-Seite (Übersichtsdetails, Hinweisfeld je Zeile bzw. Ausnahme; eine gemeinsame lokale Makro-Definition).
-  Offener G0-Nachtrag: ein symbolischer `disclosure_section`-Auslöser mit `object`-Name.
+  G0d liefert dafür `disclosure_section(summary_key=..., summary_object=...)`;
+  die Seitenmigration dieser verbleibenden Disclosures ist weiterhin separat zu prüfen.
 - Offener G0-Nachtrag: `filter_bar_sem(..., search=false)`. Der Zugriffsverlauf filtert nach Zugang und
   Ereignis ohne Suche; die serverseitige Parameterprüfung erlaubt kein `q`. Bis dahin bleibt dort ein
   lokales GET-Formular (`local_filters` 1).

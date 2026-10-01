@@ -522,22 +522,38 @@
 </div>
 {%- endmacro %}
 
-{%- macro form_footer(primary, cancel_url, rare=none, sticky=false, form_id=none, secondary=none, danger=none) -%}
+{%- macro form_footer(primary, cancel_url=none, rare=none, sticky=false, form_id=none, secondary=none, danger=none, action_order=none) -%}
+{%- if action_order is not none -%}
+  {%- from 'ui/_semantic.html' import action_contract_error -%}
+  {%- if action_order is string or action_order is not sequence or action_order|length != 3 or 'primary' not in action_order or 'secondary' not in action_order or 'cancel' not in action_order -%}
+    {{- action_contract_error('action_order must contain primary, secondary and cancel exactly once') -}}
+  {%- endif -%}
+{%- endif -%}
 {% from 'ui/_semantic.html' import icon_button %}
 <div class="admin-form-footer"{% if sticky %} data-sticky{% if form_id %} data-sticky-form="{{ form_id }}"{% endif %}{% endif %}>
   {% if danger %}<div class="admin-form-danger">{{ danger }}</div>{% endif %}
   {% if rare and rare|trim %}<div class="admin-form-rare admin-row-actions" role="group" aria-label="{{ t('ui.action_group.aria') }}">{{ rare }}</div>{% endif %}
-  <div class="admin-form-main">
+  <div class="admin-form-main">{% if action_order is none %}
     {% if secondary %}{{ actions(secondary=secondary) }}{% endif %}
-    {{ icon_button('actions.cancel', href=cancel_url) }}
+    {% if cancel_url is not none %}{{ icon_button('actions.cancel', href=cancel_url) }}{% endif %}
     {{ actions(primary=primary) }}
-  </div>
+  {% else %}{% for group in action_order %}{% if group == 'secondary' and secondary %}{{ actions(secondary=secondary) }}{% elif group == 'cancel' and cancel_url is not none %}{{ icon_button('actions.cancel', href=cancel_url) }}{% elif group == 'primary' %}{{ actions(primary=primary) }}{% endif %}{% endfor %}{% endif %}</div>
 </div>
 {%- endmacro %}
 
-{%- macro disclosure_section(title=none, id=none, open=false, has_content=false, has_error=false, variant='plain') -%}
-<details class="admin-compact-details admin-disclosure{% if variant == 'card' %} card admin-disclosure--card{% endif %}"{% if id %} id="{{ id }}"{% endif %}{% if open or has_content or has_error %} open{% endif %}>
-  <summary>{{ icon(sem('ui.disclosure.more_options').resolved_icon) }}{{ t(sem('ui.disclosure.more_options').label_key) if title is none else title }}{% if has_content %}<span class="text-secondary"> · {{ t(sem('ui.disclosure.has_content').label_key) }}</span>{% endif %}</summary>
+{%- macro disclosure_section(title=none, id=none, open=false, has_content=false, has_error=false, variant='plain', details_class='', details_attrs=none, summary_class='', summary_attrs=none, summary_key=none, summary_object=none) -%}
+{%- from 'ui/_semantic.html' import action_attrs, icon_summary -%}
+{# Validate with the shared allowlist, then escape even explicitly trusted values.
+   Keep booleans native and never mutate the caller's attribute mappings. #}
+{%- set safe_attrs = {'details': {}, 'summary': {}} -%}
+{%- for target, attrs in [('details', details_attrs), ('summary', summary_attrs)] -%}
+  {%- set validated = action_attrs(attrs) -%}
+  {%- for name, value in (attrs or {}).items() -%}
+    {%- set ignored = safe_attrs[target].update({name: value if value is boolean or value is none else value|forceescape}) -%}
+  {%- endfor -%}
+{%- endfor -%}
+<details class="admin-compact-details admin-disclosure{% if variant == 'card' %} card admin-disclosure--card{% endif %}{% if details_class %} {{ details_class|forceescape }}{% endif %}"{% if id %} id="{{ id }}"{% endif %}{% if open or has_content or has_error %} open{% endif %}{{ action_attrs(safe_attrs.details) }}>
+  {% if summary_key is not none %}{{ icon_summary(summary_key, aria_label=title, object=summary_object, class=summary_class|forceescape, attrs=safe_attrs.summary) }}{% else %}<summary{% if summary_class %} class="{{ summary_class|forceescape }}"{% endif %}{{ action_attrs(safe_attrs.summary) }}>{{ icon(sem('ui.disclosure.more_options').resolved_icon) }}{{ t(sem('ui.disclosure.more_options').label_key) if title is none else title }}{% if has_content %}<span class="text-secondary"> · {{ t(sem('ui.disclosure.has_content').label_key) }}</span>{% endif %}</summary>{% endif %}
   <div class="admin-compact-detail-body">{{ caller() if caller else '' }}</div>
 </details>
 {%- endmacro %}
