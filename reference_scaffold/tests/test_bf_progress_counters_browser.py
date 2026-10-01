@@ -100,7 +100,7 @@ def test_t22_moved_ingredient_keeps_identity_when_quantity_is_invalid(
         page.get_by_role('button', name='Zutat 2 nach oben verschieben', exact=True).click()
         page.locator('[id="ingredients.0.quantity"]').fill('2,5')
         assert page.locator('[name="ingredients.0.line_public_id"]').input_value() == line_id
-        page.locator('.admin-compact-toolbar [data-semantic="actions.save"]').click()
+        page.locator('.admin-form-footer [form="recipe-editor"][data-semantic="actions.save"]').click()
         error = page.locator('#recipe-error')
         expect(error).to_contain_text('Dezimalzahl')
         invalid = page.locator('textarea[aria-invalid="true"]')

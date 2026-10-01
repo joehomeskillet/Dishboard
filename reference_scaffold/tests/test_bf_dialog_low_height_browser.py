@@ -14,10 +14,7 @@ from test_ui_master_shell_browser import _goto, _page, site  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
-EVIDENCE = Path(
-    '/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18'
-    '/.claude/state/claude-session-2026-09-29/audit/BF/E3'
-)
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/state/claude-session-2026-09-29/audit/BF/E3'
 VIEWPORTS = ((1280, 720), (390, 430))
 REACH = """(el) => {
   const style = getComputedStyle(el);
@@ -124,7 +121,8 @@ def _reachable(page, selector: str, shot: str, failures: list, javascript: bool)
 
 def _surfaces(recipe: str) -> tuple[tuple[str, str, str, str], ...]:
     return (
-        ('rezept', recipe, '[name="source.note"]', '[data-sticky-form="recipe-editor"] [data-semantic="actions.save"]'),
+        ('rezept', recipe, '[name="source.note"]',
+         '.admin-form-footer[data-sticky-form="recipe-editor"] [form="recipe-editor"][data-semantic="actions.save"]'),
         ('menue', _menu(), '#f-ext', '[aria-label="Menü speichern"]'),
         ('zutat', '/admin/grundlagen/zutaten/neu', '#note', '.admin-form-footer [data-semantic="actions.save"]'),
         ('einkauf', '/admin/einkaufslisten', '[name="menu_week_public_id"]', '#einkaufsliste-neu button[type="submit"]'),
