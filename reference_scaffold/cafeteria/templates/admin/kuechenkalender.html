@@ -56,11 +56,6 @@
 {% macro menu_href(family, week_start, day, meal, type_code) %}
 {{ url_for('admin.menu_get', family=family, week=week_start.isoformat(), day=day.isoformat(), meal=meal, option=type_code) }}
 {% endmacro %}
-{% macro day_plan_btn(cell) %}
-  {% if can_write and not cell.groups and not cell.events %}
-  {{ icon_button('actions.add', href=plan_href(cell.date, plan_family, cell.plan_week_start), text='Planen', aria_label='Planen für ' ~ cell.list_label, title='Planen', class='kitchen-cal-plan', emphasis='secondary') }}
-  {% endif %}
-{% endmacro %}
 {% macro day_body(cell) %}
   {% set day_ns = namespace(visible_count=0, overflow=[]) %}
   {% for event in cell.events %}
@@ -126,7 +121,6 @@
             <span class="kitchen-cal-day-num">{{ cell.date.day }}</span>
           </a>
           {% if cell.is_today %}{{ label('Heute', 'info', class='kitchen-cal-today-mark') }}{% endif %}
-          {{ day_plan_btn(cell) }}
         </div>
         {% if cell.groups or cell.events %}{{ day_body(cell) }}{% endif %}
       </td>
@@ -145,7 +139,6 @@
           {% if not cell.groups and not cell.events %}<span class="kitchen-cal-empty visually-hidden">Keine Einträge für diesen Tag.</span>{% endif %}
           <a href="{{ plan_href(cell.date, (cell.groups[0].family if cell.groups else plan_family), cell.plan_week_start) }}">{{ cell.list_label }}{% if cell.is_today %} · Heute{% endif %}</a>
         </h2>
-        {{ day_plan_btn(cell) }}
       </div>
       {% if cell.groups or cell.events %}{{ day_body(cell) }}{% endif %}
     </li>

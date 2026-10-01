@@ -182,17 +182,13 @@ def test_compact_full_day_cell_and_week_rows(
         empty_cell = _empty_day_cell(page)
         head = empty_cell.locator('.kitchen-cal-day-head')
         plan = empty_cell.locator('.kitchen-cal-plan')
-        assert plan.count() == 1
+        assert plan.count() == 0
         head_box = head.bounding_box()
-        plan_box = plan.bounding_box()
-        assert head_box is not None and plan_box is not None
-        assert not _boxes_overlap(head_box, plan_box), {
-            'head': head_box,
-            'plan': plan_box,
-        }
+        assert head_box is not None
+        expect(empty_cell.locator('a')).to_have_count(1)
         head.focus()
-        page.keyboard.press('Tab')
-        assert plan.evaluate('element => element === document.activeElement') is True
+        expect(head).to_be_focused()
+        assert '/admin/cafeteria?week=' in head.get_attribute('href')
 
         page.screenshot(path=str(tmp_path / 'kitchen-calendar-1440x900.png'), full_page=True)
     finally:
@@ -263,20 +259,16 @@ def test_calendar_has_no_horizontal_overflow(
             )
 
             # Locator-Nachzug: .kitchen-cal-list-head > a → .kitchen-cal-list-head h2 > a.
-            # Grund: h2 bleibt Zeilentitel mit Rolle Primär; Planen steht daneben.
+            # UI-DELTA: Tageskopf bleibt der einzige gleiche Wochenplanzugang.
             head = empty_day.locator('.kitchen-cal-list-head h2 > a').first
             plan = empty_day.locator('.kitchen-cal-plan')
-            assert plan.count() == 1
+            assert plan.count() == 0
             head_box = head.bounding_box()
-            plan_box = plan.bounding_box()
-            assert head_box is not None and plan_box is not None
-            assert not _boxes_overlap(head_box, plan_box), {
-                'head': head_box,
-                'plan': plan_box,
-            }
+            assert head_box is not None
+            expect(empty_day.locator('a')).to_have_count(1)
             head.focus()
-            page.keyboard.press('Tab')
-            assert plan.evaluate('element => element === document.activeElement') is True
+            expect(head).to_be_focused()
+            assert '/admin/cafeteria?week=' in head.get_attribute('href')
 
             page.screenshot(path=str(tmp_path / 'kitchen-calendar-360x800.png'), full_page=True)
     finally:

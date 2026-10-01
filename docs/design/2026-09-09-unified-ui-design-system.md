@@ -51,6 +51,11 @@ keinen zweiten gleichen Auslöser. Wochenstatistik und Vorschau-Status folgen
 der jeweiligen Bereichsnavigation. Kopierbestätigungen nutzen Textaktionen;
 einseitige Ausgabezeiten enthalten keine Platzhalter.
 
+DELTA-3-07: Leere Kalendertage führen ausschliesslich über ihren Tageskopf in
+die zugehörige Woche. Anlasszeit und Notiz stehen statisch im bestehenden
+Formular. Die Kalender-Overflowmigration D-25 bleibt offen: Der gemeinsame
+Lesedialog benötigt einen passenden Tagesdetail-Zweck samt Objektname.
+
 **Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
 Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere
 sind die Inline-Aufklapper in R06/R12/R17/R19/R21/R34, M03/M04/M19/M25/M55/M57
