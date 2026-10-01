@@ -1461,6 +1461,7 @@ reference_scaffold/tests/test_eh_http_contract.py
 reference_scaffold/tests/test_eh_integration_browser.py
 reference_scaffold/tests/test_eh_pages_browser.py
 reference_scaffold/tests/test_eh_return_target.py
+reference_scaffold/tests/test_favicon.py
 reference_scaffold/tests/test_fhir_mapping.py
 reference_scaffold/tests/test_fhir_routes.py
 reference_scaffold/tests/test_food_legends_admin.py
@@ -1657,6 +1658,7 @@ reference_scaffold/tests/test_recipe_search_browser.py
 reference_scaffold/tests/test_recipe_search_db.py
 reference_scaffold/tests/test_recipe_search_routes.py
 reference_scaffold/tests/test_recipe_snapshot_v2_db.py
+reference_scaffold/tests/test_recipe_sticky_save_browser.py
 reference_scaffold/tests/test_recipe_store_db.py
 reference_scaffold/tests/test_recipe_template_editor_browser.py
 reference_scaffold/tests/test_recipe_template_editor_routes.py
@@ -1691,6 +1693,7 @@ reference_scaffold/tests/test_sticky_footer_browser.py
 reference_scaffold/tests/test_supplier_store_db.py
 reference_scaffold/tests/test_swagger_ui_assets.py
 reference_scaffold/tests/test_tabler_package_verification.py
+reference_scaffold/tests/test_uc_p3a_density_browser.py
 reference_scaffold/tests/test_ui_brand_ops_browser.py
 reference_scaffold/tests/test_ui_consistency_ratchet.py
 reference_scaffold/tests/test_ui_contracts.py

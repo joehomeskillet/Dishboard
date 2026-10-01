@@ -483,7 +483,8 @@ def test_proof_page_locales_and_layout(semantic_site, width, tmp_path):
         messages = app.extensions['ui_translator'].locales[locale]
         expect(page.get_by_role('heading', level=1)).to_have_text(messages['ui.print_unavailable.label'])
         expect(page.get_by_role('alert')).to_contain_text(messages['ui.request_failed.label'])
-        link = page.get_by_role('link', name=messages['ui.templates_back.aria'], exact=True)
+        link = page.get_by_role('link', name='Zur Übersicht: ' + messages['ui.templates_back.aria'], exact=True)
+        expect(link).to_contain_text('Zur Übersicht')
         expect(link).to_have_attribute('href', '/templates')
         page.keyboard.press('Tab')
         expect(link).to_be_focused()

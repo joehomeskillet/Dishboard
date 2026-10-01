@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from flask import Flask
+from pathlib import Path
+
+from flask import Flask, Response
 from flask_session import Session  # type: ignore[import-untyped]
 from redis import Redis
 
@@ -52,6 +54,16 @@ def create_app() -> Flask:
     app.register_blueprint(health_bp)
     app.register_blueprint(branding_bp)
     register_error_handlers(app)
+
+    # Same file as the icon link in base.html and base_public.html. No template, no database.
+    favicon_name = 'img/suedhang-logo.png'
+
+    @app.get('/favicon.ico')
+    def favicon() -> Response:
+        folder = app.static_folder
+        if folder is None or not Path(folder, favicon_name).is_file():
+            return Response(status=204)
+        return app.send_static_file(favicon_name)
 
     @app.context_processor
     def inject_security_helpers():
