@@ -1,5 +1,6 @@
 """Authentication outcomes on real PostgreSQL and server-side Redis sessions."""
 from unittest.mock import Mock
+from test_eh_http_contract import assert_login_redirect, assert_login_success
 
 import pytest
 from redis.exceptions import RedisError
@@ -27,7 +28,7 @@ def audit_outage(owner):
 
 
 @pytest.mark.parametrize('case,status,reason', [
-    ('valid', 302, None), ('wrong', 401, 'credentials'), ('unknown', 401, 'credentials'),
+    ('valid', 303, None), ('wrong', 401, 'credentials'), ('unknown', 401, 'credentials'),
     ('disabled', 401, 'credentials'), ('no_roles', 401, 'credentials'),
     ('locked', 401, 'credentials'), ('throttled', 429, 'throttled'),
     ('rate_unavailable', 503, 'unavailable'), ('clear_unavailable', 503, 'unavailable'),
@@ -61,6 +62,8 @@ def test_local_outcomes_keep_unverified_actor_null(auth_app, monkeypatch, caplog
         audit_outage(owner)
     response = client.post('/auth/local', data=data)
     assert response.status_code == status
+    if case == 'valid':
+        assert_login_success(response)
     recorded = events(owner)
     if case == 'audit_outage':
         assert recorded == []
@@ -89,7 +92,7 @@ def test_local_outcomes_keep_unverified_actor_null(auth_app, monkeypatch, caplog
 
 
 @pytest.mark.parametrize('case,status,reason', [
-    ('valid', 302, None), ('missing_flow', 400, 'flow'), ('state', 400, 'flow'),
+    ('valid', 303, None), ('missing_flow', 400, 'flow'), ('state', 400, 'flow'),
     ('provider_error', 401, 'credentials'), ('network', 503, 'unavailable'),
     ('tenant', 403, 'flow'), ('audience', 403, 'flow'), ('claims_type', 403, 'flow'),
     ('roles_type', 403, 'role'), ('roles_unknown', 403, 'role'), ('roles_duplicate', 403, 'role'),
@@ -130,6 +133,8 @@ def test_entra_decisions_have_bounded_details_and_generic_errors(auth_app, monke
         audit_outage(owner)
     response = client.get('/auth/callback?error_description=' + SENTINEL)
     assert response.status_code == status
+    if case == 'valid':
+        assert_login_success(response)
     recorded = events(owner)
     if case == 'audit_outage':
         assert recorded == []
@@ -160,7 +165,8 @@ def test_logout_rejects_real_old_cookie_even_if_audit_fails(auth_app, frontchann
     app, owner, issuer = auth_app
     actor = _provision(issuer, owner)
     client = app.test_client()
-    assert client.post('/auth/local', data=_csrf_payload(client, username='local.editor', password='Correct-Horse-2026!Battery')).status_code == 302
+    assert_login_success(client.post('/auth/local', data=_csrf_payload(
+        client, username='local.editor', password='Correct-Horse-2026!Battery')))
     client.get('/auth/local')
     with client.session_transaction() as session:
         csrf, sid = session['_csrf_token'], session.sid
@@ -193,7 +199,7 @@ def test_logout_rejects_real_old_cookie_even_if_audit_fails(auth_app, frontchann
     assert response.status_code == 302
     assert not app.session_interface.client.exists(app.session_interface.key_prefix + sid)
     replay = app.test_client(use_cookies=False).get('/admin/cafeteria', headers={'Cookie': f'{cookie_name}={cookie}'})
-    assert replay.status_code == 401
+    assert_login_redirect(replay)
     recorded = events(owner)
     assert len(recorded) == (1 if condition == 'audit_outage' else 2)
     if condition != 'audit_outage':
@@ -210,12 +216,19 @@ def test_failed_redis_revocation_is_not_reported_as_completed_logout(auth_app, m
     app, owner, issuer = auth_app
     _provision(issuer, owner)
     client = app.test_client()
-    assert client.post('/auth/local', data=_csrf_payload(client, username='local.editor', password='Correct-Horse-2026!Battery')).status_code == 302
+    assert_login_success(client.post('/auth/local', data=_csrf_payload(
+        client, username='local.editor', password='Correct-Horse-2026!Battery')))
     client.get('/auth/local')
     with client.session_transaction() as session:
         csrf = session['_csrf_token']
+        store_id = app.session_interface.key_prefix + session.sid
+    assert app.session_interface.client.exists(store_id)
     with monkeypatch.context() as patch:
         patch.setattr(app.session_interface.client, 'delete', Mock(side_effect=RedisError('Revocation unavailable.')))
-        with pytest.raises(RedisError):
-            client.post('/auth/logout', data={'_csrf': csrf})
-    assert events(owner)[-1].action == 'auth.logout.requested'
+        response = client.post('/auth/logout', data={'_csrf': csrf})
+    assert response.status_code == 503
+    assert response.headers['Cache-Control'] == 'no-store'
+    assert 'Location' not in response.headers and 'Set-Cookie' not in response.headers
+    assert b'Revocation unavailable.' not in response.data
+    assert app.session_interface.client.exists(store_id)
+    assert [event.action for event in events(owner)] == ['auth.login.accepted', 'auth.logout.requested']

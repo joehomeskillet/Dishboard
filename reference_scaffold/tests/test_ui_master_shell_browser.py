@@ -6,6 +6,8 @@ import re
 from threading import Thread
 from urllib.parse import urlsplit
 
+from test_eh_http_contract import assert_login_redirect
+
 import pytest
 from flask import abort, render_template_string, session
 from playwright.sync_api import Page, expect
@@ -264,8 +266,8 @@ def test_logout_form_csrf_and_session(site, database_engine):  # noqa: F811
     form.locator('button[type="submit"]').click()
     page.wait_for_load_state('networkidle')
     expect(page.locator('aside.admin-sidebar')).to_have_count(0)
-    denied = page.request.get(origin + '/admin/cafeteria')
-    assert denied.status == 401
+    denied = page.request.get(origin + '/admin/cafeteria', max_redirects=0)
+    assert_login_redirect(denied)
     login = page.request.get(origin + '/auth/local')
     assert login.status == 200
     page.context.close()

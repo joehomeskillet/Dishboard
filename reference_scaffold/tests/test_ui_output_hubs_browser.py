@@ -11,6 +11,8 @@ from tempfile import TemporaryDirectory
 from wsgiref.simple_server import make_server
 from xml.etree import ElementTree
 
+from test_eh_http_contract import assert_login_redirect
+
 import pytest
 from playwright.sync_api import Page, expect
 from sqlalchemy import text
@@ -380,6 +382,7 @@ def test_output_hubs_matrix_error_and_conflict_states(
     database_engine,  # noqa: F811
     browser,  # noqa: F811
     tmp_path: Path,  # noqa: F811
+    monkeypatch,
 ) -> None:
     client, _ = _login(published_hub_app, database_engine, ["Cafeteria.Admin"])
     cookie = client.get_cookie(published_hub_app.config["SESSION_COOKIE_NAME"])
@@ -400,7 +403,10 @@ def test_output_hubs_matrix_error_and_conflict_states(
         assert page.goto("/admin/vorlagen?week=invalid").status == 400
         assert page.goto("/admin/screens/cafeteria/wochenvorlage?bad=1").status == 400
 
-        # State: access_denied_401 (unauthenticated)
+        # Anonymous HTML reads enter login; disable the fixture's demo autologin.
+        monkeypatch.setitem(published_hub_app.config, 'DEMO_MODE', False)
+        monkeypatch.setitem(published_hub_app.config, 'LOCAL_AUTH_ENABLED', True)
+        monkeypatch.setitem(published_hub_app.config, 'ENTRA_ENABLED', False)
         unauth_ctx = browser.new_context(base_url=hub_server)
         unauth_page = unauth_ctx.new_page()
         for path in (
@@ -408,7 +414,11 @@ def test_output_hubs_matrix_error_and_conflict_states(
             "/admin/vorlagen",
             "/admin/screens/cafeteria/wochenvorlage",
         ):
-            assert unauth_page.goto(path).status == 401
+            assert_login_redirect(unauth_page.request.get(path, max_redirects=0))
+            assert unauth_page.goto(path).status == 200
+            expect(unauth_page).to_have_url(hub_server + '/auth/local')
+            expect(unauth_page.locator('.auth-form')).to_be_visible()
+            expect(unauth_page.locator('.admin-sidebar')).to_have_count(0)
         unauth_ctx.close()
 
         # State: conflict_409 on assignment using stale session

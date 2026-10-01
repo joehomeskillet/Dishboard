@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from test_eh_http_contract import assert_login_redirect
 from pathlib import Path
 
 import pytest
@@ -43,7 +44,7 @@ def test_anonymous_event_form_is_401(monkeypatch, tmp_path) -> None:
         TESTING=True, SECRET_KEY='cal-event', LAST_GOOD_DIR=str(tmp_path), DEMO_MODE=True,
     )
     client = application.test_client()
-    assert client.get('/admin/kuechenkalender/anlass').status_code == 401
+    assert_login_redirect(client.get('/admin/kuechenkalender/anlass'))
 
 
 def test_calendar_template_exposes_event_markers() -> None:

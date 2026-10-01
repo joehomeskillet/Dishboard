@@ -263,7 +263,18 @@ def test_weekend_editor_links_defaults_and_existing_services_survive_switch_off(
     assert len(slots) == 14 and {slot[0] for slot in slots} == set(week_dates)
     assert all(slot[1] == 'LUNCH' for slot in slots)
     assert body.count('von 2 Menükarten erfasst') == 7
-    assert 'Vorgabe' in body
+    # BF-E1-F4: untouched defaults are not unsaved user edits.
+    assert re.search(r'>\s*Nicht gespeichert\s*<', body) is None
+    assert 'Vorgabe, noch nicht gespeichert' not in body
+    for day in week_dates[5:]:
+        assert f'id="service-{day}-LUNCH"' in body
+        defaults = _load(client, date=day)
+        assert defaults['row_version'] == '0'
+        assert defaults['service_state'] == 'closed'
+        assert defaults['service_start'] == defaults['service_end'] == ''
+        assert defaults['notice'] == 'Am Wochenende geschlossen'
+    with database_engine.connect() as connection:
+        assert connection.execute(text('SELECT count(*) FROM cafeteria.menu_services')).scalar_one() == 0
     exception = _load(client, date='2026-09-05')
     assert client.post(PATH, data={**exception, 'service_state': 'open'}).status_code == 303
     off = _get(client, 'weekend-form')

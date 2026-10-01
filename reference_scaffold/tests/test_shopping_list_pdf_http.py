@@ -227,7 +227,7 @@ def test_pdf_route_database_failure_returns_503_no_store(client, monkeypatch):  
     monkeypatch.setattr(routes, 'active_template', fail_database)
     response = test_client.get(_path(list_id))
     assert response.status_code == 503
-    assert 'Einkaufslisten sind derzeit nicht verfügbar' in response.text
+    assert response.text == 'SERVICE_UNAVAILABLE: Dienst vorübergehend nicht verfügbar'
     assert 'PRIVATE_DETAIL' not in response.text
     assert response.headers['Cache-Control'] == 'no-store'
     assert response.mimetype != 'application/pdf'

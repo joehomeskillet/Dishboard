@@ -551,12 +551,17 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         def unavailable(*_args, **_kwargs):
             raise OperationalError('SYNTHETIC-PRIVATE-ERROR', {}, None)
 
+        with client.session_transaction() as state:
+            session_before = dict(state)
+        cookies_before = {cookie['name']: cookie['value'] for cookie in context.cookies()}
         monkeypatch.setattr('cafeteria.roles.load_user_authorization', unavailable)
         response = page.goto(origin + '/admin/benutzer', wait_until='networkidle')
         assert response.status == 503 and response.headers['cache-control'] == 'no-store'
-        expect(page.get_by_role('heading', name='Dienst vorübergehend nicht verfügbar')).to_be_visible()
-        expect(page.locator('[data-eh-frame="minimal"][data-error-code="SERVICE_UNAVAILABLE"]')).to_be_visible()
+        expect(page.get_by_role('heading', name='Benutzerverwaltung nicht verfügbar', exact=True)).to_be_visible()
         assert 'SYNTHETIC-PRIVATE-ERROR' not in page.content()
+        with client.session_transaction() as state:
+            assert dict(state) == session_before
+        assert {cookie['name']: cookie['value'] for cookie in context.cookies()} == cookies_before
         assert page.locator('[data-account-row]').count() == 0
         assert 'Noch keine lokalen Konten' not in page.locator('main').inner_text()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -565,16 +570,21 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         assert page.locator('[id]').evaluate_all('els=>new Set(els.map(el=>el.id)).size===els.length')
         assert page.locator('[aria-describedby]').evaluate_all(
             'els=>els.every(el=>el.getAttribute("aria-describedby").split(/\\s+/).every(id=>document.getElementById(id)))')
-        recovery = page.locator('main .eh-action')
-        assert recovery.count() > 0
-        assert recovery.evaluate_all('els=>els.every(el=>el.getBoundingClientRect().height >= 44)')
+        recovery = page.locator('main a[data-semantic="actions.retry"]')
+        expect(recovery).to_be_visible()
+        expect(recovery).to_have_attribute('href', '/admin/benutzer')
         _icons_and_focus(page)
         _screenshot(page, f'local-user-unavailable-{width}-{javascript}.png')
         post = page.request.post(origin + '/admin/benutzer', form={})
-        assert post.status == 503
-        assert 'Es ist unklar, ob die Änderung gespeichert wurde.' in post.text()
+        assert post.status == 503 and post.headers['cache-control'] == 'no-store'
+        assert 'Benutzerverwaltung nicht verfügbar' in post.text()
+        assert 'Der Abschluss der Kontoaktion konnte nicht bestätigt werden.' in post.text()
+        assert 'Laden Sie den aktuellen Stand, bevor Sie die Aktion erneut bestätigen.' in post.text()
         assert 'SYNTHETIC-PRIVATE-ERROR' not in post.text()
         assert 'location' not in post.headers
+        with client.session_transaction() as state:
+            assert dict(state) == session_before
+        assert {cookie['name']: cookie['value'] for cookie in context.cookies()} == cookies_before
 
 
 @pytest.mark.parametrize('width,javascript', [(1440, True), (360, False)])

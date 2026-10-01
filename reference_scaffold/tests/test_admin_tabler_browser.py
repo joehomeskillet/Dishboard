@@ -166,7 +166,9 @@ def test_legacy_week_sidebar_keeps_content_beside_it(page_context, admin_engine,
 def test_login_page_does_not_load_tabler_styles(app):
     response = app.test_client().get('/auth/local')
     assert response.status_code == 200
-    assert 'tabler' not in response.get_data(as_text=True)
+    stylesheets = re.findall(r'<link\b[^>]*rel="stylesheet"[^>]*>', response.text)
+    assert stylesheets
+    assert all('tabler' not in stylesheet for stylesheet in stylesheets)
 
 
 @pytest.mark.parametrize('route', (

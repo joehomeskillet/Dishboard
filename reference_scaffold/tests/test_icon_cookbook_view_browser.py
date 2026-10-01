@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from uuid import uuid4
+from test_eh_http_contract import assert_login_redirect
 
 import pytest
 from playwright.sync_api import expect
@@ -152,7 +153,7 @@ def test_cookbook_view_access_and_methods(reading_book, b3, monkeypatch):  # noq
     for identifier in ('invalid', str(uuid4())):
         response = client.get(f'/admin/kochbuecher/{identifier}/ansicht')
         assert response.status_code == 404
-    assert app.test_client().get(path).status_code == 401
+    assert_login_redirect(app.test_client().get(path))
     monkeypatch.setitem(roles.ROLE_CAPABILITIES, 'Cafeteria.Publisher', set())
     assert client.get(path).status_code == client.get(data['path']).status_code == 403
     assert snapshot(data['owner']) == before

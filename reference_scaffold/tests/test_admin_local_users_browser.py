@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from threading import Thread
+from test_eh_http_contract import assert_login_redirect
 
 import pytest
 from playwright.sync_api import expect
@@ -151,7 +152,11 @@ def test_browser_complete_lifecycle_and_session_revocation(live_accounts, browse
         page.get_by_role('button', name='Konto deaktivieren', exact=True).click()
         page.locator('#state-action summary').click()
         expect(page.get_by_role('button', name='Konto reaktivieren', exact=True)).to_be_visible()
-        assert target_page.goto(origin + '/admin/cafeteria', wait_until='networkidle').status == 401
+        assert_login_redirect(target_page.context.request.get(
+            origin + '/admin/cafeteria', max_redirects=0))
+        assert target_page.goto(origin + '/admin/cafeteria', wait_until='networkidle').status == 200
+        expect(target_page.locator('form.auth-form')).to_be_visible()
+        expect(target_page.locator('.admin-sidebar')).to_have_count(0)
         page.screenshot(path=str(tmp_path / 'iam-disabled-390.png'), full_page=True)
         page.get_by_label('Konto browser.lifecycle ausdrücklich reaktivieren', exact=True).check()
         page.get_by_role('button', name='Konto reaktivieren', exact=True).click()

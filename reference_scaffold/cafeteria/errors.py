@@ -87,6 +87,8 @@ def surface(req) -> str:
         return 'download'
     if path.startswith(('/branding/', '/static/')) or path.endswith(('.pdf', '.csv', '.png', '.css')):
         return 'download'
+    if req.headers.get('Accept') and not req.accept_mimetypes['text/html']:
+        return 'api' if req.accept_mimetypes['application/json'] else 'download'
     return 'html' if req.method in ('GET', 'HEAD', 'OPTIONS') else 'form_post'
 
 
@@ -278,7 +280,7 @@ def _diagnose(event: str, error: Exception, status: int) -> None:
 
 def error_view(error: HTTPException, *, code: str | None = None) -> ErrorView:
     status = error.code or 500
-    code = code or getattr(error, 'error_code', None) or _CODES.get(status, 'REQUEST_INVALID')
+    code = code or ('FORM_STALE' if isinstance(error, FormStale) else _CODES.get(status, 'REQUEST_INVALID'))
     kind = surface(request)
     verified = getattr(g, 'auth_user', None) is not None
     state = getattr(g, 'eh_auth_state', 'authenticated' if verified else 'unknown')
@@ -335,6 +337,9 @@ def _minimal(view: ErrorView) -> str:
 
 
 def render_error(error: HTTPException, *, code: str | None = None, minimal: bool = False) -> Response:
+    if error.code in (401, 403) and error.response is not None:
+        # A guard or domain boundary already supplied the complete HTTP response.
+        return error.get_response()
     view = error_view(error, code=code)
     response = error.get_response()
     if view.surface == 'fhir':
@@ -348,7 +353,8 @@ def render_error(error: HTTPException, *, code: str | None = None, minimal: bool
         response.set_data(json.dumps({'error': code, 'detail': _TITLES.get(view.code, 'Anfrage fehlgeschlagen.')}))
         response.content_type = 'application/json'
     elif view.surface == 'download':
-        response.set_data(f'{view.code}: {_TITLES.get(view.code, "Anfrage fehlgeschlagen.")}')
+        detail = view.message_params.get('detail') or _TITLES.get(view.code, 'Anfrage fehlgeschlagen.')
+        response.set_data(f'{view.code}: {detail}')
         response.content_type = 'text/plain; charset=utf-8'
     else:
         try:
@@ -385,7 +391,7 @@ def authentication_required(*, invalid: bool = False) -> Response:
 
 
 class FormStale(BadRequest):
-    error_code = 'FORM_STALE'
+    """Typed CSRF failure; existing domain handlers still own their 400 input context."""
 
 
 def _session_is_authenticated(sess) -> bool:
@@ -418,6 +424,14 @@ class _SessionBoundary:
 
     def __getattr__(self, name):
         return getattr(self.delegate, name)
+
+    @property
+    def key_prefix(self):
+        return self.delegate.key_prefix
+
+    @key_prefix.setter
+    def key_prefix(self, value):
+        self.delegate.key_prefix = value
 
     def open_session(self, app, req):
         try:

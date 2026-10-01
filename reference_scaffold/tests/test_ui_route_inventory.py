@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from test_eh_http_contract import assert_login_redirect
+
 import pytest
 from flask import Flask, session
 
@@ -488,8 +490,22 @@ def test_matrix_roles_match_server_side_authorization(monkeypatch, tmp_path, dat
         if endpoint not in routes:
             continue
         for role, client in clients.items():
-            status = client.get(path).status_code
-            matches = status == 401 if role == 'anonymous' else (status != 403) == (role in routes[endpoint]['roles'])
+            response = client.get(path)
+            status = response.status_code
+            if role == 'anonymous':
+                if endpoint in {
+                    'admin.export_csv', 'admin.order_basket_csv', 'admin.print_week',
+                    'admin.shopping_list_pdf', 'admin.recipe_revision_pdf',
+                    'admin.print_template_preview', 'admin.recipe_print_template_preview',
+                    'admin.branding_preview_css', 'admin.branding_preview_logo', 'admin.recipe_asset',
+                }:
+                    assert status == 401 and 'Location' not in response.headers
+                    assert response.mimetype != 'text/html'
+                else:
+                    assert_login_redirect(response)
+                matches = True
+            else:
+                matches = (status != 403) == (role in routes[endpoint]['roles'])
             results.append(dict(endpoint=endpoint, path=path, role=role, status=status, matches=matches))
     assert {row['endpoint'] for row in results} == {key for key in routes if key.startswith('admin.')}
     assert all(row['matches'] for row in results), json.dumps(results, ensure_ascii=False, indent=2)
@@ -858,4 +874,4 @@ def test_capture_before_screenshots_and_manifest(monkeypatch, tmp_path, database
                for row in rendered)
 
     with application.test_client() as probe:
-        assert probe.get('/admin/cafeteria').status_code == 401
+        assert_login_redirect(probe.get('/admin/cafeteria'))

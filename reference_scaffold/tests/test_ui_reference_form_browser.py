@@ -342,7 +342,9 @@ def test_unauthorized_roles_have_no_form_or_submit(
         page.set_viewport_size({'width': width, 'height': height})
         response = page.goto(path)
         assert response is not None and response.status == status
-        expect(page.locator('form, button[type="submit"]')).to_have_count(0)
+        expect(page.locator(
+            f'form[action^="{path}"], [formaction^="{path}"], form:has([name="category"])',
+        )).to_have_count(0)
         assert page.context.request.post(path, form={**tokens, 'name': 'Verboten', 'category': 'side'}).status == status
         _capture(page, tmp_path, f'forbidden-{status}-{width}')
     assert get_component(engine, scope, public_id, include_archived=True) == before

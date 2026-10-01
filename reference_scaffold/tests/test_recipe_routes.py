@@ -1,5 +1,6 @@
 """Real PostgreSQL and native HTTP contracts for the privately wired A2 slice."""
 import pytest
+from test_eh_http_contract import assert_login_redirect
 import io
 from PIL import Image
 from sqlalchemy import text
@@ -144,7 +145,7 @@ def test_authorization_csrf_ambiguous_rows_and_db_free_outage(b3, monkeypatch):
     assert client.get(path).status_code == 200
     assert client.get(path + '/status').status_code == 403
     assert client.post(path, data=data).status_code == 403
-    assert app.test_client().get('/admin/rezepte').status_code == 401
+    assert_login_redirect(app.test_client().get('/admin/rezepte'))
     def unavailable(*args, **kwargs):
         raise OperationalError('private', {}, RuntimeError('hidden'))
     monkeypatch.setattr(roles, 'load_user_authorization', unavailable)
@@ -322,7 +323,7 @@ def test_view_is_complete_readonly_and_rejects_unknown_query_without_form_contex
         invalid = client.get(path + '/ansicht?' + query)
         assert invalid.status_code == 400 and invalid.headers['Cache-Control'] == 'no-store'
     assert client.get('/admin/rezepte/not-a-uuid/ansicht').status_code == 404
-    assert app.test_client().get(path + '/ansicht').status_code == 401
+    assert_login_redirect(app.test_client().get(path + '/ansicht'))
     assert snapshot(owner) == before
 
 
