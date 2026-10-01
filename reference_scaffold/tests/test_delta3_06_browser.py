@@ -70,3 +70,30 @@ def test_static_creation_preview_and_copy(
             assert mode['text'] and mode['icons'] == 0, mode
         for page in pages.values():
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+def test_review_and_preview_partial_times(page_context, admin_engine, family, profile):
+    values = _staff_values() if family == 'cafeteria' else _patient_values()
+    for day, (start, end) in zip(values['days'], [('', ''), ('11:30', ''), ('', '13:00'), ('11:30', '13:00')]):
+        day['services'][0].update(service_start=start, service_end=end)
+    _save(admin_engine, profile, values)
+    page = page_context
+    assert page.goto(f'/admin/{family}/preview?week={DAY}').status == 200
+    for index, expected in enumerate(['', 'ab 11:30', 'bis 13:00', '11:30–13:00']):
+        times = page.locator('.preview-day').nth(index).locator('.preview-service').first.locator('.service-time')
+        if expected:
+            expect(times).to_have_text(expected)
+        else:
+            expect(times).to_have_count(0)
+    assert page.goto(f'/admin/{family}/wochen/pruefung?week={DAY}').status == 200
+    rows = page.locator('[aria-label="Ausgabeangaben"] [role="listitem"]')
+    stride = 1 if family == 'cafeteria' else 2
+    for index, expected in enumerate(['', 'ab 11:30', 'bis 13:00', '11:30–13:00']):
+        row = rows.nth(index * stride)
+        expect(row.locator('.admin-list-status, .admin-list-secondary')).to_have_count(0)
+        meta = row.locator('.admin-list-meta')
+        if expected:
+            expect(meta).to_have_text(expected)
+        else:
+            expect(meta).to_have_count(0)
