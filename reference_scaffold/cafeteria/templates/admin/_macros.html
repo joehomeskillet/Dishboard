@@ -525,15 +525,16 @@
 {%- set marking_content = optional_slot(markings, markings_present) -%}
 {%- set status_content = optional_slot(status, status_present) -%}
 {%- if not status_content and status_present is not sameas false and optional_slot(state) -%}{%- set status_content = status_badge(state) -%}{%- endif -%}
+{%- set action_content -%}
+  {% if actions is not none %}{{ actions }}{% elif action %}{{ render_actions(secondary=[action]) }}{% endif %}
+  {% if more_actions and more_actions|trim %}{{ more_actions }}{% endif %}
+{%- endset -%}
 <div class="admin-list-row">
   <div class="admin-list-name"><strong class="admin-list-primary">{{ primary_content }}</strong>{% if secondary_content %}<div class="admin-list-subtitle admin-list-secondary" title="{{ secondary_content|striptags }}">{{ secondary_content }}</div>{% endif %}</div>
   {% if meta_content %}<div class="admin-list-meta">{{ meta_content }}</div>{% endif %}
   {% if marking_content or overflow %}<div class="admin-list-markings">{{ marking_content }}{% if overflow %}{{ label('+' ~ overflow, detail=overflow ~ ' weitere Kennzeichnungen') }}{% endif %}</div>{% endif %}
   {% if status_content %}<div class="admin-list-status">{{ status_content }}</div>{% endif %}
-  <div class="admin-list-actions{% if more_actions and more_actions|trim %} admin-row-actions{% endif %}" role="group" aria-label="{{ t('ui.action_group.object', object=primary_content|striptags) if primary_content else t('ui.action_group.aria') }}">
-    {% if actions is not none %}{{ actions }}{% elif action %}{{ render_actions(secondary=[action]) }}{% endif %}
-    {% if more_actions and more_actions|trim %}{{ more_actions }}{% endif %}
-  </div>
+  {% if action_content|trim %}<div class="admin-list-actions{% if more_actions and more_actions|trim %} admin-row-actions{% endif %}" role="group" aria-label="{{ t('ui.action_group.object', object=primary_content|striptags) if primary_content else t('ui.action_group.aria') }}">{{ action_content }}</div>{% endif %}
 </div>
 {%- endmacro %}
 

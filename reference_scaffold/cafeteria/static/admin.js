@@ -72,18 +72,58 @@
             event.preventDefault();
             const x = window.scrollX;
             const y = window.scrollY;
+            const previousFocus = document.activeElement;
+            let destination = null;
+            const jumpToBackground = event => {
+                const link = event.target.closest('a[href]');
+                if (!link || link.hasAttribute('data-read-detail-close') || event.defaultPrevented ||
+                    event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+                    link.hasAttribute('download') || link.target && link.target !== '_self') return;
+                let url, target;
+                try {
+                    url = new URL(link.href, location.href);
+                    if (url.origin !== location.origin || url.pathname !== location.pathname ||
+                        url.search !== location.search || !url.hash) return;
+                    target = document.getElementById(decodeURIComponent(url.hash.slice(1)));
+                } catch (error) {
+                    if (error instanceof URIError || error instanceof TypeError) return;
+                    throw error;
+                }
+                if (!target || target.closest('dialog') || !target.getClientRects().length ||
+                    target.closest('[hidden], [inert]') || target.matches(':disabled')) return;
+                event.preventDefault();
+                destination = target;
+                if (location.hash !== url.hash) history.pushState(null, '', url.hash);
+                // Native close also restores focus. Keep that restoration inert
+                // until the shared close handler can focus the requested target.
+                const wasInert = previousFocus.inert;
+                previousFocus.inert = true;
+                dialog.close();
+                previousFocus.inert = wasInert;
+            };
+            dialog.addEventListener('click', jumpToBackground);
             dialog.showModal();
             dialog.querySelector('[tabindex="-1"]')?.focus({preventScroll: true});
             dialog.scrollTop = 0;
             dialog.querySelector('.ui-read-detail-content').scrollTop = 0;
             window.scrollTo(x, y);
             dialog.addEventListener('close', () => {
+                dialog.removeEventListener('click', jumpToBackground);
                 // Native close may focus the opener before this event. Dismiss
                 // its tooltip so it cannot cover another opener for this dialog.
                 escapeFocus.add(trigger);
                 const tip = actionTooltip(trigger);
                 if (tip) tip.dataset.dismissed = 'true';
                 window.tabler?.Tooltip.getInstance(trigger)?.hide();
+                if (destination) {
+                    if (destination.tabIndex < 0 && !destination.hasAttribute('tabindex')) {
+                        destination.setAttribute('tabindex', '-1');
+                        destination.addEventListener('blur', () => destination.removeAttribute('tabindex'), {once: true});
+                    }
+                    destination.focus({preventScroll: true});
+                    destination.scrollIntoView({block: 'center', behavior: 'instant'});
+                    return;
+                }
                 trigger.focus({preventScroll: true});
                 window.scrollTo(x, y);
             }, {once: true});

@@ -2750,6 +2750,17 @@
     "role": "neutral"
   },
   {
+    "key": "ui.read_detail.day",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "calendar",
+    "label_key": "ui.read_detail.day.label",
+    "tooltip_key": "ui.read_detail.day.tooltip",
+    "aria_key": "ui.read_detail.day.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
     "key": "ui.disclosure.has_content",
     "category": "ui",
     "ascii": "[i]",

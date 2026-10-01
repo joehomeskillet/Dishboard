@@ -177,7 +177,7 @@
    The anchor and :target keep the same content reachable without JavaScript. #}
 {% macro read_detail_trigger(id, key, object, trigger_id=none) -%}
   {{ icon_button(key, href=('#' ~ id)|forceescape, id=(trigger_id if trigger_id is not none else id ~ '-trigger')|forceescape,
-      aria_label=t(sem(key).aria_key, object=object),
+      object=object, aria_label=none if sem(key).category == 'actions' else t(sem(key).aria_key, object=object),
       attrs={'data-read-detail': id, 'aria-controls': id}) }}
 {%- endmacro %}
 
