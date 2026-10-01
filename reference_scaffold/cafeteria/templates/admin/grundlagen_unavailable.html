@@ -1,7 +1,7 @@
 {% from 'admin/_macros.html' import page_header %}
 {% from 'ui/_semantic.html' import icon_button %}
 <!doctype html><html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ title|default('Grundlagen nicht verfügbar') }}</title>
+<title>{{ title|default('Grundlagen nicht verfügbar') }}</title><link rel="icon" type="image/png" href="{{ url_for('static', filename='img/suedhang-logo.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='tokens.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='vendor/tabler/tabler.min.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-tabler.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='admin-grundlagen.css') }}">
 </head><body class="dishboard-admin"><main class="container-fluid py-3">
 {{ page_header(t('navigation.ingredients.label'), description=title|default('Grundlagen nicht verfügbar'), status_items=[{'label': t('status.error.label'), 'value': t('status.blocked.label'), 'variant': 'danger'}]) }}

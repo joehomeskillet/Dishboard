@@ -5,7 +5,6 @@ import threading
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
-from flask import request
 from playwright.sync_api import expect
 from sqlalchemy.exc import OperationalError
 from werkzeug.serving import make_server
@@ -181,9 +180,6 @@ def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
         context_calls = []
 
         def unavailable_context():
-            # /favicon.ico 404 renders the central error page, not the outage template.
-            if request.path == '/favicon.ico':
-                return {}
             context_calls.append(True)
             raise AssertionError('Unavailable response invoked DB-dependent template context')
 
