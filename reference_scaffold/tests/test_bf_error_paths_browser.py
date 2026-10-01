@@ -325,8 +325,10 @@ def test_cost_input_error_keeps_kind_revision_and_extra(b3):  # noqa: F811
     })
     assert response.status_code == 400
     assert 'value="nicht-eine-uuid"' in response.text and 'value="extra-wert"' in response.text
-    assert 'value="prepared" selected' in response.text and 'id="cost-options"' in response.text
-    assert '<details' not in response.text
+    assert 'value="prepared" selected' in response.text
+    # UI-DELTA keeps the shared No-JS navigation disclosure outside the work area.
+    main = response.text.split('<main', 1)[1].split('</main>', 1)[0]
+    assert 'id="cost-options"' in main and '<details' not in main
 
 
 def test_cost_receipt_conflict_keeps_inputs_without_second_receipt(b3):  # noqa: F811
