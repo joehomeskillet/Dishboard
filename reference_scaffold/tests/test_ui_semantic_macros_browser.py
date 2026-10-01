@@ -1,6 +1,7 @@
 """Own sync_playwright lifecycle; real HTTP/assets, no product test endpoint."""
 from __future__ import annotations
 
+import json
 import re
 from threading import Thread
 
@@ -115,6 +116,46 @@ def semantic_site(request):
         return render_template_string(DIRECT_PAGE, items=items, object='Broccoli <&>',
                                       reason='Noch kein gespeicherter Stand vorhanden.')
 
+    @app.route('/__foundation_api__', methods=['GET', 'POST'])
+    def foundation_api_page():
+        if flask_request.method == 'POST':
+            return {key: flask_request.form.getlist(key) for key in flask_request.form}
+        return render_template_string('''<!doctype html><html><head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            {% for file in ['tokens.css', 'vendor/tabler/tabler.min.css', 'admin-tabler.css', 'ui-semantic.css'] %}
+            <link rel="stylesheet" href="{{ url_for('static', filename=file) }}">{% endfor %}
+            <script defer src="{{ url_for('static', filename='vendor/tabler/tabler.min.js') }}"></script>
+            <script defer src="{{ url_for('static', filename='admin.js') }}"></script>
+            </head><body class="dishboard-admin"><main class="container-fluid">
+            {% from 'admin/_macros.html' import disclosure_section, form_footer %}
+            {% from 'ui/_semantic.html' import icon_button %}
+            <p id="help">Sekundäre Angaben</p>
+            <form method="post" id="editor">
+            {% call disclosure_section(id='optional', details_class='mb-2',
+                details_attrs={'data-owner':'editor', 'aria-describedby':'help'},
+                summary_class='align-self-start', summary_attrs={'aria-controls':'draft'},
+                summary_key='ui.disclosure.details', summary_object='Suppe <&>') %}
+                <input id="draft" name="draft" value="Ungespeichert">
+            {% endcall %}
+            {% call disclosure_section(title='Textabschnitt', id='text', variant='card',
+                details_class='mt-2', summary_class='text-secondary',
+                details_attrs={'data-owner':'text'}, summary_attrs={'aria-controls':'note'}) %}
+                <input id="note" name="note" value="Notiz">
+            {% endcall %}
+            {% call disclosure_section(id='content', has_content=true,
+                summary_key='ui.disclosure.details') %}<p>Vorhanden</p>{% endcall %}
+            {% call disclosure_section(id='error', has_error=true,
+                summary_key='ui.disclosure.details') %}<p role="alert">Bitte prüfen</p>{% endcall %}
+            {{ form_footer(icon_button('actions.save', name='intent', value='save'), '#cancel',
+                secondary=[{'label':'Speichern und zurück', 'type':'submit',
+                            'name':'intent', 'value':'back'}],
+                action_order=['primary', 'secondary', 'cancel']) }}
+            </form>
+            <form method="post" id="save-only">
+            {{ form_footer({'label':'Speichern', 'name':'intent', 'value':'only'}) }}
+            </form>
+            </main></body></html>''')
+
     server = make_server('127.0.0.1', 0, app, threaded=True)
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -129,6 +170,78 @@ def semantic_site(request):
         server.shutdown()
         thread.join(timeout=5)
         server.server_close()
+
+
+@pytest.mark.parametrize('javascript', [False, True])
+@pytest.mark.parametrize('touch', [False, True])
+@pytest.mark.parametrize('width', [390, 1440])
+def test_foundation_api_disclosures_and_footer_native_contracts(
+        semantic_site, javascript, touch, width, tmp_path):
+    app, browser, origin = semantic_site
+    context = browser.new_context(java_script_enabled=javascript, has_touch=touch,
+                                  viewport={'width': width, 'height': 900})
+    page = context.new_page()
+    try:
+        assert page.goto(origin + '/__foundation_api__').status == 200
+        optional = page.locator('#optional')
+        summary = optional.locator('summary')
+        expect(optional).to_have_class(re.compile(r'admin-disclosure.*mb-2'))
+        expect(optional).to_have_attribute('data-owner', 'editor')
+        expect(optional).to_have_attribute('aria-describedby', 'help')
+        expect(summary).to_have_class(re.compile(r'ui-sem-control--icon-only.*align-self-start'))
+        expect(summary).to_have_attribute('aria-controls', 'draft')
+        name = summary.get_attribute('aria-label')
+        assert 'Suppe <&>' in name
+        expect(summary).to_have_attribute('data-ui-tooltip', name)
+        expect(summary).to_have_text('')
+        minimum = 44 if touch else 36
+        for control in page.locator('.ui-sem-control').all():
+            box = control.bounding_box()
+            assert box['width'] >= minimum and box['height'] >= minimum
+        page.keyboard.press('Tab')
+        expect(summary).to_be_focused()
+        assert summary.evaluate('e => getComputedStyle(e).outlineStyle') != 'none'
+        if javascript and not touch:
+            expect(page.get_by_role('tooltip', name=name, exact=True)).to_be_visible()
+            page.keyboard.press('Escape')
+        summary.press('Enter')
+        expect(optional).to_have_attribute('open', '')
+        page.locator('#draft').fill('Eigene Änderung')
+        summary.press('Space')
+        expect(optional).not_to_have_attribute('open', '')
+        summary.press('Enter')
+        expect(page.locator('#draft')).to_have_value('Eigene Änderung')
+        text_summary = page.locator('#text > summary')
+        expect(text_summary).to_have_class('text-secondary')
+        expect(text_summary).to_have_attribute('aria-controls', 'note')
+        expect(page.locator('#text')).to_have_class(re.compile(r'admin-disclosure--card.*mt-2'))
+        text_summary.press('Enter')
+        expect(page.locator('#note')).to_be_visible()
+        for selector in ['#content', '#error']:
+            expect(page.locator(selector)).to_have_attribute('open', '')
+        actions = page.locator('#editor .admin-form-main').locator('button, a')
+        assert actions.evaluate_all('els => els.map(e => e.value || e.getAttribute("href"))') == [
+            'save', 'back', '#cancel']
+        actions.first.focus()
+        page.keyboard.press('Tab')
+        expect(actions.nth(1)).to_be_focused()
+        page.keyboard.press('Tab')
+        expect(actions.nth(2)).to_be_focused()
+        expect(page.locator('#save-only a')).to_have_count(0)
+        expect(page.locator('#save-only button')).to_have_count(1)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        page.screenshot(path=str(tmp_path / f'api-{app.config["UI_LOCALE"]}-{width}-{touch}-{javascript}.png'))
+        with page.expect_navigation():
+            actions.nth(1).press('Enter')
+        assert page.locator('body').inner_text().strip()
+        payload = json.loads(page.locator('body').inner_text())
+        assert payload == {'draft': ['Eigene Änderung'], 'note': ['Notiz'], 'intent': ['back']}
+        page.goto(origin + '/__foundation_api__')
+        with page.expect_navigation():
+            page.locator('#save-only button').press('Enter')
+        assert json.loads(page.locator('body').inner_text()) == {'intent': ['only']}
+    finally:
+        context.close()
 
 
 @pytest.mark.parametrize('width', [360, 768, 1024, 1440])
