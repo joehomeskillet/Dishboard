@@ -130,17 +130,26 @@ def test_menu_note_icons_keep_content_profile_navigation_and_native_keyboard(
                 if javascript:
                     page.get_by_role('tab', name='Liste' if view == 'list' else 'Karten', exact=True).click()
                 row = page.locator(f'#menu-{view} [data-menu-{"list-id" if view == "list" else "id"}]')
-                details = row.locator('.menu-note-details')
-                _keyboard(page, details, javascript)
+                trigger = row.locator('[data-read-detail]')
+                _icon(trigger)
+                details = page.locator('#' + trigger.get_attribute('data-read-detail'))
+                trigger.focus()
+                trigger.press('Enter')
+                expect(details).to_be_visible()
+                if javascript:
+                    expect(details.locator('h2')).to_be_focused()
                 expect(details.locator('.menu-description')).to_contain_text('Mit frischen Kräutern.')
                 expect(details.locator('.shared-note')).to_contain_text('Vor Ausgabe umrühren.')
-                summary = details.locator(':scope > summary')
-                assert title in summary.get_attribute('aria-label')
-                expect(summary.locator('img, script, button, input')).to_have_count(0)
+                assert title in trigger.get_attribute('aria-label')
+                expect(trigger.locator('img, script, button, input')).to_have_count(0)
                 target = row.locator('[data-semantic="actions.edit"]').get_attribute('href')
                 assert urlsplit(target).path == f'/admin/{family}/menu'
                 assert parse_qs(urlsplit(target).query)['option'] == ['MENU_1']
                 page.screenshot(path=str(tmp_path / f'menu-{family}-{view}-{width}-js{javascript}-{role}.png'), full_page=True)
+                details.locator('[data-read-detail-close]').click()
+                expect(details).to_be_hidden()
+                if javascript:
+                    expect(trigger).to_be_focused()
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         assert not posts and not errors
 

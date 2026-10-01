@@ -2118,6 +2118,16 @@ Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten st
 
 ##### Modul Menüs und Menüeditor inkl. Allergene (2026-09-20)
 
+**DELTA-3-02 (2026-10-01):** Beschreibungen und Hinweise der Menüsammlung
+öffnen gemeinsame Lesedialoge außerhalb der Ergebnisansichten. Liste und Karten
+besitzen eindeutige Auslöser-/Dialog-IDs und denselben Inhalt. Profilnavigation
+und Ansichtswechsel stehen vor dem Prüfhinweis. Die Kopfaktion zum Wochenplan
+und der Reset im Filterbalken ersetzen identische Leerzustandsaktionen.
+Optionale leere Statuszellen enthalten keinen Platzhalter oder Whitespace-Wrapper.
+Alte Inhaltsaufklapper dieser Seite sind durch UI-DELTA §0.1 abgelöst.
+Nachweis: `test_delta3_02_browser.py`, `test_icon_native_summaries_browser.py`
+und `test_ui_korrektur_menus_browser.py`; Prüfläufe im Paketreport dokumentieren.
+
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** P4s „Seltene Zeilenaktionen stehen unter Mehr“ ist abgelöst. Historische Prüfbelege bleiben stehen; JS-Hooks, `formaction`, Rückkehr-Submit und Rezeptfilter behalten ihre Verträge.
 
 **Polish P4: menues (2026-09-24).** Menütabelle nutzt `admin-table` mit

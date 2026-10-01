@@ -1,7 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import legend %}
 {% from 'admin/_macros.html' import icon, page_header, pagination, empty_state, hint, profile_tabs %}
-{% from 'ui/_semantic.html' import icon_button, icon_summary, filter_bar_sem, status_badge_sem %}
+{% from 'ui/_semantic.html' import icon_button, read_detail_trigger, read_detail_dialog, filter_bar_sem, status_badge_sem %}
 {% block title %}Menüs {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-collection.css') }}">{% endblock %}
 {% set workflow_nav = 'menus' %}
@@ -41,6 +41,7 @@
         {% set archived_weeks = rows|selectattr('workflow_state', 'equalto', 'archived')|list %}
         {% set noted_rows = rows|selectattr('description')|list + rows|selectattr('note')|list %}
         {% set show_status = review_mixed or warnings.missing or warnings.review or warnings.stale or archived_weeks or noted_rows %}
+        {% set review_summary %}
         {% if warnings.open or warnings.missing or warnings.review or warnings.stale %}
         <p class="admin-list-secondary" id="menu-review-summary" role="status">
           {% if warnings.open and not review_mixed %}{{ warnings.open }} {{ 'Menü' if warnings.open == 1 else 'Menüs' }}: Prüfung offen.{% elif review_mixed %}{{ warnings.open }} von {{ rows|length }} Menüs: Prüfung offen.{% endif %}
@@ -49,6 +50,7 @@
           {% if warnings.stale %} {{ warnings.stale }} Menüs mit geändertem Bausteinstand benötigen erneute Prüfung. Erneute Prüfung erforderlich.{% endif %}
         </p>
         {% endif %}
+        {% endset %}
         <div class="menu-toolbar mb-3">
                 {% set menu_profiles = {
                   'cafeteria': url_for('admin.menu_collection', family='cafeteria') if not query else url_for('admin.menu_collection', family='cafeteria', q=query),
@@ -68,6 +70,7 @@
                 </div>
               </div>
         </div>
+        {{ review_summary }}
         <div class="tab-content">
         <div class="tab-pane active" id="menu-list" role="tabpanel" aria-labelledby="menu-list-tab" tabindex="0">
           <div class="card dishboard-menu-results" role="region" aria-label="Menüliste" tabindex="0">
@@ -86,20 +89,16 @@
                   <td data-label="Tag"><time datetime="{{ row.service_date.isoformat() }}">{{ row.service_date.strftime('%d.%m.%Y') }}</time></td>
                   <td data-label="Mahlzeit / Zuweisung">{{ meal_labels[row.meal_code] }}<span class="d-block text-secondary">{{ option_labels[row.type_code] }}</span></td>
                   {% if show_status %}<td class="admin-table-status" data-label="Gespeicherter Prüfstand">
-                    {% if row.workflow_state == 'archived' %}{{ status_badge_sem('status.archived', text='Archivierte Woche', status='archived') }}{% endif %}
-                    {% if review_mixed %}{{ review_status(row) }}{% else %}{{ allergen_hint(row) }}{% endif %}
-                    {% if row.description or row.note %}
-                    <details class="menu-note-details" id="menu-details-{{ row.id }}">
-                      {{ icon_summary('ui.disclosure.details', object=row.title ~ ' · ' ~ row.service_date.strftime('%d.%m.%Y')) }}
-                      {% if row.description %}<div class="menu-description"><strong>Beschreibung:</strong> {{ row.description }}</div>{% endif %}
-                      {% if row.note %}<div class="shared-note"><strong>Hinweis:</strong> {{ row.note }}</div>{% endif %}
-                    </details>
-                    {% endif %}
+                    {%- if row.workflow_state == 'archived' -%}{{ status_badge_sem('status.archived', text='Archivierte Woche', status='archived') }}{%- endif -%}
+                    {%- if review_mixed -%}{{ review_status(row) }}{%- else -%}{{ allergen_hint(row)|trim }}{%- endif -%}
+                    {%- if row.description or row.note -%}
+                      {{ read_detail_trigger('menu-list-note-' ~ row.id, 'actions.open', 'Beschreibung und Hinweis · ' ~ row.title ~ ' · ' ~ row.service_date.strftime('%d.%m.%Y')) }}
+                    {%- endif -%}
                   </td>{% endif %}
                   <td class="admin-table-actions" data-label="Bearbeiten">{{ icon_button('actions.edit' if row.workflow_state != 'archived' else 'actions.open', object=row.title ~ ' vom ' ~ row.service_date.strftime('%d.%m.%Y'), href=url_for('admin.menu_get', family=family, week=row.week_start.isoformat(), day=row.service_date.isoformat(), meal=row.meal_code, option=row.type_code, **{'from': 'menus', 'q': query, 'page': page})) }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="{{ 5 if show_status else 4 }}">{% call empty_state('no_match' if query else 'none', empty_title, empty_text) %}{{ icon_button('view.reset' if query else 'navigation.weekplan', href=url_for('admin.menu_collection', family=family) if query else url_for('admin.' ~ family)) }}{% endcall %}</td></tr>
+                <tr><td colspan="{{ 5 if show_status else 4 }}">{{ empty_state('no_match' if query else 'none', empty_title, empty_text) }}</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -121,13 +120,7 @@
                 {% with option=row %}{% include '_menu_metadata.html' %}{% endwith %}
                 {% if review_mixed %}{{ review_status(row) }}{% else %}{{ allergen_hint(row) }}{% endif %}
                 {% if row.description or row.note %}
-                <details class="menu-note-details mt-2">
-                  {{ icon_summary('ui.disclosure.details', object=row.title ~ ' · ' ~ row.service_date.strftime('%d.%m.%Y')) }}
-                  <div class="menu-note-content mt-1">
-                    {% if row.description %}<p class="menu-description mb-1"><strong>Beschreibung:</strong> {{ row.description }}</p>{% endif %}
-                    {% if row.note %}<p class="shared-note mb-0"><strong>Hinweis:</strong> {{ row.note }}</p>{% endif %}
-                  </div>
-                </details>
+                <div class="mt-2">{{ read_detail_trigger('menu-cards-note-' ~ row.id, 'actions.open', 'Beschreibung und Hinweis · ' ~ row.title ~ ' · ' ~ row.service_date.strftime('%d.%m.%Y')) }}</div>
                 {% endif %}
               </div>
               <div class="card-footer">
@@ -138,9 +131,7 @@
           {% else %}
           <div class="col-12">
             <div class="card">
-              {% call empty_state('no_match' if query else 'none', empty_title, empty_text) %}
-                {{ icon_button('view.reset' if query else 'navigation.weekplan', href=url_for('admin.menu_collection', family=family) if query else url_for('admin.' ~ family)) }}
-              {% endcall %}
+              {{ empty_state('no_match' if query else 'none', empty_title, empty_text) }}
             </div>
           </div>
           {% endfor %}
@@ -148,6 +139,14 @@
         {{ legend(declarations.options, tabler=true) }}
         </div>
         </div>
+        {% for row in rows if row.description or row.note %}
+        {% for view in ['list', 'cards'] %}
+        {% call read_detail_dialog('menu-' ~ view ~ '-note-' ~ row.id, 'Beschreibung und Hinweis', row.title ~ ' · ' ~ row.service_date.strftime('%d.%m.%Y')) %}
+          {% if row.description %}<p class="menu-description"><strong>Beschreibung:</strong> {{ row.description }}</p>{% endif %}
+          {% if row.note %}<p class="shared-note mb-0"><strong>Hinweis:</strong> {{ row.note }}</p>{% endif %}
+        {% endcall %}
+        {% endfor %}
+        {% endfor %}
         {{ pagination(page, has_next,
           url_for('admin.menu_collection', family=family, q=query, page=page-1),
           url_for('admin.menu_collection', family=family, q=query, page=page+1),
