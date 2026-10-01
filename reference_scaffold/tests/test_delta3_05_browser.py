@@ -44,6 +44,18 @@ def test_course_fields_and_atomic_submission(
             expect(control).to_be_visible()
             assert control.evaluate('el => el.form === el.closest("form")')
         before = form.evaluate('el => Object.fromEntries(new FormData(el))')
+        # A missing planned recipe must preserve every submitted exception and version.
+        form.locator('[name="soup_state"]').select_option('planned')
+        form.locator('[name="MENU_1_soup_state"]').select_option('not_offered')
+        invalid = form.evaluate('el => Object.fromEntries(new FormData(el))')
+        with page.expect_response(lambda response: response.request.method == 'POST') as rejected:
+            form.locator('[data-semantic="actions.save"]').click()
+        assert rejected.value.status == 400
+        page.wait_for_load_state()
+        restored = form.evaluate('el => Object.fromEntries(new FormData(el))')
+        assert restored == invalid
+        expect(form.locator('[name="soup_state"]')).to_be_visible()
+        expect(form.locator('[name="MENU_1_soup_state"]')).to_be_visible()
         form.locator('[name="soup_state"]').select_option('not_offered')
         form.locator('[name="dessert_state"]').select_option('not_offered')
         form.locator('[name="MENU_1_soup_state"]').select_option('not_offered')
