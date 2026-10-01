@@ -9,6 +9,9 @@
 .recipe-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--app-space-6); }
 .recipe-columns > section { min-width: 0; }
 .recipe-metadata { display: flex; flex-wrap: wrap; gap: var(--app-space-2) var(--app-space-6); }
+/* Definition rows retain the document's original quantity-list geometry, including print. */
+.recipe-original-quantities { padding-inline-start: var(--app-space-6); }
+.recipe-original-quantities > div { display: list-item; list-style-type: disc; }
 .recipe-warnings p { margin: 0; }
 .recipe-warnings p + p { margin-top: var(--app-space-2); }
 .recipe-ingredient { padding-block: var(--app-space-2); border-bottom: 1px solid var(--app-border); }

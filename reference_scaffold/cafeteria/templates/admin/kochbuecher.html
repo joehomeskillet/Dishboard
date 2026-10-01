@@ -38,7 +38,7 @@
         <td data-label="Kochbuch">
           <div class="admin-list-name">
             <strong class="admin-list-primary">{{ book.name }}</strong>
-            {% if book.description %}<div class="admin-list-subtitle admin-list-secondary" title="{{ book.description|truncate(160) }}">{{ book.description|truncate(160) }}</div>{% endif %}
+            {% if book.description %}<div class="admin-list-subtitle admin-list-secondary text-truncate" title="{{ book.description }}">{{ book.description }}</div>{% endif %}
           </div>
         </td>
         <td class="admin-list-meta" data-label="Rezepte">{{ count }}{{ ' Rezept' if count == 1 else ' Rezepte' }}</td>

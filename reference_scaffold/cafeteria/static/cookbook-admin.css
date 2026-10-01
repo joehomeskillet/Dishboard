@@ -15,4 +15,11 @@
 .cookbook-section-action { margin-top: var(--app-space-3); }
 @media (max-width: 767.98px) {
   .cookbook-list .admin-list-name { flex-basis: 100%; }
+  .dishboard-admin .cookbook-list .admin-table--stack tbody tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .cookbook-list .admin-table--stack tbody td:first-child { grid-column: 1 / -1; }
+  .cookbook-list .admin-list-meta,
+  .cookbook-list .admin-list-status { grid-column: 1; }
+  .cookbook-list .admin-table-actions { grid-column: 2; grid-row: 2 / span 2; align-self: end; }
 }
