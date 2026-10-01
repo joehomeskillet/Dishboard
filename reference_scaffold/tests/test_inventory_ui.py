@@ -147,15 +147,15 @@ def test_lager_statusbar_viewports_nojs_and_keyboard(b3, master_server, tmp_path
                             assert focus[0] != 'none' or focus[1] != 'none'
                             page.keyboard.press('Tab')
                             expect(page.locator('#unit_code')).to_be_focused()
-                            summary = page.locator('#lager-more > summary')
-                            summary.focus()
-                            page.keyboard.press('Enter')
+                            expect(page.locator('#lager-more > summary')).to_have_count(0)
+                            page.locator('#dest_storage_public_id').focus()
+                            expect(page.locator('#dest_storage_public_id')).to_be_focused()
                             expect(page.locator('#dest_storage_public_id')).to_be_visible()
                             expect(page.locator('#counted_quantity')).to_be_visible()
                             expect(page.locator('#lager-transfer-form .btn-primary')).to_have_count(0)
                             expect(page.locator('#lager-count-form .btn-primary')).to_have_count(0)
                         if width == 360 and not javascript:
-                            page.locator('#lager-more > summary').click()
+                            expect(page.locator('#lager-more > summary')).to_have_count(0)
                             expect(page.locator('#dest_storage_public_id')).to_be_visible()
                             expect(page.locator('#counted_quantity')).to_be_visible()
                             print('WP12_FIELDS', json.dumps({

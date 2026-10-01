@@ -248,7 +248,8 @@ def test_inventory_insufficient_and_real_zero_are_distinct(b3):  # noqa: F811
     response = client.post('/admin/lager/umbuchung', data=transfer)
     assert response.status_code == 409
     assert Forms(response.text).forms['/admin/lager/umbuchung']['quantity'] == '1'
-    assert 'Bestand würde negativ.' in response.text and 'id="lager-more" open' in response.text
+    assert 'Bestand würde negativ.' in response.text and 'id="lager-more"' in response.text
+    assert '<details id="lager-more"' not in response.text
     assert _movements(owner) == 0
     move = forms['/admin/lager/bewegung']
     move['quantity'] = '2'
@@ -378,7 +379,7 @@ def test_browser_keeps_error_inputs_with_and_without_javascript(b3, javascript, 
                         elif case == 'transfer':
                             _transfer(page, post_status)
                         else:
-                            page.locator('#lager-more > summary').click()
+                            expect(page.locator('#counted_quantity')).to_be_visible()
                             _count(page, post_status)
                     elif case == 'basket':
                         _basket(page, origin, ctx, client, post_status)
@@ -445,12 +446,13 @@ def _move(page, origin, ctx, post_status) -> None:
 
 
 def _transfer(page, post_status) -> None:
-    page.locator('#lager-more > summary').click()
+    expect(page.locator('#transfer_qty')).to_be_visible()
     page.locator('#transfer_qty').fill('abc')
     status = post_status(page.locator('#lager-transfer-form button[type="submit"]'))
     assert status == 400
     expect(page.locator('#transfer_qty')).to_have_value('abc')
-    expect(page.locator('#lager-more')).to_have_attribute('open', '')
+    expect(page.locator('#lager-more')).to_be_visible()
+    expect(page.locator('#lager-more > summary')).to_have_count(0)
     expect(page.locator('#transfer_qty-error')).to_contain_text('Zahl')
 
 

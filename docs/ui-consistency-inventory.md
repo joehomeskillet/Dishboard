@@ -23,6 +23,7 @@ keine bereits erfolgte Migration auf den neuen Lesedialog.
 | `/admin/design/marke`, `/admin/design/darstellung`, `/admin/import-preview`, `/admin/kalkulation[/vorschau]` | DELTA-3-23: Admin, Standard/Entwurf/Fehler/Vorschau; statische Hinweise und Zusatzformulare, reiner Textverlauf, Kontextanker. Kalkulation leer/unvollständig/vollständig/null/ohne Menge; ID pro Zeile und konkrete Fehlangaben. | `test_delta3_23_browser.py`, native Branding-/Display-/CSV-/Cost-Suiten; tatsächliche Gates und Bilder im Paketreport. |
 
 | `/admin/grundlagen`, Einheiten-/Vokabular-Anlage und -Detail, Stammdaten-Ausfall | DELTA-3-15: Publisher, leer/gefiltert/Standard/Fehler/Nur-Lesen/503, JS/NoJS; Texttabs, statische Formulare/Metadaten/Status, eindeutige Anlege-/Reset-Zugänge und Text-Recovery. D-80 zentral offen. | `test_delta3_15_browser.py` (1440/390 fein/grob), `test_delta_navigation_stability_browser.py`; tatsächliche Gate-/Sichtnachweise im Paketreport. |
+| `/admin/grundlagen/zutaten/neu`, Zutatendetail/-Konflikt, `/admin/lager` | DELTA-3-16: Publisher, Anlage/Detail/Fehler/Nur-Lesen/Standortkonflikt; statische native Formularabschnitte, separate Allergenprüfung, unbefristete Preise, Text-Recovery; Lager unbekannt/gezählt null, Detailanker. | `test_delta3_16_browser.py` (1440/390 fein/grob, JS/NoJS), bestehende Stammdaten-/Lager-/Fehler-/Footer-Suiten; tatsächliche Gates und Vorher-/Nachherbilder im Paketreport. |
 
 ## UC-P2-A — Wochenplanung und Kalender, 2026-10-01
 

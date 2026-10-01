@@ -181,6 +181,17 @@ im Kopf, Zurücksetzen in der Filterleiste; Bereichstabs behalten ihre eigene
 Navigationsfunktion. Optionale Status-Slots entfallen, aktive Archivfilter zeigen
 weiterhin konkrete Statuswerte. D-80 bleibt bis zum gemeinsamen Filterdialog offen.
 
+### Zutaten und Lager: UI-DELTA (DELTA-3-16, 2026-10-01)
+
+Rezeptauswahl, Zutatenfelder einschliesslich optionaler Angaben, Preisformular,
+Verknüpfungen, Herkunft, Kennzeichnungen, Allergene/Kostformen, Prüfung und Status
+stehen statisch. Native Checkbox-Auswahl bleibt erhalten; jeder Speicherbereich
+behält sein eigenes Formular. Unbefristete Preise sind ausdrücklich bezeichnet.
+Der identische Rückweg steht einmal über dem Formular; Standortkonflikte zeigen
+Text-Recovery und bewahren alle ursprünglichen Eingaben. Umbuchung und Zählung
+bleiben sichtbar, Lagerauswahl führt per Anker zum Detailbereich. Nicht erfasster
+Bestand und eine erfasste Null bleiben verschiedene Zustände.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt

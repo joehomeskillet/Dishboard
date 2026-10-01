@@ -48,12 +48,12 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         assert not posts
         page.get_by_label('Name', exact=True).fill('Hummus vorbereitet Browser')
         page.get_by_label('Testlager', exact=True).check()
-        core.locator('details').filter(has=page.locator('#prepared_recipe_choice')).locator('summary').click()
+        expect(page.locator('#prepared_recipe_choice')).to_be_visible()
         page.get_by_label('Zubereitung aus einem Rezept', exact=False).select_option(preparation_choice(frozen))
         page.get_by_label('Zubereitung aus einem Rezept', exact=False).focus()
         expect(footer).to_have_css('position', 'static')
         # R39: finish input focus before testing R08's normal sticky state.
-        core.locator('details').filter(has=page.locator('#prepared_recipe_choice')).locator('summary').focus()
+        core.get_by_role('link', name='Rezepte öffnen', exact=True).focus()
         if javascript:
             expect(footer).to_have_attribute('data-sticky-ready', 'true')
             expect(footer).to_have_css('position', 'sticky')
@@ -71,8 +71,9 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         viewport.chmod(0o600)
         if javascript:
             assert box is not None and 0 <= box['y'] and box['y'] + box['height'] <= height
-        core.locator('details').filter(has=page.get_by_label('Notiz', exact=True)).locator('summary').click()
-        controls = core.locator('input:not([type="hidden"]), select, textarea, a[href], button, summary')
+        expect(page.get_by_label('Notiz', exact=True)).to_be_visible()
+        expect(core.locator('details, summary')).to_have_count(0)
+        controls = core.locator('input:not([type="hidden"]), select, textarea, a[href], button')
         controls.first.focus()
         for index in range(controls.count()):
             field = controls.nth(index)
@@ -104,7 +105,7 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         path = urlsplit(page.url).path
         expect(page.get_by_label('Zubereitung aus einem Rezept', exact=False)).to_have_value(preparation_choice(frozen))
         expect(page.get_by_label('Testlager', exact=True)).to_be_checked()
-        page.get_by_text('Verknüpfungen', exact=True).click()
+        expect(page.get_by_role('heading', name='Verknüpfungen', exact=True)).to_be_visible()
         expect(page.get_by_role('link', name='Rezeptverlauf', exact=True)).to_have_attribute(
             'href', '/admin/rezepte/' + str(frozen['recipe_public_id']) + '/revisionen')
         expect(page.get_by_text('Kein Bestand erfasst', exact=True)).to_be_visible()
@@ -112,7 +113,7 @@ def test_native_storage_and_preparation_selection_survives_save_and_reload(
         before = snapshot(owner)
         page.reload()
         expect(page.get_by_label('Zubereitung aus einem Rezept', exact=False)).to_have_value(preparation_choice(frozen))
-        page.get_by_text('Rezeptauswahl', exact=True).click()
+        expect(page.locator('#recipe_q')).to_be_visible()
         page.get_by_role('searchbox', name='Suchen', exact=True).fill('Hummus')
         page.get_by_role('button', name='Suchen', exact=True).click()
         expect(page.get_by_role('searchbox', name='Suchen', exact=True)).to_have_value('Hummus')
