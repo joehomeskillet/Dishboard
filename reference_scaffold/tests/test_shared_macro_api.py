@@ -87,8 +87,8 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
                     {{ icon_button('actions.cancel', href=g.get('menu_collection_return') or back_url) }}
                 ''').render(**data)
             else:
-                expected = icon_button('actions.save', emphasis=(
-                    'secondary' if path.name in {'_week_service.html', '_week_settings.html'} else None))
+                # Static form sections leave the primary emphasis to the week action.
+                expected = icon_button('actions.save', emphasis='secondary')
             actual = BeautifulSoup(rendered, 'html.parser')
             assert len(actual.select('.admin-form-footer')) == 1
             assert actual.select('button, a') == BeautifulSoup(expected, 'html.parser').select('button, a'), path
