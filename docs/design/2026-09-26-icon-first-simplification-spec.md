@@ -198,6 +198,8 @@ Auf Touchgeräten darf Verstehen nicht von Hover oder einem versteckten Langdruc
 
 ### 5.4 Bewusste Text-Ausnahmen
 
+> **Abgelöst durch UI-DELTA-2026-10-01 §0.1 (B):** Icon-plus-Kurzbeschriftung und Mischbuttons sind nicht mehr erlaubt; jeder Button zeigt exklusiv Symbol oder Text, auch in Bestätigungsdialogen. — siehe [UI-DELTA](2026-10-01-ui-delta-sdd.md).
+
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Die Ausnahme für geöffnete Aktionsmenüs erlaubt keine generischen Mehr-/Drei-Punkte-Sammler mehr. Fachinhalte, Formulare, Navigation, echte Auswahl, Warnungen und Sicherheitsbestätigungen behalten sichtbaren Text.
 
 Icon-first ist kein Verbot von Sprache. Text bleibt sichtbar bei:
@@ -350,6 +352,8 @@ Suchbegriff, Filter und aktuelle Position sollen bei Detailaufruf und Rückkehr 
 
 ### 9.3 Details
 
+> **Abgelöst durch UI-DELTA-2026-10-01 §0.1 (D):** Kurze Zusatzinformationen werden nicht mehr über ein gemeinsames Aufklappmuster im Dokumentfluss sichtbar gemacht. — siehe [UI-DELTA](2026-10-01-ui-delta-sdd.md).
+
 Kurze Zusatzinformationen werden über ein gemeinsames Aufklappmuster unmittelbar am Datensatz sichtbar. Kein permanenter „Details“-Text in jeder Zeile mit eigener grosser Leerfläche.
 
 Verwende `aria-expanded`, sinnvolle Beziehungen zum Detailbereich und eindeutige IDs. Keine doppelt vergebenen IDs durch wiederholte Templates.
@@ -438,6 +442,8 @@ Blaetterteigpastetli               20 Portionen    Entwurf         [e] [...]
 Dieselbe Hülle, dieselben Zeilen, dieselben Buttons. Unterschiedliche Fachspalten sind erlaubt. Statusdarstellung abhängig vom tatsächlichen Filterkontext; kein Pflichtbadge für jede normale Zeile.
 
 ### 11.3 Zusatzinformationen nur geöffnet
+
+> **Abgelöst durch UI-DELTA-2026-10-01 §0.1 (D):** Zusatzinformationen werden nicht mehr innerhalb der Tabelle/Zeile aufgeklappt. — siehe [UI-DELTA](2026-10-01-ui-delta-sdd.md).
 
 ```text
 Name                           Kategorie       Verwendung          Aktionen
