@@ -294,7 +294,7 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
     if page_kind == 'catalog':
         primary.focus()
         page.keyboard.press('Enter')
-        expect(creation).to_have_attribute('open', '')
+        expect(creation).to_have_js_property('tagName', 'SECTION')
         expect(creation.locator('[name="name"]')).to_be_visible()
         expect(creation.locator('[name="name"]')).to_be_focused()
         create_box = creation.bounding_box()
@@ -306,9 +306,10 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         expect(create_form).to_have_attribute('action', f'/admin/{family}/komponenten')
         assert create_form.locator('[name="_csrf"]').input_value()
         expect(create_form.get_by_role('button', name='Anlegen', exact=True)).to_be_visible()
-        # R18 opens the form from the header; reload restores the closed state.
+        # UI-DELTA keeps the form visible after native navigation and reload.
         page.goto(routes[page_kind])
         expect(creation).not_to_have_attribute('open', '')
+        expect(creation.locator('[name="name"]')).to_be_visible()
 
     if family == 'patienten':
         assert not re.search(r'preis|chf|rappen|kosten|price', page.content(), re.IGNORECASE)
