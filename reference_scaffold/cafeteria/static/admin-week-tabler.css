@@ -161,6 +161,7 @@
 .dishboard-admin .admin-week-check-list a {
   display: flex; align-items: center; min-height: var(--app-control-min-height);
 }
+.dishboard-admin .admin-week-check-list .admin-list-primary { display: block; }
 .dishboard-admin .admin-week-check-list a + a { border-top: 1px solid var(--app-border); }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-head {
   display: flex;
