@@ -1280,6 +1280,7 @@ reference_scaffold/cafeteria/templates/ui/_semantic.html
 reference_scaffold/cafeteria/translations/de.json
 reference_scaffold/cafeteria/translations/en.json
 reference_scaffold/cafeteria/ui/__init__.py
+reference_scaffold/cafeteria/ui/filter_state.py
 reference_scaffold/cafeteria/ui/i18n.py
 reference_scaffold/cafeteria/ui/icon_fallbacks.json
 reference_scaffold/cafeteria/ui/semantic_registry.json
