@@ -39,6 +39,26 @@ def test_related_hover_preserves_field_before_escape_closes_own_details(kind, wi
         requests = []
         page.on('request', lambda request: requests.append(request.url)
                 if request.method != 'GET' or request.is_navigation_request() else None)
+        if kind == 'filter':
+            # Inline two-Escape filter contract replaced by UI-DELTA §0.1.
+            form = page.get_by_role('search')
+            trigger = form.locator('[data-semantic="view.filter"]')
+            trigger.click()
+            dialog = form.locator('dialog')
+            page.locator('#note').fill('Behalten " & Kräuter')
+            before = _values(form)
+            close = dialog.locator('[data-read-detail-close]')
+            close.focus()
+            expect(page.get_by_role('tooltip', name='Schliessen', exact=True)).to_be_visible()
+            page.keyboard.press('Escape')
+            expect(dialog).not_to_be_visible()
+            expect(trigger).to_be_focused()
+            assert _values(form) == before and requests == []
+            trigger.press('Enter')
+            expect(page.locator('#note')).to_have_value('Behalten " & Kräuter')
+            close.click()
+            expect(trigger).to_be_focused()
+            return
         form = page.locator('#draft' if kind == 'details' else 'form[role="search"]')
         details = form.locator('details').first
         summary = details.locator(':scope > summary')
@@ -197,7 +217,7 @@ def test_menu_capture_dismisses_item_tooltip_before_closing_menu(width, tmp_path
 
 
 @pytest.mark.parametrize('width', [390, 1440])
-@pytest.mark.parametrize('kind', ['details', 'filter', 'dropdown'])
+@pytest.mark.parametrize('kind', ['details', 'dropdown'])
 def test_direct_action_escape_reaches_foreign_disclosure(kind, width):
     if kind == 'dropdown':
         foreign = '''<div class="dropdown">
@@ -205,9 +225,8 @@ def test_direct_action_escape_reaches_foreign_disclosure(kind, width):
             <div id="foreign" class="dropdown-menu"><button class="dropdown-item">Eintrag</button></div>
             </div>'''
     else:
-        foreign = '''<details id="foreign" class="%s"><summary id="trigger">Filter</summary>
-            <input name="foreign-note" value="Unverändert"></details>''' % (
-                'admin-filter-more' if kind == 'filter' else '')
+        foreign = '''<details id="foreign"><summary id="trigger">Abschnitt</summary>
+            <input name="foreign-note" value="Unverändert"></details>'''
     markup = MACROS + foreign + '''{{ more_actions([
         {'key': 'actions.copy', 'type': 'button', 'id': 'copy'}]) }}''' + TABLER
 

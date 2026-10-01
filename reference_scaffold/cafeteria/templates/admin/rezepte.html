@@ -17,7 +17,7 @@
 <div><label class="form-label" for="q">Nach Rezepttitel suchen</label><input class="form-control" id="q" name="q" maxlength="200" value="{{ query }}"></div>
 <div><label class="form-label" for="ingredient">Zutat</label><input class="form-control" id="ingredient" name="ingredient" maxlength="200" value="{{ ingredient }}"></div>
 <div><label class="form-check"><input class="form-check-input" type="checkbox" name="archived" value="1"{% if archived %} checked{% endif %}><span class="form-check-label">Archivierte einschliessen</span></label></div>
-{{ hint('Durchsucht Titel, Zutaten und Zubereitung. Alle Wörter müssen vorkommen; "Anführungszeichen" suchen eine Wortfolge. Titel und Zutat enthalten den eingegebenen Text. Alle Filter gelten gemeinsam.', 'text-hint') }}
+{{ hint('Durchsucht Titel, Zutaten und Zubereitung. Alle Wörter müssen vorkommen; "Anführungszeichen" suchen eine Wortfolge. Titel und Zutat enthalten den eingegebenen Text. Alle Filter gelten gemeinsam.', 'text-hint', mode='inline') }}
 {% endset %}
 {{ filter_bar_sem(url_for('admin.recipes_list'), search_name='text', search_value=text, filters=recipe_filters, active=has_filters, reset_url=url_for('admin.recipes_list'), id='recipe', maxlength=200, describedby='text-hint', loading='Rezepte suchen', open=extra_open, search_id='text', search_emphasis='primary' if not can_write else none) }}
 {% if text %}<p class="text-secondary">Sortiert nach Relevanz.</p>{% endif %}

@@ -267,8 +267,12 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         expect(page.get_by_role('heading', level=2, name='Kochbuch archivieren')).to_be_visible()
         confirm = page.get_by_role('button', name='Archivieren', exact=True)
         assert 'btn-danger' in (confirm.get_attribute('class') or '').split()
-        assert _symbol(confirm) == 'archive'
-        assert _symbol(page.get_by_role('link', name='Abbrechen', exact=True)) == 'x'
+        # UI-DELTA §0.1/B-05: safety confirmations use visible text without symbols.
+        expect(confirm).to_have_text('Archivieren')
+        expect(confirm.locator('svg')).to_have_count(0)
+        cancel = page.get_by_role('link', name='Abbrechen', exact=True)
+        expect(cancel).to_have_text('Abbrechen')
+        expect(cancel.locator('svg')).to_have_count(0)
         assert page.locator('a[data-semantic="actions.archive"]').count() == 0
         assert page.locator('main .btn-primary').count() == 0
         status_form = Forms(page.content()).forms['/admin/kochbuecher/book-1/status']
@@ -300,7 +304,8 @@ def test_templates_keep_hierarchy_symbols_and_one_primary_action(browser):  # no
         ))
         confirm = page.get_by_role('button', name='Reaktivieren', exact=True)
         assert 'btn-primary' in (confirm.get_attribute('class') or '').split()
-        assert _symbol(confirm) == 'circle-check'
+        expect(confirm).to_have_text('Reaktivieren')
+        expect(confirm.locator('svg')).to_have_count(0)
         expect(page.get_by_role('button', name='Wiederherstellen', exact=True)).to_have_count(0)
         assert page.locator('main .btn-primary').count() == 1
     finally:
@@ -656,10 +661,12 @@ def test_cookbook_pages_work_without_javascript_and_by_keyboard(
         assert not edit.inner_text().strip()
         expect(page.locator('dl.admin-statusbar')).to_have_count(0)
         page.get_by_role('searchbox', name='Suchen', exact=True).focus()
-        _tab_to(page, page.locator('.admin-filter-more > summary'))
+        _tab_to(page, page.locator('[data-semantic="view.filter"]'))
         page.keyboard.press('Enter')
         _tab_to(page, page.get_by_label('Archivierte einschliessen', exact=True))
         _tab_to(page, page.get_by_role('button', name='Übernehmen', exact=True))
+        _tab_to(page, page.locator('.admin-filter-dialog [data-read-detail-close]'))
+        page.keyboard.press('Enter')
         _tab_to(page, edit)
         expect(edit).to_be_focused()
         rings = {'row-action': _focus_ring(edit)}
@@ -820,7 +827,7 @@ def test_cookbook_frame_viewports_statusbar_and_no_overflow(cookbook_server):  #
                         page.set_viewport_size({'width': 360, 'height': 800})
                         page.goto(base + '/admin/kochbuecher')
                         page.get_by_role('searchbox', name='Suchen', exact=True).focus()
-                        _tab_to(page, page.locator('.admin-filter-more > summary'))
+                        _tab_to(page, page.locator('[data-semantic="view.filter"]'))
                         page.keyboard.press('Enter')
                         page.keyboard.press('Tab')
                         expect(page.get_by_label('Archivierte einschliessen', exact=True)).to_be_focused()

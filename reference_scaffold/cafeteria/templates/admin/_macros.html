@@ -482,19 +482,21 @@
 {# Compatibility for the existing profile-only slot; new callers use profile=. #}
 {% if profile is none and filters and 'profile-tabs' in filters %}{% set profile = filters %}{% set filters = none %}{% endif %}
 {% if segments is not none %}{% set profile = segments %}{% endif %}
+{% set active_filters = active_filters if active_filters is not none else filter_chips(action, search_name, search_value, profile, filters, more_filters) %}
 {% set count = active_count if active_count is not none else active_filters|length if active_filters else 0 %}
 <form class="admin-filter-bar" method="get" action="{{ action }}" data-dirty-tracking="off" role="search" data-filter-remove-label="{{ t(sem('view.reset').aria_key) }}"{% if loading is not none %} data-loading="{{ 'true' if loading is sameas true else 'false' if loading is sameas false else loading }}"{% endif %}>
   <div class="admin-filter-search"><div class="admin-filter-query">{{ field(search_name, t(sem('view.search').label_key), search_value, type='search', id=search_id if search_id is not none else id ~ '-search', maxlength=maxlength, describedby=describedby) }}</div>{{ icon_button('view.search', emphasis=search_emphasis) }}</div>
   {% if profile %}<div class="admin-filter-profile">{{ profile }}</div>{% endif %}
   {% if filters or more_filters %}
-  <details class="admin-filter-more"{% if open %} open{% endif %}>
-    {{ filter_trigger(id=id, count=count, explicit=active_count is not none) }}
-    <div class="admin-filter-slots">{{ filters or '' }}{{ more_filters or '' }}{{ icon_button('actions.apply') }}</div>
-  </details>
+  {{ filter_trigger(id=id, count=count, explicit=active_count is not none) }}
+  <dialog class="ui-sem-dialog ui-read-detail admin-filter-dialog" id="{{ id|forceescape }}-dialog" aria-labelledby="{{ id|forceescape }}-dialog-title">
+    <h2 id="{{ id|forceescape }}-dialog-title" tabindex="-1">{{ t(sem('view.filter').aria_key) }}</h2>
+    <div class="ui-read-detail-content admin-filter-slots">{{ filters or '' }}{{ more_filters or '' }}</div>
+    <div class="admin-filter-dialog-actions">{{ icon_button('actions.apply') }}{{ icon_button('actions.close', href=('#' ~ id ~ '-trigger')|forceescape, mode='text', attrs={'data-read-detail-close': ''}) }}</div>
+  </dialog>
   {% endif %}
-  <template data-filter-chip-icon>{{ icon('x') }}</template>
   {% if (active or search_value or count) and reset_url %}{{ icon_button('view.reset', href=reset_url) }}{% endif %}
-  {% if active_filters %}<div class="admin-filter-chips" data-filter-chips="explicit">{% for chip in active_filters %}<a class="btn admin-filter-chip" href="{{ chip.href|forceescape }}" aria-label="{{ chip.label|forceescape }}: {{ t(sem('view.reset').aria_key) }}">{{ chip.label|forceescape }}{{ icon('x') }}</a>{% endfor %}</div>{% endif %}
+  {% if active_filters %}<div class="admin-filter-chips" data-filter-chips="explicit">{% for chip in active_filters %}<span class="admin-filter-chip"><span>{{ chip.label|forceescape }}</span>{{ icon_button('view.reset', href=chip.href|forceescape, aria_label=chip.label|forceescape ~ ': ' ~ t(sem('view.reset').aria_key)) }}</span>{% endfor %}</div>{% endif %}
 </form>
 {%- endmacro %}
 

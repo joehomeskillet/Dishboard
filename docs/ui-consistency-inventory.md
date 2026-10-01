@@ -1,5 +1,29 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## DELTA-2b — gemeinsamer Filterdialog, 2026-10-01
+
+Die alten Filter-Aufklapper und ihre Assertions sind durch UI-DELTA §0.1,
+D-02/B-04/B-05 abgelöst. Suche und Profile bleiben direkt sichtbar; Zusatzfelder
+bleiben im ursprünglichen GET-Formular im überlagernden Dialog. Aktive Chips
+stehen bereits im Server-HTML, auch ohne JS. Ein nichtinteraktiver Filterwert
+hat genau einen Symbol-Link zum Entfernen; der Filterzähler steht ausserhalb
+des Symbolzugangs. Es gibt keine automatische Öffnung durch aktive Filter.
+
+| Route / Umfang | Rolle / Zustand / Muster | Nachweis |
+|---|---|---|
+| `/admin/rezepte` | Vorhandene Lese-/Schreibrollen, aktiv/archiviert, kombinierte Filter und Pagination, JS/No-JS; Suchhilfe statisch innerhalb des Filterdialogs | `test_recipe_filters_browser.py`, `test_icon_pilot_filters_browser.py`, `test_recipe_search_browser.py`, `test_ui_korrektur_recipes_browser.py` |
+| `/admin/<family>/komponenten` | Beide Profile, native kombinierte Filter, unbekannte Werte, Archivzustände, Reset; sichtbare Profilsegmente | `test_component_filters_browser.py`, `test_component_catalog_browser.py`, `test_ui_korrektur_components_browser.py`, `test_icon_mb2_stammdaten_browser.py` |
+| `/admin/grundlagen`, `/admin/kochbuecher`, `/admin/gerichtvorlagen` | Bestehende Rollen, Suche, Archivfilter und aktive Werte; unveränderte Formularziele | `test_ui_korrektur_grundlagen_browser.py`, `test_master_data_browser.py`, `test_ui_korrektur_cookbooks_browser.py`, `test_dish_template_browser.py` |
+| `/admin/<family>/menues`, Grundlagen-Rezeptsuche, Rezeptdruckvorlagen-Auswahl | Identische kompatible Renderer-API; Suche und Profil-/Bereichssegmente bleiben ausserhalb des Dialogs | Verbraucherliste im DELTA-2b-Report; gemeinsame Makro-/Semantikverträge und `test_ui_list_family_browser.py` |
+| Gemeinsame Filter-/Lesedialoge | DE/EN, Textnamen, eindeutige Mehrfachauslöser, tatsächliche Fokusrückgabe; 390/1440 px, Scroll-/Toolbar-/Listengeometrie ≤1 CSS-px und nativer GET-Submit | `test_delta_renderer_contract.py`, `test_delta_renderer_browser.py`, `test_icon_tooltip_escape_browser.py`; Messprotokolle und Screenshots im Test-Artefaktpfad |
+| `/favicon.ico` | Anonymes statisches Asset; genau eine zusätzliche Inventarroute, Gesamtzahl 162 | `test_ui_route_inventory.py`, `test_ui_inventory_capture.py`, `test_favicon.py` |
+
+Tatsächliche Läufe, Zwischenfehler, Wiederholungen und Grenzen stehen im Report
+`icon-first-r18/.claude/state/claude-session-2026-09-29/reports/DELTA-2b-report.md`.
+Diese Zuordnung ist kein Deploy- oder Live-Abnahmebeleg. Keine Screenshot-Baseline
+wird ersetzt. DELTA-4-Gegenlauf: `test_ui_list_family_browser.py` und
+`test_delta_navigation_stability_browser.py` auf der zugewiesenen UC-R1b-Basis.
+
 ## DELTA-2 — gemeinsame Renderer, 2026-10-01
 
 `disclosure_section` ist für Inhaltsaufklapper durch UI-DELTA §0.1/D-02 abgelöst;

@@ -70,7 +70,7 @@ MEASURE_JS = r"""() => {
     let text = '';
     while (walker.nextNode()) {
       const parent = walker.currentNode.parentElement;
-      if (!parent || parent.closest('.admin-filter-count') || clipped(parent) || !visible(parent)) continue;
+      if (!parent || clipped(parent) || !visible(parent)) continue;
       text += walker.currentNode.nodeValue;
     }
     return text.replace(/\s+/g, ' ').trim();
@@ -417,9 +417,9 @@ def test_filter_and_empty_overflow_measurement():
         try:
             page = browser.new_page()
             page.set_content('''<main>
-                <form role="search"><details><summary data-semantic="view.filter">
-                <svg><use href="#tabler-filter"></use></svg><span class="admin-filter-count">2</span>
-                </summary><input name="status"></details></form>
+                <form role="search"><a data-semantic="view.filter" href="#filters">
+                <svg><use href="#tabler-filter"></use></svg></a><span class="admin-filter-count">2</span>
+                <dialog id="filters"><input name="status"></dialog></form>
                 <form role="search"><button data-semantic="view.filter">Filtern</button></form>
                 <details><summary><svg><use href="#tabler-dots"></use></svg></summary></details>
                 <details><summary><svg><use href="#tabler-dots"></use></svg></summary><a href="/edit">Bearbeiten</a></details>

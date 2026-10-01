@@ -1,4 +1,7 @@
 {
+  "ui.filter.count.label": "Active filters: {count}",
+  "ui.filter.count.tooltip": "Active filters: {count}",
+  "ui.filter.count.aria": "Active filters: {count}",
   "menu.origin_auto_reason.label": "Automatic origin is inherited from the components.",
   "menu.origin_auto_reason.tooltip": "Automatic origin is inherited from the components.",
   "menu.origin_auto_reason.aria": "Automatic origin is inherited from the components.",

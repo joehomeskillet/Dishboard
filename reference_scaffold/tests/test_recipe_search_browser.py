@@ -104,13 +104,13 @@ def test_recipe_frame_measurements(search_lab, master_server, tmp_path, javascri
                         expect(page.locator('main .btn-primary')).to_have_count(1)
                         assert measurements['filter'] < (330 if width == 360 else 210)
                         assert measurements['row'] < (230 if width == 360 else 180)
-                        summary = page.locator('form[role="search"] .admin-filter-more > summary')
+                        summary = page.locator('form[role="search"] [data-semantic="view.filter"]')
                         summary.focus()
                         expect(summary).to_be_focused()
                         assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
                         page.keyboard.press('Enter')
                         expect(page.get_by_label('Nach Rezepttitel suchen', exact=True)).to_be_visible()
-                        page.keyboard.press('Enter')
+                        page.locator('.admin-filter-dialog [data-read-detail-close]').press('Enter')
                         assert page.get_by_role('button', name='Suchen', exact=True).bounding_box()['height'] >= 36
                         expect(page.locator('.recipe-row')).to_have_count(2)
                         expect(page.locator('.recipe-row .admin-status--info')).to_have_count(0)

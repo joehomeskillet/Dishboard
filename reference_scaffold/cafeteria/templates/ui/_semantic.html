@@ -175,24 +175,29 @@
 
 {# DELTA-2 read-only detail interface. Caller owns unique id and trusted content.
    The anchor and :target keep the same content reachable without JavaScript. #}
-{% macro read_detail_trigger(id, key, object) -%}
-  {{ icon_button(key, href=('#' ~ id)|forceescape, id=(id ~ '-trigger')|forceescape,
+{% macro read_detail_trigger(id, key, object, trigger_id=none) -%}
+  {{ icon_button(key, href=('#' ~ id)|forceescape, id=(trigger_id if trigger_id is not none else id ~ '-trigger')|forceescape,
       aria_label=t(sem(key).aria_key, object=object),
       attrs={'data-read-detail': id, 'aria-controls': id}) }}
 {%- endmacro %}
 
-{% macro read_detail_dialog(id, title, object) -%}
+{% macro read_detail_dialog(id, title, object, return_id=none) -%}
   <dialog class="ui-sem-dialog ui-read-detail" id="{{ id|forceescape }}" aria-labelledby="{{ id|forceescape }}-title" aria-describedby="{{ id|forceescape }}-context">
     <h2 id="{{ id|forceescape }}-title" tabindex="-1">{{ title|forceescape }}</h2>
     <p id="{{ id|forceescape }}-context">{{ object|forceescape }}</p>
     <div class="ui-read-detail-content" tabindex="0" role="region" aria-labelledby="{{ id|forceescape }}-title">{{ caller() if caller else '' }}</div>
-    {{ icon_button('actions.close', href=('#' ~ id ~ '-trigger')|forceescape, mode='text',
+    {{ icon_button('actions.close', href=('#' ~ (return_id if return_id is not none else id ~ '-trigger'))|forceescape, mode='text',
         attrs={'data-read-detail-close': ''}) }}
   </dialog>
 {%- endmacro %}
 
 {% macro filter_trigger(id='filters', count=0, explicit=false) -%}
-  <summary class="btn ui-sem-control ui-sem-control--icon-only" data-semantic="view.filter" data-ui-tooltip="{{ t(sem('view.filter').aria_key) }}" aria-label="{{ t(sem('view.filter').aria_key) }}"{% if count %} aria-describedby="{{ id }}-count"{% endif %}>{{ sem_icon('view.filter') }}<span id="{{ id }}-count" class="admin-filter-count"{% if explicit %} data-filter-count-explicit{% endif %}{% if not count %} hidden{% endif %}>{{ count }}</span></summary>
+  <span class="admin-filter-access">
+    {{ icon_button('view.filter', href=('#' ~ id ~ '-dialog')|forceescape, id=(id ~ '-trigger')|forceescape,
+        attrs={'data-read-detail': id ~ '-dialog', 'aria-controls': id ~ '-dialog',
+               'aria-describedby': id ~ '-count' if count else none}) }}
+    <span id="{{ id|forceescape }}-count" class="admin-filter-count" aria-label="{{ t(sem('ui.filter.count').label_key, count=count) }}"{% if explicit %} data-filter-count-explicit{% endif %}{% if not count %} hidden{% endif %}>{{ count }}</span>
+  </span>
 {%- endmacro %}
 
 {% macro filter_bar_sem(action, search_name='q', search_value='', filters=none, more_filters=none, active=false, reset_url=none, id='filters', maxlength=none, describedby=none, loading=none, open=false, profile=none, active_filters=none, active_count=none, search_id=none, search_emphasis=none, segments=none) -%}

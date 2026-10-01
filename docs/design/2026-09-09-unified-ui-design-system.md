@@ -68,6 +68,35 @@ Detailseite oder den gemeinsamen Lesedialog.
   Ohne JS öffnen Anker und `:target` denselben überlagernden Inhalt; der
   Schliesslink führt zum Auslöser. Native Modalität/Fokusführung benötigt JS.
 
+### DELTA-2b: Filterdialog und aktive Filter (2026-10-01)
+
+**Vorrang UI-DELTA §0.1, D-02/B-04/B-05:** `filter_bar` und `filter_bar_sem`
+behalten ihre Aufrufparameter und das vorhandene GET-Formular. Suche sowie
+`profile`/`segments` stehen unmittelbar auf der Arbeitsfläche. `filters` und
+`more_filters` liegen im selben Formular in einem überlagernden Filterdialog;
+Namen, Werte, Submit-Ziel, Reset und Berechtigungen bleiben erhalten. `open`
+öffnet keinen Inhaltsaufklapper und keinen Dialog automatisch.
+
+Der gemeinsame Zugang zeigt ausschliesslich das Filtersymbol. Die Anzahl aktiver
+Zusatzfilter steht ausserhalb der Klickfläche als nichtinteraktive Information
+und ist über `aria-describedby` zugeordnet. Aktive Chips werden serverseitig
+gerendert: explizite `active_filters` haben Vorrang; bestehende HTML-Slots liefern
+ihre gewählten Werte über den zentralen Präsentationsadapter. Das verhindert ein
+nachträgliches Einschieben oberhalb der Liste. Jeder Chip besteht aus seinem
+Wert als Textinformation und genau einem zugehörigen Symbol-Link zum Entfernen.
+
+Der Dialog nutzt das gemeinsame Lesedialog-Muster mit Titel «Filter», einem
+sichtbaren Textzugang «Schliessen», Escape, Fokusführung und Rückgabe an den
+tatsächlichen Auslöser. «Übernehmen» führt den normalen Formular-Submit aus.
+Ohne JS öffnen Anker und `:target` denselben Dialog; Felder, Submit, Reset und
+Chip-Links bleiben erreichbar. Native Modalität und Fokusfalle benötigen JS.
+Öffnen und Schliessen halten Toolbar, Liste und Scrollposition innerhalb 1 CSS-px.
+
+Mehrere `read_detail_trigger` für denselben Dialog erhalten unterschiedliche
+`trigger_id`-Werte. Standard bleibt `id ~ '-trigger'`; der No-JS-Schliesslink
+führt zum eindeutigen kanonischen Auslöser (optional `return_id` am Dialog).
+Mit JS kehrt der Fokus immer zum tatsächlich betätigten Auslöser zurück.
+
 Vertragstests: `test_delta_renderer_contract.py`; Browser:
 `test_delta_renderer_browser.py` (berechnete Symbol-/Text-/Pseudo-Sichtbarkeit,
 Loading/Disabled, No-JS, Fokus, Folgezeile und Scrollposition mit ≤1 CSS-px).

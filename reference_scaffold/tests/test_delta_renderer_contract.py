@@ -20,7 +20,7 @@ def render(app, expression, **values):
     with app.test_request_context('/'):
         return BeautifulSoup(render_template_string(
             "{% from 'ui/_semantic.html' import icon_button, icon_summary, row_actions, "
-            "read_detail_trigger, read_detail_dialog %}"
+            "read_detail_trigger, read_detail_dialog, filter_bar_sem, filter_trigger %}"
             "{% from 'admin/_macros.html' import list_row, empty_value %}" + expression,
             **values), 'html.parser')
 
@@ -138,6 +138,90 @@ def test_read_dialog_contract_and_escaping(semantic_app, locale, close, purpose)
     assert len(controls) == 1 and controls[0].get_text(strip=True) == close
     assert controls[0]['href'] == '#review-trigger' and not controls[0].select('svg')
     assert not doc.select('script, details, form')
+
+
+@pytest.mark.parametrize('locale', ['de', 'en'])
+def test_delta2b_filter_dialog_keeps_form_and_server_chips(semantic_app, locale):  # noqa: F811
+    semantic_app.config['UI_LOCALE'] = locale
+    doc = render(semantic_app, """{{ filter_bar_sem('/search', id='catalog',
+        search_name='text', search_value='Soup & herbs', filters=filters,
+        more_filters=more, profile=profile, active=true, open=true, reset_url='/reset') }}""",
+        filters=Markup('''<input type="hidden" name="scope" value="patienten">
+            <label for="tag">Kategorie</label><select id="tag" name="tag">
+            <option value="">Alle</option><option value="soup" selected>Suppe &amp; Brot</option></select>
+            <label><input name="archived" type="checkbox" value="1" checked>Archivierte</label>'''),
+        more=Markup('<label for="ingredient">Zutat</label><input id="ingredient" name="ingredient" value="&lt;Kraut&gt;">'),
+        profile=Markup('<nav><a href="/profile">Patienten</a></nav>'))
+    assert not doc.select('details.admin-filter-more')
+    dialog = doc.select_one('dialog.admin-filter-dialog')
+    assert dialog is not None and not dialog.has_attr('open')
+    assert dialog.find_parent('form') is doc.form
+    assert len(doc.select('form')) == 1
+    assert doc.form['action'] == '/search' and doc.form['method'] == 'get'
+    assert not doc.select_one('[name="text"]').find_parent('dialog')
+    assert not doc.select_one('nav').find_parent('dialog')
+    assert dialog.select_one('[name="scope"]')['value'] == 'patienten'
+    assert dialog.select_one('[name="ingredient"]')['value'] == '<Kraut>'
+    assert dialog.select_one('[name="archived"]').has_attr('checked')
+    assert dialog.h2.get_text(strip=True) == 'Filter'
+    assert len(dialog.select('[data-read-detail-close]')) == 1
+    assert not dialog.select_one('[data-read-detail-close]').select('svg')
+    assert doc.select_one('[data-semantic="view.reset"]')['href'] == '/reset'
+    trigger = doc.select_one('[data-semantic="view.filter"]')
+    count = doc.select_one('.admin-filter-count')
+    assert not trigger.get_text(strip=True) and trigger.select_one('svg')
+    assert count.get_text(strip=True) == '3' and count not in trigger.descendants
+    assert count['id'] in trigger['aria-describedby'].split()
+    chips = doc.select('.admin-filter-chip')
+    assert [chip.get_text(strip=True) for chip in chips] == ['Suppe & Brot', 'Archivierte', '<Kraut>']
+    assert all(not chip.find_parent('dialog') for chip in chips)
+    remove = chips[0].a
+    assert not remove.get_text(strip=True) and remove.svg
+    assert 'text=Soup+%26+herbs' in remove['href'] and 'scope=patienten' in remove['href']
+    assert 'tag=' in remove['href'] and 'tag=soup' not in remove['href']
+    assert 'archived=1' in remove['href']
+    ids = [node['id'] for node in doc.select('[id]')]
+    assert len(ids) == len(set(ids))
+
+
+def test_delta2b_two_read_triggers_have_unique_ids_and_canonical_nojs_return(semantic_app):  # noqa: F811
+    doc = render(semantic_app, """{{ read_detail_trigger('review', 'ui.read_detail.review', 'Suppe') }}
+        {{ read_detail_trigger('review', 'ui.read_detail.review', 'Suppe', trigger_id='review-second') }}
+        {% call read_detail_dialog('review', 'Hinweise', 'Suppe') %}Inhalt{% endcall %}""")
+    triggers = doc.select('[data-read-detail]')
+    assert [node['id'] for node in triggers] == ['review-trigger', 'review-second']
+    assert all(node['href'] == '#review' for node in triggers)
+    assert len(doc.select('#review-trigger')) == 1
+    assert doc.select_one('[data-read-detail-close]')['href'] == '#review-trigger'
+
+
+@pytest.mark.parametrize('label,expected', [('Suppe bearbeiten', 'Ändern: Suppe bearbeiten'),
+                                         ('Ändern: Suppe', 'Ändern: Suppe')])
+def test_delta2b_text_name_contains_visible_label_once(semantic_app, label, expected):  # noqa: F811
+    doc = render(semantic_app, "{{ icon_button('actions.edit', mode='text', text='Ändern', aria_label=label) }}",
+                 label=label)
+    assert doc.button['aria-label'] == expected
+    assert doc.button.get_text(strip=True) == 'Ändern' and not doc.button.svg
+
+
+def test_delta2b_server_chips_respect_successful_fields_and_select_defaults(semantic_app):  # noqa: F811
+    from urllib.parse import parse_qs, urlsplit
+
+    doc = render(semantic_app, "{{ filter_bar_sem('/search', filters=filters, profile=profile) }}",
+        profile=Markup('<input type="hidden" name="scope" value="patienten">'),
+        filters=Markup('''<label><input name="ignored" value="bad" disabled>Disabled</label>
+            <label><input type="checkbox" name="unchecked" value="bad">Unchecked</label>
+            <select name="status"><option value="active">Aktiv</option>
+                <option value="archived" selected>Archiviert</option></select>
+            <input type="hidden" name="keep" value="yes">
+            <select name="default"><option value="first">Erstes</option></select>
+            <input type="text" name="empty" value="">
+            <label for="note">Text</label><input id="note" name="note" value="A &amp; B">'''))
+    chips = doc.select('.admin-filter-chip')
+    assert len(chips) == 2
+    values = parse_qs(urlsplit(chips[0].a['href']).query, keep_blank_values=True)
+    assert values == {'q': [''], 'scope': ['patienten'], 'status': ['active'],
+                      'keep': ['yes'], 'default': ['first'], 'empty': [''], 'note': ['A & B']}
 
 
 @pytest.mark.parametrize('populated', [False, True])
