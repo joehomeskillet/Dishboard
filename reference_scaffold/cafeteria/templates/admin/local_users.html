@@ -22,20 +22,18 @@
 <h2 class="visually-hidden" id="users-title">Lokale Konten</h2>
 {% if rows %}<div class="admin-users-list">
 {% for account in rows %}
-{% set role_meta %}{% for role in account.roles %}<span class="admin-list-meta">{{ role_labels[role] }}</span>{% endfor %}{% endset %}
+{% set role_meta %}{% for role in account.roles %}<span class="admin-list-meta">{{ role_labels[role] }}</span>{% else %}<span class="admin-list-meta">Keine Rolle</span>{% endfor %}{% endset %}
 {% set account_status %}{% if status == 'all' %}{{ status_badge_sem('status.inactive', text='Deaktiviert') if account.disabled_at else status_badge_sem('status.active') }}{% endif %}{% endset %}
 {% set account_name %}
 <a href="{{ url_for('admin.local_user_detail', public_id=account.public_id, page=page, status=status) }}">{{ account.display_name }}</a>
 {% endset %}
 <div data-account-row{% if account.locked_until and account.locked_until > now %} class="admin-users-row-locked"{% endif %}>
-{{ list_row(primary=account_name, secondary=account.username, meta=role_meta, status=account_status) }}
+{{ list_row(primary=account_name, secondary=account.username, meta=role_meta, status=account_status if status == 'all' else none) }}
 {% if account.locked_until and account.locked_until > now %}<div class="admin-users-lock">{{ status_badge_sem('status.locked', variant='warning') }}<span>Lokale Anmeldung gesperrt bis {{ format_time(account.locked_until) }}</span></div>{% endif %}
 </div>
 {% endfor %}
 </div>
-{% else %}{% call empty_state('none', 'Noch keine lokalen Konten angelegt.' if status == 'all' and page == 1 else 'Keine lokalen Konten in dieser Auswahl.', '') %}
-{% if status != 'all' or page > 1 %}{{ icon_button('view.reset', href=url_for('admin.local_users_list')) }}{% elif can_mutate %}{{ icon_button('actions.add', href=url_for('admin.local_user_new', page=page, status=status), emphasis='secondary') }}{% endif %}
-{% endcall %}{% endif %}
+{% else %}{{ empty_state('none', 'Noch keine lokalen Konten angelegt.' if status == 'all' and page == 1 else 'Keine lokalen Konten in dieser Auswahl.', '') }}{% endif %}
 </section>
 {{ pagination(page, has_next, prev_url, next_url, 'Kontenseiten') }}
 {% endblock %}

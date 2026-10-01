@@ -128,6 +128,16 @@ Anmeldesperre steht nur im Kopf; Passwortprüfung und Änderungszeit bleiben im
 statischen Abschnitt Anmeldedaten. Der Hinweis zur getrennten Speicherung ist
 unmittelbar lesbar. Die Ausfallseite verwendet ausdrücklich den Textmodus.
 
+### Benutzerliste und Verläufe: UI-DELTA (DELTA-3-20, 2026-10-01)
+
+Anlegen steht einmal im Kopf; «Alle lokalen Konten» bleibt der einzige Zugang
+zur ungefilterten ersten Seite. Bei Aktiv-/Deaktiviert-Filtern entfällt der
+redundante Status-Slot. Eine fehlende aktive Rolle ist zugriffsrelevant und
+erscheint als «Keine Rolle». Hinweise zu Kontoereignissen und Geltungsbereich
+des Zugriffsverlaufs stehen statisch; die nativen Verlaufsfilter bleiben erhalten.
+Die leere Aktionsgruppe aus dem gemeinsamen list_row bleibt als P-07-Vertragslücke
+offen und wird nicht durch einen lokalen Listenrenderer umgangen.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt

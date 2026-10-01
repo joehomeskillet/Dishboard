@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, pagination, empty_state, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, pagination, empty_state %}
 {% from 'ui/_semantic.html' import icon_button, icon_label %}
 {% set workflow_nav = 'users' %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-settings-benutzer.css') }}">{% endblock %}
@@ -18,7 +18,7 @@
     <select class="form-select" id="access-action" name="action"><option value="all">Alle Ereignisse</option>
     {% for value,label in actions.items() %}<option value="{{ value }}"{% if action == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
   </div>
-  <div class="btn-list">{{ icon_button('view.filter', emphasis='primary') }}{% if provider != 'all' or action != 'all' or page > 1 %}{{ icon_button('view.reset', href=url_for('admin.access_history'), icon_only=true) }}{% endif %}</div>
+  <div class="btn-list">{{ icon_button('view.filter', emphasis='primary') }}{% if provider != 'all' or action != 'all' or page > 1 %}{{ icon_button('view.reset', href=url_for('admin.access_history'), mode='icon') }}{% endif %}</div>
 </form>
 <section class="card admin-users-history" aria-labelledby="access-events-title">
   <h2 class="visually-hidden" id="access-events-title">Zugriffsereignisse</h2>
@@ -34,7 +34,7 @@
   {% else %}{% call empty_state('none', 'Noch keine Zugriffsereignisse erfasst.' if provider == 'all' and action == 'all' and page == 1 else 'Keine Zugriffsereignisse in dieser Auswahl.', 'Neue Anmeldeentscheidungen und Abmeldeanfragen erscheinen hier automatisch.') %}{% endcall %}{% endif %}
   <div class="card-footer text-secondary small">
     <p class="mb-0">{{ icon_label('status.info') }}Ein Eintrag bestätigt weder eine aktive Sitzung noch eine abgeschlossene Abmeldung.</p>
-    {% call disclosure_section(title='Geltungsbereich') %}<p class="mb-2">Anmeldeentscheidungen und angeforderte Abmeldungen, lokal und mit Microsoft Entra. Erfasst seit Einführung dieses Verlaufs. Frühere Anmeldungen werden nicht ergänzt.</p><p class="mb-0">Zeitangaben: Schweiz. Kontonamen entsprechen dem aktuellen Stand; nicht zugeordnete Ereignisse enthalten keine verifizierte Identität.</p>{% endcall %}
+    <section class="mt-3" aria-labelledby="access-scope-title"><h3 class="h4" id="access-scope-title">Geltungsbereich</h3><p class="mb-2">Anmeldeentscheidungen und angeforderte Abmeldungen, lokal und mit Microsoft Entra. Erfasst seit Einführung dieses Verlaufs. Frühere Anmeldungen werden nicht ergänzt.</p><p class="mb-0">Zeitangaben: Schweiz. Kontonamen entsprechen dem aktuellen Stand; nicht zugeordnete Ereignisse enthalten keine verifizierte Identität.</p></section>
   </div>
 </section>
 {{ pagination(page,has_next,prev_url,next_url,'Zugriffsereignisseiten') }}
