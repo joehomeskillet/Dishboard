@@ -1,3 +1,8 @@
+.dishboard-admin .grundlagen-segments .nav-link {
+  /* Keep every tab as wide as its selected state. */
+  font-weight: 600;
+}
+
 .grundlagen-list .admin-list-row {
   min-width: 0;
   flex-wrap: nowrap;

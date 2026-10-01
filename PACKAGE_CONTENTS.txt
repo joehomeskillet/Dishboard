@@ -1280,6 +1280,7 @@ reference_scaffold/cafeteria/templates/ui/_semantic.html
 reference_scaffold/cafeteria/translations/de.json
 reference_scaffold/cafeteria/translations/en.json
 reference_scaffold/cafeteria/ui/__init__.py
+reference_scaffold/cafeteria/ui/filter_state.py
 reference_scaffold/cafeteria/ui/i18n.py
 reference_scaffold/cafeteria/ui/icon_fallbacks.json
 reference_scaffold/cafeteria/ui/semantic_registry.json
@@ -1448,6 +1449,7 @@ reference_scaffold/tests/test_csv_validation_followup.py
 reference_scaffold/tests/test_csv_weekend_contract.py
 reference_scaffold/tests/test_database_invariants.py
 reference_scaffold/tests/test_database_role_readiness.py
+reference_scaffold/tests/test_delta_navigation_stability_browser.py
 reference_scaffold/tests/test_delta_renderer_browser.py
 reference_scaffold/tests/test_delta_renderer_contract.py
 reference_scaffold/tests/test_deployment_compose_probe_live.py

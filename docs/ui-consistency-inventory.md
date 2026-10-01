@@ -1,5 +1,29 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## DELTA-2b — gemeinsamer Filterdialog, 2026-10-01
+
+Die alten Filter-Aufklapper und ihre Assertions sind durch UI-DELTA §0.1,
+D-02/B-04/B-05 abgelöst. Suche und Profile bleiben direkt sichtbar; Zusatzfelder
+bleiben im ursprünglichen GET-Formular im überlagernden Dialog. Aktive Chips
+stehen bereits im Server-HTML, auch ohne JS. Ein nichtinteraktiver Filterwert
+hat genau einen Symbol-Link zum Entfernen; der Filterzähler steht ausserhalb
+des Symbolzugangs. Es gibt keine automatische Öffnung durch aktive Filter.
+
+| Route / Umfang | Rolle / Zustand / Muster | Nachweis |
+|---|---|---|
+| `/admin/rezepte` | Vorhandene Lese-/Schreibrollen, aktiv/archiviert, kombinierte Filter und Pagination, JS/No-JS; Suchhilfe statisch innerhalb des Filterdialogs | `test_recipe_filters_browser.py`, `test_icon_pilot_filters_browser.py`, `test_recipe_search_browser.py`, `test_ui_korrektur_recipes_browser.py` |
+| `/admin/<family>/komponenten` | Beide Profile, native kombinierte Filter, unbekannte Werte, Archivzustände, Reset; sichtbare Profilsegmente | `test_component_filters_browser.py`, `test_component_catalog_browser.py`, `test_ui_korrektur_components_browser.py`, `test_icon_mb2_stammdaten_browser.py` |
+| `/admin/grundlagen`, `/admin/kochbuecher`, `/admin/gerichtvorlagen` | Bestehende Rollen, Suche, Archivfilter und aktive Werte; unveränderte Formularziele | `test_ui_korrektur_grundlagen_browser.py`, `test_master_data_browser.py`, `test_ui_korrektur_cookbooks_browser.py`, `test_dish_template_browser.py` |
+| `/admin/<family>/menues`, Grundlagen-Rezeptsuche, Rezeptdruckvorlagen-Auswahl | Identische kompatible Renderer-API; Suche und Profil-/Bereichssegmente bleiben ausserhalb des Dialogs | Verbraucherliste im DELTA-2b-Report; gemeinsame Makro-/Semantikverträge und `test_ui_list_family_browser.py` |
+| Gemeinsame Filter-/Lesedialoge | DE/EN, Textnamen, eindeutige Mehrfachauslöser, tatsächliche Fokusrückgabe; 390/1440 px, Scroll-/Toolbar-/Listengeometrie ≤1 CSS-px und nativer GET-Submit | `test_delta_renderer_contract.py`, `test_delta_renderer_browser.py`, `test_icon_tooltip_escape_browser.py`; Messprotokolle und Screenshots im Test-Artefaktpfad |
+| `/favicon.ico` | Anonymes statisches Asset; genau eine zusätzliche Inventarroute, Gesamtzahl 162 | `test_ui_route_inventory.py`, `test_ui_inventory_capture.py`, `test_favicon.py` |
+
+Tatsächliche Läufe, Zwischenfehler, Wiederholungen und Grenzen stehen im Report
+`icon-first-r18/.claude/state/claude-session-2026-09-29/reports/DELTA-2b-report.md`.
+Diese Zuordnung ist kein Deploy- oder Live-Abnahmebeleg. Keine Screenshot-Baseline
+wird ersetzt. DELTA-4-Gegenlauf: `test_ui_list_family_browser.py` und
+`test_delta_navigation_stability_browser.py` auf der zugewiesenen UC-R1b-Basis.
+
 ## DELTA-2 — gemeinsame Renderer, 2026-10-01
 
 `disclosure_section` ist für Inhaltsaufklapper durch UI-DELTA §0.1/D-02 abgelöst;
@@ -96,7 +120,7 @@ in den Quellen erhalten. `<family>` steht für `cafeteria` oder `patienten`.
 | Ansicht / Route | Muster, Rolle und Zustand | Tatsächliche Tests / Quelle |
 |---|---|---|
 | Bausteine: `/admin/<family>/komponenten` | UC-P1-A2: Spaltenköpfe Baustein, Kategorie, Herkunft / Kennzeichnungen, Verwendung, Aktionen. Statusspalte nur bei Filter „alle“ und mindestens einem archivierten Eintrag, Chip über `status_badge_sem`. UC-P1-A: `table.admin-table.admin-table--stack`, Profilumschalter im `filter_bar_sem`-Segment, Anlegefuss über `form_footer`. DEC-2/D3: Namen als Text; zwei Direktlinks Bearbeiten und Archivieren/Aktivieren, archivierte Einträge über Öffnen. Beide Profile, vorhandene Rollen, JS/No-JS. | `tests/test_component_catalog_browser.py`, `tests/test_component_filters_browser.py`, `tests/test_ui_korrektur_components_browser.py`; `reports/D3-report.md`, Abschnitt „Änderung und Abdeckung“. |
-| Zutaten: `/admin/grundlagen` und `/admin/grundlagen/<kind>/<public_id>` | UC-P1-C: `filter_bar_sem` mit `segment_switch` (`aria-current="page"`), Status nur bei Archivfilter über `status_badge_sem`, Abschnitte über `disclosure_section`. DEC-2/D3: Namen als Text, Symbolaktion als Zugang; ohne Schreibrecht Öffnen, Statusaktionen nur mit Recht. Fünf Stammdatenarten, aktiv/archiviert. «Nicht erfasst» bleibt ungleich allergenfrei. | `tests/test_master_data_browser.py`, `tests/test_food_price_browser.py`, `tests/test_icon_m1_stammdaten_browser.py`, `tests/test_ingredient_footer_browser.py`; `reports/UC-P1-C-report.md`. |
+| Zutaten: `/admin/grundlagen` und `/admin/grundlagen/<kind>/<public_id>` | UC-P1-C / DELTA-4: `segment_switch` (`aria-current="page"`) vor `filter_bar_sem`; Lagerorte-Hinweis statisch nach der Toolbar, konstante Schriftstärke aller Bereichstabs. Status nur bei Archivfilter über `status_badge_sem`, Editorabschnitte über `disclosure_section`. DEC-2/D3: Namen als Text, Symbolaktion als Zugang; ohne Schreibrecht Öffnen, Statusaktionen nur mit Recht. Fünf Stammdatenarten, aktiv/archiviert; Navigation gefüllt/leer/lesend bei 1440/1024/390 px, fein/grob, klassische/Overlay-Scrollbars, Hover/Fokus/Zurück mit 1-CSS-px-Toleranz. «Nicht erfasst» bleibt ungleich allergenfrei. | `tests/test_delta_navigation_stability_browser.py`, `tests/test_master_data_browser.py`, `tests/test_food_price_browser.py`, `tests/test_icon_m1_stammdaten_browser.py`, `tests/test_ingredient_footer_browser.py`; `reports/UC-P1-C-report.md`, `reports/DELTA-4-report.md`, Messprotokolle `audit/DELTA/N/before/` und `after/`. |
 | Menüsammlung: `/admin/<family>/menues` | UC-P1-A2: Spalten Menü, Tag, Mahlzeit / Zuweisung, Bearbeiten. „Gespeicherter Prüfstand“ nur, wenn ein Prüf-, Archiv- oder Hinweiswert in der Statuszone steht. „Archivierte Woche“ nur als `status_badge_sem` dort, nicht unter dem Datum. UC-P1-A: Profilumschalter `profile_tabs` im Filterbalken (`aria-current="page"`). Liste/Karten bleiben dieselbe Seite (`role=tab`). DEC-2/D3: Textnamen und Bearbeiten-/Öffnen-Aktion; Admin/Editor/Publisher, aktiv/archiviert. | `tests/test_menu_collection_browser.py`; `reports/D3-report.md`. Folgeanpassungen: `tests/test_ui_korrektur_menus_browser.py`, `reports/R10-report.md`. |
 | Gerichtvorlagen: `/admin/gerichtvorlagen` | UC-P1-A2: Spalten Gerichtvorlage, Menüart, Geltungsbereich, Dazu, Planung. Statusspalte nur bei gemischtem Bestand oder archiviertem Rezept. „Rezept archiviert“ steht in der Statuszone über `status_badge_sem`; „Kein Rezept verknüpft“ bleibt unter dem Namen. Formularfuss `form_footer`. D4: wirksame Titelsuche, Archivfilter, Zurücksetzen und Paginierung mit erhaltenem `q`; Enter mit/ohne JS. | `tests/test_dish_template_browser.py`, `tests/test_dish_template_routes.py`, `tests/test_recipe_link_reads_db.py`; `reports/D4-report.md`, Abschnitte „Gerichtvorlagen-Browser komplett“ und „Routen-/Store-Regressionen“. |
 | Kochbücher: `/admin/kochbuecher` | UC-P3-a: Beschreibung einzeilig mit Tabler `text-truncate`, vollständiger Text im DOM und `title` sowie in der Ansicht. Mobile gemeinsame Tabellenzeile: Titel über volle Breite, Metadaten/Status neben umbrechenden Direktaktionen; 36/44-px-Ziele. UC-P1-A2: Spalten Kochbuch, Rezepte, Aktionen; Statusspalte nur bei gemischtem Bestand über `status_badge_sem`. Writer/Reader, aktiv/archiviert, JS/No-JS. | `tests/test_uc_p3a_density_browser.py`, `tests/test_cookbooks_browser.py`, `tests/test_ui_korrektur_cookbooks_browser.py`, `tests/test_icon_cookbook_view_browser.py`; UC/P3-a Vorher-/Nachher-Messung 1440/390 fein/grob. |

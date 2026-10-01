@@ -17,7 +17,7 @@
     "baseline_status": "proposed_never_user_approved",
     "generated_at": "2026-09-13T07:15:51.719096+00:00",
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
-    "route_count": 161,
+    "route_count": 162,
     "template_count": 103,
     "html_route_count": 80,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
@@ -235,6 +235,41 @@
     }
   },
   "routes": [
+    {
+      "endpoint": "favicon",
+      "rule": "/favicon.ico",
+      "methods": ["GET"],
+      "blueprint": "",
+      "classification": "static",
+      "visual": false,
+      "templates": [],
+      "capability": null,
+      "roles": ["anonymous"],
+      "method_roles": {},
+      "layout_variant": "none",
+      "owning_mp": "MP-UI-DENSITY-SHELL",
+      "family_variants": [],
+      "module": "cafeteria",
+      "source_discovered": true,
+      "fixture": "not_visual",
+      "states": [],
+      "hooks": [],
+      "density": {
+        "mockups": [],
+        "rules": [],
+        "acceptance": ["A01"],
+        "owning_mp": "MP-UI-DENSITY-SHELL",
+        "core_task": "Bestehende static-Antwort; kein eigenständiger UI-Screen",
+        "example_url": "/favicon.ico",
+        "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
+        "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_fixture_descriptor",
+        "state_evidence": {},
+        "source_status": "verified_runtime_registration",
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Muster nur soweit fachlich passend; öffentliche, Login-, Druck- und Signage-Layouts behalten ihre Ausgabegrenzen."
+      }
+    },
     {
       "endpoint": "admin.access_history",
       "rule": "/admin/benutzer/zugriffsverlauf",
@@ -10307,7 +10342,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "70017b12fe2016b06dabce1e1aaf45cf24e6f56670e06100f8c3d60ca578cffb",
+      "sha256": "af260889cf2386faf1363250e80397cb8ba7f00f0b4575efcdeedb1f886bd89c",
       "used_by_endpoints": [
         "admin.access_history",
         "admin.api_overview",
@@ -11003,7 +11038,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "cef849361bb192e47fe3bdf7bdbd44777d0a3e39356e6f2b06637fa690d57ba7",
+      "sha256": "faaf4489af4a5386c8952003dd1647273666012c56ad9cac87a8a3efef9fec40",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -11374,7 +11409,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "bc5869e92ed69e1622fb9f983dfbb0cccd9084fd8cc7adc2c0a1bffe6d1612cd",
+      "sha256": "416f3e33daacce40c7bc45f81acdc471a05c52198a218e2f8f4980b1a925a512",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],
@@ -11557,7 +11592,7 @@
         "admin/_macros.html",
         "admin/rezepte_ansicht.html"
       ],
-      "sha256": "8035bf9001a645e81e3213a73938ac9406f8d63a7d0ce721001058857bab05a0",
+      "sha256": "c8eccc91f0ccc9cfb5cde7a72d5a01dac0b5b745e01918eda37a4f55a7a15dba",
       "used_by_endpoints": [
         "admin.recipes_list"
       ],
@@ -12604,7 +12639,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "586745b8177c9bb9df7e3c00895d2180ae53cb148ecde6994b83336e3e7d25ed",
+      "sha256": "5d1fbd0924a23f26985300b5dcf659585cbe9cfd44c86f1078b437b90c95b149",
       "used_by_endpoints": [
         "admin.print_template_editor",
         "admin.recipe_print_template_editor"

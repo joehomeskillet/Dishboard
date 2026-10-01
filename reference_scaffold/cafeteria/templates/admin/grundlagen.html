@@ -39,15 +39,14 @@
 {% endmacro %}
 {% block content %}
 {% set singular = {'zutaten': 'Zutat', 'einheiten': 'Einheit', 'kategorien': 'Kategorie', 'tags': 'Kennzeichnung', 'lagerorte': 'Lagerort'} %}
-{% if kind == 'lagerorte' %}{{ hint('Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.', 'storage-list-hint') }}{% endif %}
 {% set segment_links = [] %}
 {% for key, area_label in kinds.items() %}
 {% set _ = segment_links.append({'key': key, 'href': url_for('admin.master_data_list', kind=query_kinds[key]), 'label': icon(kind_icons[key]) ~ ('Kennzeichnungen' if key == 'tags' else area_label)}) %}
 {% endfor %}
+{{ segment_switch(segment_links, kind, label='Stammdatenbereiche', class='grundlagen-segments mb-2') }}
 {% set filters_active = request.args.get('q') or request.args.get('category') or request.args.get('tag') or request.args.get('archived') == '1' %}
 {% set filter_count = (1 if kind == 'zutaten' and request.args.get('category') else 0) + (1 if kind == 'zutaten' and request.args.get('tag') else 0) + (1 if request.args.get('archived') == '1' else 0) %}
 {% set segment_slot %}
-{{ segment_switch(segment_links, kind, label='Stammdatenbereiche') }}
 <span class="admin-list-meta">{{ 'Archivierte einschliessen' if request.args.get('archived') == '1' else t('status.active.label') }}</span>
 {% endset %}
 {% set filter_slot %}
@@ -62,6 +61,7 @@
 <div class="grundlagen-master" data-kind="{{ kind }}">
 {{ filter_bar_sem(url_for('admin.master_data_list'), search_name='q' if kind == 'zutaten' else 'kind', search_value=request.args.get('q', '') if kind == 'zutaten' else query_kinds[kind], search_id='q' if kind == 'zutaten' else 'kind-scope', maxlength=200 if kind == 'zutaten' else none, filters=filter_slot, segments=segment_slot, active=filters_active, open=filters_active, active_count=filter_count, reset_url=url_for('admin.master_data_list', kind=query_kinds[kind]) if filters_active else none, id='master-filter') }}
 </div>
+{% if kind == 'lagerorte' %}{{ hint('Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.', 'storage-list-hint', mode='inline') }}{% endif %}
 {% if kind == 'zutaten' %}{% set missing_storage = rows|rejectattr('storage_locations')|list|length %}
 {% if missing_storage %}<p class="admin-list-secondary" role="status">Lagerort fehlt: {{ missing_storage }} {{ 'Zutat' if missing_storage == 1 else 'Zutaten' }} in dieser Liste.</p>{% endif %}{% endif %}
 <div class="card grundlagen-list">

@@ -1,6 +1,8 @@
 """DELTA-2: exclusive controls and semantic optional slots, without a database."""
 from __future__ import annotations
 
+from collections import Counter
+from hashlib import sha256
 from itertools import product
 import json
 from types import SimpleNamespace
@@ -16,11 +18,47 @@ from test_shared_macro_api import _action_context, _compile_call
 from test_ui_semantics import semantic_app  # noqa: F401
 
 
+# Frozen call ASTs from 0792ee83, independent of line numbers/formatting.
+# Removal is allowed; replacement/new calls cannot spend a removed caller's budget.
+EXTENDED_CONSUMERS = Counter({
+    ('_course_editor.html', 'ed6f8bd2fecdecac'): 1,
+    ('_course_editor.html', 'efb46958b0ffef68'): 1,
+    ('_course_editor.html', '3f7622e895f4ab9d'): 1,
+    ('_course_editor.html', 'fc32c1f6ced9e405'): 1,
+    ('_course_recipe_search.html', '4407fe4a0fd1224a'): 1,
+    ('_week_check_summary.html', '407d1c5c73aaa742'): 1,
+    ('_week_controls.html', 'f60514dd76ac34b0'): 1,
+    ('_week_controls.html', 'c94613cb1e8a1c9e'): 1,
+    ('_week_menu_card.html', '885fa9551b3590af'): 1,
+    ('_week_service.html', 'e2a8575e29606a8b'): 1,
+    ('_week_service.html', 'b5aa1dc783df4d49'): 1,
+    ('_week_settings.html', '4a1c69f1d7839002'): 1,
+    ('_week_settings.html', 'fc32c1f6ced9e405'): 1,
+    ('menu_editor.html', '9fb800e2d608efcd'): 1,
+})
+
+
+def assert_consumer_ratchet(consumers):
+    assert not consumers - EXTENDED_CONSUMERS, f'New legacy callers: {consumers - EXTENDED_CONSUMERS}'
+
+
+def test_delta2c_consumer_ratchet_allows_migration_but_no_new_callers():
+    remaining = Counter({next(iter(EXTENDED_CONSUMERS)): 1})
+    assert_consumer_ratchet(remaining)
+    assert_consumer_ratchet(Counter())
+    with pytest.raises(AssertionError, match='New legacy callers'):
+        assert_consumer_ratchet(remaining + remaining)
+    with pytest.raises(AssertionError, match='New legacy callers'):
+        assert_consumer_ratchet(Counter({('_new.html', 'ed6f8bd2fecdecac'): 1}))
+    with pytest.raises(AssertionError, match='New legacy callers'):
+        assert_consumer_ratchet(Counter({('_course_editor.html', 'changed-call'): 1}))
+
+
 def render(app, expression, **values):
     with app.test_request_context('/'):
         return BeautifulSoup(render_template_string(
             "{% from 'ui/_semantic.html' import icon_button, icon_summary, row_actions, "
-            "read_detail_trigger, read_detail_dialog %}"
+            "read_detail_trigger, read_detail_dialog, filter_bar_sem, filter_trigger %}"
             "{% from 'admin/_macros.html' import list_row, empty_value %}" + expression,
             **values), 'html.parser')
 
@@ -140,6 +178,124 @@ def test_read_dialog_contract_and_escaping(semantic_app, locale, close, purpose)
     assert not doc.select('script, details, form')
 
 
+@pytest.mark.parametrize('locale', ['de', 'en'])
+@pytest.mark.parametrize('key', ['actions.open', 'ui.read_detail.day'])
+def test_delta2c_read_trigger_keeps_purpose_and_object(semantic_app, locale, key):  # noqa: F811
+    semantic_app.config['UI_LOCALE'] = locale
+    obj = '01.10.2026 <&>'
+    doc = render(semantic_app, "{{ read_detail_trigger('detail', key, object) }}",
+                 key=key, object=obj)
+    expected = {
+        ('de', 'actions.open'): obj + ' öffnen',
+        ('en', 'actions.open'): 'Open ' + obj,
+        ('de', 'ui.read_detail.day'): 'Einträge am ' + obj + ' anzeigen',
+        ('en', 'ui.read_detail.day'): 'Show entries for ' + obj,
+    }[locale, key]
+    trigger = doc.select_one('[data-read-detail]')
+    assert trigger['aria-label'] == trigger['data-ui-tooltip'] == expected
+    assert not trigger.get_text(strip=True) and trigger.svg
+    assert not doc.select('script')
+
+
+@pytest.mark.parametrize('actions,more', [(None, None), ('', ''), (' \n', '\t')])
+def test_delta2c_list_row_omits_empty_action_group(semantic_app, actions, more):  # noqa: F811
+    doc = render(semantic_app, "{{ list_row(primary='Import', actions=actions, more_actions=more) }}",
+                 actions=actions, more=more)
+    assert not doc.select('.admin-list-actions, [role=group]')
+
+
+@pytest.mark.parametrize('slot', ['actions', 'more_actions', 'action'])
+def test_delta2c_list_row_keeps_icon_only_actions(semantic_app, slot):  # noqa: F811
+    doc = render(semantic_app, """{% set control %}{{ icon_button('actions.open', href='/recipe') }}{% endset %}
+        {{ list_row(primary='Import', **{slot: control}) }}""", slot=slot)
+    group = doc.select_one('.admin-list-actions')
+    assert group and group.a['href'] == '/recipe' and group.svg
+
+
+@pytest.mark.parametrize('locale', ['de', 'en'])
+def test_delta2b_filter_dialog_keeps_form_and_server_chips(semantic_app, locale):  # noqa: F811
+    semantic_app.config['UI_LOCALE'] = locale
+    doc = render(semantic_app, """{{ filter_bar_sem('/search', id='catalog',
+        search_name='text', search_value='Soup & herbs', filters=filters,
+        more_filters=more, profile=profile, active=true, open=true, reset_url='/reset') }}""",
+        filters=Markup('''<input type="hidden" name="scope" value="patienten">
+            <label for="tag">Kategorie</label><select id="tag" name="tag">
+            <option value="">Alle</option><option value="soup" selected>Suppe &amp; Brot</option></select>
+            <label><input name="archived" type="checkbox" value="1" checked>Archivierte</label>'''),
+        more=Markup('<label for="ingredient">Zutat</label><input id="ingredient" name="ingredient" value="&lt;Kraut&gt;">'),
+        profile=Markup('<nav><a href="/profile">Patienten</a></nav>'))
+    assert not doc.select('details.admin-filter-more')
+    dialog = doc.select_one('dialog.admin-filter-dialog')
+    assert dialog is not None and not dialog.has_attr('open')
+    assert dialog.find_parent('form') is doc.form
+    assert len(doc.select('form')) == 1
+    assert doc.form['action'] == '/search' and doc.form['method'] == 'get'
+    assert not doc.select_one('[name="text"]').find_parent('dialog')
+    assert not doc.select_one('nav').find_parent('dialog')
+    assert dialog.select_one('[name="scope"]')['value'] == 'patienten'
+    assert dialog.select_one('[name="ingredient"]')['value'] == '<Kraut>'
+    assert dialog.select_one('[name="archived"]').has_attr('checked')
+    assert dialog.h2.get_text(strip=True) == 'Filter'
+    assert len(dialog.select('[data-read-detail-close]')) == 1
+    assert not dialog.select_one('[data-read-detail-close]').select('svg')
+    assert doc.select_one('[data-semantic="view.reset"]')['href'] == '/reset'
+    trigger = doc.select_one('[data-semantic="view.filter"]')
+    count = doc.select_one('.admin-filter-count')
+    assert not trigger.get_text(strip=True) and trigger.select_one('svg')
+    assert count.get_text(strip=True) == '3' and count not in trigger.descendants
+    assert count['id'] in trigger['aria-describedby'].split()
+    chips = doc.select('.admin-filter-chip')
+    assert [chip.get_text(strip=True) for chip in chips] == ['Suppe & Brot', 'Archivierte', '<Kraut>']
+    assert all(not chip.find_parent('dialog') for chip in chips)
+    remove = chips[0].a
+    assert not remove.get_text(strip=True) and remove.svg
+    assert 'text=Soup+%26+herbs' in remove['href'] and 'scope=patienten' in remove['href']
+    assert 'tag=' in remove['href'] and 'tag=soup' not in remove['href']
+    assert 'archived=1' in remove['href']
+    ids = [node['id'] for node in doc.select('[id]')]
+    assert len(ids) == len(set(ids))
+
+
+def test_delta2b_two_read_triggers_have_unique_ids_and_canonical_nojs_return(semantic_app):  # noqa: F811
+    doc = render(semantic_app, """{{ read_detail_trigger('review', 'ui.read_detail.review', 'Suppe') }}
+        {{ read_detail_trigger('review', 'ui.read_detail.review', 'Suppe', trigger_id='review-second') }}
+        {% call read_detail_dialog('review', 'Hinweise', 'Suppe') %}Inhalt{% endcall %}""")
+    triggers = doc.select('[data-read-detail]')
+    assert [node['id'] for node in triggers] == ['review-trigger', 'review-second']
+    assert all(node['href'] == '#review' for node in triggers)
+    assert len(doc.select('#review-trigger')) == 1
+    assert doc.select_one('[data-read-detail-close]')['href'] == '#review-trigger'
+
+
+@pytest.mark.parametrize('label,expected', [('Suppe bearbeiten', 'Ändern: Suppe bearbeiten'),
+                                         ('Ändern: Suppe', 'Ändern: Suppe')])
+def test_delta2b_text_name_contains_visible_label_once(semantic_app, label, expected):  # noqa: F811
+    doc = render(semantic_app, "{{ icon_button('actions.edit', mode='text', text='Ändern', aria_label=label) }}",
+                 label=label)
+    assert doc.button['aria-label'] == expected
+    assert doc.button.get_text(strip=True) == 'Ändern' and not doc.button.svg
+
+
+def test_delta2b_server_chips_respect_successful_fields_and_select_defaults(semantic_app):  # noqa: F811
+    from urllib.parse import parse_qs, urlsplit
+
+    doc = render(semantic_app, "{{ filter_bar_sem('/search', filters=filters, profile=profile) }}",
+        profile=Markup('<input type="hidden" name="scope" value="patienten">'),
+        filters=Markup('''<label><input name="ignored" value="bad" disabled>Disabled</label>
+            <label><input type="checkbox" name="unchecked" value="bad">Unchecked</label>
+            <select name="status"><option value="active">Aktiv</option>
+                <option value="archived" selected>Archiviert</option></select>
+            <input type="hidden" name="keep" value="yes">
+            <select name="default"><option value="first">Erstes</option></select>
+            <input type="text" name="empty" value="">
+            <label for="note">Text</label><input id="note" name="note" value="A &amp; B">'''))
+    chips = doc.select('.admin-filter-chip')
+    assert len(chips) == 2
+    values = parse_qs(urlsplit(chips[0].a['href']).query, keep_blank_values=True)
+    assert values == {'q': [''], 'scope': ['patienten'], 'status': ['active'],
+                      'keep': ['yes'], 'default': ['first'], 'empty': [''], 'note': ['A & B']}
+
+
 @pytest.mark.parametrize('populated', [False, True])
 def test_post_g0d_consumers_keep_extended_footer_and_disclosure_contracts(semantic_app, populated):  # noqa: F811
     """UC-P2 additions have no equivalent in the frozen pre-G0d fixture."""
@@ -153,14 +309,14 @@ def test_post_g0d_consumers_keep_extended_footer_and_disclosure_contracts(semant
                 recipe_page={'query': {'search': 'Suppe' if populated else ''},
                              'previous_offset': 1 if populated else None},
                 body=lambda: Markup('<input name="draft" value="un saved">'))
-    counts = {'form_footer': 0, 'disclosure_section': 0}
+    consumers = Counter()
     with semantic_app.test_request_context('/'):
         macros = env.get_template('admin/_macros.html').module
         data.update(form_footer=macros.form_footer, disclosure_section=macros.disclosure_section,
                     icon_button=env.get_template('ui/_semantic.html').module.icon_button)
         for path in sorted((ROOT.parent / 'templates/admin').rglob('*.html')):
             for call in env.parse(path.read_text(encoding='utf-8')).find_all(nodes.Call):
-                if not isinstance(call.node, nodes.Name) or call.node.name not in counts:
+                if not isinstance(call.node, nodes.Name) or call.node.name not in {'form_footer', 'disclosure_section'}:
                     continue
                 name = call.node.name
                 if name == 'form_footer':
@@ -173,7 +329,8 @@ def test_post_g0d_consumers_keep_extended_footer_and_disclosure_contracts(semant
                                    for kw in call.kwargs)
                 if not extended:
                     continue
-                counts[name] += 1
+                source = path.relative_to(ROOT.parent / 'templates/admin').as_posix()
+                consumers[source, sha256(repr(call).encode()).hexdigest()[:16]] += 1
                 if name == 'disclosure_section':
                     call.kwargs.append(nodes.Keyword('caller', nodes.Name('body', 'load')))
                 doc = BeautifulSoup(_compile_call(env, call).render(**data), 'html.parser')
@@ -187,7 +344,7 @@ def test_post_g0d_consumers_keep_extended_footer_and_disclosure_contracts(semant
                     if cancel:
                         assert cancel['href'] == '/filtered?q=soup'
                         assert len(doc.select('button')) == (1 if populated else 2)
-    assert counts == {'form_footer': 4, 'disclosure_section': 10}
+    assert_consumer_ratchet(consumers)
 
 
 @pytest.mark.parametrize('locale', ['de', 'en'])
@@ -223,6 +380,7 @@ def test_all_existing_show_text_calls_render_only_text(semantic_app, tmp_path, l
                 assert not control.select('svg, img'), where
                 assert control.get_text(strip=True).lower() in control['aria-label'].lower(), where
                 rendered.append({'source': where, 'text': control.get_text(strip=True)})
-    assert len(rendered) >= 35, 'Consumer inventory unexpectedly shrank'
+    # Consumers may migrate to explicit mode='text'; every remaining legacy call
+    # above still has to satisfy the renderer contract, without a migration floor.
     (tmp_path / 'show-text-consumers.json').write_text(json.dumps(rendered, ensure_ascii=False,
                                                                indent=2), encoding='utf-8')

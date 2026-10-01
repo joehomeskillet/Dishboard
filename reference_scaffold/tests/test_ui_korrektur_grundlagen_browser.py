@@ -207,7 +207,7 @@ def test_ingredient_list_is_first_full_width_and_visible(
         assert box is not None
         if width in {1366, 1440, 1920, 2560}:
             assert box['y'] + box['height'] <= height
-        expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).not_to_have_attribute('open', '')
+        expect(page.locator(".admin-filter-dialog")).not_to_be_visible()
         _assert_no_horizontal_scroll(page)
 
         if width >= 1024:
@@ -226,7 +226,7 @@ def test_ingredient_list_is_first_full_width_and_visible(
 
         page.goto(base + '/admin/grundlagen?q=zzzz-kein-treffer', wait_until='networkidle')
         expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
-        expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).to_have_attribute('open', '')
+        expect(page.locator(".admin-filter-dialog")).not_to_be_visible()
         _assert_no_horizontal_scroll(page)
         _screenshot(page, f'liste-leer-{state}-{width}x{height}.png')
 
@@ -269,7 +269,7 @@ def test_ingredient_list_genuine_browser_zoom_200(
             )
             first = page.locator('.grundlagen-list .admin-list-row').first
             expect(first).to_be_visible()
-            expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).not_to_have_attribute('open', '')
+            expect(page.locator(".admin-filter-dialog")).not_to_be_visible()
             _assert_no_horizontal_scroll(page)
             _prepare_evidence()
             _screenshot(page, 'liste-regulaer-zoom-200-1440x900.png')
@@ -285,7 +285,7 @@ def test_ingredient_list_genuine_browser_zoom_200(
             assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
             assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
             expect(page.get_by_text('Keine passenden Zutaten', exact=True)).to_be_visible()
-            expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).to_have_attribute('open', '')
+            expect(page.locator(".admin-filter-dialog")).not_to_be_visible()
             _assert_no_horizontal_scroll(page)
             _screenshot(page, 'liste-leer-zoom-200-1440x900.png')
             empty_proof = cdp.send('Page.getLayoutMetrics')
@@ -417,11 +417,14 @@ def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser)
         expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
         _assert_no_horizontal_scroll(page)
         page.get_by_role('link', name='Lagerorte').click()
-        storage_hint = page.locator('summary[aria-describedby="storage-list-hint"]')
-        storage_hint.focus()
-        expect(storage_hint).to_be_focused()
-        page.keyboard.press('Enter')
-        expect(page.locator('#storage-list-hint')).to_be_visible()
+        storage_hint = page.locator('#storage-list-hint')
+        expect(storage_hint).to_be_visible()
+        expect(storage_hint).to_have_text(
+            'Kein Bestand erfasst. Lagerorte ordnen Zutaten zu; Bestandsbuchungen sind hier nicht verfügbar.')
+        assert not storage_hint.evaluate("el => Boolean(el.closest('details'))")
+        hint_box = storage_hint.bounding_box()
+        toolbar = page.locator('.grundlagen-master').bounding_box()
+        assert hint_box['y'] >= toolbar['y'] + toolbar['height'] - 1, (hint_box, toolbar)
 
 
 def test_p4_stammdaten_inventory_counts_sum():

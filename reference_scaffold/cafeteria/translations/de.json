@@ -1,4 +1,7 @@
 {
+  "ui.filter.count.label": "Aktive Filter: {count}",
+  "ui.filter.count.tooltip": "Aktive Filter: {count}",
+  "ui.filter.count.aria": "Aktive Filter: {count}",
   "menu.origin_auto_reason.label": "Automatische Herkunft wird aus den Bausteinen geerbt.",
   "menu.origin_auto_reason.tooltip": "Automatische Herkunft wird aus den Bausteinen geerbt.",
   "menu.origin_auto_reason.aria": "Automatische Herkunft wird aus den Bausteinen geerbt.",
@@ -786,6 +789,9 @@
   "ui.read_detail.schedule.label": "Wochenvorgaben",
   "ui.read_detail.schedule.tooltip": "Wochenvorgaben für {object} anzeigen",
   "ui.read_detail.schedule.aria": "Wochenvorgaben für {object} anzeigen",
+  "ui.read_detail.day.label": "Tageseinträge",
+  "ui.read_detail.day.tooltip": "Einträge am {object} anzeigen",
+  "ui.read_detail.day.aria": "Einträge am {object} anzeigen",
   "ui.disclosure.has_content.label": "enthält Angaben",
   "ui.disclosure.has_content.tooltip": "enthält Angaben",
   "ui.disclosure.has_content.aria": "enthält Angaben",

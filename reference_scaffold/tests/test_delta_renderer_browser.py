@@ -10,6 +10,7 @@ import pytest
 from flask import render_template_string, request
 from playwright.sync_api import expect, sync_playwright
 from werkzeug.serving import make_server
+from urllib.parse import parse_qs, urlsplit
 
 from cafeteria.ui.semantics import ROOT, STATIC
 from test_ui_semantics import semantic_app  # noqa: F401
@@ -28,9 +29,18 @@ PAGE = '''<!doctype html><html lang="de"><head>
 {% for n in range(18) %}{{ list_row(primary='Vorher ' ~ n) }}{% endfor %}
 <div id="target">{{ list_row(primary='Gemüse-Pastetli',
     actions=read_detail_trigger('review', 'ui.read_detail.review', 'Gemüse-Pastetli')) }}</div>
-<div id="following">{{ list_row(primary='Folgeobjekt', meta=0, status=false) }}</div>
+<div id="following">{{ list_row(primary='Folgeobjekt', meta=0, status=false,
+    actions=read_detail_trigger('review', 'ui.read_detail.review', 'Gemüse-Pastetli', trigger_id='review-second')) }}</div>
 {% call read_detail_dialog('review', 'Prüfhinweise', 'Gemüse-Pastetli · Patienten · Mittag') %}
+{% if jumps %}
+<a id="jump-field" href="#draft-field">Formularfeld prüfen</a>
+<a id="jump-section" href="/?jumps=1#draft-section">Abschnitt prüfen</a>
+<a id="jump-inside" href="#review-inside">Hinweis im Dialog</a>
+<a id="jump-missing" href="#missing">Fehlendes Ziel</a>
+<a id="jump-malformed" href="#%ZZ">Ungültiges Fragment</a>
+{% endif %}
 {% for n in range(30) %}<p>Prüfhinweis {{ n }}: Vollständiger Hinweis bleibt lesbar.</p>{% endfor %}
+{% if jumps %}<h3 id="review-inside">Hinweisziel</h3>{% endif %}
 {% endcall %}
 <section id="controls">
 {% for mode in ['icon', 'text'] %}
@@ -45,6 +55,25 @@ PAGE = '''<!doctype html><html lang="de"><head>
 <label><input type="checkbox" id="choice">Option</label>
 </section>
 {% for n in range(18) %}{{ list_row(primary='Nachher ' ~ n) }}{% endfor %}
+{% if jumps %}
+<form id="draft"><label for="draft-field">Entwurf</label><input id="draft-field" name="draft" value="ungespeichert"></form>
+<section id="draft-section"><h2>Abschnitt</h2><p>Prüfdetails</p></section>
+{% endif %}
+</main></body></html>'''
+
+FILTER_PAGE = PAGE.split('<nav id="navigation">')[0] + '''
+{% from 'ui/_semantic.html' import filter_bar_sem %}
+<nav id="navigation">Bereiche</nav>
+{% for n in range(18) %}{{ list_row(primary='Vorher ' ~ n) }}{% endfor %}
+{% set filters %}<input name="scope" type="hidden" value="patienten">
+<div><label for="tag">Kategorie</label><select name="tag" id="tag" class="form-select">
+<option value="">Alle</option><option value="soup" selected>Suppe</option></select></div>
+<label><input type="checkbox" name="archived" value="1" checked>Archivierte</label>{% endset %}
+<div id="toolbar">{{ filter_bar_sem('/filters', id='catalog', search_value='Kraut & Brot',
+    filters=filters, active=true, open=true, reset_url='/filters',
+    segments='<nav id="profiles">Patienten</nav>'|safe) }}</div>
+<div id="following">{{ list_row(primary='Folgeobjekt') }}</div>
+{% for n in range(30) %}{{ list_row(primary='Nachher ' ~ n) }}{% endfor %}
 </main></body></html>'''
 
 # Inspect computed visibility, including ancestors, clipping and generated content.
@@ -103,7 +132,11 @@ def delta_site(semantic_app):  # noqa: F811
 
     @semantic_app.get('/')
     def page():
-        return render_template_string(PAGE)
+        return render_template_string(PAGE, jumps='jumps' in request.args)
+
+    @semantic_app.get('/filters')
+    def filters():
+        return render_template_string(FILTER_PAGE)
 
     @semantic_app.post('/save')
     def save():
@@ -262,4 +295,137 @@ def test_computed_modes_loading_disabled_and_asset_fallback(delta_site, tmp_path
             (tmp_path / 'visibility.json').write_text(json.dumps(evidence, indent=2), encoding='utf-8')
         finally:
             delta_site[1].set()
+            browser.close()
+
+
+@pytest.mark.parametrize('width', [390, 1440])
+def test_delta2b_filter_modal_geometry_query_focus_and_nojs(delta_site, tmp_path, width):
+    geometry = GEOMETRY.replace("'target', 'following', 'review-trigger'",
+                                "'toolbar', 'following', 'catalog-trigger', 'profiles'")
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        try:
+            evidence = {}
+            for javascript in [False, True]:
+                page = browser.new_page(java_script_enabled=javascript,
+                                        viewport={'width': width, 'height': 900})
+                page.goto(delta_site[0] + '/filters')
+                trigger = page.locator('#catalog-trigger')
+                dialog = page.locator('#catalog-dialog')
+                expect(dialog).not_to_be_visible()
+                expect(page.locator('.admin-filter-chip')).to_have_count(2)
+                expect(page.locator('#profiles')).to_be_visible()
+                trigger.scroll_into_view_if_needed()
+                if javascript:
+                    trigger.evaluate('el => el.focus({preventScroll:true})')
+                    before = page.evaluate(geometry)
+                    page.screenshot(path=str(tmp_path / 'filter-before.png'))
+                    trigger.press('Enter')
+                    expect(page.locator('#catalog-dialog-title')).to_be_focused()
+                    assert dialog.evaluate('d => d.matches(":modal")')
+                    during = page.evaluate(geometry)
+                    assert_stable(before, during)
+                    page.screenshot(path=str(tmp_path / 'filter-during.png'))
+                    page.keyboard.press('Tab')
+                    expect(page.get_by_label('Kategorie')).to_be_focused()
+                    page.keyboard.press('Escape')
+                    expect(trigger).to_be_focused()
+                    expect(dialog).not_to_be_visible()
+                    assert_stable(before, page.evaluate(geometry))
+                    trigger.press('Enter')
+                    dialog.locator('[data-read-detail-close]').click()
+                    expect(trigger).to_be_focused()
+                    assert_stable(before, page.evaluate(geometry))
+                    evidence = {'before': before, 'during': during, 'after': page.evaluate(geometry)}
+                trigger.click()
+                expect(dialog).to_be_visible()
+                expect(dialog.locator('[data-read-detail-close]')).to_have_count(1)
+                page.get_by_label('Kategorie').select_option('')
+                page.get_by_label('Archivierte', exact=True).uncheck()
+                dialog.locator('[data-semantic="actions.apply"]').click()
+                page.wait_for_url('**/filters?**')
+                assert parse_qs(urlsplit(page.url).query, keep_blank_values=True) == {
+                    'q': ['Kraut & Brot'], 'scope': ['patienten'], 'tag': ['']}
+                expect(dialog).not_to_be_visible()
+                page.close()
+            (tmp_path / 'filter-geometry.json').write_text(json.dumps({
+                'revision': source_revision(), 'viewport': width, **evidence,
+            }, indent=2), encoding='utf-8')
+        finally:
+            browser.close()
+
+
+def test_delta2b_read_dialog_returns_to_actual_trigger(delta_site):
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page()
+        try:
+            page.goto(delta_site[0])
+            for identifier in ['review-trigger', 'review-second', 'review-trigger']:
+                trigger = page.locator('#' + identifier)
+                trigger.click()
+                expect(page.locator('#review-title')).to_be_focused()
+                page.keyboard.press('Escape')
+                expect(trigger).to_be_focused()
+        finally:
+            browser.close()
+
+
+@pytest.mark.parametrize('width', [390, 1440])
+@pytest.mark.parametrize('target', ['draft-field', 'draft-section'])
+def test_delta2c_dialog_jump_focuses_background_without_return(delta_site, tmp_path, width, target):
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={'width': width, 'height': 844}, reduced_motion='reduce')
+        try:
+            page.goto(delta_site[0] + '/?jumps=1')
+            page.locator('#draft-field').fill('un saved <&>')
+            trigger = page.locator('#review-second')
+            trigger.click()
+            before = page.evaluate('scrollY')
+            page.evaluate('''() => {
+                window.returnedToTrigger = false;
+                document.getElementById('review-second').addEventListener('focus', () => {
+                    window.returnedToTrigger = true;
+                });
+            }''')
+            page.locator('#jump-' + ('field' if target == 'draft-field' else 'section')).press('Enter')
+            expect(page.locator('#review')).not_to_be_visible()
+            expect(page.locator('#' + target)).to_be_focused()
+            expect(page.locator('#' + target)).to_be_in_viewport()
+            assert urlsplit(page.url).fragment == target
+            page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+            expect(page.locator('#' + target)).to_be_focused()
+            assert page.evaluate('scrollY') != before
+            assert not page.evaluate('window.returnedToTrigger')
+            expect(page.locator('#draft-field')).to_have_value('un saved <&>')
+            assert delta_site[2] == []
+            if target == 'draft-section':
+                page.locator('#draft-field').focus()
+                expect(page.locator('#draft-section')).not_to_have_attribute('tabindex', '-1')
+            page.screenshot(path=str(tmp_path / 'jump-target.png'))
+            # Reopening must not retain a previous jump destination.
+            trigger.click()
+            origin = page.evaluate('scrollY')
+            page.keyboard.press('Escape')
+            expect(trigger).to_be_focused()
+            assert page.evaluate('scrollY') == origin
+        finally:
+            browser.close()
+
+
+def test_delta2c_internal_missing_and_malformed_links_keep_dialog_open(delta_site):
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page()
+        try:
+            page.goto(delta_site[0] + '/?jumps=1')
+            page.locator('#review-trigger').click()
+            for link in ['jump-missing', 'jump-malformed', 'jump-inside']:
+                page.locator('#' + link).click()
+                expect(page.locator('#review')).to_be_visible()
+                assert page.locator('#review').evaluate('d => d.matches(":modal")')
+            page.locator('[data-read-detail-close]').click()
+            expect(page.locator('#review-trigger')).to_be_focused()
+        finally:
             browser.close()

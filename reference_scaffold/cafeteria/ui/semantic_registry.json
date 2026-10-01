@@ -935,6 +935,17 @@
     "role": "neutral"
   },
   {
+    "key": "ui.filter.count",
+    "category": "ui",
+    "ascii": "[n]",
+    "icon": "filter",
+    "label_key": "ui.filter.count.label",
+    "tooltip_key": "ui.filter.count.tooltip",
+    "aria_key": "ui.filter.count.aria",
+    "icon_only_allowed": false,
+    "role": "neutral"
+  },
+  {
     "key": "view.reset",
     "category": "view",
     "ascii": "[R]",
@@ -2735,6 +2746,17 @@
     "label_key": "ui.read_detail.schedule.label",
     "tooltip_key": "ui.read_detail.schedule.tooltip",
     "aria_key": "ui.read_detail.schedule.aria",
+    "icon_only_allowed": true,
+    "role": "neutral"
+  },
+  {
+    "key": "ui.read_detail.day",
+    "category": "ui",
+    "ascii": "[i]",
+    "icon": "calendar",
+    "label_key": "ui.read_detail.day.label",
+    "tooltip_key": "ui.read_detail.day.tooltip",
+    "aria_key": "ui.read_detail.day.aria",
     "icon_only_allowed": true,
     "role": "neutral"
   },
