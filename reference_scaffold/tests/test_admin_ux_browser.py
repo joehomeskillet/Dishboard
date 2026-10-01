@@ -217,15 +217,20 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
     expect(page.locator('[aria-invalid="true"]').first).to_be_visible()
     expect(alert.get_by_role('button', name='Erneut versuchen', exact=True)).to_be_visible()
 
-def test_admin_escape_closes_details_and_restores_focus(page_context: Page):
+def test_admin_static_create_keeps_focus_and_draft_on_escape(page_context: Page):
     page = page_context
     page.goto('/admin/cafeteria/komponenten')
-    summary = page.locator('.page-header [data-semantic="actions.add"]')
-    summary.click()
-    assert page.locator('#create-component').get_attribute('open') is not None
+    trigger = page.locator('.page-header [data-semantic="actions.add"]')
+    expect(page.locator('#c-name')).to_be_visible()
+    trigger.click()
+    field = page.locator('#c-name')
+    expect(field).to_be_focused()
+    field.fill('Noch nicht gespeichert')
     page.keyboard.press('Escape')
-    assert page.locator('#create-component').get_attribute('open') is None
-    expect(summary).to_be_focused()
+    expect(page.locator('#create-component summary')).to_have_count(0)
+    expect(field).to_be_visible()
+    expect(field).to_have_value('Noch nicht gespeichert')
+    expect(field).to_be_focused()
 
 def test_admin_patient_pages_have_no_cost_vocabulary_in_dom(page_context: Page):
     page = page_context

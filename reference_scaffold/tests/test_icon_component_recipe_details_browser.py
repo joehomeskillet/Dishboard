@@ -12,10 +12,11 @@ from cafeteria.ui.i18n import translate
 from test_admin_ux_browser import admin_app, admin_engine, live_server  # noqa: F401
 from test_admin_workflow_routes import _login, _scope
 from test_ui_route_inventory import _recipe_revision
+from test_delta_renderer_browser import VISIBILITY
 
 
-def _check_action(page, summary, javascript):
-    expect(summary.locator('svg')).to_have_count(1)
+def _check_action(page, summary, javascript, *, icon=True):
+    expect(summary.locator('svg')).to_have_count(1 if icon else 0)
     minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
     assert summary.evaluate('(el, minimum) => el.getBoundingClientRect().width >= minimum', minimum)
     assert summary.evaluate('(el, minimum) => el.getBoundingClientRect().height >= minimum', minimum)
@@ -65,20 +66,20 @@ def test_detail_actions_native_roles_profiles_and_print(
                                 page.locator('#c-name').fill('Ungespeicherter Name')
                                 form = page.locator('#component-form')
                                 values = form.evaluate('el => Array.from(new FormData(el))')
-                                more = page.locator('.component-secondary-actions > summary')
-                                expect(more).to_have_attribute('data-semantic', 'actions.archive')
-                                expect(more).to_have_accessible_name('Detail-Prüfung archivieren')
+                                action = page.locator('#component-status button')
+                                expect(action).to_have_attribute('data-semantic', 'actions.archive')
+                                expect(action).to_have_accessible_name('Detail-Prüfung archivieren')
                                 expect(page.locator('main [data-semantic="actions.more"]')).to_have_count(0)
-                                if more.inner_text().strip() or not more.get_attribute('aria-label'):
-                                    failures.append((label, family, 'More is not an accessible icon action'))
-                                _check_action(page, more, javascript)
-                                more.focus()
-                                expect(more).to_be_focused()
-                                page.keyboard.press('Enter')
+                                expect(page.locator('.component-secondary-actions summary')).to_have_count(0)
+                                visible = action.evaluate(VISIBILITY)
+                                assert visible['text'] == 'Archivieren' and not visible['icons'], visible
+                                _check_action(page, action, javascript, icon=False)
                                 expect(page.locator('.component-secondary-actions h2')).to_have_text('Archivieren')
                                 expect(page.locator('.component-secondary-actions .ui-sem-consequence')).to_be_visible()
                                 assert page.locator('form[action$="/archive"]').get_attribute('data-confirm')
-                                page.keyboard.press('Enter')
+                                if javascript:
+                                    page.once('dialog', lambda dialog: dialog.dismiss())
+                                    action.press('Enter')
                                 assert form.evaluate('el => Array.from(new FormData(el))') == values
                                 expect(page.get_by_text('Wirkung zentraler Änderungen', exact=True)).to_be_visible()
                                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -192,10 +193,15 @@ def test_detail_actions_native_roles_profiles_and_print(
                     assert page.evaluate('devicePixelRatio') == 2
                     assert page.evaluate('innerWidth') == 720
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                    summary = page.locator(selector + ' > summary')
-                    _check_action(page, summary, True)
-                    page.keyboard.press('Enter')
-                    assert page.locator(selector).get_attribute('open') is not None
+                    if name == 'recipe':
+                        summary = page.locator(selector + ' > summary')
+                        _check_action(page, summary, True)
+                        page.keyboard.press('Enter')
+                        assert page.locator(selector).get_attribute('open') is not None
+                    else:
+                        expect(page.locator(selector + ' summary')).to_have_count(0)
+                        expect(page.locator(selector + ' .ui-sem-consequence')).to_be_visible()
+                        _check_action(page, page.locator('#component-status button'), True, icon=False)
                     page.screenshot(path=str(tmp_path / f'{name}-native-zoom200.png'), full_page=True)
         finally:
             browser.close()

@@ -35,7 +35,8 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     expect(page.locator('.admin-filter-more')).to_have_count(1)
                     expect(page.locator('#f-cat')).to_be_hidden()
                     expect(page.locator('#f-status')).to_be_hidden()
-                    expect(page.locator('#create-component > summary')).to_be_hidden()
+                    expect(page.locator('#create-component > summary')).to_have_count(0)
+                    expect(page.locator('#c-name')).to_be_visible()
                     page.screenshot(path=str(evidence / f'{family}-{width}-{javascript}.png'), full_page=True)
                     row = page.locator('.component-row').first
                     expect(row.locator('[data-semantic="actions.edit"]')).to_be_visible()
@@ -43,7 +44,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     archive = row.locator('[data-semantic="actions.archive"]')
                     expect(archive).to_be_visible()
                     archive.click()
-                    expect(page.locator('.component-secondary-actions')).to_have_attribute('open', '')
+                    expect(page.locator('.component-secondary-actions')).to_be_visible()
                     form = page.locator('.component-secondary-actions form')
                     expect(form).to_have_attribute('method', 'post')
                     assert form.get_attribute('action').endswith('/archive')
@@ -52,7 +53,7 @@ def test_mb2_row_actions_filter_and_create(admin_app, admin_engine, live_server,
                     with page.expect_response(lambda response: response.request.method == 'POST') as response:
                         form.locator('[data-semantic="actions.archive"]').click()
                     assert response.value.status == 303
-                    page.locator('.component-secondary-actions > summary').click()
+                    expect(page.locator('.component-secondary-actions form')).to_be_visible()
                     with page.expect_response(lambda response: response.request.method == 'POST') as response:
                         page.locator('.component-secondary-actions form [data-semantic="actions.activate"]').click()
                     assert response.value.status == 303

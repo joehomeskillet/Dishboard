@@ -264,7 +264,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
         if width in (360, 1200):
             page.screenshot(path=str(tmp_path / f'{family}-component-editor-{width}.png'), full_page=True)
 
-    page.locator('.component-secondary-actions summary').click()
+    expect(page.locator('.component-secondary-actions form')).to_be_visible()
     archive = page.locator('.component-secondary-actions form').get_by_role('button', name=re.compile(r'.+ archivieren$'))
     page.once('dialog', lambda dialog: dialog.dismiss())
     archive.click()
@@ -272,7 +272,7 @@ def test_catalog_table_cards_country_errors_and_archive_across_breakpoints(
     page.once('dialog', lambda dialog: dialog.accept())
     archive.click()
     page.wait_for_load_state()
-    page.locator('.component-secondary-actions summary').click()
+    expect(page.locator('.component-secondary-actions form')).to_be_visible()
     expect(page.locator('.component-secondary-actions form').get_by_role('button', name=re.compile(r'.+ aktivieren$'))).to_be_visible()
     expect(page.locator('main')).to_have_attribute('data-active', '0')
     page.goto(list_path)
@@ -343,7 +343,8 @@ def test_component_error_template_retains_submitted_state(
     expect(form.locator('select[name="allergen_presence__GLUTEN"]')).to_have_value('may_contain')
     expect(form.locator('[name="_csrf"]')).to_have_value('template-only-csrf')
     if template == 'components.html':
-        expect(page.locator('#create-component')).to_have_attribute('open', '')
+        expect(page.locator('#create-component')).to_be_visible()
+        expect(page.locator('#create-component summary')).to_have_count(0)
         expect(form.locator('[name="target_scope"][value="current"]')).to_be_checked()
     else:
         expect(form.locator('[name="row_version"]')).to_have_value('7')

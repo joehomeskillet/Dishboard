@@ -182,8 +182,8 @@ def test_workflow_shell_has_navigation_readable_main_and_native_targets(
         primary = main.locator('.admin-page-header').get_by_role('link', name='Anlegen', exact=True)
         expect(primary).to_have_attribute('href', '#c-name')
         expect(primary).to_have_attribute('aria-controls', 'create-component')
-        assert creation.get_attribute('open') is None
-        expect(creation.locator('[name="name"]')).to_be_hidden()
+        expect(creation).to_have_js_property('tagName', 'SECTION')
+        expect(creation.locator('[name="name"]')).to_be_visible()
         filter_box = main.locator('.admin-filter-bar').bounding_box()
         list_box = main.locator('.component-list-container').bounding_box()
         assert filter_box is not None and list_box is not None

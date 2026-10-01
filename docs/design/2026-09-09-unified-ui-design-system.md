@@ -2233,6 +2233,18 @@ Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine f
 
 ##### Modul Bausteine (2026-09-20)
 
+**DELTA-3-14 (2026-10-01):** Alle Kennzeichnungen stehen mit Umbruch in der
+Tabellenzelle. Anlegen, Lebensmittelzuordnung, ihre Hilfe und die Wirkung
+zentraler Änderungen sind statisch sichtbar. Archivieren/Reaktivieren bleibt
+eine eigene native POST-Aktion mit Version, CSRF und bestehender Bestätigung;
+der ausführende Button verwendet Textmodus. Kopf-Anlegen und Filter-Reset sind
+die kanonischen Auslöser für die zuvor identischen Leerzustandsaktionen.
+Fehler stehen unter der Profilnavigation; Trefferzahlen beanspruchen keine
+Breite mehr in deren Zeile. Frühere Inhaltsaufklapper dieser Verbraucher sind
+durch UI-DELTA §0.1 abgelöst. D-57 bleibt offen: Der geschützte gemeinsame
+Filterrenderer bietet noch keinen Ersatz für seinen Aufklapper. Keine lokale
+Umgehung; Prüfstand und Vertragslücke im DELTA-3-14-Report.
+
 **Polish P4: menues (2026-09-24).** Katalog nutzt `admin-table`, gemeinsame
 Status-/Aktionsspalten, `row_actions`, Kategorie-/Statuslabels und `empty_state`.
 Die vorhandene `admin-filter-bar` behält aktive Zusatzfilter in ihrer Summary;

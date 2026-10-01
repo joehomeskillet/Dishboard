@@ -1,7 +1,7 @@
 {% extends "admin/base_tabler.html" %}
 {% from '_food_symbols.html' import symbol %}
-{% from 'admin/_macros.html' import icon, page_header, field, select, check as checkbox, form_errors as error_summary, disclosure_section, hint, form_footer %}
-{% from 'ui/_semantic.html' import icon_summary, icon_button %}
+{% from 'admin/_macros.html' import icon, page_header, field, select, check as checkbox, form_errors as error_summary, hint, form_footer %}
+{% from 'ui/_semantic.html' import icon_button %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set workflow_nav = 'components' %}
 {% set layout_variant = 'standard' %}
@@ -41,7 +41,7 @@
         {{ country_select('origin_country_code', submitted.get('origin_country_code', component.origin_country_code or ''), 'c-origin', error=errors.get('origin_country_code'), label='Herkunft') }}
       </div>
     </div>
-    {% call disclosure_section(id='component-options', has_content=submitted.get('food_public_id', component.food_public_id|default('')) or submitted.get('food_detach_confirm'), has_error=errors.get('food_public_id') or errors.get('food_detach_confirm')) %}
+    <section id="component-options" class="mb-3" aria-label="Lebensmittelzuordnung">
       {% set selected_food = submitted.get('food_public_id', component.food_public_id or '') %}
       {% set food_ids = foods|default([])|map(attribute='public_id')|map('lower')|list %}
       <label class="form-label" for="c-food">Lebensmittel</label>
@@ -55,7 +55,7 @@
         {% endif %}
       </select>
       <p class="form-hint" id="c-food-hint">Die Zuordnung übernimmt keine Allergene, Herkunft oder Labels aus dem Lebensmittel.</p>
-      {{ hint('Optional. Angaben bleiben am Katalogbaustein und werden nicht aus dem Lebensmittel übernommen.', 'c-food-extra-hint') }}
+      {{ hint('Optional. Angaben bleiben am Katalogbaustein und werden nicht aus dem Lebensmittel übernommen.', 'c-food-extra-hint', mode='inline') }}
       {% if errors.get('food_public_id') %}<div class="invalid-feedback d-block field-error" id="c-food-error">{{ errors['food_public_id'] }}</div>{% endif %}
       {% if component.food_public_id %}
       <p class="text-break" id="c-food-current">Aktuelle Zuordnung:
@@ -69,7 +69,7 @@
         {% if errors.get('food_detach_confirm') %}<div class="invalid-feedback d-block field-error" id="c-food-detach-error">{{ errors['food_detach_confirm'] }}</div>{% endif %}
       </div>
       {% endif %}
-    {% endcall %}
+    </section>
     <fieldset class="mb-0">
       <legend class="form-label">Kennzeichnungen</legend>
       <div class="mb-3">
@@ -116,19 +116,19 @@
     </fieldset>
   </div>
 </form>
-{% call disclosure_section(title='Wirkung zentraler Änderungen') %}
+<section class="mt-3" aria-labelledby="component-effects-title">
+  <h2 class="h4" id="component-effects-title">Wirkung zentraler Änderungen</h2>
   <p>Sie ändern den Baustein im Katalog. Gespeicherte Menüzuordnungen werden dabei nicht neu gespeichert. Beim erneuten Speichern eines Menüs werden seine Katalogzuordnungen und automatisch übernommenen Angaben neu ermittelt; manuelle Angaben bleiben separat.</p>
-{% endcall %}
-<details class="component-secondary-actions admin-compact-details mt-2">
-  {{ icon_summary('actions.archive' if component.active else 'actions.activate', object=component.name) }}
+</section>
+<section class="component-secondary-actions mt-2" aria-labelledby="component-status-title">
   <div class="py-2">
-    <h2 class="h4 card-title mb-2">{{ 'Archivieren' if component.active else 'Reaktivieren' }}</h2>
+    <h2 class="h4 card-title mb-2" id="component-status-title">{{ 'Archivieren' if component.active else 'Reaktivieren' }}</h2>
     <p class="ui-sem-consequence">{% if component.active %}Der Baustein wird aus neuen Auswahlen ausgeblendet, bleibt aber in bestehenden Menüs erhalten.{% else %}Der Baustein wird wieder für neue Menüzuordnungen verfügbar.{% endif %}</p>
     <form id="component-status" method="post" action="/admin/{{ family }}/komponenten/{{ component.public_id }}/{{ 'archive' if component.active else 'unarchive' }}" data-confirm="{{ 'Baustein wirklich archivieren?' if component.active else 'Baustein reaktivieren?' }}">
       <input type="hidden" name="_csrf" value="{{ csrf }}">
       <input type="hidden" name="row_version" value="{{ component.row_version }}">
-      {{ icon_button('actions.archive' if component.active else 'actions.activate', object=component.name, show_text=true) }}
+      {{ icon_button('actions.archive' if component.active else 'actions.activate', object=component.name, text='Archivieren' if component.active else 'Reaktivieren', mode='text') }}
     </form>
   </div>
-</details>
+</section>
 {% endblock %}
