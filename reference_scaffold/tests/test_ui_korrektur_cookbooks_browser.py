@@ -415,10 +415,16 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
             expect(cards.get_by_role('link', name='Browserbuch bearbeiten', exact=True)).to_be_visible()
             expect(cards.get_by_role('link', name=f'{LONG_NAME} bearbeiten', exact=True)).to_be_visible()
             expect(cards.get_by_text('1 Rezept', exact=True)).to_be_visible()
-            # The list shows a teaser; the full description stays editable in the editor.
+            # UC-P3-a clips only the visible line; DOM and title retain the full description.
             teaser = cards.get_by_text(LONG_DESCRIPTION[:60])
             expect(teaser).to_be_visible()
-            assert len(teaser.inner_text()) < len(LONG_DESCRIPTION)
+            expect(teaser).to_have_text(LONG_DESCRIPTION)
+            expect(teaser).to_have_attribute('title', LONG_DESCRIPTION)
+            assert teaser.evaluate('''element => {
+                const style = getComputedStyle(element);
+                return style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap'
+                    && element.getBoundingClientRect().height <= parseFloat(style.lineHeight) + 0.5;
+            }''')
             _assert_page_width(page, width)
             _assert_core_controls(page)
             listed = page.evaluate(DENSITY_METRICS)
@@ -428,7 +434,7 @@ def test_cookbook_list_and_editor_stay_compact_at_all_viewports(cookbook_server,
                 _assert_mobile_cards(listed['cards'])
                 short, long = (next(entry for entry in listed['cards'] if entry['name'] == name)
                                for name in ('Browserbuch', LONG_NAME))
-                # Measured short stacked row is 169px: G0 data-label sits above Kochbuch, Rezepte and Aktionen.
+                # Short titles stay compact; long titles may grow without clipping their text.
                 assert short['card']['height'] <= 180 < long['card']['height'], listed
                 assert short['countText'] == '1 Rezept' and long['countText'] == '0 Rezepte'
             if (width, height) == (1440, 900):
@@ -744,7 +750,7 @@ def test_real_browser_zoom_keeps_cookbook_rows_and_labels(cookbook_server, brows
                     expect(page.get_by_text('1 Rezept', exact=True)).to_be_visible()
                     cards = page.evaluate(DENSITY_METRICS)['cards']
                     _assert_mobile_cards(cards)
-                    # Same stacked-row budget as the 390px list (measured 169.5px at zoom 2).
+                    # Keep the stacked-row height budget during real 200% browser zoom.
                     assert next(entry for entry in cards if entry['name'] == 'Zoombuch')['card']['height'] <= 180
                 else:
                     expect(page.locator(f'form[action="{path}"]').get_by_role(

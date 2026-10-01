@@ -137,7 +137,7 @@ def test_native_cookbook_order_cancel_and_framework(cookbook_server, browser, wi
         else:
             short = cards.filter(has=page.get_by_text('Browserbuch', exact=True))
             short_box = short.bounding_box()
-            # Measured short stacked row is 169px: G0 data-label sits above Kochbuch, Rezepte and Aktionen.
+            # Short titles stay compact; long titles may grow without clipping their text.
             assert short_box['height'] <= 180 < max(box['height'] for box in boxes)
             for card in cards.all():
                 title = card.locator('.admin-list-primary')
