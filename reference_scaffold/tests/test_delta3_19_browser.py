@@ -6,6 +6,7 @@ from playwright.sync_api import expect
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
+from delta_browser_evidence import capture_delta
 from test_admin_local_users_browser import live_accounts  # noqa: F401
 from test_admin_local_users_routes import _create, admin_account  # noqa: F401
 from test_auth_routes import auth_app  # noqa: F401
@@ -30,8 +31,7 @@ def test_account_delta_sections(live_accounts, browser, tmp_path, monkeypatch, w
 
         def visit(path, label, status=200):
             assert page.goto(origin + path).status == status
-            page.evaluate('document.fonts.ready')
-            page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True)
+            capture_delta(page, tmp_path / f'{label}.png', touch)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             if page.locator('main details, main summary').count():
                 failures.append(label + ': content accordion')

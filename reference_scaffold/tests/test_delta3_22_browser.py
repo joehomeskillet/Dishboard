@@ -9,6 +9,7 @@ from playwright.sync_api import expect
 from cafeteria import roles
 from cafeteria.order_basket_store import get_basket
 from cafeteria.shopping_list_store import add_manual_item, create_shopping_list
+from delta_browser_evidence import capture_delta
 from test_bf_error_paths_browser import _setup
 from test_delta_renderer_browser import VISIBILITY
 from test_master_data_browser import master_server  # noqa: F401
@@ -29,8 +30,7 @@ def test_shopping_order_delta(b3, master_server, browser, monkeypatch, tmp_path,
         page = context.new_page()
 
         def capture(label):
-            page.evaluate('document.fonts.ready')
-            page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True)
+            capture_delta(page, tmp_path / f'{label}.png', touch)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             if page.locator('main details, main summary').count():
                 failures.append(label + ': content accordion')
@@ -93,27 +93,47 @@ def test_shopping_order_delta(b3, master_server, browser, monkeypatch, tmp_path,
         original_version = get_basket(state['engine'], state['location'], state['basket_id'])['row_version']
         dialog = page.locator('dialog#korb-vorschau')
         if dialog.count():
+            def background_geometry():
+                return page.locator(':is(.page-header, .order-lines tr, .order-lines th, .order-lines td):visible').evaluate_all(
+                    'els => els.map(el => { const r = el.getBoundingClientRect(); '
+                    'return {x: r.x, y: r.y + scrollY, width: r.width, height: r.height}; })')
+
             trigger = page.locator('#korb-vorschau-trigger')
             trigger.focus()
             frame = page.locator('.page-body').bounding_box()
             scroll = page.evaluate('scrollY')
+            background = background_geometry()
             trigger.press('Enter')
             expect(dialog).to_be_visible()
             expect(dialog.locator('pre')).to_contain_text('Fehlerartikel')
             expect(dialog.locator('form, input, select')).to_have_count(0)
             capture('basket-preview')
+            opened = background_geometry()
+            opened_scroll = page.evaluate('scrollY')
             if javascript:
                 page.keyboard.press('Escape')
                 expect(trigger).to_be_focused()
             else:
                 dialog.get_by_role('link', name='Schliessen', exact=True).click()
+                expect(trigger).to_be_in_viewport()
+                trigger.focus()
+                expect(trigger).to_be_focused()
+                if scroll > 0:
+                    assert page.evaluate('scrollY') > 0
             expect(dialog).not_to_be_visible()
             after = page.locator('.page-body').bounding_box()
             geometry = {'before': frame, 'after': after, 'scroll_before': scroll,
-                        'scroll_after': page.evaluate('scrollY')}
+                        'scroll_open': opened_scroll, 'scroll_after': page.evaluate('scrollY'),
+                        'background_before': background, 'background_open': opened,
+                        'background_after': background_geometry()}
             (tmp_path / 'preview-geometry.json').write_text(json.dumps(geometry, indent=2))
             assert abs(frame['width'] - after['width']) <= 1, geometry
+            for measured in (opened, geometry['background_after']):
+                assert len(measured) == len(background), geometry
+                for before_box, after_box in zip(background, measured, strict=True):
+                    assert all(abs(before_box[key] - after_box[key]) <= 1 for key in before_box), geometry
             if javascript:
+                assert abs(geometry['scroll_before'] - geometry['scroll_open']) <= 1, geometry
                 assert abs(geometry['scroll_before'] - geometry['scroll_after']) <= 1, geometry
             assert page.locator('#basket-save').evaluate('form => [...new FormData(form)]') == original
             assert get_basket(state['engine'], state['location'], state['basket_id'])['row_version'] == original_version

@@ -5,6 +5,7 @@ import pytest
 from playwright.sync_api import expect
 
 from cafeteria.branding_config import contrast
+from delta_browser_evidence import capture_delta
 from test_admin_cost_routes import FOOD_ID, cost_layout_site  # noqa: F401
 from test_admin_workflow_routes import _login, database_engine  # noqa: F401
 from test_delta_renderer_browser import VISIBILITY
@@ -22,8 +23,7 @@ def test_settings_delta(site, tmp_path, width, height, touch):  # noqa: F811
     failures = []
 
     def capture(label):
-        page.evaluate('document.fonts.ready')
-        page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True)
+        capture_delta(page, tmp_path / f'{label}.png', touch)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         if page.locator('main details, main summary').count():
             failures.append(label + ': content accordion')
@@ -58,7 +58,10 @@ def test_settings_delta(site, tmp_path, width, height, touch):  # noqa: F811
         page.locator('#brand-primary').fill(original_primary)
         page.get_by_role('button', name='Speichern', exact=True).click()
         expect(page.locator('#brand-name')).to_have_value('Fehlerentwurf bleibt')
-        expect(page.locator('.admin-page-header .admin-statusbar-item')).to_have_count(status_count)
+        # Collect this exact invariant with other DELTA violations so baseline
+        # runs still capture the remaining settings routes before failing.
+        if page.locator('.admin-page-header .admin-statusbar-item').count() != status_count:
+            failures.append('N-41: draft header duplicates revision status')
         capture('branding-draft')
         active_link = page.locator('.brand-history-row[href*="revision=1"]')
         if active_link.get_attribute('href').endswith('#brand-more'):
@@ -103,8 +106,7 @@ def test_cost_delta(cost_layout_site, tmp_path, width, height, touch):  # noqa: 
         page = context.new_page()
         for state in ('empty', 'incomplete', 'complete', 'zero', 'missing'):
             assert page.goto(origin + '/__cost_layout__/' + state).status == 200
-            page.evaluate('document.fonts.ready')
-            page.screenshot(path=str(tmp_path / f'cost-{state}.png'), full_page=True)
+            capture_delta(page, tmp_path / f'cost-{state}.png', touch)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             for control in page.locator('main .ui-sem-control:visible').all():
                 rendered = control.evaluate(VISIBILITY)

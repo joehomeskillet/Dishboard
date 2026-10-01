@@ -6,6 +6,7 @@ from playwright.sync_api import expect
 from sqlalchemy.exc import SQLAlchemyError
 
 from cafeteria import roles
+from delta_browser_evidence import capture_delta
 from test_delta_renderer_browser import VISIBILITY
 from test_master_data_browser import master_server  # noqa: F401
 from test_master_data_routes import (  # noqa: F401
@@ -28,8 +29,7 @@ def test_master_list_vocabulary_delta(b3, master_server, browser, monkeypatch, t
         page = context.new_page()
 
         def capture(label, *, listing=False):
-            page.evaluate('document.fonts.ready')
-            page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True)
+            capture_delta(page, tmp_path / f'{label}.png', touch)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             # D-80 is a central filter contract gap, intentionally left in place.
             if not listing and page.locator('main details, main summary').count():

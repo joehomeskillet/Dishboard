@@ -5,6 +5,7 @@ import pytest
 from playwright.sync_api import expect
 
 from cafeteria import recipe_store as store
+from delta_browser_evidence import capture_delta
 from test_cookbooks_browser import cookbook_server  # noqa: F401
 from test_delta_renderer_browser import VISIBILITY
 from test_master_data_db import signed_in
@@ -25,8 +26,7 @@ def test_cookbook_delta_contract(cookbook_server, browser, tmp_path, width, heig
 
         def visit(path, label):
             assert page.goto(data['base'] + path).status == 200
-            page.evaluate('document.fonts.ready')
-            page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True)
+            capture_delta(page, tmp_path / f'{label}.png', touch)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             # Filter summaries and their counters are the open DELTA-2b contract.
             for control in page.locator('main a.ui-sem-control:visible, main button.ui-sem-control:visible').all():

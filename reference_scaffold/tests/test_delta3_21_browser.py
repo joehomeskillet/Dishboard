@@ -7,6 +7,7 @@ import pytest
 from playwright.sync_api import expect
 
 from test_admin_workflow_routes import _login, database_engine  # noqa: F401
+from delta_browser_evidence import capture_delta
 from test_delta_renderer_browser import VISIBILITY
 from test_rendered_ui import browser  # noqa: F401
 from test_ui_korrektur_tools_browser import _api_density_client
@@ -21,9 +22,8 @@ def test_api_delta_contract(site, monkeypatch, tmp_path, width, height, touch): 
     failures = []
 
     def capture(page, label):
-        page.evaluate('document.fonts.ready')
-        page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True,
-                        mask=[page.locator('[data-api-key-prefix]'), page.locator('[data-new-key-value]')])
+        capture_delta(page, tmp_path / f'{label}.png', touch,
+                      masks=[page.locator('[data-api-key-prefix]'), page.locator('[data-new-key-value]')])
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         if page.locator('main details, main summary').count():
             failures.append(label + ': inline content accordion')
@@ -76,9 +76,9 @@ def test_api_delta_contract(site, monkeypatch, tmp_path, width, height, touch): 
         assert page.goto('/api/v1/docs').status == 200
         authorize = page.locator('button.authorize').first
         expect(authorize).to_be_visible()
-        page.screenshot(path=str(tmp_path / 'swagger-contract-gap.png'), full_page=True)
+        capture_delta(page, tmp_path / 'swagger-contract-gap.png', touch)
         # D-119 remains measured; B-67 uses Swagger's supported plugin wrapper.
-        (tmp_path / 'swagger-contract-gap.json').write_text(json.dumps({
+        (tmp_path / 'swagger-contract-gap-controls.json').write_text(json.dumps({
             'authorize': authorize.evaluate(VISIBILITY),
             'operation_toggles': page.locator('.opblock-control-arrow, .expand-operation').count(),
         }, indent=2))

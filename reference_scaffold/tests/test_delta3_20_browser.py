@@ -5,6 +5,7 @@ import pytest
 from playwright.sync_api import expect
 from sqlalchemy import text
 
+from delta_browser_evidence import capture_delta
 from test_admin_local_users_browser import live_accounts  # noqa: F401
 from test_admin_local_users_routes import _create, admin_account  # noqa: F401
 from test_auth_routes import auth_app  # noqa: F401
@@ -27,8 +28,7 @@ def test_accounts_and_history_delta(live_accounts, browser, tmp_path, width, hei
 
         def visit(route, label):
             assert page.goto(origin + route).status == 200
-            page.evaluate('document.fonts.ready')
-            page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True)
+            capture_delta(page, tmp_path / f'{label}.png', touch)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             if page.locator('main details, main summary').count():
                 failures.append(label + ': content accordion')

@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 from playwright.sync_api import expect
 
+from delta_browser_evidence import capture_delta
 from test_delta_renderer_browser import VISIBILITY
 from test_dish_template_routes import create, snapshot
 from test_master_data_browser import master_server  # noqa: F401
@@ -25,8 +26,7 @@ def test_dish_template_delta_contract(b3, master_server, browser, tmp_path, widt
 
         def visit(route, label):
             assert page.goto(base + route).status == 200
-            page.evaluate('document.fonts.ready')
-            page.screenshot(path=str(tmp_path / f'{label}.png'), full_page=True)
+            capture_delta(page, tmp_path / f'{label}.png', touch)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             # DELTA-2b owns the unresolved filter summary and chip modes.
             for control in page.locator('main a.ui-sem-control:visible, main button.ui-sem-control:visible').all():
