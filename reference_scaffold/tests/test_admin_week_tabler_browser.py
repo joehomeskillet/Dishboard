@@ -363,7 +363,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
 
 
 def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engine, tmp_path, caplog):  # noqa: F811
-    """Compare owned templates to the assigned release candidate, without checkout."""
+    """Compare the fixed release candidate with equivalent expanded form content."""
     _save_reviewed(admin_engine, 'staff_guest', _staff_values())
     _save_reviewed(admin_engine, 'patient', _patient_values())
     root = Path(__file__).resolve().parents[2]
@@ -397,12 +397,24 @@ def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engi
                     response = page.goto(route)
                     assert response is not None and response.status == 200, caplog.text
                     page.evaluate('document.fonts.ready')
+                    if phase == 'before':
+                        # UI-DELTA replaces these disclosures with static native forms.
+                        page.evaluate('''() => {
+                            document.querySelectorAll(`details.admin-week-settings, details.admin-week-service,
+                                details.admin-week-course-editor, .admin-week-course-editor details,
+                                #new-week-form details`).forEach(e => { e.open = true; });
+                            document.querySelector('#new-week-form')?.classList.add('show');
+                        }''')
                     metrics = page.evaluate('''() => ({
                         height: document.documentElement.scrollHeight,
                         width: document.documentElement.scrollWidth,
                         rows: [...document.querySelectorAll('.admin-day-card, .patient-admin-day, tr[data-week-id]')]
                             .map(e => e.getBoundingClientRect().height),
+                        legacyClose: document.querySelectorAll(
+                            '#week-publish-modal .modal-header > button.btn-close[data-bs-dismiss="modal"]').length,
                         fields: [...document.querySelectorAll('main input, main select, main textarea, main button')]
+                            .filter(e => !e.matches(
+                                '#week-publish-modal .modal-header > button.btn-close[data-bs-dismiss="modal"]'))
                             .map(e => ({tag: e.tagName, type: e.type, name: e.name,
                                 value: e.name === '_csrf' ? Boolean(e.value) : e.value,
                                 form: e.form?.id, action: e.form?.getAttribute('action'),
@@ -417,6 +429,8 @@ def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engi
     for name in routes:
         for width in (360, 1440):
             before, after = (measurements[f'{phase}-{name}-{width}'] for phase in ('before', 'after'))
+            assert before['legacyClose'] == (1 if name in ('cafeteria', 'patienten') else 0)
+            assert after['legacyClose'] == 0
             assert after['fields'] == before['fields'], (name, width)
             assert after['width'] <= width, (name, width, after)
             if width == 1440:
