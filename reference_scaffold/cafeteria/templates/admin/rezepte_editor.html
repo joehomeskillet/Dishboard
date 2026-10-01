@@ -20,7 +20,7 @@
 {{ icon_button('actions.confirm', text=t('actions.archive.label') if active else t('actions.activate.label'), show_text=true) }}
 {{ icon_button('actions.cancel', href=url_for('admin.recipe_edit', recipe_id=recipe_id), show_text=true) }}</div></form></div></div>
 {% else %}
-<div class="admin-compact-toolbar" data-sticky-form="recipe-editor" data-sticky-edge="top">
+<div class="admin-compact-toolbar recipe-editor-toolbar">
 {{ icon_button('actions.back', href=g.get('recipe_list_return') or url_for('admin.recipes_list'), text='Zur Liste', aria_label='Zur Liste der Rezepte', title='Zur Liste der Rezepte', show_text=true) }}
 {% set header_actions = [] %}
 {% if 'recipe_images' in links %}{% set _ = header_actions.append({'key': 'data.image', 'href': links['recipe_images']}) %}{% endif %}
@@ -117,7 +117,7 @@
 </form>
 {% if can_write and active %}
 {% set save_primary %}{{ icon_button('actions.save' if recipe_id else 'actions.add', form='recipe-editor') }}{% endset %}
-{{ form_footer(save_primary, g.get('recipe_list_return') or url_for('admin.recipes_list')) }}
+{{ form_footer(save_primary, g.get('recipe_list_return') or url_for('admin.recipes_list'), sticky=true, form_id='recipe-editor') }}
 {% endif %}
 {% endif %}
 {% endblock %}
