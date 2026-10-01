@@ -145,7 +145,7 @@
   {% if items %}
   <div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=object) if object is not none else t('ui.action_group.aria') }}">
     {% for item in items %}
-      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none), object=item.object|default(object), show_text=false, direct=true, disabled_reason=item.disabled_reason|default(none), disabled_reason_active=item.disabled_reason_active|default(true)) }}
+      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none), object=item.object|default(object), show_text=item.show_text|default(false), direct=true, disabled_reason=item.disabled_reason|default(none), disabled_reason_active=item.disabled_reason_active|default(true)) }}
     {% endfor %}
   </div>
   {% endif %}

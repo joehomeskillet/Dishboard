@@ -103,6 +103,27 @@ eingefrorenen vorherigen API; zusätzliche Matrix prüft bisherige Footer- und
 Disclosure-Optionen. `test_ui_semantic_macros_browser.py` prüft neue Optionen mit
 JS/No-JS, feinem/grobem Zeiger, Tastatur, nativen POSTs und schmaler/breiter Ansicht.
 
+### row_actions: sichtbarer Zieltext pro Eintrag (UC-G0e, 2026-10-01)
+
+`row_actions(items, object=none)` reicht `text` an `icon_button` durch. Jeder
+Eintrag darf zusätzlich `show_text` setzen. Fehlt der Schlüssel, bleibt der Wert
+`false`: die Aktion ist ein Symbol mit zugänglichem Namen, bytegleich zu den
+bisherigen Aufrufern. `show_text=true` zeigt den kurzen Zieltext (höchstens zwei
+Wörter und 18 Zeichen). Das gilt für Navigation, die den Datensatz verlässt und
+einen sichtbaren Zielnamen braucht. Objektaktionen desselben Datensatzes bleiben
+Symbole. `more_actions` und `action_menu` verwenden dieselbe Item-Regel.
+Ein Wert, der kein Boolean ist, wird von `icon_button` abgewiesen.
+
+Die Bildschirm-Vorlagenzeile in `admin/vorlagen.html` ruft wieder `row_actions`
+auf. Die Vorschau bleibt ein Symbol. «Zuordnen» steht nur in der ersten Zeile
+je Bereich, mit `show_text=true` und dem Zieltext `Zuordnen`. Die zugänglichen
+Namen bleiben `{Objekt} prüfen` und `{Bereich} · Wochenvorlage zuordnen`.
+
+DB-freier Nachweis in `test_shared_macro_api.py`: jeder aktuelle Aufruf ohne
+gesetztes `show_text` rendert bytegleich zur eingefrorenen vorherigen
+Makrofassung. Der Zuordnungsaufruf rendert dieselben Namen und denselben
+sichtbaren Zieltext wie die vorherige direkte `icon_button`-Gruppe.
+
 ### Statusdimensionen und Belege
 
 `status_badge_sem(key, detail=...)` rendert sichtbaren lokalisierten Text, ein Symbol
@@ -925,9 +946,11 @@ Zusatzklassen ergänzen Basisklassen; `dropdown-item` bleibt über volle Menübr
 links ausgerichtet. Klassen `.ui-sem-control`,
 `.ui-sem-control--icon-only`, `.ui-sem-control--large`, `.admin-row-actions`.
 `row_actions(items, object=none)` erwartet geordnete Mappings mit `key`, optional `href`,
-`name`, `value`, `type`, `form`, `id`, `icon_only`, `consequence_key` sowie sämtliche
-neuen Kontextparameter für Direkt- und Menüaktionen in `more_actions(items, object=none)`.
-Ein Item kann den gemeinsamen Objektbezug überschreiben.
+`name`, `value`, `type`, `form`, `id`, `icon_only`, `consequence_key`, `show_text`
+sowie sämtliche neuen Kontextparameter für Direkt- und Menüaktionen in
+`more_actions(items, object=none)`. `show_text` fehlt oder ist `false`, solange der
+Eintrag eine Objektaktion bleibt; `true` ist die Navigation mit sichtbarem Ziel
+aus dem Abschnitt UC-G0e. Ein Item kann den gemeinsamen Objektbezug überschreiben.
 `attrs` erlaubt ausschliesslich
 `^(data-[a-z0-9-]+|aria-(describedby|controls|expanded|current|disabled|busy)|formaction|formmethod|formnovalidate|disabled|target|rel|tabindex|hidden)$`.
 Andere Schlüssel verursachen `SemanticError` beim Rendern. Werte werden escaped;

@@ -1,7 +1,8 @@
-"""DB-free UC-G0d compatibility and attribute trust-boundary contracts."""
+"""DB-free UC-G0d/G0e compatibility and attribute trust-boundary contracts."""
 from __future__ import annotations
 
 from itertools import product
+from types import SimpleNamespace
 
 import pytest
 from bs4 import BeautifulSoup
@@ -200,3 +201,164 @@ def test_save_only_and_ordered_footer_keep_native_form_contracts(semantic_app): 
     assert controls[1]['type'] == 'submit'
     assert 'formnovalidate' in controls[1].attrs
     assert controls[-1]['href'] == '/back'
+
+
+# Frozen verbatim from the renderer before per-item show_text. Do not regenerate.
+LEGACY_ROW_ACTIONS = '''{% from 'ui/_semantic.html' import icon_button %}
+{% macro row_actions(items, object=none) -%}
+  {% if items %}
+  <div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=object) if object is not none else t('ui.action_group.aria') }}">
+    {% for item in items %}
+      {{ icon_button(item.key, href=item.href|default(none), name=item.name|default(none), value=item.value|default(none), type=item.type|default('submit'), id=item.id|default(none), form=item.form|default(none), consequence_key=item.consequence_key|default(none), text=item.text|default(none), aria_label=item.aria_label|default(none), title=item.title|default(none), class=item.class|default(''), emphasis=item.emphasis|default(none), attrs=item.attrs|default(none), object=item.object|default(object), show_text=false, direct=true, disabled_reason=item.disabled_reason|default(none), disabled_reason_active=item.disabled_reason_active|default(true)) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+{%- endmacro %}'''
+
+SCREEN_MARKUP = '''{% from 'ui/_semantic.html' import icon_button %}
+<div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=screen_object) }}">
+{{ icon_button('actions.preview', href=url_for('admin.screen_template_preview', family=screen_family, template_id=choice.id), aria_label=screen_object ~ ' prüfen') }}
+{% if loop.first %}{{ icon_button('actions.edit', href=url_for('admin.screen_template_assignment', family=screen_family), aria_label=area_names[choice.profile] ~ ' · Wochenvorlage zuordnen', text='Zuordnen', show_text=true) }}{% endif %}
+</div>'''
+
+
+def _row_calls(env):
+    calls = []
+    for path in sorted((ROOT.parent / 'templates').rglob('*.html')):
+        for call in env.parse(path.read_text(encoding='utf-8')).find_all(nodes.Call):
+            if isinstance(call.node, nodes.Name) and call.node.name == 'row_actions':
+                calls.append((path, call))
+    return calls
+
+
+def _opts_into_show_text(call):
+    return any(isinstance(pair.key, nodes.Const) and pair.key.value == 'show_text'
+               for pair in call.find_all(nodes.Pair))
+
+
+def _compile_call(env, call):
+    ast = nodes.Template([nodes.Output([call])]).set_environment(env)
+    return env.template_class.from_code(env, env.compile(ast), env.globals, None)
+
+
+def _render_call(app, template, macro, data):
+    # g is app-scoped. This has to be the only active context, or description ids keep climbing.
+    with app.test_request_context('/'):
+        return template.render(row_actions=macro, **data)
+
+
+class _ActionSeq(list):
+    """List of actions that also exposes .items for the print-template header call."""
+
+    @property
+    def items(self):
+        return list(self)
+
+
+def _action_context(loop_first):
+    actions = [
+        {'key': 'actions.edit', 'href': '/edit', 'text': 'Ändern', 'aria_label': 'Ändern Suppe'},
+        {'key': 'actions.copy', 'name': 'intent', 'value': 'copy', 'form': 'editor'},
+    ]
+    header_actions = _ActionSeq(actions)
+    item = SimpleNamespace(
+        payload=SimpleNamespace(title='Suppe'), display_name='Einheit', name='Reis', title='Liste',
+        public_id='item-1', revision_number=3, checked=False)
+    return dict(
+        items=actions, actions=actions, row_items=actions, week_actions=actions,
+        header_actions=header_actions,
+        row=SimpleNamespace(active=True, title='Suppe', public_id='row-1', name='Reis', items=actions),
+        item=item, document=SimpleNamespace(title='Suppe'), book=SimpleNamespace(name='Kochbuch'),
+        latest=SimpleNamespace(name='Standard'), revision=SimpleNamespace(name='Standard'),
+        payload=SimpleNamespace(title='Suppe'), recipe=SimpleNamespace(public_id='recipe-1'),
+        slot=SimpleNamespace(food_public_id='food', storage_public_id='storage', food_name='Reis',
+                             storage_name='Kühl'),
+        shown=SimpleNamespace(item_text='Reis & Salz'), saved=SimpleNamespace(id=2),
+        choice=SimpleNamespace(id='cafeteria-week-photo', profile='staff_guest'),
+        area_names={'staff_guest': 'Cafeteria', 'patients': 'Patienten'},
+        is_auto={'origin': False}, current=False, kind='zutaten', label='Zutat 1', object='Suppe',
+        week_object='Woche ab 01.10.2026', open_href='/open', open_label='Version 2 öffnen',
+        recipe_editor=False, family='cafeteria', week_value='2026-08-31', iso_week=36,
+        csv_profile='staff_guest', query='', category='', selected_status='active',
+        screen_family='cafeteria', screen_object='Cafeteria · Wochenplan mit Bildern',
+        loop=SimpleNamespace(first=loop_first),
+        url_for=lambda endpoint, **values: '/' + endpoint + '?' + repr(sorted(values.items())),
+    )
+
+
+def _controls(html):
+    document = BeautifulSoup(html, 'html.parser')
+    group = document.select_one('.admin-row-actions')
+    assert group is not None and group['role'] == 'group'
+    assert not document.select('details, summary')
+    controls = []
+    for node in group.find_all(['a', 'button'], recursive=False):
+        controls.append((
+            node['data-semantic'], node.get('href'), node['aria-label'], node['data-ui-tooltip'],
+            'ui-sem-control--icon-only' in node.get('class', []), node.get_text(strip=True),
+        ))
+    return group['aria-label'], controls
+
+
+def test_every_existing_row_action_call_renders_byte_identically(semantic_app):  # noqa: F811
+    """Render actual call ASTs. Callers without show_text stay byte-identical."""
+    env = semantic_app.jinja_env
+    calls = _row_calls(env)
+    opted = [(path, call) for path, call in calls if _opts_into_show_text(call)]
+    plain = [(path, call) for path, call in calls if not _opts_into_show_text(call)]
+    assert len(plain) == 25, [f'{path.name}:{call.lineno}' for path, call in plain]
+    assert len(opted) == 1 and opted[0][0].name == 'vorlagen.html'
+    source = (ROOT.parent / 'templates/admin/vorlagen.html').read_text(encoding='utf-8')
+    assert 'ponytail:' not in source
+    with semantic_app.test_request_context('/'):
+        # g is application-scoped, so this context must end before the compared renders.
+        legacy = env.from_string(LEGACY_ROW_ACTIONS).module.row_actions
+        current = env.get_template('ui/_semantic.html').module.row_actions
+    data = _action_context(False)
+    for path, call in plain:
+        template = _compile_call(env, call)
+        assert _render_call(semantic_app, template, current, data) == _render_call(
+            semantic_app, template, legacy, data), f'{path}:{call.lineno}'
+    screen_path, screen_call = opted[0]
+    screen = _compile_call(env, screen_call)
+    hidden_now = _render_call(semantic_app, screen, current, data)
+    hidden_then = _render_call(semantic_app, screen, legacy, data)
+    assert hidden_now == hidden_then, f'{screen_path}:{screen_call.lineno}'
+    shown_context = _action_context(True)
+    shown = _render_call(semantic_app, screen, current, shown_context)
+    shown_then = _render_call(semantic_app, screen, legacy, shown_context)
+    assert shown != shown_then
+    assert '>Zuordnen<' in shown and '>Zuordnen<' not in hidden_now
+    for loop_first in (False, True):
+        context = _action_context(loop_first)
+        rendered = _render_call(semantic_app, screen, current, context)
+        with semantic_app.test_request_context('/'):
+            reference = env.from_string(SCREEN_MARKUP).render(**context)
+        assert _controls(rendered) == _controls(reference), (loop_first, _controls(rendered), _controls(reference))
+
+
+def test_row_actions_show_text_defaults_false_and_stays_per_item(semantic_app):  # noqa: F811
+    base = {'key': 'actions.edit', 'href': '/edit', 'text': 'Zuordnen', 'aria_label': 'Ziel öffnen'}
+    with semantic_app.test_request_context('/'):
+        omitted = render_template_string(
+            "{% from 'ui/_semantic.html' import row_actions %}{{ row_actions(items, object='Suppe') }}",
+            items=[base, {'key': 'actions.preview', 'href': '/preview'}])
+        explicit = render_template_string(
+            "{% from 'ui/_semantic.html' import row_actions %}{{ row_actions(items, object='Suppe') }}",
+            items=[dict(base, show_text=False), {'key': 'actions.preview', 'href': '/preview', 'show_text': False}])
+        visible = render_template_string(
+            "{% from 'ui/_semantic.html' import row_actions %}{{ row_actions(items) }}",
+            items=[dict(base, show_text=True), {'key': 'actions.preview', 'href': '/preview', 'aria_label': 'prüfen'}])
+        labeled = render_template_string(
+            "{% from 'ui/_semantic.html' import row_actions %}{{ row_actions([{'key': 'actions.edit', 'show_text': true}]) }}")
+    assert omitted == explicit
+    group, controls = _controls(visible)
+    assert group == 'Aktionen'
+    assert controls[0][4] is False and controls[0][5] == 'Zuordnen'
+    assert controls[0][2] == 'Zuordnen: Ziel öffnen'
+    assert controls[1][4] is True and controls[1][5] == '' and controls[1][2] == 'prüfen'
+    assert _controls(labeled)[1][0][5] == 'Bearbeiten'
+    with semantic_app.test_request_context('/'), pytest.raises(SemanticError, match='boolean'):
+        render_template_string(
+            "{% from 'ui/_semantic.html' import row_actions %}{{ row_actions(items) }}",
+            items=[{'key': 'actions.edit', 'show_text': 'yes'}])
