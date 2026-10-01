@@ -26,6 +26,7 @@ from cafeteria.component_catalog_store import archive_component, create_componen
 from cafeteria.public import routes as public_routes  # noqa: E402
 from cafeteria.security import csrf_token  # noqa: E402
 from cafeteria.signage import routes as signage_routes  # noqa: E402
+from cafeteria.ui import register_ui  # noqa: E402
 from cafeteria.workflow_partial_store import persist_menu_item  # noqa: E402
 from demo_snapshots import cafeteria_snapshot, patient_snapshot  # noqa: E402
 from test_admin_workflow_db import _patient_values, _save_reviewed, _staff_values  # noqa: E402
@@ -1093,6 +1094,7 @@ def test_cafeteria_weekend_route_is_closed_full_surface(app: Flask, browser: Bro
 
 def test_local_login_error_alert_has_role_and_focus(app: Flask, browser: Browser) -> None:
     """Test that the login error alert is properly accessible."""
+    register_ui(app)
     app.config['LOCAL_AUTH_ENABLED'] = True
     client = _client(app)
     
@@ -1128,6 +1130,7 @@ def test_local_login_error_alert_has_role_and_focus(app: Flask, browser: Browser
 
 def test_local_login_page_renders_without_overflow(app: Flask, browser: Browser) -> None:
     """Test that the modern login page renders correctly at mobile and desktop sizes."""
+    register_ui(app)
     app.config['LOCAL_AUTH_ENABLED'] = True
     client = _client(app)
     
