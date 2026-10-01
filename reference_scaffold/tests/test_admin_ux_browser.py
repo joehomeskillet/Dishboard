@@ -436,7 +436,8 @@ def test_cancelled_archive_confirm_keeps_unsaved_changes_guard(
         dialogs.append(dialog.type)
         dialog.dismiss()
 
-    page.locator('details').filter(has=page.locator('form[action$="/archive"]')).locator('summary').click()
+    expect(page.locator('.component-secondary-actions summary')).to_have_count(0)
+    expect(page.locator('form[action$="/archive"]')).to_be_visible()
     page.once('dialog', dismiss)
     page.locator('form[action$="/archive"] button').click()
     assert dialogs == ['confirm']
