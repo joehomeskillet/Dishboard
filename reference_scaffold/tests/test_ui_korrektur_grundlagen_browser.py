@@ -198,9 +198,9 @@ def test_ingredient_list_is_first_full_width_and_visible(
         assert page.locator('main .btn-primary').count() == 1
         expect(page.locator('main .btn-primary').first).to_have_attribute('aria-label', 'Anlegen')
         expect(page.locator('main .btn-primary').first).to_have_text('')
-        expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
-            'href', re.compile(r'tabler-')
-        )
+        expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon')).to_have_count(0)
+        expect(page.locator('nav[aria-label="Stammdatenbereiche"] a')).to_have_text(
+            ['Zutaten', 'Einheiten', 'Kategorien', 'Kennzeichnungen', 'Lagerorte'])
         first = page.locator('.grundlagen-list .admin-list-row').first
         expect(first).to_be_visible()
         box = first.bounding_box()
@@ -264,9 +264,9 @@ def test_ingredient_list_genuine_browser_zoom_200(
             assert page.locator('main .btn-primary').count() == 1
             expect(page.locator('main .btn-primary').first).to_have_attribute('aria-label', 'Anlegen')
             expect(page.locator('main .btn-primary').first).to_have_text('')
-            expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
-                'href', re.compile(r'tabler-')
-            )
+            expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon')).to_have_count(0)
+            expect(page.locator('nav[aria-label="Stammdatenbereiche"] a')).to_have_text(
+                ['Zutaten', 'Einheiten', 'Kategorien', 'Kennzeichnungen', 'Lagerorte'])
             first = page.locator('.grundlagen-list .admin-list-row').first
             expect(first).to_be_visible()
             expect(page.locator('details').filter(has=page.locator('summary[aria-label="Filter"]')).first).not_to_have_attribute('open', '')

@@ -172,6 +172,15 @@ Die weitere Menürevision bleibt als optionales Feld sichtbar. Zutaten-IDs stehe
 direkt als Sekundärtext jeder Kalkulationszeile. Fehlende Mengen heissen «Ohne
 Mengenangabe», fehlende Beträge «Nicht berechenbar»; Nullwerte bleiben echte Werte.
 
+### Stammdatenliste und Vokabular: UI-DELTA (DELTA-3-15, 2026-10-01)
+
+Stammdatenbereiche sind reine Texttabs mit unveränderter DELTA-4-Geometrie.
+Einheiten- und Vokabularformulare, technische Angaben und Statusaktionen stehen
+statisch. Fehler-/Ausfallaktionen nutzen Textmodus. Identisches Anlegen bleibt
+im Kopf, Zurücksetzen in der Filterleiste; Bereichstabs behalten ihre eigene
+Navigationsfunktion. Optionale Status-Slots entfallen, aktive Archivfilter zeigen
+weiterhin konkrete Statuswerte. D-80 bleibt bis zum gemeinsamen Filterdialog offen.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt
