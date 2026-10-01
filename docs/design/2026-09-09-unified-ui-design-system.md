@@ -1748,12 +1748,15 @@ Entwurf oder Import bestätigt keine Allergenfreigabe. Fehlende globale Prüfzah
 werden nicht durch Zahlen der aktuellen Ergebnisseite ersetzt.
 
 Editor-Sprunglinks und direkt bedienbare Mengen bleiben erhalten. Kennzeichnungen
-verwenden ab 1024 px drei Spalten, mobil eine; ausgewählte Werte öffnen den
-Bereich. Quellenangaben stehen unter «Weitere Optionen», bei Inhalt geöffnet.
-Im Import liegt ein weiterer Upload nachrangig. Zielrezept und Zielversion
-erscheinen mit JavaScript bei «Vorhandenes überspringen», bei vorhandenen Werten
-oder Fehlern; ohne JavaScript bleiben sie in nativen Details erreichbar. Die
-Controls bleiben stets im Formular und werden weder deaktiviert noch geleert.
+verwenden ab 1024 px drei Spalten, mobil eine; die Abschnitte sind statisch.
+**DELTA-3-11 (2026-10-01, UI-DELTA §0.1):** Auch Import-Upload, Zielrezept,
+Zielversion, technische Angaben und Bildquellen bleiben sichtbar. Die Controls
+bleiben stets im Formular und werden weder deaktiviert noch geleert.
+Leere Quellennotizen entfallen samt Label, fehlende Hashes heissen «Nicht erfasst».
+Eine fehlende Einheit bleibt eine leere Tabellenzelle. Anlegen und Zurücksetzen
+besitzen je einen kanonischen Zugang im Kopf beziehungsweise Filter.
+Der gemeinsame Filterrenderer besitzt noch keinen statischen Modus; diese
+Vertragslücke D-79 und die leere gemeinsame Aktionsgruppe P-16/P-07 bleiben offen.
 Bestätigter Import hat genau eine dominante Übernahmeaktion; Speichern bleibt
 dann sekundär. CSRF, CAS, signierte Kontexte und alle gesendeten Werte bleiben
 unverändert. Browsernachweise: Rezeptsuche, Filter, Import und Portionsplanung.
@@ -1763,9 +1766,10 @@ History und Konflikt verwenden R14/R15/R17/R22/R34 sowie M44/M51/M57/M59.
 Pro Zustand bleibt eine sichtbare Primäraktion; ohne Schreibaktion wird die
 vorhandene Suche bzw. Rücknavigation hervorgehoben. Bestätigte Importstapel
 betonen die Übernahme, übernommene Stapel die Rückkehr zur Rezeptliste.
-Verwerfen liegt unter «Weitere Aktionen», gefolgt von einer nativen
-Bestätigungsstufe mit Folgetext und `btn-danger`; der Submit-Vertrag bleibt gleich.
-Such-/Dateiformat-/Mengenhilfe nutzt `hint()` mit Tastatur- und No-JS-Zugang.
+Verwerfen bleibt eine reine Textbestätigung mit sichtbarer Konsequenz und
+`btn-danger`; JavaScript verwendet die bestehende native Bestätigung.
+Der Submit-Vertrag bleibt gleich. Such-/Dateiformat-/Mengenhilfe nutzt
+`hint(mode='inline')` und bleibt auch ohne JavaScript sichtbar.
 Sicherheits-, Übernahme-, Konflikt- und aufgelöste Referenztexte bleiben inline.
 Tabellen verwenden eine Struktur mit `admin-table--stack`, `scope="col"`
 und `data-label`; unter 768 px werden Zeilen gestapelt. Statusbadges verwenden

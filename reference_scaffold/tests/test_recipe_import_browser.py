@@ -143,10 +143,12 @@ def test_upload_conflict_keyboard_and_tabler(b3, master_server, browser, width, 
         expect(page.locator('#batch-unreviewed')).to_be_checked()
         expect(page.get_by_role('button', name='Importstapel übernehmen', exact=True)).to_have_count(0)
         expect(page.get_by_text('Speichern legt keine Rezepte an, veröffentlicht nichts und bestätigt keine Allergene.')).to_be_visible()
-        upload_summary = page.locator('[data-import-upload] > summary')
-        upload_summary.press('Enter')
+        expect(page.locator('[data-import-upload]')).to_be_visible()
+        expect(page.locator('[data-import-upload] summary')).to_have_count(0)
         capture_preview('draft')
-        upload_summary.press('Enter')
+        page.locator('#source_file').focus()
+        page.keyboard.press('Escape')
+        expect(page.locator('#source_file')).to_be_focused()
         path = urlsplit(page.url).path
         token = page.locator('input[name="row_version"]').input_value()
         stale_title = page.get_by_label('Titel', exact=True)
@@ -269,7 +271,7 @@ def test_commit_shared_viewports(b3, master_server, browser, width, height, tmp_
         page.screenshot(path=str(shot), full_page=True)
 
 
-def test_closed_row_details_stay_in_formdata_and_keep_file_identity(
+def test_static_row_fields_stay_in_formdata_and_keep_file_identity(
     b3, master_server, browser, tmp_path,  # noqa: F811
 ) -> None:
     _, _, client, _ = b3
@@ -289,7 +291,8 @@ def test_closed_row_details_stay_in_formdata_and_keep_file_identity(
         page.get_by_role('button', name='Vorschau speichern').click()
         expect(page.get_by_role('heading', name='Importstapel')).to_be_visible()
         details = page.locator('#row-1-details')
-        expect(details).not_to_have_attribute('open', '')
+        expect(details).to_be_visible()
+        expect(details.locator('summary')).to_have_count(0)
         keys = page.locator('form[action*="/admin/rezepte/import/"]').first.evaluate(
             'form => [...new FormData(form).keys()]',
         )
@@ -306,23 +309,23 @@ def test_closed_row_details_stay_in_formdata_and_keep_file_identity(
         decision.select_option('skip_existing')
         expect(page.locator('[data-duplicate-target]')).not_to_have_attribute('hidden', '')
         decision.select_option(initial_decision)
-        expect(page.locator('[data-duplicate-target]')).to_have_attribute('hidden', '')
+        expect(page.locator('[data-duplicate-target]')).to_be_visible()
         assert form.evaluate('f => [...new FormData(f)]') == original
         targets(page)
         identity = page.locator('[data-checked-identity]')
         expect(identity).to_contain_text('rezepte.json')
         expect(identity).not_to_contain_text('Dateihash')
         technical = page.locator('#import-technical')
-        expect(technical).not_to_have_attribute('open', '')
-        technical.locator('summary').click()
-        expect(technical).to_have_attribute('open', '')
+        expect(technical).to_be_visible()
+        expect(technical.locator('summary')).to_have_count(0)
+        expect(technical.get_by_role('heading')).to_have_text('Technische Angaben')
         expect(technical).to_contain_text('Dateihash')
-        details.locator('summary').focus()
-        expect(details.locator('summary')).to_be_focused()
-        page.keyboard.press('Enter')
-        expect(details).to_have_attribute('open', '')
-        expect(page.get_by_label('Lebensmittel-UUID')).to_be_visible()
-        page.locator('[data-import-upload] > summary').click()
+        food = details.get_by_label('Lebensmittel-UUID', exact=True)
+        food.focus()
+        page.keyboard.press('Escape')
+        expect(food).to_be_focused()
+        expect(food).to_be_visible()
+        expect(page.locator('[data-import-upload]')).to_be_visible()
         page.locator('#source_file').set_input_files({
             'name': 'andere-rezepte.json',
             'mimeType': 'application/json',
@@ -385,34 +388,33 @@ def test_recipe_import_density_missing_viewports(
         expect(page.locator('[data-checked-identity]')).to_contain_text('Geprüftes Ergebnis')
         expect(page.get_by_role('button', name='Speichern', exact=True)).to_be_visible()
         details = page.locator('#row-1-details')
-        expect(details).not_to_have_attribute('open', '')
+        expect(details).to_be_visible()
+        expect(details.locator('summary')).to_have_count(0)
         _assert_full_width(page, width)
         targets(page)
-        summary = details.locator('summary')
-        summary.focus()
-        expect(summary).to_be_focused()
-        page.keyboard.press('Enter')
-        expect(details).to_have_attribute('open', '')
-        if javascript:
-            expect(details.get_by_label('Zielrezept', exact=True)).not_to_be_visible()
-            page.get_by_label('Dublettenentscheidung').select_option('skip_existing')
+        target = details.get_by_label('Zielrezept', exact=True)
+        expect(target).to_be_visible()
+        target.focus()
+        page.keyboard.press('Escape')
+        expect(target).to_be_focused()
+        page.get_by_label('Dublettenentscheidung').select_option('skip_existing')
+        expect(target).to_be_visible()
         for label in ('Menge', 'Einheit', 'Lebensmittel-UUID', 'Zielrezept', 'Zielversion'):
             expect(details.get_by_label(label, exact=True)).to_be_visible()
         quantity = details.get_by_label('Menge', exact=True)
         quantity.fill('12.5')
-        summary.focus()
-        page.keyboard.press('Enter')
-        expect(details).not_to_have_attribute('open', '')
+        quantity.focus()
+        page.keyboard.press('Escape')
+        expect(quantity).to_be_focused()
         assert quantity.evaluate('node => new FormData(node.form).get(node.name)') == '12.5'
-        page.keyboard.press('Enter')
-        expect(details).to_have_attribute('open', '')
+        expect(details).to_be_visible()
         expect(quantity).to_have_value('12.5')
         _assert_full_width(page, width)
         _assert_rendered_icons(page)
         targets(page)
         page.screenshot(path=str(evidence / f'recipe-open-{width}-js-{javascript}.png'), full_page=True)
-        summary.click()
-        expect(details).not_to_have_attribute('open', '')
+        page.keyboard.press('Escape')
+        expect(details).to_be_visible()
         page.screenshot(path=str(evidence / f'recipe-closed-{width}-js-{javascript}.png'), full_page=True)
 
 
@@ -435,14 +437,9 @@ def test_discard_requires_explicit_native_confirmation(b3, master_server, browse
         assert table.locator('thead th:not([scope="col"]), tbody td:not([data-label])').count() == 0
         original = form.evaluate('f => [...new FormData(f)]')
         confirm = page.get_by_role('button', name='Verwerfen bestätigen', exact=True)
-        expect(confirm).not_to_be_visible()
-        expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
-        discard = page.locator('[data-import-discard] > summary')
-        expect(discard).to_be_visible()
-        expect(discard).to_have_text('')
-        assert discard.get_attribute('aria-label')
-        discard.focus()
-        page.keyboard.press('Enter')
+        expect(confirm).to_be_visible()
+        expect(confirm.locator('svg')).to_have_count(0)
+        expect(page.locator('[data-semantic="actions.more"], [data-import-discard] summary')).to_have_count(0)
         expect(confirm).to_be_visible()
         expect(confirm).to_contain_text('Verwerfen')
         assert 'verwerfen' in (confirm.get_attribute('aria-label') or '').lower()
@@ -451,6 +448,19 @@ def test_discard_requires_explicit_native_confirmation(b3, master_server, browse
         assert form.evaluate('f => [...new FormData(f)]') == original
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         confirm.focus()
+        if javascript:
+            cancelled = []
+            posts = []
+            page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
+            def dismiss(dialog):
+                cancelled.append(dialog.message)
+                dialog.dismiss()
+            page.once('dialog', dismiss)
+            page.keyboard.press('Enter')
+            assert cancelled == [confirm.get_attribute('data-confirm')] and not posts
+            assert form.evaluate('f => [...new FormData(f)]') == original
+            expect(confirm).to_be_enabled()
+            page.once('dialog', lambda dialog: dialog.accept())
         with page.expect_request(lambda request: request.method == 'POST') as request:
             page.keyboard.press('Enter')
         sent = parse_qs(request.value.post_data, keep_blank_values=True)
@@ -484,9 +494,8 @@ def test_upload_preview_preserves_coarse_pointer_and_draft_only(
         page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
         _open(page, base)
         for index, state in enumerate(('initial', 'draft'), start=1):
-            if state == 'draft':
-                page.locator('[data-import-upload] > summary').press('Enter')
-                expect(page.locator('[data-import-upload]')).to_have_attribute('open', '')
+            expect(page.locator('[data-import-upload]')).to_be_visible()
+            expect(page.locator('[data-import-upload] summary')).to_have_count(0)
             form = page.locator('form[action="/admin/rezepte/import"]')
             preview = form.get_by_role('button', name='Vorschau speichern', exact=True)
             expect(preview).to_be_visible()
@@ -612,7 +621,9 @@ def test_batch_status_and_confirmation_remain_independent(
         cancelled_path = create(client, annotation='unreviewed')
         _open(page, base, cancelled_path)
         expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
-        page.locator('[data-import-discard] > summary').press('Enter')
+        expect(page.locator('[data-import-discard] summary')).to_have_count(0)
+        if javascript:
+            page.once('dialog', lambda dialog: dialog.accept())
         expect(page.locator('#discard-consequence')).to_contain_text('vorhandene Rezepte bleiben unverändert')
         submit(page.get_by_role('button', name='Verwerfen bestätigen', exact=True), cancelled_path)
         observe('cancelled', 'Verworfen', pending)
