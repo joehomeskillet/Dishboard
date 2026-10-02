@@ -207,8 +207,7 @@ def test_admin_publish_uses_native_confirm(page_context: Page, admin_app: Flask)
 def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Page):
     page = page_context
     page.goto(f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
-    if page.locator('#sec-output-texts').get_attribute('open') is None:
-        page.locator('#sec-output-texts > summary').click()
+    expect(page.locator('#sec-output-texts')).to_be_visible()
     page.fill('input[name="internal_chf"]', 'invalid')
     page.click('form[data-menu-editor] button[type="submit"].btn-primary')
     page.wait_for_load_state()
@@ -218,15 +217,20 @@ def test_admin_error_state_focuses_first_error_and_offers_retry(page_context: Pa
     expect(page.locator('[aria-invalid="true"]').first).to_be_visible()
     expect(alert.get_by_role('button', name='Erneut versuchen', exact=True)).to_be_visible()
 
-def test_admin_escape_closes_details_and_restores_focus(page_context: Page):
+def test_admin_static_create_keeps_focus_and_draft_on_escape(page_context: Page):
     page = page_context
     page.goto('/admin/cafeteria/komponenten')
-    summary = page.locator('.page-header [data-semantic="actions.add"]')
-    summary.click()
-    assert page.locator('#create-component').get_attribute('open') is not None
+    trigger = page.locator('.page-header [data-semantic="actions.add"]')
+    expect(page.locator('#c-name')).to_be_visible()
+    trigger.click()
+    field = page.locator('#c-name')
+    expect(field).to_be_focused()
+    field.fill('Noch nicht gespeichert')
     page.keyboard.press('Escape')
-    assert page.locator('#create-component').get_attribute('open') is None
-    expect(summary).to_be_focused()
+    expect(page.locator('#create-component summary')).to_have_count(0)
+    expect(field).to_be_visible()
+    expect(field).to_have_value('Noch nicht gespeichert')
+    expect(field).to_be_focused()
 
 def test_admin_patient_pages_have_no_cost_vocabulary_in_dom(page_context: Page):
     page = page_context
@@ -247,15 +251,14 @@ def _open_menu(page: Page, family: str, width: int, height: int) -> None:
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1')
     page.get_by_label('Menüname', exact=True).fill('Herbstteller')
-    if page.locator('#sec-output-texts').get_attribute('open') is None:
-        page.locator('#sec-output-texts > summary').click()
+    expect(page.locator('#sec-output-texts')).to_be_visible()
     page.get_by_label('Beschreibung (auf dem Speiseplan sichtbar)', exact=True).fill('Mit Gemüse')
     page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True).fill('Frisch zubereitet')
     if family == 'cafeteria':
         page.locator('[name="internal_chf"]').fill('9.50')
         page.locator('[name="external_chf"]').fill('14.50')
-    for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
-        summary.click()
+    for section in page.locator('[data-mode-section]').all():
+        expect(section).to_be_visible()
     for mode in ('allergen', 'origin', 'label'):
         page.locator(f'[name="{mode}_mode"][value="auto"]').check()
 
@@ -306,12 +309,12 @@ def test_menu_manual_metadata_and_optional_rows_roundtrip(
         if index:
             page.locator('[data-add-row="components-list"]').click()
         else:
-            page.get_by_role('button', name='Bearbeiten').first.click()
+            expect(page.locator('[data-component-edit-view]').first).to_be_visible()
         page.locator('[data-component-kind-option][value="text"]').nth(index).check()
         page.locator('[name="component_text"]').nth(index).fill(text)
     page.locator('[data-add-row="components-list"]').click()
     added = page.locator('#components-list .component-row').last
-    added.locator('[data-finish-row]').click()
+    expect(added.locator('[data-component-edit-view]')).to_be_visible()
     expect(added.locator('details, summary')).to_have_count(0)
     remove = added.get_by_role('button', name='Baustein löschen', exact=True)
     expect(remove).to_be_visible()
@@ -391,7 +394,7 @@ def test_menu_catalog_pair_errors_and_archived_assignment_survive(
     public_id = str(component['public_id'])
     page = page_context
     _open_menu(page, 'patienten', width, height)
-    page.get_by_role('button', name='Bearbeiten').click()
+    expect(page.locator('[data-component-edit-view]')).to_be_visible()
     page.locator('[name="component_public_id"]').select_option(public_id)
     page.locator('[name="component_text"]').evaluate("el => el.value = 'Ungültige zweite Auswahl'")
     payload = _submit_menu(page, 400)
@@ -433,7 +436,8 @@ def test_cancelled_archive_confirm_keeps_unsaved_changes_guard(
         dialogs.append(dialog.type)
         dialog.dismiss()
 
-    page.locator('details').filter(has=page.locator('form[action$="/archive"]')).locator('summary').click()
+    expect(page.locator('.component-secondary-actions summary')).to_have_count(0)
+    expect(page.locator('form[action$="/archive"]')).to_be_visible()
     page.once('dialog', dismiss)
     page.locator('form[action$="/archive"] button').click()
     assert dialogs == ['confirm']

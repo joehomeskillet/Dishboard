@@ -75,19 +75,20 @@ def test_get_authorization_csrf_and_shape(client, app, database_engine):  # noqa
         timezone = connection.execute(text('SELECT timezone FROM cafeteria.locations WHERE active')).scalar_one()
     overview = re.search(r'id="operations-overview".*?</section>', body, re.S)
     assert overview is not None and 'admin-table--stack' in overview.group()
-    assert '<span class="admin-list-primary">' in overview.group()
-    assert '<span class="admin-list-meta">' in overview.group()
+    assert 'data-semantic="ui.read_detail.schedule"' in overview.group()
+    assert 'data-semantic="status.not_recorded"' in overview.group()
     statusbar = re.search(r'<dl class="admin-statusbar".*?</dl>', body, re.S)
     assert statusbar and 'Zeitzone' in statusbar.group() and timezone in statusbar.group()
     assert 'Zeiten nicht eingetragen' in statusbar.group()
     assert 'href="#schedule-patient"' in statusbar.group()
     assert 'revision' not in statusbar.group() and 'row_version' not in statusbar.group()
     assert 'aria-current="page"' in body
-    saved = re.search(r'id="saved-exceptions".*?</details>', body, re.S)
+    saved = re.search(r'id="saved-exceptions".*?</section>', body, re.S)
     assert saved and 'data-empty-kind="none"' in saved.group()
     assert 'Keine gespeicherten Ausnahmen' in saved.group()
     empty_add = re.search(r'<a\b[^>]*data-semantic="actions.add"[^>]*>', saved.group())
-    assert empty_add and 'btn-primary' not in empty_add.group(0)
+    assert empty_add is None
+    assert body.count('href="#exception-load"') == 1
     valid = _get(client, 'name-patient')
     for form in ({**valid, '_csrf': 'wrong'}, {**valid, 'actor_id': '1'},
                  MultiDict([*valid.items(), ('action', 'save_name_patient')])):
@@ -211,12 +212,13 @@ def test_exception_menu_preservation_weekend_guard_and_status_mismatch(client, d
     body = client.get(PATH).get_data(as_text=True)
     assert all(f'data-kind="{kind}"' in body for kind in ('open', 'closure', 'time'))
     assert 'admin-label' in body
-    saved = re.search(r'id="saved-exceptions".*?</details>', body, re.S)
+    saved = re.search(r'id="saved-exceptions".*?</section>', body, re.S)
     assert saved is not None
     assert re.search(r'class="admin-list-primary"><a href="/admin/patienten\?week=2026-08-31">', saved.group())
     assert 'data-semantic="actions.open"' not in saved.group()
     # UI-DELTA §0.1/P-03: optional empty table cells retain their columns.
-    assert re.search(r'<td data-label="Zeiten / Hinweis">\s*</td>', saved.group())
+    assert '<td data-label="Zeiten / Hinweis">Zeiten nicht eingetragen</td>' in saved.group()
+    assert '<td data-label="Zeiten / Hinweis">ab 12:00' in saved.group()
     assert '<span class="admin-empty-value">—</span>' not in saved.group()
     assert '<div class="admin-list-secondary">' in saved.group()
     assert '<span class="admin-list-primary">' in body
@@ -435,7 +437,7 @@ def test_operations_browser_compact_rows_payload_keyboard_and_360px(client, app,
                 })''')
                 page.screenshot(path=str(tmp_path / f'wp14-default-{width}-js-{javascript}.png'), full_page=True)
                 page.locator('#operations-overview a[href="#schedule-patient"]').click()
-                expect(page.locator('#schedule-editor-patient')).to_have_attribute('open', '')
+                expect(page.locator('#schedule-editor-patient')).to_be_visible()
                 metrics['scheduleRow'] = page.locator('#schedule-patient tbody tr').first.bounding_box()['height']
                 assert metrics['scheduleRow'] < (515 if width < 1024 else 102)
                 for profile, meals in [('staff_guest', ['LUNCH']), ('patient', ['LUNCH', 'DINNER'])]:
@@ -452,19 +454,16 @@ def test_operations_browser_compact_rows_payload_keyboard_and_360px(client, app,
                     assert all(fields[f'slot_{day}_{meal}_{part}'] == ''
                                for day in range(1, 8) for meal in meals for part in ('start', 'end'))
                 row = page.locator('#schedule-patient tbody tr').first
-                summary = row.locator('.operations-notice > summary')
+                notice = row.locator('input[name="slot_1_LUNCH_notice"]')
                 row.locator('input[name="slot_1_LUNCH_end"]').focus()
                 # Chromium exposes hour/minute/period/picker as native tab stops.
                 for _ in range(4):
                     page.keyboard.press('Tab')
-                    if summary.evaluate('el => el === document.activeElement'):
+                    if notice.evaluate('el => el === document.activeElement'):
                         break
-                expect(summary).to_be_focused()
-                assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-                page.keyboard.press('Enter')
-                expect(row.locator('.operations-notice')).to_have_attribute('open', '')
-                page.keyboard.press('Tab')
-                expect(row.locator('input[name="slot_1_LUNCH_notice"]')).to_be_focused()
+                expect(notice).to_be_focused()
+                assert notice.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
+                expect(row.locator('details, summary')).to_have_count(0)
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 for control in page.locator('#schedule-patient :is(input:not([type=hidden]), select, button, summary):visible').all():
                     size = control.bounding_box()
@@ -486,10 +485,10 @@ def test_operations_browser_compact_rows_payload_keyboard_and_360px(client, app,
             }
             expect(page.locator('#patient-slot_1_LUNCH_end')).to_have_attribute('aria-invalid', 'true')
             expect(page.locator('#patient-slot_1_LUNCH_start')).to_have_value('14:00')
-            expect(page.locator('#schedule-editor-patient')).to_have_attribute('open', '')
+            expect(page.locator('#schedule-editor-patient')).to_be_visible()
             page.goto(origin + PATH)
             page.locator('main .btn-primary').click()
-            expect(page.locator('#exception-editor')).to_have_attribute('open', '')
+            expect(page.locator('#exception-editor')).to_be_visible()
             expect(page.locator('#exception-load')).to_be_visible()
             page.locator('#exception-load button').click()
             expect(page.locator('main .btn-primary')).to_have_count(1)
@@ -505,7 +504,7 @@ def test_operations_browser_compact_rows_payload_keyboard_and_360px(client, app,
             page.locator('#service_end').fill('13:00')
             page.locator('#exception-save button[type=submit]').click()
             expect(page.locator('.error-region')).to_have_count(0)
-            page.locator('#exception-editor > summary').click()
+            expect(page.locator('#exception-editor')).to_be_visible()
             page.locator('#exception-load button').click()
             expect(page.locator('#service_start')).to_have_value('11:30')
             expect(page.locator('#service_end')).to_have_value('13:00')

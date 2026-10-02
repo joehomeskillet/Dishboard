@@ -8,6 +8,7 @@ import pytest
 from flask import render_template_string
 from playwright.sync_api import expect
 
+from cafeteria.ui import register_ui
 from test_admin_ux_browser import (
     admin_app as admin_app, admin_engine as admin_engine, browser as browser,
     live_server as live_server, page_context as page_context,
@@ -163,6 +164,7 @@ def test_legacy_week_sidebar_keeps_content_beside_it(page_context, admin_engine,
 
 
 def test_login_page_does_not_load_tabler_styles(app):
+    register_ui(app)
     response = app.test_client().get('/auth/local')
     assert response.status_code == 200
     stylesheets = re.findall(r'<link\b[^>]*rel="stylesheet"[^>]*>', response.text)

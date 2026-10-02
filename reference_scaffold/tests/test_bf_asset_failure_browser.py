@@ -21,13 +21,13 @@ __all__ = ['admin_app', 'admin_engine', 'browser', 'live_server', 'page_context'
 
 SHOTS = Path(
     '/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18'
-    '/.claude/state/claude-session-2026-09-29/audit/BF/E3-F1'
+    '/.claude/state/claude-session-2026-09-29/audit/DELTA/DELTA-3-08/asset-failure'
 )
 SCAFFOLD = Path(__file__).resolve().parents[1]
 PAGES = (
     ('rezepte', '/admin/rezepte', 'a.ui-sem-control--icon-only[href$="/rezepte/neu"]'),
     ('menueditor', f'/admin/cafeteria/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1',
-     'a[data-semantic="navigation.weekplan"]'),
+     f'.page-breadcrumb a[href="/admin/cafeteria?week={DAY}"]'),
     ('wochenplan', f'/admin/cafeteria?week={DAY}', 'main a.ui-sem-control--icon-only[href*="/menu?"]'),
     ('bausteine', '/admin/cafeteria/komponenten', 'a[data-semantic="actions.add"][href="#c-name"]'),
 )
@@ -157,6 +157,9 @@ def _click(page: Page, key: str, selector: str, javascript: bool) -> None:
     target = page.locator(selector).first
     expect(target).to_be_visible()
     target.scroll_into_view_if_needed()
+    if key == 'menueditor':
+        expect(target).to_have_accessible_name('Wochenplan')
+        expect(target).to_have_attribute('href', f'/admin/cafeteria?week={DAY}')
     if key == 'bausteine':
         target.click()
         if javascript:

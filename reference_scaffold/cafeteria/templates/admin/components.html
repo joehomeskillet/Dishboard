@@ -17,18 +17,6 @@
 {% endcall %}
 {% endblock %}
 {% block content %}
-{% if errors %}
-<div class="alert alert-danger error-region" role="alert" tabindex="-1" autofocus>
-  <div><h2 class="alert-title">Bitte korrigieren Sie die Fehler im Formular.</h2>
-    <ul class="mb-0">
-      {% for name, message in errors.items() %}
-      <li><a href="{{ {'name': '#c-name', 'category': '#c-cat', 'origin_country_code': '#c-origin'}.get(name, '#component-form') }}">{{ message }}</a></li>
-      {% endfor %}
-    </ul>
-  </div>
-</div>
-{% endif %}
-
 {% set selected_status = active_filters.status if active_filters else ('all' if include_archived else 'active') %}
 {% set component_filters %}
     <div class="row g-2 align-items-end">
@@ -47,8 +35,6 @@
           {% endfor %}
         </select>
       </div>
-    </div>
-      <div class="row g-2 align-items-end mt-2">
         <div class="col-12 col-md-6 col-xl-3">
           <label class="form-label" for="f-usage">Verwendung in Menüs</label>
           <select class="form-select" id="f-usage" name="usage">
@@ -89,10 +75,8 @@
       </div>
       <p class="form-hint mt-2 mb-0" id="component-allergen-filter-hint">«Nicht erfasst» bedeutet keine bestätigte Allergenfreiheit.</p>
 {% endset %}
-<div class="row g-2 align-items-end">
-  <div class="col-12 col-md">{{ filter_bar_sem('/admin/' ~ family ~ '/komponenten', search_value=query|default(''), filters=component_filters, active=filtered, reset_url='/admin/' ~ family ~ '/komponenten', id='component', open=filtered, segments=profile_tabs({'cafeteria': '/admin/cafeteria/komponenten', 'patienten': '/admin/patienten/komponenten'}, family)) }}</div>
-  <div class="col-12 col-md-auto"><p id="component-result-count" class="admin-list-meta mb-3" role="status">{{ rows|length }} Treffer · {{ 'Aktiv' if selected_status == 'active' else 'Archiviert' if selected_status == 'archived' else 'Aktiv und archiviert' }}</p></div>
-</div>
+{{ filter_bar_sem('/admin/' ~ family ~ '/komponenten', search_value=query|default(''), filters=component_filters, active=filtered, reset_url='/admin/' ~ family ~ '/komponenten', id='component', open=filtered, segments=profile_tabs({'cafeteria': '/admin/cafeteria/komponenten', 'patienten': '/admin/patienten/komponenten'}, family)) }}
+<p id="component-result-count" class="admin-list-meta mb-2" role="status">{{ rows|length }} Treffer · {{ 'Aktiv' if selected_status == 'active' else 'Archiviert' if selected_status == 'archived' else 'Aktiv und archiviert' }}</p>
 
 <div class="component-list-container">
   {% if rows %}
@@ -112,8 +96,7 @@
           <td class="category d-flex d-md-table-cell align-items-center gap-2" data-label="Kategorie">{% set category_name = categories.get(row.category, row.category) %}{{ ui_label(category_name, 'category') }}</td>
           <td class="component-markers" data-label="Herkunft / Kennzeichnungen">
             <div class="d-flex flex-wrap gap-1 align-items-center">
-              {% if row.labels %}{% for label in row.labels[:2] %}{% set marker_name = label.name|default(label.code) %}{{ ui_label(marker_name, 'category') }}{% endfor %}{% endif %}
-              {% if row.labels|length > 2 %}<details class="component-label-overflow"><summary>+{{ row.labels|length - 2 }} <span class="visually-hidden">{{ t('actions.more.label') }}</span></summary><div>{% for label in row.labels[2:] %}{% set marker_name = label.name|default(label.code) %}{{ ui_label(marker_name, 'category') }}{% endfor %}</div></details>{% endif %}
+              {% if row.labels %}{% for label in row.labels %}{% set marker_name = label.name|default(label.code) %}{{ ui_label(marker_name, 'category') }}{% endfor %}{% endif %}
               {% if row.origin_country_code %}<span class="admin-list-meta">{{ symbol('countries', row.origin_country_code, true) }}{{ row.origin_country_code }}</span>{% else %}<span class="admin-list-meta">Nicht erfasst</span>{% endif %}
             </div>
             {% if row.profile_scope == 'common' %}<div class="admin-list-secondary">gemeinsam</div>{% endif %}
@@ -130,15 +113,25 @@
   </div>
   {% else %}
   <div class="card">
-    {% call empty_state('no_match' if filtered else 'none', 'Keine Bausteine passen zu diesen Filtern.' if filtered else 'Noch keine aktiven Bausteine.', 'Filter anpassen.' if filtered else 'Einen Baustein anlegen.') %}
-    {{ icon_button('view.reset' if filtered else 'actions.add', href='/admin/' ~ family ~ '/komponenten' if filtered else '#c-name', class='mt-2', attrs={'data-error-link': ''} if not filtered else none) }}
-    {% endcall %}
+    {{ empty_state('no_match' if filtered else 'none', 'Keine Bausteine passen zu diesen Filtern.' if filtered else 'Noch keine aktiven Bausteine.', 'Filter anpassen.' if filtered else 'Einen Baustein anlegen.') }}
   </div>
   {% endif %}
 </div>
 
-<details id="create-component"{% if errors or submitted %} open{% endif %}>
-  <summary class="d-none" hidden>Baustein anlegen</summary>
+{% if errors %}
+<div class="alert alert-danger error-region" role="alert" tabindex="-1" autofocus>
+  <div><h2 class="alert-title">Bitte korrigieren Sie die Fehler im Formular.</h2>
+    <ul class="mb-0">
+      {% for name, message in errors.items() %}
+      <li><a href="{{ {'name': '#c-name', 'category': '#c-cat', 'origin_country_code': '#c-origin'}.get(name, '#component-form') }}">{{ message }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<section id="create-component" class="card mt-3" aria-labelledby="create-component-title">
+  <div class="card-header"><h2 class="card-title mb-0" id="create-component-title">Baustein anlegen</h2></div>
   <div class="card-body">
     <form id="component-form" method="post" action="/admin/{{ family }}/komponenten" data-loading>
       <input type="hidden" name="_csrf" value="{{ csrf }}">
@@ -210,5 +203,5 @@
       {{ form_footer(add_primary, '/admin/' ~ family ~ '/komponenten') }}
     </form>
   </div>
-</details>
+</section>
 {% endblock %}

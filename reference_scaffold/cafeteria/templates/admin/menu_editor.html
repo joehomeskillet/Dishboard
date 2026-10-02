@@ -1,5 +1,5 @@
 {% extends "admin/base_tabler.html" %}
-{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, disclosure_section, form_footer, hint, label, list_row %}
+{% from 'admin/_macros.html' import icon, page_header, check, option_detail_group, form_footer, hint, label, list_row %}
 {% from 'ui/_semantic.html' import icon_label, icon_button, sem_icon, row_actions %}
 {% from 'admin/_country_select.html' import country_select %}
 {% set layout_variant = 'standard' %}
@@ -13,12 +13,10 @@
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week }}"{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='admin-menu-editor.css') }}">{% endblock %}
 {% block page_header %}
-{% call page_header('Menüs', description=(('Neues Menü aus Vorlage «' ~ cell.dish_template.title ~ '»') if cell.template_proposal and cell.dish_template else 'Menü bearbeiten') ~ ' · ' ~ slot_title, breadcrumbs=[('Wochenplan', back_url), ('Menü',)], status_items=[
+{{ page_header('Menüs', description=(('Neues Menü aus Vorlage «' ~ cell.dish_template.title ~ '»') if cell.template_proposal and cell.dish_template else 'Menü bearbeiten') ~ ' · ' ~ slot_title, breadcrumbs=[('Wochenplan', back_url), ('Menü',)], status_items=[
   {'label': 'Profil', 'value': 'Cafeteria' if profile == 'staff_guest' else 'Patienten'},
   {'label': 'Allergene', 'value': 'Allergenangaben nicht erfasst' if not cell.retained_only and not origin_conflict and (not effects or not effects.allergens) else none, 'variant': 'warning'}
-]) %}
-{{ icon_button('navigation.weekplan', href=back_url) }}
-{% endcall %}
+]) }}
 {% endblock %}
 {% block content %}
 {% set submitted = form_values|default({}) %}
@@ -32,13 +30,12 @@
 {# Labels come from the frozen revision snapshot only; the mutable recipe head never
    relabels a historical option, and unreadable snapshots stay bound but unselectable. #}
 {% macro recipe_option(choice, current) %}<option value="{{ choice.revision_public_id }}" data-revision-number="{{ choice.revision_number if choice.revision_number is not none else '' }}" data-content-hash="{{ choice.content_hash_sha256 }}" data-yield="{{ choice.yield_label }}" data-archived="{{ '0' if choice.recipe_active else '1' }}" data-readable="{{ '1' if choice.metadata_available else '0' }}"{% if choice.revision_public_id == current %} selected{% endif %}{% if not choice.selectable and choice.revision_public_id != current %} disabled{% endif %}>{% if choice.metadata_available %}{{ choice.title }} · Revision {{ choice.revision_number }}{% if choice.yield_label %} · {{ choice.yield_label }}{% endif %}{% if not choice.recipe_active %} (archiviert){% endif %}{% elif choice.revision_number is not none %}Revision {{ choice.revision_number }} · Historische Angaben nicht lesbar{% else %}Gebundene Revision bleibt erhalten{% endif %}</option>{% endmacro %}
-{% macro mode_summary(key, title, badge_id) %}
-<summary class="card-header">
-  <h2 class="card-title mb-0">{{ title }}</h2>
+{% macro mode_header(key, title, badge_id) %}
+<div class="card-header">
+  <h2 class="card-title mb-0" id="{{ key }}-title">{{ title }}</h2>
   {% set mode_text %}<span id="{{ badge_id }}" data-mode-badge="{{ key }}">{{ 'automatisch geerbt' if is_auto[key] else 'manuell festgelegt' }}</span>{% endset %}
   {{ label(mode_text, 'neutral') }}
-  {{ icon('chevron-right', 'admin-accordion-marker') }}
-</summary>
+</div>
 {% endmacro %}
 {% macro mode_radios(key) %}
 <fieldset class="mb-3">
@@ -68,13 +65,13 @@
     <li>{% if cell.review_conflict %}{{ origin_conflict or message }}{% else %}<a href="#{{ error_targets.get(name, 'f-title') }}" data-error-link>{{ message }}</a>{% endif %}</li>
     {% endfor %}
   </ul>
-  {% if not cell.review_conflict %}{{ icon_button('actions.retry', type='button', attrs={'data-retry-page': true}) }}{% endif %}
+  {% if not cell.review_conflict %}{{ icon_button('actions.retry', type='button', mode='text', attrs={'data-retry-page': true}) }}{% endif %}
 </div>
 {% endif %}
 
 {% if cell.review_conflict %}
 <p>Öffnen Sie das bestehende Menü, um den aktuellen Stand zu prüfen.</p>
-{{ icon_button('actions.open', href=cell.existing_url, aria_label='Bestehendes Menü öffnen', emphasis='primary') }}
+{{ icon_button('actions.open', href=cell.existing_url, aria_label='Bestehendes Menü öffnen', text='Menü öffnen', mode='text', emphasis='primary') }}
 {% else %}
 <div class="admin-editor-layout">
   <div class="menu-editor-main">
@@ -107,7 +104,7 @@
             {% endif %}
           </div>
           {% endif %}
-          {% if errors %}{{ icon_button('actions.open', href=cell.existing_url, aria_label='Bestehendes Menü öffnen', class='mb-2') }}{% endif %}
+          {% if errors %}{{ icon_button('actions.open', href=cell.existing_url, aria_label='Bestehendes Menü öffnen', text='Menü öffnen', mode='text', class='mb-2') }}{% endif %}
           <label class="form-label" for="f-title">Menüname</label>
           <input class="form-control{{ invalid_class('title') }}" id="f-title" name="title" value="{{ submitted.get('title', '') }}"{{ error_attributes('title', 'err-title') }}>
           {{ field_error('title', 'err-title') }}
@@ -128,7 +125,7 @@
                 <span class="form-check-label">{{ icon('salad') }}Salat (gemischt und grün)</span>
               </label>
             </div>
-            {{ hint('Nur eine Wahl. Bausteine und Rezepte bleiben unverändert.', 'accompaniment-hint') }}
+            {{ hint('Nur eine Wahl. Bausteine und Rezepte bleiben unverändert.', 'accompaniment-hint', mode='inline') }}
             {% if cell.template_proposal %}<p class="form-hint mb-0">Aus Vorlage vorgeschlagen</p>{% endif %}
             {{ field_error('accompaniment', 'err-accompaniment') }}
           </fieldset>
@@ -136,8 +133,9 @@
       </section>
 
       <section class="card mb-3 admin-compact-section" aria-labelledby="sec-components">
-        <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Bausteine</h2>{{ hint('Aus Liste auswählen oder als eigenen Text erfassen — nicht beides gleichzeitig. Die Reihenfolge entspricht der Anzeige.', 'components-hint') }}</div>
+        <div class="card-header"><h2 class="card-title mb-0" id="sec-components">Bausteine</h2></div>
         <div class="card-body">
+          {{ hint('Aus Liste auswählen oder als eigenen Text erfassen — nicht beides gleichzeitig. Die Reihenfolge entspricht der Anzeige.', 'components-hint', mode='inline') }}
           {% if cell.proposal_hint %}
           <p class="mb-2" id="proposal-recipe-hint">{{ icon('info-circle') }}{{ cell.proposal_hint }}</p>
           {% if cell.proposal_freeze_url %}{{ icon_button('actions.save', text='Festhalten', emphasis='secondary', aria_label='Rezeptstand festhalten', title='Rezeptstand festhalten', href=cell.proposal_freeze_url) }}
@@ -166,19 +164,8 @@
               {% set revision_unit_code = (bound_choice.yield_label.rsplit(' ', 1)[-1] if bound_metadata_available else t_unit_submitted) if r_id else '' %}
               {% set revision_unit_display = unit_display_names.get(revision_unit_code, revision_unit_code) if revision_unit_code else '' %}
               {% set revision_yield_text = (bound_choice.yield_label.rsplit(' ', 1)[0] ~ ' ' ~ revision_unit_display) if bound_metadata_available else '' %}
-              <fieldset class="component-row menu-editor-component-row{% if errors.get('component_public_id') or errors.get('component_text') or errors.get('recipe_revision_public_id') %} is-editing{% endif %}" data-row>
+              <fieldset class="component-row menu-editor-component-row" data-row>
                 <legend class="form-label" data-row-legend>Baustein {{ i + 1 }}</legend>
-                <div class="menu-editor-component-summary" data-component-summary-view hidden>
-                  <strong class="admin-list-primary" data-component-summary>{{ c_text|default('') }}</strong>
-                  <div class="menu-editor-row-actions">
-                    {{ row_actions([
-                      {'key': 'actions.edit', 'type': 'button', 'object': 'Baustein', 'attrs': {'data-edit-row': true}},
-                      {'key': 'actions.move_up', 'type': 'button', 'text': 'Nach oben', 'attrs': {'data-move-row': 'up'}},
-                      {'key': 'actions.move_down', 'type': 'button', 'text': 'Nach unten', 'attrs': {'data-move-row': 'down'}},
-                      {'key': 'actions.delete', 'type': 'button', 'object': 'Baustein', 'consequence_key': 'actions.delete', 'attrs': {'data-remove-row': true}}
-                    ]) }}
-                  </div>
-                </div>
                 <div class="menu-editor-row-body" data-component-edit-view>
                   <fieldset class="menu-editor-entry-kind mb-3" data-component-kind hidden>
                     <legend class="form-label">Eingabeart</legend>
@@ -232,7 +219,13 @@
                     <input type="hidden" name="target_quantity_unit_code" value="{{ revision_unit_code }}" data-target-quantity-unit>
                     <p class="form-hint" id="component-{{ i }}-target-quantity-hint" data-target-quantity-hint>{% if not r_id %}Nur mit gebundener Rezeptrevision verfügbar.{% elif revision_yield_text %}leer = deklarierte Ausbeute ({{ revision_yield_text }}). Dezimalpunkt verwenden, z. B. 2.5.{% else %}Angaben zur deklarierten Ausbeute für diese Revision derzeit nicht verfügbar. Dezimalpunkt verwenden, z. B. 2.5.{% endif %}</p>
                   </div>
-                  {{ icon_button('actions.confirm', type='button', emphasis='secondary', class='mt-3', attrs={'data-finish-row': true, 'hidden': true}) }}
+                  <div class="menu-editor-row-actions mt-3">
+                    {{ row_actions([
+                      {'key': 'actions.move_up', 'type': 'button', 'text': 'Nach oben', 'attrs': {'data-move-row': 'up'}},
+                      {'key': 'actions.move_down', 'type': 'button', 'text': 'Nach unten', 'attrs': {'data-move-row': 'down'}},
+                      {'key': 'actions.delete', 'type': 'button', 'object': 'Baustein', 'consequence_key': 'actions.delete', 'attrs': {'data-remove-row': true}}
+                    ]) }}
+                  </div>
                 </div>
               </fieldset>
             {% endfor %}
@@ -248,16 +241,16 @@
       <section class="menu-editor-markings" aria-labelledby="sec-markings">
         <h2 class="h3 mb-2" id="sec-markings">Kennzeichnungen</h2>
 
-      <details class="card mb-3 admin-accordion" data-mode-section="allergen"{% if not is_auto['allergen'] or errors.get('allergen_code') or errors.get('allergen_presence') %} open{% endif %}>
-        {{ mode_summary('allergen', 'Allergene', 'allergen-mode-badge') }}
+      <section class="card mb-3" data-mode-section="allergen" aria-labelledby="allergen-title">
+        {{ mode_header('allergen', 'Allergene', 'allergen-mode-badge') }}
         <div class="card-body">
           {{ mode_radios('allergen') }}
           {{ option_detail_group(allergens, submitted=submitted, errors=errors, manual=not is_auto['allergen']) }}
         </div>
-      </details>
+      </section>
 
-      <details class="card mb-3 admin-accordion" data-mode-section="origin"{% if not is_auto['origin'] or errors.get('origin_ingredient') or errors.get('origin_country_code') %} open{% endif %}>
-        {{ mode_summary('origin', 'Herkunft', 'origin-mode-badge') }}
+      <section class="card mb-3" data-mode-section="origin" aria-labelledby="origin-title">
+        {{ mode_header('origin', 'Herkunft', 'origin-mode-badge') }}
         <div class="card-body">
           {{ mode_radios('origin') }}
           <div class="origin-list menu-editor-row-list" id="origins-list" data-row-list="origin" data-row-title="Herkunft">
@@ -288,10 +281,10 @@
           {{ field_error('origin_ingredient', 'err-origin-ingredient') }}
           {{ icon_button('actions.add', type='button', text='Herkunft', aria_label='Herkunft hinzufügen', title='Herkunft hinzufügen', emphasis='secondary', class='mt-3', attrs={'data-add-row': 'origins-list', 'disabled': is_auto['origin']}) }}
         </div>
-      </details>
+      </section>
 
-      <details class="card mb-3 admin-accordion" data-mode-section="label"{% if not is_auto['label'] or errors.get('label_code') %} open{% endif %}>
-        {{ mode_summary('label', 'Labels', 'label-mode-badge') }}
+      <section class="card mb-3" data-mode-section="label" aria-labelledby="label-title">
+        {{ mode_header('label', 'Labels', 'label-mode-badge') }}
         <div class="card-body">
           {{ mode_radios('label') }}
           {{ field_error('label_code', 'err-label-code') }}
@@ -304,10 +297,11 @@
             {% endfor %}
           </div>
         </div>
-      </details>
+      </section>
       </section>
 
-      {% call disclosure_section(id='sec-output-texts', open=(profile == 'staff_guest'), has_content=submitted.get('description') or submitted.get('note') or submitted.get('internal_chf') or submitted.get('external_chf'), has_error=errors.get('description') or errors.get('note') or errors.get('internal_chf') or errors.get('external_chf')) %}
+      <section class="mb-3" id="sec-output-texts" aria-labelledby="output-texts-title">
+        <h2 class="h3 mb-2" id="output-texts-title">Weitere Angaben</h2>
           <div class="row g-2">
             <div class="col-12 col-lg-6">
               <label class="form-label" for="f-desc">Beschreibung (auf dem Speiseplan sichtbar)</label>
@@ -332,7 +326,7 @@
             </div>
             {% endif %}
           </div>
-      {% endcall %}
+      </section>
 
       <div class="admin-actions" data-sticky role="group" aria-label="Speichern und Navigation">
         {# Native secondary submit: same form data and _csrf, only the action differs (return_to=week → 303 to the week). #}

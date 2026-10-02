@@ -188,16 +188,10 @@ def _keyboard(page: Page) -> None:
     page.keyboard.press('Tab')
     expect(page.locator('#accompaniment-none')).to_be_focused()
     page.keyboard.press('Tab')
-    expect(page.locator('summary[aria-describedby="accompaniment-hint"]')).to_be_focused()
-    page.keyboard.press('Enter')
     expect(page.locator('#accompaniment-hint')).to_be_visible()
-    page.keyboard.press('Enter')
-    page.keyboard.press('Tab')
-    expect(page.locator('summary[aria-describedby="components-hint"]')).to_be_focused()
-    page.keyboard.press('Tab')
+    expect(page.locator('#components-hint')).to_be_visible()
     assert page.evaluate('document.activeElement.closest("#components-list") !== null')
-    if page.locator('#sec-output-texts').get_attribute('open') is None:
-        page.locator('#sec-output-texts > summary').click()
+    expect(page.locator('#sec-output-texts')).to_be_visible()
     page.locator('#f-desc').focus()
     focus = page.locator('#f-desc').evaluate('''e => ({
         width: getComputedStyle(e).outlineWidth, style: getComputedStyle(e).outlineStyle,
@@ -261,9 +255,9 @@ def test_menu_editor_states_and_viewports(editor_page, family: str, tmp_path: Pa
                 output = page.locator('#sec-output-texts')
                 if family == 'cafeteria':
                     expect(page.locator('#f-int')).to_be_visible()
-                    expect(output).to_have_attribute('open', '')
+                    expect(output).to_be_visible()
                 else:
-                    assert output.get_attribute('open') is None
+                    expect(output).to_be_visible()
             _keyboard(page)
             if state == 'dense-long':
                 expect(page.locator('h1')).to_have_text('Menüs')
@@ -277,11 +271,10 @@ def test_validation_preserves_inputs_and_tokens(editor_page, family: str, javasc
         _open(page, family, (width, height))
         tokens = _tokens(page)
         page.locator('#f-title').fill('')
-        if page.locator('#sec-output-texts').get_attribute('open') is None:
-            page.locator('#sec-output-texts > summary').click()
+        expect(page.locator('#sec-output-texts')).to_be_visible()
         page.locator('#f-desc').fill('Behalten')
         if javascript:
-            page.get_by_role('button', name='Bearbeiten').first.click()
+            expect(page.locator('[data-component-edit-view]').first).to_be_visible()
             page.locator('[data-component-kind-option][value="text"]').first.check()
         page.locator('#component-0-text').fill('Freitext behalten')
         with page.expect_response(lambda r: r.request.method == 'POST') as failed:
@@ -367,9 +360,8 @@ def test_p4_action_meanings_and_proposal_states(editor_page, family, javascript)
     _open(page, family, (360, 800))
     expect(page.locator('[data-add-row="components-list"]')).to_have_text('')
     expect(page.locator('[data-add-row="components-list"]')).to_have_attribute('aria-label', 'Baustein hinzufügen')
-    origins = page.locator('details[data-mode-section="origin"]')
-    if origins.get_attribute('open') is None:
-        origins.locator('summary').click()
+    origins = page.locator('section[data-mode-section="origin"]')
+    expect(origins).to_be_visible()
     expect(page.locator('[data-add-row="origins-list"]')).to_have_accessible_name('Herkunft hinzufügen')
     expect(page.locator('[data-add-row="origins-list"]')).to_have_text('')
     origin_actions = origins.locator('.menu-editor-row-actions').first
@@ -524,8 +516,8 @@ def test_origin_overflow_native_removal_and_save(editor_page, family, javascript
     payload.update(origin_mode='auto', origins=[])
     persist_menu_item(engine, scope, WEEK, DAY, 'LUNCH', 'MENU_1', payload, 4)
     _open(page, family, (width, height))
-    section = page.locator('details[data-mode-section="origin"]')
-    section.locator(':scope > summary').press('Enter')
+    section = page.locator('section[data-mode-section="origin"]')
+    expect(section.locator('summary')).to_have_count(0)
     expect(section.locator('[data-mode-badge]')).to_have_text('automatisch geerbt')
     remove = rows.first.get_by_role('button', name='Herkunft löschen', exact=True)
     expect(remove).to_be_disabled()
@@ -538,5 +530,5 @@ def test_origin_overflow_native_removal_and_save(editor_page, family, javascript
     wrapper.press('Space')
     assert len(posts) == 2
     expect(wrapper).to_be_focused()
-    expect(section).to_have_attribute('open', '')
+    expect(section).to_be_visible()
     expect(rows).to_have_count(1)

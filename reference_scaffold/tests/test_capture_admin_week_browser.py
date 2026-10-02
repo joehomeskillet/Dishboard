@@ -107,8 +107,11 @@ def test_explicit_saved_week_and_missing_week_keep_read_only_coverage(
                                 f'href="/admin/{family}/menu?week={link_week}&day={day}">Menü</a></article>')
             content += f'<a target="_blank" rel="noopener" href="/admin/{family}/preview?week={week}">Vorschau</a>'
         elif section in {'menues', 'wochen'}:
-            content = (f'<nav class="admin-segments" aria-label="Profil"><a aria-current="page" '
-                       f'href="/admin/{family}/{section}">Profil</a></nav>')
+            content = render_template_string(
+                "{% from 'admin/_macros.html' import profile_tabs %}{{ profile_tabs(links, family) }}",
+                links={name: f'/admin/{name}/{section}' for name in ('cafeteria', 'patienten')},
+                family=family,
+            )
         elif section == 'menu':
             content = f'<form action="/admin/{family}/menu"><input name="row_version" type="hidden" value="1"></form>'
         elif section == 'preview':

@@ -34,32 +34,13 @@
   #menu-cards, #menu-list { display: block; margin-bottom: var(--app-space-6); }
 }
 
-/* Note details toggle */
+/* Long notes stay readable in the shared read dialog. */
 .dishboard-admin .dishboard-menu-table :is(.admin-list-primary, .admin-list-secondary, .menu-description, .shared-note),
 .dishboard-admin .menu-grid .card-body {
   overflow-wrap: anywhere;
   min-width: 0;
 }
-.dishboard-admin .menu-note-details > summary {
-  cursor: pointer;
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--app-control-min-height);
-  min-width: 48px;
-}
-.dishboard-admin .menu-note-details summary::-webkit-details-marker {
-  display: none;
-}
-.dishboard-admin .menu-note-content {
-  background-color: var(--app-surface-soft);
-  border: 1px solid var(--app-border-soft);
-  border-radius: var(--app-radius-control);
-  padding: var(--app-space-2);
-  color: var(--app-text-muted);
-}
-
-/* Hide top-level description and note in menu-grid cards so they are collapsed */
+/* These duplicated metadata fields are available through the card's read dialog. */
 .dishboard-admin .menu-grid [data-menu-metadata] > .menu-description,
 .dishboard-admin .menu-grid [data-menu-metadata] > .shared-note {
   display: none;

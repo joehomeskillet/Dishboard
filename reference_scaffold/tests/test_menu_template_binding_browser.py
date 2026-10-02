@@ -151,7 +151,7 @@ def test_proposal_conflict_resubmit_preserves_original_hidden_authority(
         assert page.goto(url).status == 200
         page.get_by_label('Menüname', exact=True).fill('Mein Vorschlag')
         if javascript:
-            page.locator('[data-edit-row]').first.click()
+            expect(page.locator('[data-component-edit-view]').first).to_be_visible()
             page.locator('[data-component-kind-option][value="text"]').first.check()
         page.locator('[name="component_text"]').first.fill('Rösti')
         assert client.post('/admin/patienten/menu', data=form).status_code == 303

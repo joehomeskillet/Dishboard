@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon %}
+{% from 'admin/_macros.html' import page_header %}
 {% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% set workflow_nav = 'screens' %}
 {% set layout_variant = 'standard' %}
@@ -37,49 +37,9 @@
         <span class="admin-list-primary" id="{{ screen_id }}-title">{{ label }} · {{ channel_label }}</span>
         {% if channel == 'public' %}
         <p class="screen-status mb-0">{% if assignments[output_profile].version == 0 %}{{ status_badge_sem('editing.not_created', text='Vorgabe') }}{% else %}{{ status_badge_sem('status.active') }}{% endif %} <strong>{{ assignments[output_profile].template.name }}</strong></p>
-        <p class="admin-list-secondary mb-0">Vorlage für Web-Wochenplan: {{ assignments[output_profile].template.name }}</p>
         {% endif %}
       </th>
-      <td class="admin-table-actions" data-label="Aktionen"><div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=label ~ ' ' ~ channel_label) }}">{% for item in screen_actions.items %}{{ icon_button(item.key, href=item.href, aria_label=item.aria_label, text=item.text, show_text=true) }}{% endfor %}</div></td>
-    </tr>
-    <tr>
-      <td colspan="2" headers="{{ screen_id }}-heading">
-        <details class="screen-preview-details">
-          <summary class="card-header gap-2 px-0">{{ icon('eye') }}Vorschau{{ icon('chevron-right', class='ms-auto') }}</summary>
-          <div class="pt-2">
-        <div class="nav nav-pills nav-fill" role="tablist" aria-label="{{ label }} {{ channel_label }} Vorschau">
-          {% for period, period_label, target in periods %}
-          <button class="nav-link{% if loop.first %} active{% endif %}" id="{{ screen_id }}-{{ period }}-tab" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#{{ screen_id }}-{{ period }}" aria-controls="{{ screen_id }}-{{ period }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ period_label }}</button>
-          {% endfor %}
-        </div>
-        <div class="tab-content{% if channel == 'signage' %} bg-dark p-2 rounded{% endif %}">
-          {% for period, period_label, target in periods %}
-          <div class="tab-pane{% if loop.first %} active show{% endif %}" id="{{ screen_id }}-{{ period }}" role="tabpanel" aria-labelledby="{{ screen_id }}-{{ period }}-tab">
-            {% if channel == 'signage' %}<div class="ratio ratio-16x9">{% endif %}
-            {% if channel == 'public' %}
-            <div class="screen-browser-frame">
-              <div class="screen-browser-toolbar" aria-hidden="true">
-                <span class="screen-browser-window-controls">
-                  <span class="screen-browser-dot screen-browser-dot-close"></span>
-                  <span class="screen-browser-dot screen-browser-dot-minimize"></span>
-                  <span class="screen-browser-dot screen-browser-dot-maximize"></span>
-                </span>
-                <span class="screen-browser-address">{{ url_for(channel ~ '.' ~ target) }}</span>
-              </div>
-            {% endif %}
-            <div class="screen-preview screen-preview-{{ channel }}{% if channel == 'signage' %} rounded border position-absolute{% endif %}" inert>
-              <iframe src="{{ url_for(channel ~ '.' ~ target) }}" title="{{ label }} {{ channel_label }} {{ period_label }} – Vorschau" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
-            </div>
-            {% if channel == 'public' %}</div>{% endif %}
-            {% if channel == 'signage' %}</div>{% endif %}
-          </div>
-          {% endfor %}
-        </div>
-        {% if channel == 'signage' %}<div data-tv-stand aria-hidden="true"><div class="w-25 mx-auto bg-dark p-1"></div><div class="w-50 mx-auto bg-dark p-1 rounded-bottom mb-2"></div></div>{% endif %}
-        <p class="text-secondary small mb-0">Vorschau des aktuell veröffentlichten Plans.</p>
-          </div>
-        </details>
-      </td>
+      <td class="admin-table-actions" data-label="Aktionen" headers="{{ screen_id }}-heading"><div class="admin-row-actions" role="group" aria-label="{{ t('ui.action_group.object', object=label ~ ' ' ~ channel_label) }}">{% for item in screen_actions.items %}{{ icon_button(item.key, href=item.href, aria_label=item.aria_label, text=item.text, show_text=true) }}{% endfor %}</div></td>
     </tr>
   </tbody>
   {% endfor %}

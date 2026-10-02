@@ -373,7 +373,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/components.html": {
@@ -386,7 +386,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 2,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/copy.html": {
@@ -711,7 +711,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 2,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/menu_editor.html": {
@@ -724,7 +724,7 @@
     "list_typography_overrides": 0,
     "local_status": 1,
     "local_footers": 0,
-    "raw_details": 3,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/operations.html": {
@@ -737,7 +737,7 @@
     "list_typography_overrides": 0,
     "local_status": 1,
     "local_footers": 0,
-    "raw_details": 2,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/patienten.html": {
@@ -958,7 +958,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/vorlagen.html": {
@@ -971,7 +971,7 @@
     "list_typography_overrides": 0,
     "local_status": 0,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/week_management.html": {

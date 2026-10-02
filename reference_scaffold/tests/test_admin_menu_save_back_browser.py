@@ -84,8 +84,8 @@ def test_save_and_back_error_keeps_editor_values_then_returns(page_context: Page
     page.set_viewport_size({'width': 820, 'height': 1180})
     page.goto(_editor('patienten'))
     page.get_by_label('Menüname', exact=True).fill('Fehler dann zurück')
-    for summary in page.locator('details.admin-accordion:not([open]) > summary').all():
-        summary.click()
+    for section in page.locator('[data-mode-section]').all():
+        expect(section).to_be_visible()
     page.locator('[name="origin_mode"][value="manual"]').check()
     page.locator('[name="origin_ingredient"]').fill('Rind')
     payload = _submit_back(page, 'patienten', 400)
@@ -105,17 +105,14 @@ def test_save_and_back_error_keeps_editor_values_then_returns(page_context: Page
     # The default submit still posts to the plain action and stays in the editor.
     page.goto(_editor('patienten'))
     output_texts = page.locator('#sec-output-texts')
-    expect(output_texts).not_to_have_attribute('open', '')
-    summary = output_texts.locator(':scope > summary')
-    summary.focus()
-    summary.press('Enter')
-    expect(output_texts).to_have_attribute('open', '')
+    expect(output_texts).to_be_visible()
+    expect(output_texts.locator('summary')).to_have_count(0)
     note = page.get_by_label('Hinweis (auf dem Speiseplan sichtbar)', exact=True)
     expect(note).to_be_visible()
     note.fill('Normal gespeichert')
     _submit_menu(page)
     assert urlsplit(page.url).path == '/admin/patienten/menu'
-    expect(output_texts).to_have_attribute('open', '')
+    expect(output_texts).to_be_visible()
     expect(note).to_be_visible()
     expect(note).to_have_value('Normal gespeichert')
 

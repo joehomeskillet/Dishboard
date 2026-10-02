@@ -1,12 +1,4 @@
 /* Menu editor on the Tabler admin base (page_styles). Tokens from tokens.css and Tabler variables only. */
-.dishboard-admin details.admin-accordion { display: block; }
-.dishboard-admin summary.card-header {
-  display: flex; align-items: center; gap: var(--app-space-2); min-height: var(--app-space-12);
-  cursor: pointer; list-style: none;
-}
-.dishboard-admin summary.card-header::-webkit-details-marker { display: none; }
-.dishboard-admin summary.card-header .admin-accordion-marker { margin-inline-start: auto; flex: none; transition: transform 200ms cubic-bezier(.2, 0, 0, 1); }
-.dishboard-admin details[open] > summary.card-header .admin-accordion-marker { transform: rotate(90deg); }
 
 .dishboard-admin .admin-editor-layout {
   display: grid;
@@ -27,18 +19,8 @@
   color: var(--app-text-muted); font-size: var(--app-font-size-label);
 }
 .dishboard-admin .menu-editor-row-body { clear: both; }
-.dishboard-admin .menu-editor-component-summary {
-  align-items: center; grid-template-columns: minmax(0, 1fr) auto; gap: var(--app-space-2);
-  min-height: var(--app-space-12);
-}
-.dishboard-admin .menu-editor-component-summary[hidden],
 .dishboard-admin .menu-editor-entry-kind[hidden],
-.dishboard-admin [data-component-control][hidden],
-.dishboard-admin [data-finish-row][hidden] { display: none; }
-.dishboard-admin .menu-editor-component-summary strong { min-width: 0; overflow-wrap: anywhere; }
-.dishboard-admin form[data-component-enhanced] .menu-editor-component-row:not(.is-editing) .menu-editor-component-summary { display: grid; }
-.dishboard-admin form[data-component-enhanced] .menu-editor-component-row:not(.is-editing) [data-component-edit-view] { display: none; }
-.dishboard-admin form[data-component-enhanced] .menu-editor-component-row.is-editing .menu-editor-component-summary { display: none; }
+.dishboard-admin [data-component-control][hidden] { display: none; }
 .dishboard-admin .menu-editor-entry-kind-options { display: flex; flex-wrap: wrap; gap: var(--app-space-2); }
 .dishboard-admin .menu-editor-entry-kind-options .form-check { min-height: var(--app-space-12); margin: 0; }
 .dishboard-admin .menu-accompaniment-options {
@@ -118,6 +100,4 @@
   .dishboard-admin .menu-origin-heading span:not(:first-child) { display: none; }
   .dishboard-admin .menu-origin-fields { grid-template-columns: minmax(0, 1fr); }
   .dishboard-admin .menu-accompaniment-options { grid-template-columns: minmax(0, 1fr); }
-  .dishboard-admin .menu-editor-component-summary { grid-template-columns: minmax(0, 1fr); }
 }
-@media (prefers-reduced-motion: reduce) { .dishboard-admin summary.card-header .admin-accordion-marker { transition: none; } }

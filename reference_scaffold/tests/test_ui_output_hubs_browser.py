@@ -554,11 +554,12 @@ def test_output_hubs_matrix_empty_states(
         assert page.goto(route).status == 200
         expect(page.locator("h1")).to_have_text(title)
         if focus_role == "iframe":
-            page.locator('.screen-preview-details > summary').first.click()
-            frame = page.frame_locator(".screen-preview iframe").first
-            expect(frame.locator("body")).to_be_attached()
-            expect(frame.get_by_text(empty_text, exact=False)).to_be_visible()
-            focus_target = page.locator(".screen-card .nav-link").first
+            page.locator('.screen-card .admin-row-actions a').first.click()
+            expect(page.locator("body")).to_be_attached()
+            expect(page.get_by_text(empty_text, exact=False)).to_be_visible()
+            page.goto(route)
+            expect(page.locator('main details, main iframe')).to_have_count(0)
+            focus_target = page.locator(".screen-card .admin-row-actions a").first
         elif focus_role == "tab":
             empty_state = page.locator(
                 ".output-publication-note"

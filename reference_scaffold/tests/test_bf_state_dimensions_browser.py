@@ -141,7 +141,9 @@ def test_t03_empty_editor_and_reset_observation(
         dialog.dismiss()
 
     page.on('dialog', dismiss)
-    page.locator('[data-semantic="navigation.weekplan"]').click()
+    back = page.get_by_role('navigation', name='Breadcrumb').get_by_role('link', name='Wochenplan', exact=True)
+    expect(back).to_have_attribute('href', f'/admin/{family}?week={DAY}')
+    back.click()
     record_property('after_reset_dialogs', ','.join(dialogs))
     if dialogs:
         expect(name).to_have_value('')

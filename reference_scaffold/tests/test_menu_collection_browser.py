@@ -70,9 +70,9 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
             page.screenshot(path=str(tmp_path / f'list-{width}.png'), full_page=True)
             page.locator('#menu-list [data-semantic="actions.edit"]').first.click()
             for section in ('allergen', 'origin'):
-                details = page.locator(f'details[data-mode-section="{section}"]')
-                if details.get_attribute('open') is None:
-                    details.locator('summary').click()
+                fields = page.locator(f'section[data-mode-section="{section}"]')
+                expect(fields).to_be_visible()
+                expect(fields.locator('summary')).to_have_count(0)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             expect(page.locator('main .btn-primary')).to_have_count(1)
             expect(page.locator('.admin-statusbar')).to_contain_text('Profil')
@@ -445,10 +445,27 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
                     for name, route in routes.items():
                         assert page.goto(origin + route).status == 200
                         page.evaluate('document.fonts.ready')
+                        if name in {'menu_editor', 'components'}:
+                            # UI-DELTA §0.1: compare the same exposed form content,
+                            # not today's static fields with yesterday's closed sections.
+                            page.locator('main details').evaluate_all(
+                                'nodes => nodes.forEach(node => { node.open = true; })')
+                            page.locator('main [data-edit-row]').evaluate_all('''buttons => buttons.forEach(
+                                button => button.closest('[data-row]').classList.add('is-editing'))''')
                         key = f'{name}-{width}'
                         measurements.setdefault(key, {})[version] = page.evaluate('''() => ({
                             height: document.documentElement.scrollHeight,
                             width: document.documentElement.scrollWidth,
+                            regions: [...document.querySelectorAll('main .card, main .card-header, main .card-body, main fieldset, main form > div, main .form-hint')]
+                                .filter(e => e.getClientRects().length).map(e => ({
+                                    tag: e.tagName, id: e.id, classes: e.className,
+                                    text: e.innerText.slice(0, 80),
+                                    top: e.getBoundingClientRect().top, height: e.getBoundingClientRect().height
+                                })),
+                            visibleFields: [...document.querySelectorAll('main input[name], main select[name], main textarea[name]')]
+                                .filter(e => e.type !== 'hidden' && e.getClientRects().length
+                                    && getComputedStyle(e).visibility !== 'hidden')
+                                .map(e => `${e.name}:${e.type}`).sort(),
                             rows: [...document.querySelectorAll('main table tbody tr')].map(e => e.getBoundingClientRect().height)
                         })''')
                         # Compare actual successful fields and submitter contracts without recording secrets.
@@ -494,6 +511,8 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
     for key, pair in measurements.items():
         before, after = pair['before'], pair['after']
         assert after['width'] <= int(key.rsplit('-', 1)[1]), (key, pair)
+        if key.startswith(('menu_editor-', 'components-')):
+            assert after['visibleFields'] == before['visibleFields'], (key, pair)
         if key.startswith('components-'):
             # Shared search/filter has two identical unnamed GET submitters.
             # Both preserve the original payload; every other form attribute stays exact.

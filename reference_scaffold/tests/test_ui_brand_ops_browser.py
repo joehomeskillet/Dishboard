@@ -157,7 +157,7 @@ def test_operations_normal_state_and_viewports(
 
         expect(page.locator('h1.page-title')).to_have_text('Bereiche & Öffnungszeiten')
         expect(page.locator('.page-header-subtitle')).to_contain_text('Wochenvorgaben gelten für neue Ausgaben')
-        publication_hint = page.get_by_text('Wochenvorgaben gelten für neue Ausgaben.', exact=True)
+        publication_hint = page.locator('.page-header-subtitle').get_by_text('Wochenvorgaben gelten für neue Ausgaben.', exact=True)
         expect(publication_hint).to_have_count(1)
         expect(publication_hint).to_be_visible()
         expect(page.locator('#operations-overview')).to_be_visible()
@@ -168,16 +168,16 @@ def test_operations_normal_state_and_viewports(
         assert overview.locator('tbody tr').first.evaluate(
             'el => getComputedStyle(el).display'
         ) == ('grid' if width < 768 else 'table-row')
-        details = page.locator('.operations-overview-details').first
-        details.locator('summary').focus()
+        details = page.locator('#schedule-detail-staff_guest')
+        page.locator('#schedule-detail-staff_guest-trigger').focus()
         page.keyboard.press('Enter')
         expect(details.locator('ul')).to_be_visible()
         expect(details.locator('.admin-list-primary').first).to_be_visible()
         expect(details.locator('.admin-list-meta').first).to_be_visible()
-        page.keyboard.press('Enter')
+        page.keyboard.press('Escape')
         expect(details.locator('ul')).to_be_hidden()
         print('P3_OPERATIONS', width, page.evaluate('document.documentElement.scrollHeight'))
-        expect(page.locator('#exception-editor > summary')).to_be_visible()
+        expect(page.locator('#exception-editor .card-title')).to_be_visible()
         expect(page.get_by_role('button', name='Ausgabe laden', exact=True)).to_be_hidden()
 
         _assert_no_overflow_and_min_targets(page)
@@ -230,7 +230,7 @@ def test_brand_ops_keyboard_navigation_and_focus(
         assert outline != 'rgba(0, 0, 0, 0)'
 
         page.goto(OPS_PATH)
-        page.locator('#weekend-editor > summary').click()
+        expect(page.locator('#weekend-editor')).to_be_visible()
         page.locator('#allows_weekend').focus()
         expect(page.locator('#allows_weekend')).to_be_focused()
 
@@ -262,7 +262,7 @@ def test_brand_ops_nojs_operations_save(
     with _create_context(browser, live_server, client, javascript=False) as context:
         page = context.new_page()
         page.goto(OPS_PATH)
-        page.locator('#weekend-editor > summary').click()
+        expect(page.locator('#weekend-editor')).to_be_visible()
         page.locator('#allows_weekend').check()
         form = page.locator('#weekend-form')
         expect(form).to_have_attribute('method', 'post')

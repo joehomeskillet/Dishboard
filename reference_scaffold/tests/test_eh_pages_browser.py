@@ -104,6 +104,7 @@ def build_bare_app() -> Flask:
         static_folder=str(SCAFFOLD / 'cafeteria' / 'static'),
     )
     _configure(app)
+    register_template_filters(app)
 
     @app.before_request
     def _plant() -> None:

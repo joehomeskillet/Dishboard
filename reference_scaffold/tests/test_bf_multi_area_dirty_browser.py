@@ -139,7 +139,7 @@ def test_t06_cancel_context_change_and_restore_radio_value(food_page, family, na
         page.locator('#sidebar-menu').get_by_role('button', name='Wochenplan', exact=True).click()
         target = page.locator(f'#admin-nav-flyout a[href^="/admin/{other}"]')
     else:
-        target = page.locator('[data-semantic="navigation.weekplan"]')
+        target = page.get_by_role('navigation', name='Breadcrumb').get_by_role('link', name='Wochenplan', exact=True)
     target.click()
     assert dialogs == ['beforeunload']
     expect(page).to_have_url(re.compile(re.escape(path) + '$'))

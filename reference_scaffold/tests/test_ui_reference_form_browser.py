@@ -183,11 +183,7 @@ def _keyboard(page: Page) -> None:
     page.keyboard.press('Tab')
     expect(page.locator('#c-origin')).to_be_focused()
     page.keyboard.press('Tab')
-    summary = page.locator('#component-options > summary')
-    expect(summary).to_be_focused()
-    if page.locator('#component-options').get_attribute('open') is None:
-        page.keyboard.press('Enter')
-    page.keyboard.press('Tab')
+    expect(page.locator('#component-options summary')).to_have_count(0)
     expect(page.locator('#c-food')).to_be_focused()
 
 

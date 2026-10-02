@@ -369,8 +369,10 @@ body.admin-body { min-height: 100vh; background: var(--sh-canvas-strong); }
 .auth-input:hover { border-color: var(--sh-teal-700); }
 .auth-input:focus { outline: none; box-shadow: var(--sh-focus); }
 .auth-actions { display: flex; justify-content: flex-end; }
-.auth-submit { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: auto; min-width: 160px; min-height: 48px; padding: 0.75rem 1.5rem; border: none; border-radius: var(--sh-radius-sm); color: var(--sh-white); background: var(--sh-magenta); font-size: 1rem; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease-in-out; }
-.auth-submit .icon, .auth-status-icon .icon { display: block; width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
+.auth-submit { display: inline-flex; align-items: center; justify-content: center; gap: 0; width: auto; min-width: 160px; min-height: 48px; padding: 0.75rem 1.5rem; border: none; border-radius: var(--sh-radius-sm); color: var(--sh-white); background: var(--sh-magenta); font-size: 1rem; font-weight: 700; cursor: pointer; transition: background-color 0.15s ease-in-out; }
+/* Preserve the login foreground when shared actions add the branded primary class. */
+.auth-shell .auth-submit { color: var(--sh-white) !important; }
+.auth-status-icon .icon { display: block; width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
 .auth-status-icon { margin: 0 0 0.75rem; color: var(--sh-magenta); }
 .auth-product { margin: -0.5rem 0 0.75rem; color: var(--sh-ink-muted); font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .auth-submit:hover { background: var(--sh-teal-950); }
@@ -670,11 +672,6 @@ body {
 }
 .admin-workflow-main #create-component {
   margin-block: 1.25rem;
-}
-.admin-workflow-main #create-component > summary {
-  min-width: 44px;
-  min-height: 44px;
-  cursor: pointer;
 }
 .admin-workflow-main .search-form {
   display: flex;

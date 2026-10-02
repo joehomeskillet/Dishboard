@@ -193,7 +193,7 @@ def test_t24_menu_remove_focuses_remaining_row(site) -> None:  # noqa: F811
         page.get_by_role('button', name='Baustein hinzufügen', exact=True).click()
         expect(rows).to_have_count(start + 1)
         # A new row opens in edit mode; its delete control lives in the summary.
-        rows.last.locator('[data-finish-row]').click()
+        expect(rows.last.locator('[data-component-edit-view]')).to_be_visible()
         rows.last.locator('[data-remove-row]').click()
         expect(rows).to_have_count(start)
         placed = page.evaluate("""() => {

@@ -63,18 +63,42 @@ def test_p3_editor_pages_polish(editor_app, editor_server, database_engine, brow
                 forms_before = page.locator('main form').evaluate_all(
                     'forms => forms.map(form => Array.from(new FormData(form)))'
                 )
-                help_details = page.locator('main .admin-hint:visible').first
-                trigger = help_details.locator(':scope > summary')
-                expect(help_details).not_to_have_attribute('open', '')
-                trigger.focus()
-                expect(trigger).to_be_focused()
-                page.keyboard.press('Enter')
-                expect(help_details).to_have_attribute('open', '')
-                expect(help_details.locator('.form-hint')).to_be_visible()
+                if name in {'menu', 'vorlagen', 'assignment'}:
+                    # UI-DELTA §0.1: these consumers expose their help statically.
+                    # Keyboard navigation must keep it visible and forms unchanged.
+                    expect(page.locator('main details, main summary')).to_have_count(0)
+                    help_selector = {
+                        'menu': '#accompaniment-hint, #components-hint',
+                        'vorlagen': '#output-week-hint',
+                        'assignment': '[id^="screen-choice-"][id$="-hint"]',
+                    }[name]
+                    hints = page.locator(help_selector)
+                    expect(hints.first).to_be_visible()
+                    for hint in hints.all():
+                        expect(hint).to_be_visible()
+                    trigger = page.locator('main .btn:visible').first
+                    trigger.focus()
+                    expect(trigger).to_be_focused()
+                    page.keyboard.press('Tab')
+                    page.keyboard.press('Shift+Tab')
+                    expect(trigger).to_be_focused()
+                    for hint in hints.all():
+                        expect(hint).to_be_visible()
+                else:
+                    # The print editor's disclosure contract is outside DELTA-3-L3.
+                    help_details = page.locator('main .admin-hint:visible').first
+                    trigger = help_details.locator(':scope > summary')
+                    expect(help_details).not_to_have_attribute('open', '')
+                    trigger.focus()
+                    expect(trigger).to_be_focused()
+                    page.keyboard.press('Enter')
+                    expect(help_details).to_have_attribute('open', '')
+                    expect(help_details.locator('.form-hint')).to_be_visible()
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                 assert trigger.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
-                page.keyboard.press('Enter')
-                expect(help_details).not_to_have_attribute('open', '')
+                if name == 'print':
+                    page.keyboard.press('Enter')
+                    expect(help_details).not_to_have_attribute('open', '')
                 assert page.locator('main form').evaluate_all(
                     'forms => forms.map(form => Array.from(new FormData(form)))'
                 ) == forms_before

@@ -431,6 +431,18 @@ Obergrenzen dürfen nicht still steigen. Browserprüfungen bleiben verbindlich.
 
 ### Migration Benutzer & Zugriff, Einstellungen, API (UC-P2-D, 2026-09-30)
 
+**Bereiche & Öffnungszeiten, DELTA-3-01:** UI-DELTA §0.1 löst die unten
+beschriebenen Inhaltsdisclosures dieser Seite ab. Wochenvorgaben stehen im
+gemeinsamen Lesedialog; Bereichsname, Wochenendbetrieb, Vorgaben, Ausnahme und
+Hinweisfelder bleiben statisch sichtbar in ihren bisherigen Formularen.
+Gespeicherte Ausnahmen sind eine statische Tabelle. Der Kopfzugang zur datierten
+Ausnahme bleibt; sein identischer Leerzustandszugang entfällt. Statusleistenlink
+und Bereichsname behalten den direkten Editoranker (Fehlerbehebung aus Kopf
+beziehungsweise Auswahl aus Übersicht), während der Dialog ausschliesslich liest.
+Fehlende Zeiten offener Ausgaben sind ausdrücklich benannt; einzelne Zeitgrenzen
+stehen als «ab»/«bis». `test_delta3_01_browser` misst Dialog, Fokus und erhaltene
+Formulardaten bei 390/1440 und feinem/grobem Zeiger.
+
 Muster 1 (Kontenliste, Zugriffsverlauf) und Muster 3 (Konto, Bereiche & Öffnungszeiten,
 Darstellung, Marke, Import, Schnittstellen) verwenden die Grundmuster statt lokaler Bauteile:
 
@@ -508,9 +520,10 @@ Rahmen je Kontext:
   Lokales CSS (`errors.css`, `tokens.css`) und das statische Logo. Kein `url_for`,
   kein Session-Benutzer, kein Marken-Stylesheet.
 
-Begrenzte Textbutton-Ausnahme: die Wiederherstellungsaktionen Anmelden, Zur Übersicht
-und Neu laden zeigen Icon und kurze sichtbare Beschriftung. Das ist keine Rückkehr
-zu Textbuttons im Verwaltungsraster. Icon-Ausfall lässt die Beschriftung stehen.
+UI-DELTA B-02 / DELTA-3-24: Anmelden, Zur Übersicht und Neu laden verwenden
+ausschließlich Textmodus des gemeinsamen Renderers. Statussymbole bleiben
+nichtinteraktiv; Aktionen reservieren keinen Symbolabstand. Optionale Fehlerdetails
+erzeugen auch im isolierten String-Fallback nur bei Inhalt einen Absatz.
 Neu laden ist ein sicheres GET, kein `location.reload()`. Code und Referenz bleiben
 klein und auswählbar. Bedienflächen mindestens 44 px. Ohne JavaScript und ohne CSS
 bleiben Titel, Erklärung und Aktionen lesbar. „Support“ nur, wenn ein Kontaktweg
@@ -524,7 +537,7 @@ Zielbild A – Anmeldemaske
 |                    Anmeldung erforderlich                   |
 |        Bitte anmelden, um diesen Bereich zu oeffnen.        |
 | Benutzername / Passwort                                     |
-|                   [LOGIN  Anmelden]                         |
+|                       [Anmelden]                           |
 | [Mit Organisationskonto anmelden]   nur wenn eingerichtet    |
 +-------------------------------------------------------------+
 
@@ -532,7 +545,7 @@ Zielbild B – kein Zugriff
 +-------------------------------------------------------------+
 | [LOCK]  Kein Zugriff                                        |
 | Ihr Konto hat fuer diesen Bereich keine Berechtigung.       |
-| [HOME  Zur Uebersicht]                                      |
+| [Zur Uebersicht]                                            |
 | Fehler 403                       Referenz                    |
 +-------------------------------------------------------------+
 
@@ -540,7 +553,7 @@ Zielbild C – technischer Fehler
 +-------------------------------------------------------------+
 | [ALERT]  Vorgang konnte nicht abgeschlossen werden          |
 | Bei der Verarbeitung ist ein Fehler aufgetreten.            |
-| [RELOAD  Neu laden]   [HOME  Zur Uebersicht]                |
+| [Neu laden]   [Zur Uebersicht]                              |
 | Fehler 500                       Referenz                    |
 +-------------------------------------------------------------+
 ```
@@ -2283,6 +2296,26 @@ Volle Seitenbreite mit gemeinsamem Zwei-Spalten-Layout. Auf schmalen Geräten st
 
 ##### Modul Menüs und Menüeditor inkl. Allergene (2026-09-20)
 
+**DELTA-3-08 (2026-10-01):** Kennzeichnungen und weitere Angaben sind statische
+Tabler-Abschnitte; kurze Hilfen stehen sichtbar bei denselben Beschreibungs-IDs.
+Bausteinzeilen zeigen ihre Eingabefelder dauerhaft. Die Umschaltung zwischen
+Kurzansicht und Bearbeiten/Fertig entfällt. Eingabeart-Radios, Rezeptbindung,
+Zielmenge, Formularzuordnung, FormData-Reihenfolge und native Zeilenaktionen
+behalten ihren Vertrag. Wiederherstellungsaktionen sind text-only. Der identische
+Wochenplan-Kopfbutton entfällt zugunsten Breadcrumb-Navigation; Abbrechen behält
+seinen Sammlungskontext. Frühere Aufklapp-/Kurzzeilenanforderungen dieses Abschnitts
+sind durch UI-DELTA §0.1 abgelöst. Aktueller Prüfstand steht im DELTA-3-08-Report.
+
+**DELTA-3-02 (2026-10-01):** Beschreibungen und Hinweise der Menüsammlung
+öffnen gemeinsame Lesedialoge außerhalb der Ergebnisansichten. Liste und Karten
+besitzen eindeutige Auslöser-/Dialog-IDs und denselben Inhalt. Profilnavigation
+und Ansichtswechsel stehen vor dem Prüfhinweis. Die Kopfaktion zum Wochenplan
+und der Reset im Filterbalken ersetzen identische Leerzustandsaktionen.
+Optionale leere Statuszellen enthalten keinen Platzhalter oder Whitespace-Wrapper.
+Alte Inhaltsaufklapper dieser Seite sind durch UI-DELTA §0.1 abgelöst.
+Nachweis: `test_delta3_02_browser.py`, `test_icon_native_summaries_browser.py`
+und `test_ui_korrektur_menus_browser.py`; Prüfläufe im Paketreport dokumentieren.
+
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** P4s „Seltene Zeilenaktionen stehen unter Mehr“ ist abgelöst. Historische Prüfbelege bleiben stehen; JS-Hooks, `formaction`, Rückkehr-Submit und Rezeptfilter behalten ihre Verträge.
 
 **Polish P4: menues (2026-09-24).** Menütabelle nutzt `admin-table` mit
@@ -2378,6 +2411,18 @@ Editormuster für einen zentralen Baustein. Beispielwerte sind Eingaben, keine f
 
 ##### Modul Bausteine (2026-09-20)
 
+**DELTA-3-14 (2026-10-01):** Alle Kennzeichnungen stehen mit Umbruch in der
+Tabellenzelle. Anlegen, Lebensmittelzuordnung, ihre Hilfe und die Wirkung
+zentraler Änderungen sind statisch sichtbar. Archivieren/Reaktivieren bleibt
+eine eigene native POST-Aktion mit Version, CSRF und bestehender Bestätigung;
+der ausführende Button verwendet Textmodus. Kopf-Anlegen und Filter-Reset sind
+die kanonischen Auslöser für die zuvor identischen Leerzustandsaktionen.
+Fehler stehen unter der Profilnavigation; Trefferzahlen beanspruchen keine
+Breite mehr in deren Zeile. Frühere Inhaltsaufklapper dieser Verbraucher sind
+durch UI-DELTA §0.1 abgelöst. D-57 bleibt offen: Der geschützte gemeinsame
+Filterrenderer bietet noch keinen Ersatz für seinen Aufklapper. Keine lokale
+Umgehung; Prüfstand und Vertragslücke im DELTA-3-14-Report.
+
 **Polish P4: menues (2026-09-24).** Katalog nutzt `admin-table`, gemeinsame
 Status-/Aktionsspalten, `row_actions`, Kategorie-/Statuslabels und `empty_state`.
 Die vorhandene `admin-filter-bar` behält aktive Zusatzfilter in ihrer Summary;
@@ -2451,6 +2496,15 @@ Beispiel mit bewusst unterschiedlichen Zeiträumen für gewählte gespeicherte W
 
 ##### Modul Vorschau & Bildschirme (2026-09-20)
 
+**DELTA-3-13 (2026-10-01):** Inhaltsvorschauen öffnen über die vorhandenen
+direkten GET-Links dieselben veröffentlichten Leseansichten. Eingebettete
+Vorschauaufklapper und ihre Browserrahmen entfallen gemäß UI-DELTA §0.1/D-02.
+Alle zehn Ausgabeziele sowie zwei Zuweisungsseiten bleiben direkt erreichbar.
+Zuordnungsversion und Variantenhinweise stehen statisch; native Felder,
+Reihenfolge, Schreibrechte und Versionsprüfung bleiben erhalten. Für Schreibende
+ersetzt Formular-Abbrechen den identischen unteren Rückweg; Lesende behalten
+ihren Rückweg. Wiederherstellung verwendet reinen Text.
+
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Genau eine Direktaktion plus weitere Ausgabeziele unter „Weitere Aktionen“ ist abgelöst. Alle zulässigen Ausgabeziele bleiben direkt erreichbar; historische Nachweise bleiben erhalten.
 
 **Polish P3: editoren (2026-09-24).** Auf der Zuweisungsseite ist die Auswahl
@@ -2482,6 +2536,13 @@ bleiben unverändert. Modulprüfungen erfassen 360/768/1024/1440 px, Karten-/Sei
 geschlossene Vorschauen, Feldreihenfolge, No-JS, Tastatur und echten 200-%-Zoom.
 
 ##### Modul Vorlagen & Druck (2026-09-20)
+
+**DELTA-3-13 (2026-10-01):** Archivierte Vorlagen stehen als statische Tabellen
+mit Überschrift im gewählten Bereich. Wochenerklärung folgt auf Bereichstabs,
+behält ihre Beschreibungs-ID. Leere Aktionszellen für Lesende bleiben wirklich
+leer. Frühere Aufklappanforderungen dieser Übersichtsseite sind durch UI-DELTA
+§0.1 abgelöst; Druckeditoren gehören zu separaten Paketen. Aktueller Prüfstand
+und konkrete Sichtnachweise stehen im DELTA-3-13-Report.
 
 **Polish P3: editoren (2026-09-24).** Aktive und archivierte Vorlagen verwenden
 `admin-status--active/neutral` mit Icon und Text. Die Wochenauswahl hat eine

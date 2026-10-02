@@ -12,6 +12,7 @@ from werkzeug.serving import make_server
 from cafeteria.admin import screen_template_routes
 from test_admin_ux_browser import admin_app, admin_engine, live_server  # noqa: F401
 from test_admin_workflow_routes import _login, _payload
+from test_delta_renderer_browser import VISIBILITY
 from test_menu_collection import _save, _scope
 from test_print_template_browser import browser, _context  # noqa: F401
 from test_print_template_routes import database_engine  # noqa: F401
@@ -130,17 +131,26 @@ def test_menu_note_icons_keep_content_profile_navigation_and_native_keyboard(
                 if javascript:
                     page.get_by_role('tab', name='Liste' if view == 'list' else 'Karten', exact=True).click()
                 row = page.locator(f'#menu-{view} [data-menu-{"list-id" if view == "list" else "id"}]')
-                details = row.locator('.menu-note-details')
-                _keyboard(page, details, javascript)
+                trigger = row.locator('[data-read-detail]')
+                _icon(trigger)
+                details = page.locator('#' + trigger.get_attribute('data-read-detail'))
+                trigger.focus()
+                trigger.press('Enter')
+                expect(details).to_be_visible()
+                if javascript:
+                    expect(details.locator('h2')).to_be_focused()
                 expect(details.locator('.menu-description')).to_contain_text('Mit frischen Kräutern.')
                 expect(details.locator('.shared-note')).to_contain_text('Vor Ausgabe umrühren.')
-                summary = details.locator(':scope > summary')
-                assert title in summary.get_attribute('aria-label')
-                expect(summary.locator('img, script, button, input')).to_have_count(0)
+                assert title in trigger.get_attribute('aria-label')
+                expect(trigger.locator('img, script, button, input')).to_have_count(0)
                 target = row.locator('[data-semantic="actions.edit"]').get_attribute('href')
                 assert urlsplit(target).path == f'/admin/{family}/menu'
                 assert parse_qs(urlsplit(target).query)['option'] == ['MENU_1']
                 page.screenshot(path=str(tmp_path / f'menu-{family}-{view}-{width}-js{javascript}-{role}.png'), full_page=True)
+                details.locator('[data-read-detail-close]').click()
+                expect(details).to_be_hidden()
+                if javascript:
+                    expect(trigger).to_be_focused()
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         assert not posts and not errors
 
@@ -160,7 +170,7 @@ def unavailable_server(screen_app):  # noqa: F811
 
 @pytest.mark.parametrize('width', [1440, 390])
 @pytest.mark.parametrize('javascript', [True, False])
-def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
+def test_unavailable_retry_text_is_a_native_get_after_failed_assignment(
     screen_app, database_engine, unavailable_server, browser, monkeypatch, tmp_path, width, javascript,  # noqa: F811
 ):
     client, _ = _login(screen_app, database_engine, ['Cafeteria.Admin'])
@@ -200,7 +210,9 @@ def test_unavailable_retry_icon_is_a_native_get_after_failed_assignment(
             expect(retry).to_contain_text('Neu laden')
             assert retry.get_attribute('aria-label') == 'Neu laden: Aktualisieren'
             assert retry.get_attribute('data-ui-tooltip') == retry.get_attribute('aria-label')
-            expect(retry.locator('svg[aria-hidden="true"]')).to_have_count(1)
+            expect(retry.locator('svg')).to_have_count(0)
+            visible = retry.evaluate(VISIBILITY)
+            assert visible['text'] == 'Neu laden' and not visible['icons'], visible
             assert retry.evaluate('el => el.getBoundingClientRect().width >= 36')
             expect(retry).to_have_attribute('href', path)
             retry.focus()

@@ -181,23 +181,28 @@ def test_menu_collection_ui_korrektur(live_branding, database_engine, browser, t
             expect(gratin_card.locator('[data-review="open"] .admin-list-secondary')).to_be_visible()
             expect(gratin_card.locator('[data-review="open"] .admin-list-secondary')).to_contain_text('Allergenangaben nicht erfasst')
 
-            # Long description/note stays available in a native disclosure.
-            details = gratin_card.locator('details.menu-note-details')
+            # UI-DELTA: long description/note stays available in the shared read dialog.
+            summary = gratin_card.locator('[data-read-detail]')
+            details = page.locator('#' + summary.get_attribute('data-read-detail'))
             expect(details).to_have_count(1)
-            summary = details.locator('summary')
-            details_name = 'Kartoffelgratin mit Gemüse · 07.09.2026: Details ein- oder ausklappen'
-            expect(summary).to_have_attribute('data-semantic', 'ui.disclosure.details')
+            details_name = 'Beschreibung und Hinweis · Kartoffelgratin mit Gemüse · 07.09.2026 öffnen'
+            expect(summary).to_have_attribute('data-semantic', 'actions.open')
             expect(summary).to_have_accessible_name(details_name)
             expect(summary).to_have_attribute('data-ui-tooltip', details_name)
             expect(summary).to_have_text('')
 
-            # Before open, description is inside details content
+            # Content is present but the closed dialog is not visible.
+            expect(details).to_be_hidden()
             expect(details.locator('.menu-description')).to_contain_text(long_desc)
             expect(details.locator('.shared-note')).to_contain_text(long_note)
 
-            # Click to open details
+            # Click opens the dialog without changing the card.
             summary.click()
             expect(details).to_have_attribute('open', '')
+            expect(details.locator('.menu-description')).to_be_visible()
+            expect(details.locator('.shared-note')).to_be_visible()
+            details.locator('[data-read-detail-close]').click()
+            expect(summary).to_be_focused()
 
             # 6. Exactly one action button per card
             actions = gratin_card.locator('.card-footer .btn')

@@ -347,23 +347,31 @@ def test_reference_states_and_viewports(
         _save(database_engine, scope, week=WEEK + timedelta(weeks=2), title=LONG_TITLE, payload=payload)
         _goto(page, route)
         long_card = page.locator('#menu-cards [data-menu-id]', has_text=LONG_TITLE)
-        expect(long_card.locator('.menu-note-details .shared-note')).to_contain_text(
-            LONG_NOTE.strip()
-        )
+        card_trigger = long_card.locator('[data-read-detail]')
+        card_dialog = page.locator('#' + card_trigger.get_attribute('data-read-detail'))
+        expect(card_dialog).to_contain_text(LONG_NOTE.strip())
         if javascript:
             page.get_by_role('tab', name='Liste', exact=True).click()
         else:
             page.get_by_role('navigation', name='Menüansicht ohne JavaScript').get_by_role(
                 'link', name='Liste', exact=True,
             ).click()
-        note = page.locator('#menu-list details.menu-note-details').filter(has_text='Wichtiger Zubereitungshinweis')
+        row = page.locator('#menu-list [data-menu-list-id]', has_text=LONG_TITLE)
+        trigger = row.locator('[data-read-detail]')
+        note = page.locator('#' + trigger.get_attribute('data-read-detail'))
         expect(note).to_have_count(1)
-        note.locator('summary').focus()
-        expect(note.locator('summary')).to_be_focused()
+        trigger.focus()
+        expect(trigger).to_be_focused()
         page.keyboard.press('Enter')
-        expect(note).to_have_attribute('open', '')
+        expect(note).to_be_visible()
+        expect(note).to_contain_text(LONG_NOTE.strip())
+        close = note.locator('[data-read-detail-close]')
+        close.focus()
+        expect(close).to_be_focused()
         page.keyboard.press('Enter')
-        expect(note).not_to_have_attribute('open', '')
+        expect(note).to_be_hidden()
+        if javascript:
+            expect(trigger).to_be_focused()
         _views(page, javascript, tmp_path, 'long-text', 3, contrast_failures)
         for offset in range(3, 26):
             _save(database_engine, scope, week=WEEK + timedelta(weeks=offset), title=f'Gemüsemenü {offset}')

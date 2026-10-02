@@ -79,19 +79,15 @@ def test_published_previews_and_assignment_form_are_readonly_tabler(
             assignment = page.locator('#screen-assignment-details')
             expect(assignment.locator('form')).to_be_visible()
             expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-            help_control = assignment.locator('.admin-hint > summary').first
-            # G0 .admin-hint-trigger follows --app-control-min-height (36 fine / 44 coarse).
+            expect(assignment.locator('details')).to_have_count(0)
+            for hint in assignment.locator('[id^="screen-choice-"][id$="-hint"]').all():
+                expect(hint).to_be_visible()
             coarse = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches")
-            help_min = 44 if coarse else 36
-            assert help_control.bounding_box()['height'] >= help_min
-            help_control.tap() if width < 1440 else help_control.click()
-            expect(assignment.locator('.admin-hint').first).to_have_attribute('open', '')
-            help_control.tap() if width < 1440 else help_control.click()
             cards = page.locator('.screen-choice-card').evaluate_all('els => els.map(el => {const b=el.getBoundingClientRect(); return [b.width,b.height]})')
             assert len(cards) == 2
             assert abs(cards[0][0] - cards[1][0]) <= 1
             for control in page.locator('main .btn, main .screen-choice-control').all():
-                minimum = 36 if 'ui-sem-control--icon-only' in (control.get_attribute('class') or '') else 48
+                minimum = (44 if coarse else 36) if 'ui-sem-control' in (control.get_attribute('class') or '') else 48
                 assert control.bounding_box()['height'] >= minimum
             expect(assignment).to_contain_text('Darstellung auswählen')
             preview = assignment.locator('a[href$="-week-text"]')
@@ -188,7 +184,8 @@ def test_real_activation_changes_canonical_view_and_preserves_original_conflict(
             page.goto(path + 'ohne-bilder/')
             assert page.locator('.menu-photo').count() == 0
             page.goto('/admin/screens')
-            expect(page.locator(f'#{prefix}-public-week-tab')).to_have_text(f'Wochenplan {name} · aktiv')
+            expect(page.locator(f'.screen-card[aria-labelledby="{prefix}-public-title"] .screen-status strong')).to_have_text(f'Wochenplan {name}')
+            expect(page.locator(f'.screen-card[aria-labelledby="{prefix}-public-title"] .screen-status .badge')).to_have_text('Aktiv')
             page.goto(route)
             expect(page.locator('#screen-assignment-details form')).to_be_visible()
         assert submitted == ['POST', 'POST']
@@ -277,21 +274,15 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                             page.keyboard.press('Escape')
                             expect(page.get_by_role('tooltip')).to_have_count(0)
                             expect(action).to_be_focused()
-                    for selector in ('.screen-preview-details',):
-                        details = page.locator(selector).first
-                        summary = details.locator(':scope > summary')
-                        summary.focus()
-                        page.keyboard.press('Enter')
-                        expect(details).to_have_attribute('open', '')
-                        focused = summary
-                        expect(summary).to_be_focused()
-                        summary_class = summary.get_attribute('class') or ''
-                        summary_min = 36 if 'ui-sem-control' in summary_class else 44
-                        assert summary.bounding_box()['height'] >= summary_min
-                        assert focused.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-                        page.keyboard.press('Enter')
-                        expect(details).not_to_have_attribute('open', '')
-                        expect(summary).to_be_focused()
+                    expect(page.locator('main details, main iframe')).to_have_count(0)
+                    link = page.locator('.screen-card .admin-row-actions a').first
+                    destination = link.get_attribute('href')
+                    link.focus()
+                    with page.expect_navigation() as navigation:
+                        link.press('Enter')
+                    assert navigation.value.request.method == 'GET' and navigation.value.status == 200
+                    assert urlsplit(page.url).path == destination
+                    expect(page.locator('main')).to_be_visible()
                     assert page.goto('/admin/screens/cafeteria/wochenvorlage').status == 200
                     form = page.locator('#screen-assignment-details form')
                     fields = form.evaluate('form => Array.from(new FormData(form))')
@@ -303,19 +294,17 @@ def _assert_wp23_compact_frames_payload_order_and_keyboard(
                                          ['action', 'activate'], ['template_id', 'cafeteria-week-photo']]
                     expect(form).to_be_visible()
                     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-                    summary = page.locator('#screen-assignment-details .admin-hint > summary').first
-                    summary.focus()
-                    page.keyboard.press('Enter')
-                    expect(page.locator('#screen-assignment-details .admin-hint').first).to_have_attribute('open', '')
-                    expect(summary).to_be_focused()
-                    page.keyboard.press('Enter')
+                    expect(page.locator('#screen-assignment-details details')).to_have_count(0)
+                    for hint in page.locator('#screen-assignment-details [id^="screen-choice-"][id$="-hint"]').all():
+                        expect(hint).to_be_visible()
                     expect(page.locator('.admin-form-footer .btn-primary')).to_have_accessible_name('Speichern')
                     assert form.evaluate('form => Array.from(new FormData(form))') == fields
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
-                    expect(page.locator('#screen-assignment-version')).not_to_have_attribute('open', '')
+                    expect(page.locator('#screen-assignment-version')).to_be_visible()
+                    expect(page.locator('#screen-assignment-version summary')).to_have_count(0)
                     for target in page.locator('main .btn:visible, main summary:visible').all():
                         target_class = target.get_attribute('class') or ''
-                        # G0 .admin-hint-trigger stays on the control token, same as icon buttons.
+                        # G0 [id^="screen-choice-"][id$="-hint"]-trigger stays on the control token, same as icon buttons.
                         icon = 'ui-sem-control' in target_class or 'admin-hint-trigger' in target_class
                         target_min = 36 if icon else 44
                         assert target.bounding_box()['height'] >= target_min

@@ -680,27 +680,12 @@
 
     function syncComponentRow(row) {
         const kind = componentEntryKind(row);
-        const catalog = row.querySelector('[name="component_public_id"]');
-        const text = row.querySelector('[name="component_text"]');
         row.querySelectorAll('[data-component-kind-option]').forEach(option => {
             option.checked = option.value === kind;
         });
         row.querySelectorAll('[data-component-control]').forEach(control => {
             control.hidden = control.dataset.componentControl !== kind;
         });
-        const selected = catalog?.selectedOptions[0];
-        const summary = kind === 'catalog' && catalog?.value ? selected?.textContent.trim() : text?.value.trim();
-        const summaryTarget = row.querySelector('[data-component-summary]');
-        if (summaryTarget) summaryTarget.textContent = summary || 'Noch nicht erfasst';
-    }
-
-    function setComponentRowEditing(row, editing) {
-        row.classList.toggle('is-editing', editing);
-        syncComponentRow(row);
-        if (editing) {
-            const kind = componentEntryKind(row);
-            row.querySelector(`[data-component-control="${kind}"] input, [data-component-control="${kind}"] select`)?.focus();
-        }
     }
 
     // Target quantity: unit always mirrors the bound revision's own unit (D3, no conversion),
@@ -766,9 +751,7 @@
             unitDisplayNames = JSON.parse(form.dataset.unitDisplayNames || '{}');
         } catch { /* keep raw unit codes if the map failed to parse */ }
         form.querySelectorAll('.component-row').forEach(row => {
-            row.querySelector('[data-component-summary-view]')?.removeAttribute('hidden');
             row.querySelector('[data-component-kind]')?.removeAttribute('hidden');
-            row.querySelector('[data-finish-row]')?.removeAttribute('hidden');
             syncComponentRow(row);
             syncTargetQuantityField(row, unitDisplayNames);
         });
@@ -847,19 +830,7 @@
             const addButton = e.target.closest('[data-add-row]');
             const removeButton = e.target.closest('[data-remove-row]');
             const moveButton = e.target.closest('[data-move-row]');
-            const editButton = e.target.closest('[data-edit-row]');
-            const finishButton = e.target.closest('[data-finish-row]');
-            if (!addButton && !removeButton && !moveButton && !editButton && !finishButton) return;
-            if (editButton) {
-                setComponentRowEditing(editButton.closest('.component-row'), true);
-                return;
-            }
-            if (finishButton) {
-                const row = finishButton.closest('.component-row');
-                setComponentRowEditing(row, false);
-                row.querySelector('[data-edit-row]').focus();
-                return;
-            }
+            if (!addButton && !removeButton && !moveButton) return;
             let focusTarget;
             let list;
             if (addButton) {
@@ -903,7 +874,6 @@
                 });
                 list.appendChild(clone);
                 if (clone.matches('.component-row')) {
-                    clone.classList.add('is-editing');
                     clone.querySelectorAll('[data-component-kind-option]').forEach(option => {
                         option.checked = option.value === 'catalog';
                     });
@@ -932,7 +902,7 @@
                         iconActions.delete(link);
                     });
                     row.remove();
-                    focusTarget = list.lastElementChild.querySelector('[data-edit-row], input, select');
+                    focusTarget = list.lastElementChild.querySelector('input:not([type="hidden"]):not([hidden]), select');
                 } else {
                     row.querySelectorAll('input[name], select[name]').forEach(control => {
                         control.value = '';
@@ -944,7 +914,7 @@
                         row.querySelectorAll('[data-component-kind-option]').forEach(option => {
                             option.checked = option.value === 'catalog';
                         });
-                        setComponentRowEditing(row, true);
+                        syncComponentRow(row);
                         syncTargetQuantityField(row, unitDisplayNames, { resetQuantity: true });
                     }
                     focusTarget = row.querySelector('[name="component_public_id"], input, select');

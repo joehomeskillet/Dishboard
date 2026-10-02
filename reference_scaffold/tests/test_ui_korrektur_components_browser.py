@@ -99,7 +99,8 @@ def test_wp05_density_and_form_contract(catalog_page, request, tmp_path):  # noq
                         primary.focus()
                         assert primary.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth) >= 2')
                         primary.press('Enter')
-                        expect(probe.locator('#create-component')).to_have_attribute('open', '')
+                        expect(probe.locator('#create-component')).to_be_visible()
+                        expect(probe.locator('#create-component summary')).to_have_count(0)
                     form = probe.locator('#component-form')
                     payload = form.evaluate('''form => Array.from(new FormData(form),
                         ([key, value]) => [key, key === '_csrf' ? '<present>' : value])''')
@@ -171,7 +172,7 @@ def test_list_first_row_visible_without_scroll(catalog_page: Page, family: str) 
         form.get_by_role('button', name='Anlegen', exact=True).click()
         page.wait_for_url(f'**{list_path}/*')
         page.goto(list_path)
-    expect(page.locator('#create-component')).not_to_have_attribute('open', '')
+    expect(page.locator('#create-component #c-name')).to_be_visible()
     first_row = page.locator('.component-list-container .component-row').first
     expect(first_row).to_be_visible()
     expect(page.locator('#f-status')).to_have_value('active')
@@ -319,7 +320,7 @@ def test_create_edit_archive_payloads_unchanged(
         assert query['status'] == ['all']
 
         page.goto(detail_path)
-        page.locator('.component-secondary-actions summary').click()
+        expect(page.locator('.component-secondary-actions form')).to_be_visible()
         archive = page.locator('.component-secondary-actions form').get_by_role('button', name=re.compile(r'.+ archivieren$'))
         if javascript:
             page.once('dialog', lambda dialog: dialog.accept())
@@ -335,7 +336,7 @@ def test_create_edit_archive_payloads_unchanged(
 
 
 @pytest.mark.parametrize('width,height', VIEWPORTS)
-def test_error_state_opens_create_details_and_focuses_error_region(
+def test_error_state_keeps_static_create_fields_and_focuses_error_region(
     catalog_page: Page, request: pytest.FixtureRequest, width: int, height: int,  # noqa: F811
 ) -> None:
     page = catalog_page
@@ -357,7 +358,8 @@ def test_error_state_opens_create_details_and_focuses_error_region(
     page.set_viewport_size({'width': width, 'height': height})
     page.goto('/admin/patienten/komponenten')
     page.set_content(html, wait_until='networkidle')
-    expect(page.locator('#create-component')).to_have_attribute('open', '')
+    expect(page.locator('#create-component')).to_be_visible()
+    expect(page.locator('#create-component summary')).to_have_count(0)
     expect(page.locator('.error-region')).to_be_visible()
     expect(page.locator('.error-region')).to_be_focused()
     expect(page.locator('[name="name"]')).to_have_value('Noch nicht gespeicherte Eingabe')
@@ -473,10 +475,8 @@ def test_p3_polish_components_primary_stack_hint(catalog_page: Page) -> None:  #
     edit.click()
     page.wait_for_url('**' + target)
     expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-    food_hint = page.locator('summary[aria-describedby="c-food-extra-hint"]')
-    page.locator('#component-options > summary').click()
-    food_hint.focus()
-    expect(food_hint).to_be_focused()
-    page.keyboard.press('Enter')
+    expect(page.locator('#component-options summary')).to_have_count(0)
+    page.locator('#c-food').focus()
+    expect(page.locator('#c-food')).to_be_focused()
     expect(page.locator('#c-food-extra-hint')).to_be_visible()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
