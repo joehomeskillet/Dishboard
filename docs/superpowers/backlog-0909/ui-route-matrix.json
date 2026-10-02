@@ -10862,7 +10862,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "d373354f528bf5f47cf3df4529e3688a90b71fef4210acc271b6c4810284b85f",
+      "sha256": "6ae77a5647edf93e447434e9f00afe213733586ddd82df485a7eeef7acbe0101",
       "used_by_endpoints": [
         "admin.component_detail"
       ],
@@ -10886,7 +10886,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "6cd030f032add94b12836ce1d9254be2628cb3f6376c7059464ca0ec54509641",
+      "sha256": "9ae73f9f55748f364b5f5adfb8318db6066767036eb2652df98c1effc0bcb342",
       "used_by_endpoints": [
         "admin.components_get"
       ],
@@ -11374,7 +11374,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "bc5869e92ed69e1622fb9f983dfbb0cccd9084fd8cc7adc2c0a1bffe6d1612cd",
+      "sha256": "a3894c869d522061dc7002cabdf280476e5e3401d92cc9801ac1beae1c1fa8af",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],
@@ -11397,7 +11397,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "29993eb56d3357e893098acb32d7886dfc53d9d26313f43819d341f4d5dab1e7",
+      "sha256": "6cab907459bfded7727671428188ec46fa7962826d74fd1184ccdd42084d3ba8",
       "used_by_endpoints": [
         "admin.menu_get"
       ],
@@ -11420,7 +11420,7 @@
         "admin/_macros.html",
         "admin/_workflow_sidebar.html"
       ],
-      "sha256": "73247ae7326283ff381575d836e84ff9ab8c077e5ccef3f796133b655d07543f",
+      "sha256": "2bb8bc6b6952357096d2a89173c2f119c847035f2b1fe2da360ee43cc2e03bdb",
       "used_by_endpoints": [
         "admin.operations_settings"
       ],
@@ -11773,7 +11773,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "ab45786f6c19e91e38169b62284748b5eaa2cc24836124ae9e055e9af2349271",
+      "sha256": "058e4f64252671db4cdddb0a28a7f390f250310097aa0ec0d63240a70d8effc6",
       "used_by_endpoints": [
         "admin.screen_template_assignment",
         "admin.screen_template_preview"
@@ -11794,7 +11794,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "670cf85d99ba712f97aa24c77486ace13ff1f5a76fb997f53a89017cd8dd9ec3",
+      "sha256": "3f04747d988c8d8d8c443fe65bd219884e6d449e76114ec858c5e169b50a6e61",
       "used_by_endpoints": [
         "admin.screen_template_assignment",
         "public.cafeteria_week",
@@ -11820,7 +11820,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "ca71bdefc6f9df4e85af3857f991efedccead848b54b6185cd308450fbd5ae23",
+      "sha256": "8c0e1b4eb1146117f1a39dca9a863331580f83c9a87793fff39d5d29df963562",
       "used_by_endpoints": [
         "admin.screens"
       ],
@@ -11842,7 +11842,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "2075c48a2e1ac8f0bae35fd60e0e7c889eee2f0888f1a42563db614027c96a85",
+      "sha256": "28da53e52ec28b6a656afda7b9a64d5d7e0c425ce9a50bd54b823af468ec13b7",
       "used_by_endpoints": [
         "admin.vorlagen"
       ],
@@ -11944,7 +11944,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "0d1cf7127ce6f226056a32ec672e14d9db7514cf4d4f5ff67acded9f5db9443a",
+      "sha256": "b3ccb868820f2b6e343d09bc2737dab1ad5cb97c5e80d56e27f08af9eefe4c7a",
       "used_by_endpoints": [
         "auth.local_login"
       ],
@@ -11985,7 +11985,7 @@
       "includes": [
         "_brand_logo.html"
       ],
-      "sha256": "190e73efcc75ea8d197e6129fe8771cbb98bdb9fe2ca335d7f46640604ab1bca",
+      "sha256": "04b2158177462f558b755d73208e598babc8742cd27ffa588706f91480f84836",
       "used_by_endpoints": [
         "auth.callback",
         "auth.local_login",
