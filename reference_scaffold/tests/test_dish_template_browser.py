@@ -112,7 +112,10 @@ def test_template_title_search_enter_archive_reset_and_return(
         page.locator('form [data-semantic="view.reset"]').click()
         expect(page.locator('tbody tr')).to_have_count(2)
         _open(page, base, '/admin/gerichtvorlagen?archived=1')
-        page.locator('form > [data-semantic="view.reset"]').click()
+        archive_reset = page.locator('form [data-semantic="view.reset"]')
+        expect(archive_reset).to_have_count(1)
+        expect(archive_reset).to_have_attribute('href', '/admin/gerichtvorlagen')
+        archive_reset.click()
         expect(page.locator('tbody tr')).to_have_count(2)
         assert urlsplit(page.url).query == ''
     assert snapshot(owner) == before

@@ -28,7 +28,7 @@ def test_cookbook_delta_contract(cookbook_server, browser, tmp_path, width, heig
             assert page.goto(data['base'] + path).status == 200
             capture_delta(page, tmp_path / f'{label}.png', touch)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-            # Filter summaries and their counters are the open DELTA-2b contract.
+            # DELTA-2b filter dialog actions obey the exclusive control mode too.
             for control in page.locator('main a.ui-sem-control:visible, main button.ui-sem-control:visible').all():
                 rendered = control.evaluate(VISIBILITY)
                 assert (rendered['icons'] == 1 and not rendered['text']) or (
@@ -57,8 +57,14 @@ def test_cookbook_delta_contract(cookbook_server, browser, tmp_path, width, heig
         if page.locator('main [data-semantic="view.reset"]').count() != 1:
             failures.append('R-75: identical reset actions without archive filter')
         visit('/admin/kochbuecher?q=unmatched&archived=1', 'archive-search-empty')
-        # Clear all filters and clear only the query have different meanings.
-        expect(page.locator('main [data-semantic="view.reset"]')).to_have_count(2)
+        # DELTA-2b adds a chip reset that clears only the archive filter.
+        resets = page.locator('main [data-semantic="view.reset"]')
+        expect(resets).to_have_count(3)
+        for href in ['/admin/kochbuecher', '/admin/kochbuecher?q=unmatched',
+                     '/admin/kochbuecher?archived=1']:
+            action = resets.and_(page.locator(f'a[href="{href}"]'))
+            expect(action).to_have_count(1)
+            expect(action).to_be_visible()
         visit(path + '/ansicht', 'view')
         expect(page.locator('main form')).to_have_count(0)
         visit(path, 'editor')
