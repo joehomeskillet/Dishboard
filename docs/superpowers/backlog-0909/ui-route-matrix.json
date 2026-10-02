@@ -10323,7 +10323,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "f2496144612118901c31362277d9d2064f564765002ad7f81fbba426aac80542",
+      "sha256": "47b1b7353d04c9f2d4fc075a615b292e184907c18aea90f67792abe33e763cd9",
       "used_by_endpoints": [
         "admin.local_user_detail",
         "admin.local_user_new",
@@ -10501,7 +10501,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "5408e2962624132f9b162157b8fbc6b18e3f52602dea19f279be19218f728573",
+      "sha256": "aa1005debe77ba7224b5df2747cd8aa5849952013c189d775af6bb17f0bc65b4",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10518,7 +10518,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "6568a0640a05d449836d5b39fed03202a37c51585800649b95af8774f545bbf5",
+      "sha256": "7451521deb77b145e71fcc927e386ad65cb6d9b7bd835797494353bb26320339",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10540,7 +10540,7 @@
       "includes": [
         "_food_symbols.html"
       ],
-      "sha256": "ead407afc835f1e192ab561deac40aa1454199c9d6e3f0c58fdb139563a69484",
+      "sha256": "12d6a71baba55a40fd3df471d8ce09d8538d58d8d07e89dfe13e3d4360833b4d",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10560,7 +10560,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "f24f88556179bb5e76f89365244d49504f08e9716be31d8ce7e6331b209ed07c",
+      "sha256": "4e4883fd39b29a1e02a2cb2f698fbb9efb37b2f7590e18074fb6611dac29b002",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10580,7 +10580,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "6af9781d5dedcaf7098a92252ba64a2aec56aaad55cd1fabe6361c45ee2d4df8",
+      "sha256": "62b32fc8311dc37d7b0ec45dc7c864352af17b4145b3bee19019823d171a8f13",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10694,7 +10694,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "542c73138eb49054fd737355f2cdf20d1db2c1ad5d43d64b6900072855f437e5",
+      "sha256": "2128658a0a10fa0dfb72e5c70ed1603a31ed1439b6853cb235890bab8a5d1efe",
       "used_by_endpoints": [
         "admin.access_history"
       ],
@@ -10715,7 +10715,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "c1b320dbecf39357b161f108b8c4e049435bd5fe6d3fcfdcceca0ba850c76f40",
+      "sha256": "169a274552255551eb2c4f58ca8b7d1c9bd212b87eb1784abc803e7f68199267",
       "used_by_endpoints": [
         "admin.api_overview"
       ],
@@ -10826,7 +10826,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "bd7f53b3abf493457c6ea3a32d7a0bd2ddbefeb0284aa1d871fc34b4b07b6619",
+      "sha256": "62c2e2222d14139d5af70ffec1234bf40bcb1cb7415ac5d39ee9bf8735cf8ed9",
       "used_by_endpoints": [
         "admin.branding_editor"
       ],
@@ -10872,7 +10872,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "bd3cf433500aa19bfae55471123436204b55a7b585e00aaed7c2a1db13fd5822",
+      "sha256": "9329f4a80b5f2b884ba2aee25fc88b559ac54109029e563e8ef62e53f52a7f3c",
       "used_by_endpoints": [
         "admin.cafeteria"
       ],
@@ -10943,7 +10943,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "ab99042b93e20b52c6e3253f010434c31b903de98546ce8fa8a4ab4827758625",
+      "sha256": "52dbe792b12ed0297e77082e68b96a37dfa4b407e3ca907db4e3b71ec885af41",
       "used_by_endpoints": [
         "admin.copy_get"
       ],
@@ -10967,7 +10967,7 @@
         "_menu_image.html",
         "admin/_macros.html"
       ],
-      "sha256": "ee99c13dce6dab0d47d1cb32ffa972abac5966e186da210bd1846bff592ff42a",
+      "sha256": "132602e0f4031c3476594f413cb6254c78a2616dd430363576f88801bfd8ca52",
       "used_by_endpoints": [
         "admin.display_settings"
       ],
@@ -10989,7 +10989,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "916d984163aaccbcc98f41076d3f2af1fa03313c7ab8839bddc7a2aa04fffe69",
+      "sha256": "7dc7a07ba1e0cb1520c7e4b7cf72b0f402afa4575766b15df8bb7e9f3c16ee22",
       "used_by_endpoints": [
         "admin.dish_template_plan",
         "admin.dish_template_plan_post"
@@ -11013,7 +11013,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "c0c9c1f60b0eb924fcfac7db9f6c027e119628e6b6409bc8ab9f9ec52426a8dd",
+      "sha256": "85c9915ec5163bd6dc94b2d37d9397a53df4b039c0108f0b615572288dbb156e",
       "used_by_endpoints": [
         "admin.dish_template_create",
         "admin.dish_template_edit",
@@ -11038,7 +11038,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "faaf4489af4a5386c8952003dd1647273666012c56ad9cac87a8a3efef9fec40",
+      "sha256": "89961b6562534dd3f462c823802377d17ca668ad41ce3e9d798c98bc18a26adb",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -11062,7 +11062,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "62f9edb576c81c44919477930e445ae5a87bd8ef03ccac1301bd2e555406f69b",
+      "sha256": "2f8ff216ec39ccd27f57815f7dfd522bacfb2fee0d4f6e5b787afdd269c8c24a",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11085,7 +11085,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "61017e3c879819f364f82f77ed843e98bd53ae8aa6715cca2c073a33403e10f3",
+      "sha256": "b793ecdbef5a05836cfcdc995a6ced879fe703bba3330b2c4cf14f6969a24002",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11104,7 +11104,7 @@
       "kind": "page",
       "extends": [],
       "includes": [],
-      "sha256": "4d2a374d498ae61f0ca418834ac05a131967b1f7b5256b0a36581df33c147487",
+      "sha256": "a3ff275df58755d593841e315343235e5258ec86c2b015b4f201e7cc7e9e3527",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_list",
@@ -11128,7 +11128,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "007119988ae14c3809569fd90a52f994bc1504a83eab0a975990f1a9d8f99f86",
+      "sha256": "69a60fff98a5944163a1594dd53c96dd3bad0144184f41c67379dc8e98d49e1c",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11151,7 +11151,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "de63c0064fa693068b6a88e2e89c27c37183cb97f3d05134d2863408a189f82b",
+      "sha256": "75ec45d89be2354b690985c782498d1b9daa3afbf0745e6d57bcebc8df80d2ac",
       "used_by_endpoints": [
         "admin.master_data_detail",
         "admin.master_data_new"
@@ -11174,7 +11174,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "90487938b506c32c05feb028f0283da015155f7f10335c218c438cec1f91214d",
+      "sha256": "a83fe4ff967a27b35bd7343b2cb1ca5c18d6c51393883380bf54e26295d89a76",
       "used_by_endpoints": [
         "admin.import_preview"
       ],
@@ -11193,7 +11193,7 @@
       "kind": "page",
       "extends": ["admin/base_tabler.html"],
       "includes": ["admin/_macros.html", "ui/_semantic.html"],
-      "sha256": "48e57ee053c918b72ff9fcec80e4eebf95c3fcb7221727c8bc2e6c2d1f02fd59",
+      "sha256": "399274327dabad3312fecf5f65edcfefc20a5a505f7ff7fd09deaebd1195d241",
       "used_by_endpoints": ["admin.cookbook_view"],
       "owning_mp": "MP-UI-COOKBOOKS",
       "density_mockups": ["M01", "M14", "M20"],
@@ -11208,7 +11208,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "14d667f54f7e9546dc3c4d5f5716b558341704f79a4ec8028d72f42a9bef5bb4",
+      "sha256": "b06495911f6fabfcff32c09ef28950fcfb5a5cc2aeccea2921e78f876de5ddff",
       "used_by_endpoints": [
         "admin.cookbook_edit",
         "admin.cookbook_new",
@@ -11232,7 +11232,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "b839d6b2a13bcb203f7e41da555dd5a9733b1f95121b2d1a2de306807f15d168",
+      "sha256": "1020955a5697bb1d76ee446d50e94a77671c2605879ae1085770e429cafa41f0",
       "used_by_endpoints": [
         "admin.cookbooks_list"
       ],
@@ -11254,7 +11254,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "05de7519b1de3e936fd433d2f5bcf0cb7680ae95adea1237acb665a615b8f18b",
+      "sha256": "206c686279404b4dc3c98c1e62a3e09ff23c221bedc96f13947a302a8753950a",
       "used_by_endpoints": [
         "admin.kitchen_calendar"
       ],
@@ -11274,7 +11274,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "65a537ce440bdb8f6f46f8627e593346604f917f1cbf5f2177e07b4ac662ae4a",
+      "sha256": "c898dbc1a59d601726d2043be9db7389569606591d07da7a56fff66a29aedab7",
       "used_by_endpoints": [
         "admin.kitchen_event_create",
         "admin.kitchen_event_edit",
@@ -11320,7 +11320,7 @@
         "admin/_local_user_forms.html",
         "admin/_macros.html"
       ],
-      "sha256": "1fb9d9265682fcba4223f266e7dd085c10094046bbcf5f18c826bddf4660aca2",
+      "sha256": "7140a25d9ed76e9ab3f197e6a08c04ea4fdbda76b9ec86a1277e53a22c1481a3",
       "used_by_endpoints": [
         "admin.local_user_detail"
       ],
@@ -11341,7 +11341,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "0946bb2823bd00cbb7d312c51cb027e408258e578d3dc13e4d4657834e9e5c39",
+      "sha256": "6b5a8b1ad830be7d2dab722fb2516366008ef4880b6d28f676f90da0d0da21ba",
       "used_by_endpoints": [
         "admin.local_user_events"
       ],
@@ -11360,7 +11360,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "70c32ae5f83d61a71b9ea616e884c6022d6fc9389ae778a730b418c2a00d54c8",
+      "sha256": "2f0c468264d4c7fbf3277e04e1b4fe5912c70481187a4f9387b4aa46859f74b7",
       "used_by_endpoints": [
         "admin.local_user_detail",
         "admin.local_user_events",
@@ -11385,7 +11385,7 @@
         "admin/_local_user_forms.html",
         "admin/_macros.html"
       ],
-      "sha256": "1ad6d78624ac2e54ab71d18c2ce9f83ceef185962d786544ff20122ebb79d889",
+      "sha256": "aaa86f341e8f7e8a2c9b45864fd8bc41e538c8ce67c216467f157070dfe03b64",
       "used_by_endpoints": [
         "admin.local_users_list"
       ],
@@ -11409,7 +11409,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "416f3e33daacce40c7bc45f81acdc471a05c52198a218e2f8f4980b1a925a512",
+      "sha256": "a3894c869d522061dc7002cabdf280476e5e3401d92cc9801ac1beae1c1fa8af",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],
@@ -11482,7 +11482,7 @@
         "admin/_week_service.html",
         "admin/_week_settings.html"
       ],
-      "sha256": "bf693620853d9cf032f38df228ba7f6c7920128e59b30ccae1844f7b30b17982",
+      "sha256": "b3e5cd1d88472197e86c2130505e1ff078ae756611614104e3146c902f450b52",
       "used_by_endpoints": [
         "admin.patienten"
       ],
@@ -11508,7 +11508,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "4779fb4eb2e94c0d7b89e48a4eb736248b5b42587e8710b43aea17f38eb938fa",
+      "sha256": "f1e85cd59ca8a679f76ee4027521cdd517ecda40c46fca6b5df4286557ce16eb",
       "used_by_endpoints": [
         "admin.preview"
       ],
@@ -11898,7 +11898,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "549600f3a1c1d1f95e79402babf5ceac844774fee592a23ee47884eb36a17c00",
+      "sha256": "7544edf7d8d0c7e894476318936f85b88a26326bd43298e4489056ca302cf130",
       "used_by_endpoints": [
         "admin.week_management"
       ],
@@ -11919,7 +11919,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "be401aa39587930a9ba9147daa9a971f57dae308e76a97d23ebd059b9a8b9b26",
+      "sha256": "7975eca3773d82c87698e0337d499f2cc91737b8addaa0633e4fc645b7af3beb",
       "used_by_endpoints": [
         "admin.week_review_get"
       ],
@@ -12476,7 +12476,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "857787a4f104259eeff76185ee3fd047d347a4c8a9a9b934331e8a0616e3ee63",
+      "sha256": "381d42870fff69b836b63f45706c42cb459f4adc7f0b7d42edd825f06990718d",
       "used_by_endpoints": [
         "admin.shopping_list_archive",
         "admin.shopping_lists_create",
@@ -12498,7 +12498,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "0c60dc7110a75ee65d03f3865d13ce3adf288334f7d74d85f0ceb906e94e9248",
+      "sha256": "1693d797fb96e105d687df174f8fed08e6dad27f900dba0c928748daa7bb4018",
       "used_by_endpoints": [
         "admin.shopping_list_compute",
         "admin.shopping_list_detail",
@@ -12520,7 +12520,7 @@
       "includes": [
         "admin/_course_recipe_search.html"
       ],
-      "sha256": "8bcec3530a57800c47812209e4012974339a1f1719355e719ee3241518486ab1",
+      "sha256": "5ff81f8c4529781cefc0d0029684881e6fc25718cc92ccff409746954ebd7dcb",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -12544,7 +12544,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "68becb1168f200ac8546efc214620fd09ad8d3e51c9c0d4680add8ab83d7b31c",
+      "sha256": "fafbead7a4f20f3e7f957ccb157c6c7118b5097d867075f5a5ea6faf070077d4",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -12582,7 +12582,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "11d5d4bef0ae16b11e9b3f3905c1176f320ea2320acef77fe5a8913d764660db",
+      "sha256": "60da02507d34e1a14e54d21f0603e2ad48bc0138157cb552b01986e11032432e",
       "used_by_endpoints": [
         "admin.order_home"
       ],
@@ -12597,7 +12597,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "dd192c08e0b1f58dffebb1602bb55b0e5b8ba83a9c3a6fba4b1544372f0d99fd",
+      "sha256": "b79f9aea6616ead6b20f6b3e6407bb56a0a5c7e09e7fa8141b172aad83126e1e",
       "used_by_endpoints": [
         "admin.order_basket"
       ],
@@ -12612,7 +12612,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "030d5f90aaeb53ebd5528baa7e39f21cbfc5577bb67f668b0e6c4869fc596ccd",
+      "sha256": "22f3792c243b957b994ba263a6fbfa81ad89dd14e454b800c85097a53b4c1f34",
       "used_by_endpoints": [
         "admin.cost_home",
         "admin.cost_preview"
@@ -12628,7 +12628,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "855e7727a9d3fae22307e3e23337192c03ddb50c10d5e0075bd3fd8517e1de91",
+      "sha256": "131815833a43527f39e133182bb0547c5a0b7b98156868656a11596436a6d424",
       "used_by_endpoints": [
         "admin.inventory_home"
       ],
