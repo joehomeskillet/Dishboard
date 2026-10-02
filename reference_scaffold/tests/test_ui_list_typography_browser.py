@@ -42,7 +42,8 @@ PAGES = (
     ('Benutzer', '/admin/benutzer', '[data-account-row] .admin-list-row', '.admin-list-primary', '.admin-list-secondary', '.admin-list-meta'),
     # P4: Scopes sind Label-Chips, Kanal und Ablaufdatum Sekundärtext;
     # die sichtbare Schlüsselzeile hat keine reine Meta-Textrolle.
-    ('API-Schlüssel', '/admin/api', 'tbody tr', 'td.admin-list-primary', '.admin-list-secondary', None),
+    # UI-DELTA: Der Name hat eine eigene Primärrolle neben den statischen Details.
+    ('API-Schlüssel', '/admin/api', 'tbody tr', 'td[data-label="Bezeichnung"] > span.admin-list-primary', '.admin-list-secondary', None),
     ('Druckvorlagen', '/admin/vorlagen', '[data-current-template]', 'h3', '.print-tpl-meta', None),
     ('Kalkulation', '/admin/kalkulation', '.cost-lines tbody tr', 'td:first-child', None, 'td:nth-child(2)'),
     ('Kalender', '/admin/kuechenkalender?year=2026&month=9',
