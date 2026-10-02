@@ -12,7 +12,8 @@
 {% block title %}Bausteine {{ 'Cafeteria' if profile == 'staff_guest' else 'Patienten' }}{% endblock %}
 {% block main_attributes %}data-family="{{ family }}" data-week="{{ week|default('') }}"{% endblock %}
 {% block page_header %}
-{% call page_header(t('navigation.components.label'), segments=profile_tabs({'cafeteria': '/admin/cafeteria/komponenten', 'patienten': '/admin/patienten/komponenten'}, family)) %}
+{% call page_header(t('navigation.components.label')) %}
+  {{ profile_tabs({'cafeteria': '/admin/cafeteria/komponenten', 'patienten': '/admin/patienten/komponenten'}, family) }}
   {{ icon_button('actions.add', href='#c-name', attrs={'data-error-link': '', 'aria-controls': 'create-component'}) }}
 {% endcall %}
 {% endblock %}
