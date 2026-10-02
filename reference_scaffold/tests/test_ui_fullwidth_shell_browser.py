@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 import pytest
 from playwright.sync_api import expect
 
+from cafeteria.ui import register_ui
 from test_admin_workflow_routes import DATABASE_URL, DAY, _login, database_engine  # noqa: F401
 from test_recipe_routes import create
 from test_recipe_freeze_v2_browser import native_full_page_capture
@@ -287,6 +288,8 @@ def test_shell_styles_statusbar_variants_and_contextual_subnav(site):  # noqa: F
 
 
 def test_public_login_print_and_signage_do_not_inherit_admin_shell(public_app, browser):  # noqa: F811
+    # The isolated login app needs the same semantic helpers as the real app.
+    register_ui(public_app)
     public_app.config['LOCAL_AUTH_ENABLED'] = True
     client = public_app.test_client()
     routes = (
