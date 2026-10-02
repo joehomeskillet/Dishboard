@@ -354,11 +354,10 @@ def test_list_planning_action_stays_inside_visible_entry(
         expect(page.locator('.page-header')).to_contain_text('Als Menü einplanen · ' + title)
         expect(page.locator('#planning-summary')).to_contain_text(title)
         assert stored_state(admin_engine) == before
-        # Recipe and usage details now live in the template's native disclosure.
+        # UI-DELTA: short recipe and usage context is statically visible.
         page.get_by_role('link', name='Zur Vorlage ' + title, exact=True).click()
         details = page.locator('#template-recipe-details')
-        expect(details).not_to_have_attribute('open', '')
-        details.locator(':scope > summary').click()
+        expect(details.locator(':scope > summary')).to_have_count(0)
         expect(details.get_by_role('link', name='Rezept: Gespeicherter Stand mit Kräutern', exact=True)).to_be_visible()
         expect(details).to_contain_text('1 gespeicherte Stände')
         expect(details).to_contain_text('In 0 Menüs verwendet')

@@ -124,7 +124,8 @@ def test_preview_global_consumers_reset_and_fresh_login(
                     assert 'Wichtiger langer Rezepturhinweis bleibt vollständig sichtbar.' in (last_card.text_content() or '')
             b.screenshot(path=str(tmp_path / f'display-large-{family}-{width}.png'), full_page=True)
         a.goto(PATH)
-        a.locator('#display-more > summary').click()
+        expect(a.locator('#display-more summary')).to_have_count(0)
+        expect(a.locator('#display-reset-btn')).to_be_visible()
         a.get_by_role('button', name='Standardwerte speichern', exact=True).click()
         assert get_admin_display(admin_engine) == DEFAULT_ADMIN_DISPLAY
         b.goto('/admin/cafeteria/menues')

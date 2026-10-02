@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, form_footer, hint %}
-{% from 'ui/_semantic.html' import icon_button, sem_icon, status_badge_sem %}
+{% from 'admin/_macros.html' import page_header, form_footer %}
+{% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% set workflow_nav = 'cookbooks' %}
 {% set creating = book is none %}
 {% set archived = book is not none and not book.active %}
@@ -21,7 +21,7 @@
 {% block title %}{{ 'Neues Kochbuch' if creating else book.name }} · Kochbücher{% endblock %}
 {% block page_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='cookbook-admin.css') }}">{% endblock %}
 {% block page_header %}
-{% call page_header('Neues Kochbuch' if creating else book.name, 'Name und Beschreibung festlegen.' if creating else ('Archiviertes Kochbuch. Zum Ändern zuerst reaktivieren.' if archived else 'Name, Beschreibung und Rezept-Zuordnung bearbeiten.'), status_items=editor_status) %}
+{% call page_header('Neues Kochbuch' if creating else book.name, 'Name und Beschreibung festlegen.' if creating else (none if archived else 'Name, Beschreibung und Rezept-Zuordnung bearbeiten.'), status_items=editor_status) %}
 {% if book %}{{ icon_button('actions.open', href=url_for('admin.cookbook_view', cookbook_id=book.public_id), object=book.name) }}{% endif %}
 {% endcall %}
 {% endblock %}
@@ -37,8 +37,8 @@
       <input type="hidden" name="_form_context" value="{{ status_token }}">
       <input type="hidden" name="row_version" value="{{ book.row_version }}">
       <input type="hidden" name="status_action" value="{{ status_action }}">
-      {% if reactivating %}{{ icon_button('actions.activate', text='Reaktivieren', show_text=true, emphasis='primary') }}{% else %}{{ icon_button('actions.archive', show_text=true, emphasis='danger', consequence_key='actions.archive') }}{% endif %}
-      {{ icon_button('actions.cancel', href=url_for('admin.cookbook_edit', cookbook_id=book.public_id), show_text=true) }}
+      {% if reactivating %}{{ icon_button('actions.activate', text='Reaktivieren', mode='text', emphasis='primary') }}{% else %}{{ icon_button('actions.archive', mode='text', emphasis='danger', consequence_key='actions.archive') }}{% endif %}
+      {{ icon_button('actions.cancel', href=url_for('admin.cookbook_edit', cookbook_id=book.public_id), mode='text') }}
     </form>
     {% endif %}
   </div>
@@ -71,7 +71,7 @@
     </form>
     {% elif book %}
     {% if book.description %}<p class="text-break mb-0">{{ book.description }}</p>{% else %}<p class="text-secondary mb-0">Keine Beschreibung</p>{% endif %}
-    {% if archived %}<p class="form-hint mb-0 mt-2">{{ icon('archive') }} Schreibgeschützt · zum Ändern zuerst reaktivieren.</p>{{ hint('Archivierte Kochbücher bleiben lesbar. Rezepte und Angaben lassen sich erst nach dem Reaktivieren wieder ändern.', 'cookbook-readonly-hint') }}{% endif %}
+    {% if archived and not status_action %}<p id="cookbook-readonly-hint" class="form-hint mb-0 mt-2">Archivierte Kochbücher bleiben lesbar. Rezepte und Angaben lassen sich erst nach dem Reaktivieren wieder ändern.</p>{% endif %}
     {% if book and can_write and not status_action %}
     <p class="mt-2 mb-0">{% if book.active %}{{ icon_button('actions.archive', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), object=book.name) }}{% else %}{{ icon_button('actions.activate', href=url_for('admin.cookbook_status', cookbook_id=book.public_id), text='Reaktivieren', aria_label=book.name ~ ' reaktivieren', emphasis='primary') }}{% endif %}</p>
     {% endif %}
@@ -110,7 +110,7 @@
                   </select>
                 </div>
                 {% if row.url %}
-                {{ icon_button('actions.open', href=row.url, icon_only=true, aria_label=(names.get(row.public_id, 'Rezept') ~ ' öffnen'), title=t('actions.open.tooltip')) }}
+                {{ icon_button('actions.open', href=row.url, mode='icon', aria_label=(names.get(row.public_id, 'Rezept') ~ ' öffnen'), title=t('actions.open.tooltip')) }}
                 {% endif %}
               </div>
             </td>
@@ -118,7 +118,7 @@
           {% endfor %}
         </tbody>
       </table>
-    {{ icon_button('actions.save', text='Rezepte speichern', aria_label='Rezepte speichern', icon_only=true, emphasis='secondary', class='cookbook-section-action') }}
+    {{ icon_button('actions.save', text='Rezepte speichern', aria_label='Rezepte speichern', mode='icon', emphasis='secondary', class='cookbook-section-action') }}
   </form>
   {% elif book.recipe_public_ids %}
   <table class="table table-vcenter cookbook-assignment-table admin-table admin-table--stack">

@@ -23,18 +23,18 @@ def test_mobile_note_focus_stays_in_viewport(b3, master_server, browser, tmp_pat
         page.get_by_label('Testlager', exact=True).check()
         page.evaluate('''() => {
             window.d21Events = [];
-            for (const name of ['mousedown', 'mouseup', 'click', 'focusin', 'toggle', 'scroll']) {
+            for (const name of ['mousedown', 'mouseup', 'click', 'focusin', 'scroll']) {
                 document.addEventListener(name, event => {
-                    const details = document.querySelector('#note').closest('details');
-                    const summary = details.querySelector('summary');
+                    const section = document.querySelector('#food-optional');
                     window.d21Events.push({type: name, tag: event.target.tagName, id: event.target.id,
-                        y: event.clientY, scrollY, open: details.open,
-                        summary: summary.getBoundingClientRect().toJSON()});
+                        y: event.clientY, scrollY,
+                        section: section.getBoundingClientRect().toJSON()});
                 }, true);
             }
         }''')
         note = page.get_by_label('Notiz', exact=True)
-        note.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
+        expect(note).to_be_visible()
+        expect(note.locator('xpath=ancestor::details')).to_have_count(0)
         note.focus()
         note.scroll_into_view_if_needed()
         try:
@@ -46,9 +46,8 @@ def test_mobile_note_focus_stays_in_viewport(b3, master_server, browser, tmp_pat
                 note: document.querySelector('#note').getBoundingClientRect().toJSON(),
                 footer: document.querySelector('.admin-form-footer').getBoundingClientRect().toJSON(),
                 footerPosition: getComputedStyle(document.querySelector('.admin-form-footer')).position,
-                details: [...document.querySelectorAll('#food-core-form details')].map(el => ({
-                    open: el.open, box: el.getBoundingClientRect().toJSON()
-                }))
+                optional: document.querySelector('#food-optional').getBoundingClientRect().toJSON(),
+                details: document.querySelectorAll('#food-core-form details').length
             })''')
             print('D21_NOTE_GEOMETRY', json.dumps(geometry))
             (tmp_path / 'note-geometry.json').write_text(json.dumps(geometry, indent=2), encoding='utf-8')

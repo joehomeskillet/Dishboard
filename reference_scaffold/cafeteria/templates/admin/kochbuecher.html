@@ -58,11 +58,9 @@
 {{ pagination(page, has_next, prev_url, next_url, 'Kochbuchseiten') }}
 {% elif search %}
 {% call empty_state('no_match', 'Keine passenden Kochbücher', 'Suche ändern oder zurücksetzen.') %}
-{{ icon_button('view.reset', href=url_for('admin.cookbooks_list', archived='1' if include_archived else none)) }}
+{% if include_archived %}{{ icon_button('view.reset', href=url_for('admin.cookbooks_list', archived='1')) }}{% endif %}
 {% endcall %}
 {% else %}
-{% call empty_state('none', 'Noch keine Kochbücher', 'Ein Kochbuch anlegen, um Rezepte zu ordnen.') %}
-{% if can_write %}{{ icon_button('actions.add', href=url_for('admin.cookbook_new'), emphasis='secondary') }}{% endif %}
-{% endcall %}
+{{ empty_state('none', 'Noch keine Kochbücher', 'Ein Kochbuch anlegen, um Rezepte zu ordnen.') }}
 {% endif %}
 {% endblock %}

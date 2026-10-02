@@ -1,13 +1,15 @@
 {% extends 'admin/grundlagen.html' %}
-{% from 'admin/_macros.html' import page_header, icon, disclosure_section %}
+{% from 'admin/_macros.html' import page_header, icon %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'master_data' %}
 {% block title %}Einheit · Grundlagen{% endblock %}
 {% block page_header %}{{ page_header(t('navigation.ingredients.label'), description='Einheit bearbeiten' if row else 'Einheit anlegen', status_items=[{'label': 'Status', 'value': 'Aktiv' if row.active else 'Archiviert', 'variant': 'neutral'}] if row else []) }}{% endblock %}
 {% block content %}
 <div class="mb-3">{{ icon_button('actions.back', href=url_for('admin.master_data_list', kind=query_kinds[kind])) }}</div>{{ errors() }}
-{% call disclosure_section(title='Einheit anlegen' if not row else 'Einheit', variant='card', open=true) %}
-{% if row %}{% call disclosure_section() %}<dl><dt>Code</dt><dd>{{ row.code }}</dd><dt>Dimension</dt><dd>{{ row.dimension }}</dd><dt>Basisfaktor</dt><dd>{{ row.base_factor if row.base_factor is not none else 'Kontextabhängig' }}</dd></dl><p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Code, Dimension und Faktor bleiben unverändert. Für eine andere Bedeutung eine neue Einheit anlegen.</p>{% endcall %}{% endif %}
+<section class="card mb-3" aria-labelledby="unit-title">
+<div class="card-header"><h2 class="card-title" id="unit-title">{{ 'Einheit anlegen' if not row else 'Einheit' }}</h2></div>
+<div class="card-body">
+{% if row %}<div class="mb-3"><h3>Technische Angaben</h3><dl><dt>Code</dt><dd>{{ row.code }}</dd><dt>Dimension</dt><dd>{{ row.dimension }}</dd><dt>Basisfaktor</dt><dd>{{ row.base_factor if row.base_factor is not none else 'Kontextabhängig' }}</dd></dl><p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Code, Dimension und Faktor bleiben unverändert. Für eine andere Bedeutung eine neue Einheit anlegen.</p></div>{% endif %}
 {% if can_write %}<form method="post" data-dirty-form action="{{ url_for('admin.master_data_change', kind=kind, public_id=row.public_id, purpose='name') if row else url_for('admin.master_data_new', kind=kind) }}">
 {{ form_start('name' if row else 'neu') }}{{ input('display_name', 'Anzeigename', true) }}
 {% if not row %}<div class="row g-3">
@@ -16,6 +18,6 @@
 </div>
 <div class="row g-3"><div class="col-12 col-lg-6">{{ input('base_factor', 'Basisfaktor (bei kontextabhängiger Einheit leer lassen)') }}</div></div>{% endif %}
 {{ icon_button('actions.save', object=row.display_name if row else none) }}</form>{% else %}<p>{{ row.display_name if row else 'Keine Schreibberechtigung' }}</p>{% endif %}
-{% endcall %}
-{% if row %}{% call disclosure_section() %}{{ status_summary() }}{{ status_actions() }}{% endcall %}{% endif %}
+</div></section>
+{% if row %}<section class="mb-3" aria-labelledby="unit-status-title"><h2 class="h3" id="unit-status-title">Status</h2>{{ status_summary() }}{{ status_actions() }}</section>{% endif %}
 {% endblock %}

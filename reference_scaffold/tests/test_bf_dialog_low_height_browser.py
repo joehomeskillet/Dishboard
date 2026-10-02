@@ -331,14 +331,22 @@ def test_t34_open_close_does_not_duplicate_listeners(site) -> None:  # noqa: F81
             page.wait_for_load_state('networkidle')
             expect(page.locator('[data-recipe-ingredient]')).to_have_count(before + 1)
             _goto(page, '/admin/import-preview')
-            _cycle(page, '#csv-more', page.locator('#csv-more > summary'), 't34-csv', javascript)
+            expect(page.locator('#csv-more > summary')).to_have_count(0)
+            expect(page.locator('#csv-more')).to_be_visible()
+            expect(page.locator('#csv-more')).to_contain_text('getrennte Formate')
+            page.locator('#file').focus()
+            expect(page.locator('#file')).to_be_focused()
             _goto(page, '/admin/benutzer/neu')
-            _cycle(page, '#create-local-user', page.locator('#create-local-user > summary'), 't34-user', javascript)
+            expect(page.locator('#create-local-user > summary')).to_have_count(0)
+            expect(page.locator('#create-local-user form')).to_be_visible()
             _goto(page, '/admin/einkaufslisten')
-            _cycle(
-                page, '#einkaufsliste-neu-extra',
-                page.locator('#einkaufsliste-neu-extra > summary'), 't34-shopping', javascript,
-            )
+            expect(page.locator('#einkaufsliste-neu-extra > summary')).to_have_count(0)
+            expect(page.locator('#note')).to_be_visible()
+            expect(page.locator('#menu_week_public_id')).to_be_visible()
+            before = _ids(page)
+            page.locator('#note').focus()
+            page.locator('#menu_week_public_id').focus()
+            assert _ids(page) == before
             _goto(page, '/admin/cafeteria')
             expect(page.locator('details.admin-week-settings')).to_have_count(0)
             title = page.locator('.admin-week-settings [name="title"]')

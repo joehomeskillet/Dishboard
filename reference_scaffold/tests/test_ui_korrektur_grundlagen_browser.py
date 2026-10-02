@@ -58,6 +58,13 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                                 row: document.querySelector('.admin-list-row')?.getBoundingClientRect().height,
                                 primary: document.querySelectorAll('main .btn-primary').length,
                                 open: document.querySelectorAll('main details[open]').length,
+                                exposed: [...document.querySelectorAll(
+                                    '#food-recipe-search > .card-body, #food-links > .card-body, ' +
+                                    '#food-origin > .card-body, #food-tags > .card-body, ' +
+                                    '#food-metadata > .card-body, #food-review > .card-body, ' +
+                                    '#food-status > .card-body, #food-optional, #food-preparation, ' +
+                                    'form[action$="/preis"]'
+                                )].reduce((sum, el) => sum + el.getBoundingClientRect().height, 0),
                                 overflow: document.documentElement.scrollWidth > innerWidth + 1
                             })''')
                             measurements.append(dict(width=width, javascript=javascript, state=state, **metric))
@@ -75,7 +82,11 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                                 assert row_min != '0px'
                                 expect(page.locator('[aria-label="Stammdatenbereiche"] .active')).to_have_attribute('aria-current', 'page')
                             else:
-                                assert metric['height'] < (3337 if width == 360 else 2747 if width == 768 else 2188 if width == 1024 else 2041)
+                                # UI-DELTA exposes these previously hidden bodies. Retain the
+                                # existing density budget for the rest, measured without overlap.
+                                expect(page.locator('main details')).to_have_count(0)
+                                assert metric['exposed'] > 0
+                                assert metric['height'] - metric['exposed'] < (3337 if width == 360 else 2747 if width == 768 else 2188 if width == 1024 else 2041)
                                 name = page.get_by_label('Name', exact=True)
                                 name.scroll_into_view_if_needed()
                                 assert name.evaluate('''el => {
@@ -96,17 +107,14 @@ def test_wp06_measured_layout_and_native_forms(b3, master_server, tmp_path):  # 
                         assert next(form for form in forms if form['action'].endswith('/allergenpruefung'))['fields'][-1] == ['checked', 'true']
                         if width == 360 and not javascript:
                             print('WP06_FIELDS', json.dumps(forms, ensure_ascii=False))
-                        summary = page.locator('#food-core-form details.admin-disclosure > summary').last
-                        summary.focus()
-                        page.keyboard.press('Enter')
+                        expect(page.locator('#food-core-form details, #food-core-form summary')).to_have_count(0)
                         expect(page.get_by_label('Notiz', exact=True)).to_be_visible()
-                        page.keyboard.press('Tab')
+                        page.get_by_label('Dichte in g/ml (optional)', exact=True).focus()
                         expect(page.get_by_label('Dichte in g/ml (optional)', exact=True)).to_be_focused()
                         focus = page.locator(':focus').evaluate('el => {const s = getComputedStyle(el); return [s.outlineStyle, s.boxShadow]}')
                         assert focus[0] != 'none' or focus[1] != 'none'
                         price = page.locator('form[action$="/preis"]')
-                        expect(price.get_by_label('CHF je Einheit', exact=True)).not_to_be_visible()
-                        price.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
+                        expect(price.locator('xpath=ancestor::details')).to_have_count(0)
                         expect(price.get_by_label('CHF je Einheit', exact=True)).to_be_visible()
                         expect(price.get_by_role('button', name='Preis speichern', exact=True)).not_to_have_class(re.compile('btn-primary'))
                         expect(page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True)).to_have_class(re.compile('btn-primary'))
@@ -139,7 +147,7 @@ def test_wp06_allergen_payload_and_review_are_independent(b3, master_server, jav
                 page = context.new_page()
                 page.goto(base + path)
                 form = page.locator('form[action$="/metadaten"]')
-                page.get_by_text('Allergene und Kostformen', exact=True).click()
+                expect(page.get_by_role('heading', name='Allergene und Kostformen', exact=True)).to_be_visible()
                 before = form.evaluate('form => [...new FormData(form)]')
                 milk = form.locator('select[name="allergen_MILK"]')
                 if javascript:
@@ -198,9 +206,9 @@ def test_ingredient_list_is_first_full_width_and_visible(
         assert page.locator('main .btn-primary').count() == 1
         expect(page.locator('main .btn-primary').first).to_have_attribute('aria-label', 'Anlegen')
         expect(page.locator('main .btn-primary').first).to_have_text('')
-        expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
-            'href', re.compile(r'tabler-')
-        )
+        expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon')).to_have_count(0)
+        expect(page.locator('nav[aria-label="Stammdatenbereiche"] a')).to_have_text(
+            ['Zutaten', 'Einheiten', 'Kategorien', 'Kennzeichnungen', 'Lagerorte'])
         first = page.locator('.grundlagen-list .admin-list-row').first
         expect(first).to_be_visible()
         box = first.bounding_box()
@@ -264,9 +272,9 @@ def test_ingredient_list_genuine_browser_zoom_200(
             assert page.locator('main .btn-primary').count() == 1
             expect(page.locator('main .btn-primary').first).to_have_attribute('aria-label', 'Anlegen')
             expect(page.locator('main .btn-primary').first).to_have_text('')
-            expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon use').first).to_have_attribute(
-                'href', re.compile(r'tabler-')
-            )
+            expect(page.locator('nav[aria-label="Stammdatenbereiche"] .icon')).to_have_count(0)
+            expect(page.locator('nav[aria-label="Stammdatenbereiche"] a')).to_have_text(
+                ['Zutaten', 'Einheiten', 'Kategorien', 'Kennzeichnungen', 'Lagerorte'])
             first = page.locator('.grundlagen-list .admin-list-row').first
             expect(first).to_be_visible()
             expect(page.locator(".admin-filter-dialog")).not_to_be_visible()
@@ -308,8 +316,9 @@ def test_ingredient_form_keeps_native_payload_and_opens_on_error(
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         page.goto(base + '/admin/grundlagen/zutaten/neu')
-        form_details = page.locator('main details').filter(has_text='Zutat anlegen').first
-        expect(form_details).to_have_attribute('open', '')
+        core = page.locator('#food-core-form')
+        expect(core).to_be_visible()
+        expect(page.locator('main details')).to_have_count(0)
         assert page.locator('main .btn-primary').count() == 1
         expect(page.locator('#food-core-form').get_by_role('button', name='Speichern', exact=True).locator('.icon use')).to_have_attribute(
             'href', re.compile(r'tabler-device-floppy')
@@ -335,7 +344,8 @@ def test_ingredient_form_keeps_native_payload_and_opens_on_error(
         assert payload['storage_location_public_ids'] == storage_id
         assert payload['prepared_recipe_choice'] == ''
         assert payload['name'] == '<unzulässig>'
-        expect(form_details).to_have_attribute('open', '')
+        expect(core).to_be_visible()
+        expect(page.locator('main details')).to_have_count(0)
         expect(page.get_by_label('Name', exact=True)).to_have_value('<unzulässig>')
         expect(page.get_by_label('Name', exact=True) if javascript else page.locator('.error-region')).to_be_focused()
         _assert_no_horizontal_scroll(page)
@@ -365,8 +375,7 @@ def test_ingredient_statuses_and_secondary_actions_stay_separate(
         allergen_status = status.locator('.admin-statusbar-item').filter(has_text='Allergenprüfung')
         expect(allergen_status).to_have_class(re.compile(r'admin-statusbar-item--warning'))
         assert 'Version' not in status.inner_text()
-        expect(page.get_by_role('button', name=re.compile(r'.+ archivieren$'))).not_to_be_visible()
-        page.locator('main details').filter(has=page.locator('form[action$="/archivieren"], form[action$="/reaktivieren"]')).locator('summary').first.click()
+        expect(page.locator('#master-status summary')).to_have_count(0)
         expect(page.get_by_role('button', name=re.compile(r'.+ archivieren$'))).to_be_visible()
         _assert_no_horizontal_scroll(page)
 
@@ -405,14 +414,14 @@ def test_p3_polish_foundations_primary_hint_overflow(b3, master_server, browser)
         expect(page.locator('#food-core-save-hint')).to_be_visible()
         expect(page.locator('[data-semantic="actions.back"]').first).to_be_visible()
         expect(page.locator('[data-semantic="actions.save"]').first).to_be_visible()
-        page.locator('form[action$="/preis"]').locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
+        expect(page.locator('form[action$="/preis"]')).to_be_visible()
         expect(page.get_by_role('button', name='Preis speichern', exact=True)).to_be_visible()
-        page.locator('details').filter(has=page.locator('form[action$="/tags"]')).locator('summary').first.click()
+        expect(page.locator('form[action$="/tags"]')).to_be_visible()
         expect(page.get_by_role('button', name='Kennzeichnen', exact=True)).to_be_visible()
         expect(page.get_by_role('button', name='Kennzeichnen', exact=True)).not_to_have_class(re.compile('btn-primary'))
-        page.locator('details').filter(has=page.locator('form[action$="/metadaten"]')).locator('summary').first.click()
+        expect(page.locator('form[action$="/metadaten"]')).to_be_visible()
         expect(page.get_by_role('button', name='Angaben speichern', exact=True)).to_be_visible()
-        page.get_by_text('Allergenprüfung', exact=True).last.click()
+        expect(page.get_by_role('heading', name='Allergenprüfung', exact=True)).to_be_visible()
         expect(page.get_by_role('button', name='Prüfung bestätigen', exact=True)).to_be_visible()
         expect(page.get_by_role('button', name='Bestätigen', exact=True)).to_have_count(0)
         _assert_no_horizontal_scroll(page)
@@ -450,20 +459,14 @@ def test_p4_stammdaten_inventory_counts_sum():
     assert total['wrong_icons'] == 0
     assert total['long_labels'] == 0
     assert total['literal_buttons'] == 0
-    assert total['local_lists'] == 2
+    assert total['local_lists'] == 1
     assert total['local_filters'] == 2
     assert total['list_typography_overrides'] == 0
     assert total['css_px_heights'] == 0
-    # Alt: pin 28 (literal_buttons 1, local_filters 4, local_status 11,
-    # local_footers 1, raw_details 9, local_lists 2). On integrate/uc-0930
-    # Einkauf/Bestellung were already down, so the live sum before UC-P1-C
-    # was 17. Neu: Grundlagen, Zutat, Einheit and the conflict page contribute
-    # 0 after filter_bar_sem, status_badge_sem, disclosure_section and
-    # icon_button. Grund: the package acceptance lowers those counters and
-    # the pin must match inventory(). The remaining 4 are local_lists on
-    # einkaufsliste.html and kalkulation.html plus local_filters on
-    # einkaufsliste.html (P2-C, not edited here).
+    # UI-DELTA-3-23 removes the cost-line ID list; only the shopping list's
+    # native content list and two filters remain in this owned template group.
+    # This lowers the local ratchet, without changing the shared disclosure pin.
     assert total['local_status'] == 0
     assert total['local_footers'] == 0
     assert total['raw_details'] == 0
-    assert sum(total.values()) == 4
+    assert sum(total.values()) == 3

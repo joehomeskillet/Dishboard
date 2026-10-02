@@ -248,7 +248,8 @@ def test_inventory_insufficient_and_real_zero_are_distinct(b3):  # noqa: F811
     response = client.post('/admin/lager/umbuchung', data=transfer)
     assert response.status_code == 409
     assert Forms(response.text).forms['/admin/lager/umbuchung']['quantity'] == '1'
-    assert 'Bestand würde negativ.' in response.text and 'id="lager-more" open' in response.text
+    assert 'Bestand würde negativ.' in response.text and 'id="lager-more"' in response.text
+    assert '<details id="lager-more"' not in response.text
     assert _movements(owner) == 0
     move = forms['/admin/lager/bewegung']
     move['quantity'] = '2'
@@ -312,7 +313,8 @@ def test_demand_error_keeps_both_values(b3, food, quantity, target):  # noqa: F8
     kept = OrderForms(response.text).forms[path]
     assert kept['food_public_id'] == food and kept['need_quantity'] == quantity
     assert f'id="{target}-error"' in response.text
-    assert 'id="korb-weitere" open' in response.text
+    assert '<section id="korb-weitere"' in response.text
+    assert '<details id="korb-weitere"' not in response.text
 
 
 def test_cost_input_error_keeps_kind_revision_and_extra(b3):  # noqa: F811
@@ -323,7 +325,10 @@ def test_cost_input_error_keeps_kind_revision_and_extra(b3):  # noqa: F811
     })
     assert response.status_code == 400
     assert 'value="nicht-eine-uuid"' in response.text and 'value="extra-wert"' in response.text
-    assert 'value="prepared" selected' in response.text and 'id="cost-options" open' in response.text
+    assert 'value="prepared" selected' in response.text
+    # UI-DELTA keeps the shared No-JS navigation disclosure outside the work area.
+    main = response.text.split('<main', 1)[1].split('</main>', 1)[0]
+    assert 'id="cost-options"' in main and '<details' not in main
 
 
 def test_cost_receipt_conflict_keeps_inputs_without_second_receipt(b3):  # noqa: F811
@@ -376,7 +381,7 @@ def test_browser_keeps_error_inputs_with_and_without_javascript(b3, javascript, 
                         elif case == 'transfer':
                             _transfer(page, post_status)
                         else:
-                            page.locator('#lager-more > summary').click()
+                            expect(page.locator('#counted_quantity')).to_be_visible()
                             _count(page, post_status)
                     elif case == 'basket':
                         _basket(page, origin, ctx, client, post_status)
@@ -402,7 +407,8 @@ def _review_browser_case(case, page, origin, ctx, post_status):
         page.goto(origin + '/admin/kalkulation')
         page.locator('#revision_public_id').fill('11111111-1111-4111-8111-111111111111')
         page.locator('#kind').select_option('menu')
-        page.locator('#cost-options > summary').click()
+        expect(page.locator('#cost-options > summary')).to_have_count(0)
+        expect(page.locator('#menu_revision_public_id')).to_be_visible()
         page.locator('#menu_revision_public_id').fill('invalid-extra')
         assert post_status(page.locator('main .btn-primary')) == 400
         expect(page.locator('#menu_revision_public_id-error')).to_be_visible()
@@ -442,12 +448,13 @@ def _move(page, origin, ctx, post_status) -> None:
 
 
 def _transfer(page, post_status) -> None:
-    page.locator('#lager-more > summary').click()
+    expect(page.locator('#transfer_qty')).to_be_visible()
     page.locator('#transfer_qty').fill('abc')
     status = post_status(page.locator('#lager-transfer-form button[type="submit"]'))
     assert status == 400
     expect(page.locator('#transfer_qty')).to_have_value('abc')
-    expect(page.locator('#lager-more')).to_have_attribute('open', '')
+    expect(page.locator('#lager-more')).to_be_visible()
+    expect(page.locator('#lager-more > summary')).to_have_count(0)
     expect(page.locator('#transfer_qty-error')).to_contain_text('Zahl')
 
 
@@ -478,7 +485,8 @@ def _cost(page, origin, post_status) -> None:
     assert page.goto(origin + '/admin/kalkulation', wait_until='load').status == 200
     page.locator('#revision_public_id').fill('nicht-eine-uuid')
     page.locator('#kind').select_option('menu')
-    page.locator('#cost-options > summary').click()
+    expect(page.locator('#cost-options > summary')).to_have_count(0)
+    expect(page.locator('#menu_revision_public_id')).to_be_visible()
     page.locator('#menu_revision_public_id').fill('extra-wert')
     status = post_status(page.locator('main .btn-primary'))
     assert status == 400

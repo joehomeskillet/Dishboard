@@ -119,27 +119,28 @@ def test_settings_normal_state_and_viewports(
         expect(status).to_contain_text('Kompakt')
         expect(status).to_contain_text('Anzeigen')
 
-        # 4 options with default values. Hints for spacing and preview width stay collapsed.
+        # UI-DELTA: four native options and immediately readable guidance.
         expect(page.get_by_label('Abstände', exact=True)).to_have_value('compact')
         expect(page.locator('#admin-density-hint')).to_have_count(1)
-        expect(page.locator('#admin-density-hint')).to_be_hidden()
+        expect(page.locator('#admin-density-hint')).to_be_visible()
         expect(page.locator('#admin-density-hint')).to_have_text('Kompakt zeigt kleinere Kartenabstände.')
         expect(page.get_by_label('Schriftgrösse', exact=True)).to_have_value('normal')
         expect(page.locator('#admin-font-size-hint')).to_have_count(0)
         expect(page.get_by_label('Inhaltsbreite', exact=True)).to_have_value('contained')
         expect(page.locator('#admin-content-width-hint')).to_have_count(1)
-        expect(page.locator('#admin-content-width-hint')).to_be_hidden()
+        expect(page.locator('#admin-content-width-hint')).to_be_visible()
         expect(page.get_by_label('Menübilder', exact=True)).to_have_value('show')
         expect(page.locator('#admin-menu-images-hint')).to_have_count(0)
 
-        # Icon actions: one primary save, preview beside it, reset inside Weitere Optionen.
+        # Icon actions: one primary save, preview beside it, direct reset with consequence.
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('main .btn-primary')).to_have_accessible_name('Speichern')
         expect(page.locator('main .btn-primary')).to_have_attribute('data-semantic', 'actions.save')
         preview_button = page.get_by_role('button', name='Vorschau', exact=True)
         expect(preview_button).to_be_visible()
         expect(preview_button).to_have_attribute('data-semantic', 'actions.preview')
-        expect(page.locator('#display-reset-btn')).to_be_hidden()
+        expect(page.locator('#display-reset-btn')).to_be_visible()
+        expect(page.locator('#display-reset-hint')).to_be_visible()
         expect(page.locator('#display-reset-btn')).to_have_attribute(
             'aria-describedby', 'display-reset-hint',
         )
@@ -331,8 +332,8 @@ def test_settings_nojs_save_and_reset(
         assert get_admin_display(admin_engine) == expected
         page.screenshot(path=str(tmp_path / 'ref-settings-nojs-saved.png'), full_page=True)
 
-        # Reset stays in Weitere Optionen until the native disclosure is opened.
-        page.locator('#display-more > summary').click()
+        # UI-DELTA exposes reset and its consequence without an extra trigger.
+        expect(page.locator('#display-more summary')).to_have_count(0)
         expect(page.locator('#display-reset-btn')).to_be_visible()
         page.get_by_role('button', name='Standardwerte speichern', exact=True).click()
         expect(page.get_by_text('Standardwerte für alle Benutzer und Geräte gespeichert.', exact=True)).to_be_visible()
@@ -357,13 +358,10 @@ def test_settings_keyboard_navigation_and_focus(
         page.keyboard.press('Tab')
         expect(page.locator('.skip-link')).to_be_focused()
 
-        hint = page.locator('.admin-hint > summary').first
-        _assert_brand_focus_ring(hint)
-        expect(hint).to_be_focused()
-        page.keyboard.press('Enter')
+        density = page.locator('#admin-density')
+        _assert_brand_focus_ring(density)
+        expect(density).to_be_focused()
         expect(page.locator('#admin-density-hint')).to_be_visible()
-        page.keyboard.press('Enter')
-        expect(page.locator('#admin-density-hint')).to_be_hidden()
 
         # Tab through the 4 form select fields
         for field_id in ADMIN_DISPLAY_CHOICES:
@@ -378,10 +376,7 @@ def test_settings_keyboard_navigation_and_focus(
             _assert_brand_focus_ring(btn)
             expect(btn).to_be_focused()
 
-        summary = page.locator('#display-more > summary')
-        _assert_brand_focus_ring(summary)
-        expect(summary).to_be_focused()
-        page.keyboard.press('Enter')
+        expect(page.locator('#display-more summary')).to_have_count(0)
         reset = page.locator('#display-reset-btn')
         expect(reset).to_be_visible()
         _assert_brand_focus_ring(reset)

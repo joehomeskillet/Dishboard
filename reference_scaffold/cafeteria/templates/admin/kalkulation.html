@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, disclosure_section, empty_value, form_errors %}
+{% from 'admin/_macros.html' import page_header, form_errors %}
 {% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% set workflow_nav = 'cost' %}
 {% block title %}Kalkulation · Menüplanung{% endblock %}
@@ -40,12 +40,10 @@
       <input class="form-control{% if field_errors is defined and field_errors.as_of %} is-invalid{% endif %}" id="as_of" name="as_of" type="date" value="{{ as_of }}" required{% if field_errors is defined and field_errors.as_of %} aria-invalid="true" aria-describedby="as_of-error" autofocus{% endif %}>
       {% if field_errors is defined and field_errors.as_of %}<div class="invalid-feedback d-block field-error" id="as_of-error">{{ field_errors.as_of }}</div>{% endif %}
     </div>
-    <div class="col-12 cost-extra{% if menu_revision_public_ids|default([]) %} cost-extra-filled{% endif %}">
-      {% call disclosure_section(id='cost-options', has_content=menu_revision_public_ids|default([]), has_error=field_errors is defined and field_errors.menu_revision_public_id) %}
+    <div class="col-12 cost-extra" id="cost-options">
         <label class="form-label" for="menu_revision_public_id">Weitere Menü-Revision</label>
         <input class="form-control{% if field_errors is defined and field_errors.menu_revision_public_id %} is-invalid{% endif %}" id="menu_revision_public_id" name="menu_revision_public_id" value="{{ menu_revision_public_ids[0] if menu_revision_public_ids|default([]) else '' }}"{% if field_errors is defined and field_errors.menu_revision_public_id %} aria-invalid="true" aria-describedby="menu_revision_public_id-error" autofocus{% endif %}>
         {% if field_errors is defined and field_errors.menu_revision_public_id %}<div class="invalid-feedback d-block field-error" id="menu_revision_public_id-error">{{ field_errors.menu_revision_public_id }}</div>{% endif %}
-      {% endcall %}
     </div>
     {% if projection %}<div class="col-12">{{ icon_button('actions.preview') }}</div>{% endif %}
   </form>
@@ -65,19 +63,14 @@
       <tbody>
       {% for line in projection.lines %}
         <tr>
-          <td data-label="Zutat"><strong class="admin-list-primary">{{ t('recipe.ingredient.label') }} {{ loop.index }}</strong>{% if not line.food_public_id %} <span class="admin-list-secondary">ohne Zutat</span>{% endif %}</td>
-          <td data-label="Menge">{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% else %}{{ empty_value() }}{% endif %}</td>
+          <td data-label="Zutat"><strong class="admin-list-primary">{{ t('recipe.ingredient.label') }} {{ loop.index }}</strong><span class="admin-list-secondary d-block">{{ line.food_public_id or 'ohne Zutat' }}</span></td>
+          <td data-label="Menge">{% if line.quantity is not none %}{{ line.quantity }} {{ line.unit_code }}{% else %}Ohne Mengenangabe{% endif %}</td>
           <td class="admin-table-status" data-label="Status">{% if line.status == 'complete' %}{{ status_badge_sem('status.done', text='vollständig') }}{% else %}{{ status_badge_sem('status.incomplete', text='unvollständig') }}{% endif %}</td>
-          <td data-label="Betrag">{% if line.amount is not none %}{{ line.amount }} CHF{% else %}{{ empty_value() }}{% endif %}</td>
+          <td data-label="Betrag">{% if line.amount is not none %}{{ line.amount }} CHF{% else %}Nicht berechenbar{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
-    {% call disclosure_section(id='cost-line-details') %}
-      <ol class="mb-0">
-      {% for line in projection.lines %}<li>{{ line.food_public_id or 'ohne Zutat' }}</li>{% endfor %}
-      </ol>
-    {% endcall %}
     <form id="cost-confirm" method="post" action="{{ url_for('admin.cost_confirm') }}" data-loading>
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
       <input type="hidden" name="kind" value="{{ kind|default('recipe') }}">

@@ -177,6 +177,104 @@ Die ungenutzte zweite Kopfkomponente `status_bar` entfällt. `label` bleibt der
 interne Renderer, `status_badge`/`status` bleiben vorläufige Adapter für vorhandene
 fachliche Zuordnungen. Kategorie- und Herkunftslabels werden nicht zu Status erklärt.
 
+### Kochbücher: UI-DELTA-Verbraucher (DELTA-3-17, 2026-10-01)
+
+Der Archivhinweis im Kochbucheditor steht einmal statisch bei den Angaben;
+ältere Hinweis-Aufklapper sind hier durch UI-DELTA §0.1 abgelöst. Bestätigungen
+verwenden explizit den Textmodus. Anlegen bleibt im Listenkopf; ein identischer
+Suchreset bleibt in der Toolbar. Suchreset mit erhaltenem Archivfilter und
+vollständiger Filterreset bleiben wegen unterschiedlicher Parameter getrennt.
+Leseansicht und Editor bleiben getrennte Aufgaben. Fehlt ein zugeordnetes Rezept,
+steht «Rezept nicht verfügbar» in der Rezeptspalte; die Ausbeute-Zelle bleibt leer.
+Der gemeinsame Filterdialog
+ist als DELTA-2b-Vertragslücke offen, ohne lokalen Ersatz.
+
+### Gerichtvorlagen: UI-DELTA-Verbraucher (DELTA-3-18, 2026-10-01)
+
+Rezeptkontext und Planungshinweis stehen statisch sichtbar. Die native
+Einplanen-Aktion trägt ausschliesslich den eindeutigen Text «Einplanen».
+Identische Rücksprünge bleiben im Kopf; der Formularfuss enthält die
+Schreibaktionen. Suchreset steht in der Toolbar, der alleinige Archivfilter
+wird durch seinen bestehenden Filterchip aufgehoben. Fehlende optionale
+Menüart und Beilage lassen ihre Tabellenzellen leer. D-77 bleibt bis zum
+gemeinsamen Filterdialog in DELTA-2b offen.
+
+### Kontodetail und Anlage: UI-DELTA (DELTA-3-19, 2026-10-01)
+
+Anlage, Rollen, Passwort und Kontostatus nutzen statische Tabler-Abschnitte.
+Die drei Sicherheitsformulare bleiben getrennt, inklusive nativer Bestätigung,
+Versionsprüfung und Sitzungswiderruf. Sicherheitsaktionen haben reinen Text;
+Fehler stehen weiterhin beim eigenen Formular und werden fokussiert. Die
+Anmeldesperre steht nur im Kopf; Passwortprüfung und Änderungszeit bleiben im
+statischen Abschnitt Anmeldedaten. Der Hinweis zur getrennten Speicherung ist
+unmittelbar lesbar. Die Ausfallseite verwendet ausdrücklich den Textmodus.
+
+### Benutzerliste und Verläufe: UI-DELTA (DELTA-3-20, 2026-10-01)
+
+Anlegen steht einmal im Kopf; «Alle lokalen Konten» bleibt der einzige Zugang
+zur ungefilterten ersten Seite. Bei Aktiv-/Deaktiviert-Filtern entfällt der
+redundante Status-Slot. Eine fehlende aktive Rolle ist zugriffsrelevant und
+erscheint als «Keine Rolle». Hinweise zu Kontoereignissen und Geltungsbereich
+des Zugriffsverlaufs stehen statisch; die nativen Verlaufsfilter bleiben erhalten.
+Die leere Aktionsgruppe aus dem gemeinsamen list_row bleibt als P-07-Vertragslücke
+offen und wird nicht durch einen lokalen Listenrenderer umgangen.
+
+### API-Verwaltung: UI-DELTA (DELTA-3-21, 2026-10-01)
+
+Schlüsselmetadaten, Anlageformular und technische Angaben stehen statisch.
+Die Textaktion Widerrufen behält CSRF, Konsequenztext und native Bestätigung.
+Nie verwendete Schlüssel zeigen «Noch nicht verwendet»; fehlende Revisionen
+bleiben leere Tabellenzellen. Veröffentlichung und Zeitraum stehen einmal
+im Kopf, technische Revisionen darunter. Der Anlegen-Sprung steht einmal im Kopf.
+Swagger verwendet den vorgesehenen Plugin-Hook für einen reinen Textbutton
+Authorize mit sichtbarem Autorisierungszustand; Popup und Authentifizierungsablauf
+bleiben bei der Originalkomponente. Die Operationsaufklapper bleiben als D-119
+offen dokumentiert; Vendor-Dateien und gemeinsame Renderer sind unverändert.
+
+### Einkauf und Bestellung: UI-DELTA (DELTA-3-22, 2026-10-01)
+
+Anlage- und Bedarfsfelder stehen statisch in ihren bisherigen nativen Formularen.
+Notiz, Bedarfspolitik und Belegabgrenzung bleiben unmittelbar lesbar. Die
+Bestellvorschau nutzt den gemeinsamen Lesedialog; Öffnen und Schliessen verändern
+weder Mengen noch Versionen. Der Kopfrücksprung bleibt, der identische Abbruchlink
+im Korbfuss entfällt. Identische Anlege-Sprünge stehen nur im Kopf; der Submit
+bleibt erhalten. Fehlende optionale Einheiten bleiben tatsächlich leere Zellen.
+Einkaufslisten-Segmente nutzen `page_header(..., segments=...)` vor Zählwerten,
+Anlegeformular und Fehlern. Leere gemeinsame Aktionswrapper (P-07) bleiben offen.
+
+### Einstellungen und Kalkulation: UI-DELTA (DELTA-3-23, 2026-10-01)
+
+Markenverlauf, Übernahmeformular, Reset und kurze Upload-/Darstellungs-/CSV-Hinweise
+stehen statisch. Versionszeilen sind reine Textlinks; aktive Marke ist einmal im
+Verlauf erreichbar. Der Kopf zeigt in jedem Auswahlzustand dieselben Statusfelder,
+Versionslinks erhalten den Verlaufskontext per Anker. Speichern, Aktivieren und
+Übernehmen behalten getrennte native Formulare und Versionsprüfungen.
+Die weitere Menürevision bleibt als optionales Feld sichtbar. Zutaten-IDs stehen
+direkt als Sekundärtext jeder Kalkulationszeile. Fehlende Mengen heissen «Ohne
+Mengenangabe», fehlende Beträge «Nicht berechenbar»; Nullwerte bleiben echte Werte.
+
+### Stammdatenliste und Vokabular: UI-DELTA (DELTA-3-15, 2026-10-01)
+
+Stammdatenbereiche sind reine Texttabs mit unveränderter DELTA-4-Geometrie.
+Einheiten- und Vokabularformulare, technische Angaben und Statusaktionen stehen
+statisch. Fehler-/Ausfallaktionen nutzen Textmodus. Identisches Anlegen bleibt
+im Kopf, Zurücksetzen in der Filterleiste; Bereichstabs behalten ihre eigene
+Navigationsfunktion. Optionale Status-Slots entfallen, aktive Archivfilter zeigen
+weiterhin konkrete Statuswerte. D-80 bleibt bis zum gemeinsamen Filterdialog offen.
+
+### Zutaten und Lager: UI-DELTA (DELTA-3-16, 2026-10-01)
+
+Rezeptauswahl, Zutatenfelder einschliesslich optionaler Angaben, Preisformular,
+Verknüpfungen, Herkunft, Kennzeichnungen, Allergene/Kostformen, Prüfung und Status
+stehen statisch. Native Checkbox-Auswahl bleibt erhalten; jeder Speicherbereich
+behält sein eigenes Formular. Unbefristete Preise sind ausdrücklich bezeichnet.
+Zutatenformularseiten verwenden sofortiges Scrollen bei nativen Fokuswechseln;
+Preisfehler bleiben per Maus und Tastatur auch ohne JavaScript bedienbar.
+Der identische Rückweg steht einmal über dem Formular; Standortkonflikte zeigen
+Text-Recovery und bewahren alle ursprünglichen Eingaben. Umbuchung und Zählung
+bleiben sichtbar, Lagerauswahl führt per Anker zum Detailbereich. Nicht erfasster
+Bestand und eine erfasste Null bleiben verschiedene Zustände.
+
 ### Erweiterte gemeinsame Makro-API (UC-G0d, 2026-10-01)
 
 `disclosure_section` behält seine bisherigen Positionsparameter und ergänzt

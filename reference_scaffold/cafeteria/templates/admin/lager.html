@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, empty_state, disclosure_section, form_errors %}
+{% from 'admin/_macros.html' import page_header, empty_state, form_errors %}
 {% from 'ui/_semantic.html' import icon_button, row_actions %}
 {% set workflow_nav = 'inventory' %}
 {% set uncaptured_count = slots|rejectattr('captured')|list|length %}
@@ -29,7 +29,7 @@
         <td data-label="Lagerort"><span class="admin-list-secondary">{{ slot.storage_name }}</span></td>
         <td data-label="Bestand">{% if slot.captured %}{{ slot.label }}{% else %}Nicht erfasst{% endif %}</td>
         <td class="lager-row-action admin-table-actions" data-label="Aktion">
-          {{ row_actions([{'key': 'actions.open', 'href': url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id), 'class': 'active' if current else '', 'object': slot.food_name ~ ', ' ~ slot.storage_name, 'attrs': {'aria-current': true} if current else none}]) }}
+          {{ row_actions([{'key': 'actions.open', 'href': url_for('admin.inventory_home', food_public_id=slot.food_public_id, storage_public_id=slot.storage_public_id, _anchor='lager-move'), 'class': 'active' if current else '', 'object': slot.food_name ~ ', ' ~ slot.storage_name, 'attrs': {'aria-current': true} if current else none}]) }}
         </td>
       </tr>
     {% endfor %}
@@ -38,7 +38,7 @@
 </section>
 
 {% if selected %}
-<section class="lager-move" aria-labelledby="lager-move-heading">
+<section class="lager-move" id="lager-move" aria-labelledby="lager-move-heading">
   <h2 class="lager-section-title" id="lager-move-heading">Zugang / Abgang · {{ selected.food_name }} · {{ selected.storage_name }}</h2>
   {% if error_form == 'move' %}{{ form_errors(field_errors) }}{% endif %}
   <form method="post" action="{{ url_for('admin.inventory_move') }}" class="lager-form" id="lager-move-form" data-loading>
@@ -73,7 +73,7 @@
   </form>
 </section>
 
-{% call disclosure_section(title='Weitere Optionen', id='lager-more', has_error=error_form == 'transfer' or error_form == 'count') %}
+<div id="lager-more">
 <section class="lager-transfer" aria-labelledby="lager-transfer-heading">
   <h2 class="lager-section-title" id="lager-transfer-heading">Umbuchung</h2>
   {% if error_form == 'transfer' %}{{ form_errors(field_errors) }}{% endif %}
@@ -138,11 +138,11 @@
     <div class="lager-form-actions">{{ icon_button('actions.confirm', emphasis='secondary') }}</div>
   </form>
 </section>
-{% endcall %}
+</div>
 {% endif %}
 {% else %}
 {% call empty_state('none', 'Keine Zuordnung vorhanden', 'Zuerst in Zutaten eine aktive Zutat einem Lagerort zuordnen.', compact=true) %}
-{{ icon_button('navigation.ingredients', href=url_for('admin.master_data_list', kind='zutaten'), emphasis='primary', show_text=true) }}
+{{ icon_button('navigation.ingredients', href=url_for('admin.master_data_list', kind='zutaten'), emphasis='primary', mode='text') }}
 {% endcall %}
 {% endif %}
 {% endblock %}

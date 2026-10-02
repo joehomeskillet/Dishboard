@@ -9,6 +9,7 @@ from playwright.sync_api import expect
 from sqlalchemy.exc import SQLAlchemyError
 
 from cafeteria import recipe_store as store, roles
+from delta_browser_evidence import capture_delta
 from test_cookbooks_browser import cookbook_server  # noqa: F401
 from test_master_data_db import signed_in
 from test_master_data_routes import app_engine, b3, installed_pg16, pg16, seeded_pg16  # noqa: F401
@@ -159,7 +160,11 @@ def test_cookbook_view_access_and_methods(reading_book, b3, monkeypatch):  # noq
     assert snapshot(data['owner']) == before
 
 
-def test_cookbook_view_empty_and_unavailable_recipe(reading_book, browser, monkeypatch):  # noqa: F811
+@pytest.mark.parametrize('width,height,touch', [
+    (1440, 900, False), (1440, 900, True), (390, 844, False), (390, 844, True),
+])
+def test_cookbook_view_empty_and_unavailable_recipe(
+        reading_book, browser, monkeypatch, tmp_path, width, height, touch):  # noqa: F811
     data = reading_book
     engine, actor = data['engine'], data['actor']
     with signed_in(engine, actor):
@@ -171,7 +176,8 @@ def test_cookbook_view_empty_and_unavailable_recipe(reading_book, browser, monke
         return tuple(row for row in read_recipes(*args, **kwargs) if row.public_id != data['first'])
 
     monkeypatch.setattr(store, 'list_recipes', without_first)
-    with browser.new_context(viewport={'width': 390, 'height': 844}, java_script_enabled=False) as context:
+    with browser.new_context(viewport={'width': width, 'height': height}, has_touch=touch,
+                             java_script_enabled=False) as context:
         cookie = data['cookie']
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': data['base']}])
         page = context.new_page()
@@ -179,12 +185,16 @@ def test_cookbook_view_empty_and_unavailable_recipe(reading_book, browser, monke
         missing = page.locator('main tbody tr').nth(1)
         expect(missing).to_contain_text('Rezept nicht verfügbar')
         expect(missing.locator('a')).to_have_count(0)
-        # UI-DELTA §0.1/P-02: missing recipe yield is named explicitly.
-        expect(missing.locator('.admin-empty-value')).to_have_text('Nicht erfasst')
+        capture_delta(page, tmp_path / 'unavailable.png', touch)
+        # UI-DELTA P-36: the recipe column explains the unavailable row;
+        # the corresponding yield cell remains empty, without a placeholder span.
+        expect(missing.locator('[data-label="Ausbeute"]')).to_be_empty()
+        expect(missing.locator('.admin-empty-value')).to_have_count(0)
         assert page.goto(data['base'] + f'/admin/kochbuecher/{book.public_id}/ansicht').status == 200
         expect(page.locator('main').get_by_text('0 Rezepte', exact=True)).to_be_visible()
         expect(page.locator('main').get_by_text('Noch keine Rezepte zugeordnet.', exact=True)).to_be_visible()
         expect(page.locator('main form, main table')).to_have_count(0)
+        capture_delta(page, tmp_path / 'empty.png', touch)
 
 
 def test_cookbook_view_english(reading_book, b3, monkeypatch):  # noqa: F811

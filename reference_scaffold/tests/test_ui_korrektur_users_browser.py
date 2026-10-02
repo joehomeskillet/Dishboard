@@ -92,30 +92,25 @@ def test_wp19_measured_page_frame(live_accounts, browser, javascript):
                         assert table.locator('tbody tr').first.evaluate(
                             'el => getComputedStyle(el).display'
                         ) == ('grid' if width < 768 else 'table-row')
-                    if name in ('detail', 'events'):
-                        help_trigger = page.locator('.admin-hint > summary')
-                        help_trigger.focus()
-                        expect(help_trigger).to_be_focused()
-                        help_trigger.press('Enter')
-                        expect(page.locator('.admin-hint .form-hint')).to_be_visible()
-                        help_trigger.press('Enter')
-                        expect(page.locator('.admin-hint .form-hint')).to_be_hidden()
+                    if name == 'detail':
+                        expect(page.locator('.admin-hint > summary')).to_have_count(0)
+                        expect(page.locator('#account-actions-hint')).to_be_visible()
+                    elif name == 'events':
+                        expect(page.locator('.admin-hint > summary')).to_have_count(0)
+                        expect(page.locator('#account-events-hint')).to_be_visible()
                     else:
-                        scope = page.get_by_text('Geltungsbereich', exact=True)
-                        scope.focus()
-                        scope.press('Enter')
+                        expect(page.get_by_role('heading', name='Geltungsbereich', exact=True)).to_be_visible()
+                        expect(page.locator('main details, main summary')).to_have_count(0)
                         expect(page.get_by_text('Zeitangaben: Schweiz.', exact=False)).to_be_visible()
-                        scope.press('Enter')
                 if name == 'detail':
                     expect(page.locator('.admin-statusbar')).to_be_visible()
                     assert 'authz_version' not in page.locator('.admin-statusbar').inner_text()
                     expect(page.locator('.admin-statusbar')).to_contain_text('Aktiv')
                     expect(page.locator('.admin-statusbar')).to_contain_text('Editor')
                     expect(page.locator('.admin-statusbar')).to_contain_text('Nicht vorübergehend gesperrt')
-                    expect(page.locator('#roles-action > summary')).not_to_have_class(re.compile(r'\bbtn-primary\b'))
-                    page.locator('#roles-action > summary').click()
+                    expect(page.locator('#roles-action > summary')).to_have_count(0)
                     expect(page.locator('#roles-action button[data-semantic="actions.save"]')).to_have_accessible_name('ui.measure.target speichern')
-                    page.locator('#roles-action > summary').click()
+                    expect(page.locator('#roles-action form')).to_be_visible()
                 if name == 'list':
                     assert metric['row'] <= (144 if width < 1024 else 96), metric
                     row = page.locator('[data-account-row]').first
@@ -248,16 +243,16 @@ def test_list_first_and_native_create_form_preserves_request_contract(
         edit.focus()
         page.keyboard.press('Enter')
         info = page.locator('#account-login-details')
-        info.locator('summary').click()
-        expect(info.get_by_text('Nicht vorübergehend gesperrt', exact=True)).to_be_visible()
+        expect(info.locator('summary')).to_have_count(0)
+        expect(page.locator('.admin-statusbar').get_by_text('Nicht vorübergehend gesperrt', exact=True)).to_be_visible()
         expect(info.get_by_text('Letzte lokale Passwortprüfung', exact=True)).to_be_visible()
-        info.locator('summary').click()
-        assert not info.evaluate('el => el.open')
+        expect(info.get_by_text('Lokale Anmeldung', exact=True)).to_have_count(0)
         page.get_by_role('link', name='Zurück', exact=True).click()
 
         page.get_by_role('link', name='Anlegen', exact=True).click()
         create = page.locator("#create-local-user")
-        expect(create).to_have_attribute('open', '')
+        expect(create.locator('summary')).to_have_count(0)
+        expect(create.locator('form')).to_be_visible()
         form = create.locator("form")
         assert urlsplit(form.get_attribute("action") or "").path == "/admin/benutzer"
         assert form.get_attribute("method").lower() == "post"
@@ -300,7 +295,8 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
         page = context.new_page()
         page.set_viewport_size({"width": 390, "height": 844})
         _open(page, origin, "/admin/benutzer/neu")
-        expect(page.locator("#create-local-user")).to_have_attribute("open", "")
+        expect(page.locator("#create-local-user summary")).to_have_count(0)
+        expect(page.locator("#create-local-user form")).to_be_visible()
         page.get_by_label("Benutzername", exact=True).fill("ui.error.create")
         page.get_by_label("Anzeigename", exact=True).fill("Erhaltener Anzeigename")
         page.get_by_label("Neues Passwort", exact=True).fill("Valide!Wolken77Kette")
@@ -308,7 +304,7 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
         with page.expect_navigation() as navigation:
             page.get_by_role("button", name="Speichern", exact=True).click()
         assert navigation.value.status == 400
-        assert page.locator("#create-local-user").evaluate("details => details.open")
+        expect(page.locator("#create-local-user form")).to_be_visible()
         expect(page.locator(".error-region")).to_be_focused()
         expect(page.get_by_label("Benutzername", exact=True)).to_have_value("ui.error.create")
         expect(page.get_by_label("Anzeigename", exact=True)).to_have_value("Erhaltener Anzeigename")
@@ -318,27 +314,28 @@ def test_create_and_role_errors_open_correct_group_preserve_safe_values_and_focu
         _screenshot(page, f"local-user-create-error-390x844-{javascript}.png")
 
         _open(page, origin, f"/admin/benutzer/{target.public_id}")
-        page.locator('#account-login-details summary').click()
-        expect(page.locator('#account-login-details').get_by_text("Nicht vorübergehend gesperrt", exact=True)).to_be_visible()
+        expect(page.locator('#account-login-details summary')).to_have_count(0)
+        expect(page.locator('.admin-statusbar').get_by_text("Nicht vorübergehend gesperrt", exact=True)).to_be_visible()
         expect(page.get_by_text("Letzte lokale Passwortprüfung", exact=True)).to_be_visible()
-        page.locator('#account-login-details summary').click()
+        expect(page.locator('#account-login-details').get_by_text('Lokale Anmeldung', exact=True)).to_have_count(0)
         for selector in ("#roles-action", "#password-action", "#state-action"):
             expect(page.locator(selector)).to_have_count(1)
-        page.locator("#roles-action summary").click()
+        expect(page.locator("#roles-action summary")).to_have_count(0)
         for checkbox in page.locator('#roles-action input[name="roles"]').all():
             checkbox.uncheck()
         page.get_by_label("Rollenänderung für ui.error.target bestätigen", exact=True).check()
         with page.expect_navigation() as navigation:
             page.get_by_role("button", name="ui.error.target speichern", exact=True).click()
         assert navigation.value.status == 400
-        assert page.locator("#roles-action").evaluate("details => details.open")
-        assert not page.locator("#password-action").evaluate("details => details.open")
+        expect(page.locator("#roles-action form")).to_be_visible()
+        expect(page.locator("#password-action form")).to_be_visible()
+        expect(page.locator("#password-action .error-region")).to_have_count(0)
         expect(page.locator(".error-region")).to_be_focused()
         assert page.locator('#roles-action input[name="roles"]:checked').count() == 0
         _icons_and_focus(page)
         _screenshot(page, f"local-user-roles-error-390x844-{javascript}.png")
-        page.locator('#roles-action summary').click()
-        expect(page.locator('#roles-action summary')).to_contain_text('Fehler')
+        expect(page.locator('#roles-action summary')).to_have_count(0)
+        expect(page.locator('#roles-title')).to_have_text('Rollen · Fehler')
         assert page.locator('#roles-action input[name="roles"]:checked').count() == 0
 
 
@@ -369,7 +366,7 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
             if action == 'aktivieren':
                 expect(page.locator('.admin-statusbar')).to_contain_text('Deaktiviert')
             details = page.locator(selector)
-            details.locator("summary").click()
+            expect(details.locator("summary")).to_have_count(0)
             original = details.locator('input[type=hidden]').evaluate_all('els => els.map(el => [el.name, el.value])')
             if action == "passwort":
                 page.get_by_label("Neues Passwort", exact=True).fill("Valide!Wolken77Kette")
@@ -400,8 +397,8 @@ def test_security_action_requests_keep_targets_and_fields(live_accounts, browser
             submit.click()
             expect(confirmation).to_be_focused()
             confirmation.check()
-            details.locator('summary').click()
-            details.locator('summary').click()
+            submit.focus()
+            expect(submit).to_be_focused()
             expect(confirmation).to_be_checked()
             assert details.locator('input[type=hidden]').evaluate_all('els => els.map(el => [el.name, el.value])') == original
             with page.expect_request(lambda request: request.method == "POST") as sent:
@@ -473,7 +470,7 @@ def test_stale_roles_reopen_original_choice_without_silent_write(live_accounts, 
             issuer, actor=command.actor, target=command.target, roles=('Cafeteria.Publisher',),
         )
         details = page.locator('#roles-action')
-        details.locator('summary').click()
+        expect(details.locator('summary')).to_have_count(0)
         page.get_by_label('Editor · Menüs bearbeiten', exact=True).uncheck()
         page.get_by_label('Admin · Benutzer und Einstellungen verwalten', exact=True).check()
         details.locator('input[name=confirm]').check()
@@ -481,7 +478,7 @@ def test_stale_roles_reopen_original_choice_without_silent_write(live_accounts, 
         with page.expect_navigation() as navigation:
             details.get_by_role('button', name='ui.conflict.target speichern', exact=True).click()
         assert navigation.value.status == 409
-        assert details.evaluate('el => el.open')
+        expect(details.locator('form')).to_be_visible()
         expect(page.locator('.error-region')).to_be_focused()
         expect(details.locator('input[name=_csrf]')).to_have_value(csrf)
         expect(details.locator('input[name=return_page]')).to_have_value('2')
@@ -509,7 +506,8 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         expect(page.get_by_text('Noch keine lokalen Konten angelegt.', exact=True)).to_be_visible()
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('[data-empty-kind] .btn-primary')).to_have_count(0)
-        expect(page.locator('[data-empty-kind] a[data-semantic="actions.add"]')).to_be_visible()
+        expect(page.locator('[data-empty-kind] a[data-semantic="actions.add"]')).to_have_count(0)
+        expect(page.locator('.page-header a[data-semantic="actions.add"]')).to_be_visible()
         _screenshot(page, f'local-users-empty-{width}-{javascript}.png')
         _open(page, origin, '/admin/benutzer/protokoll')
         expect(page.locator('[data-empty-kind]')).to_contain_text('Noch keine Kontoereignisse')
@@ -520,7 +518,8 @@ def test_empty_filtered_history_readonly_and_unavailable_are_distinct(
         segments.get_by_role('link', name='Deaktiviert', exact=True).click()
         expect(page.get_by_text('Keine lokalen Konten in dieser Auswahl.', exact=True)).to_be_visible()
         expect(segments.get_by_role('link', name='Deaktiviert', exact=True)).to_have_attribute('aria-current', 'page')
-        page.get_by_role('link', name='Zurücksetzen', exact=True).first.click()
+        expect(page.get_by_role('link', name='Zurücksetzen', exact=True)).to_have_count(0)
+        segments.get_by_role('link', name='Alle lokalen Konten', exact=True).click()
         expect(page.locator('[data-account-row]')).to_have_count(1)
         _open(page, origin, '/admin/benutzer/zugriffsverlauf')
         expect(page.get_by_text('Noch keine Zugriffsereignisse erfasst.', exact=True)).to_be_visible()
@@ -613,7 +612,7 @@ def test_history_rows_and_native_filters_keep_scope_and_pagination(live_accounts
         page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         page.get_by_role('navigation', name='Zugriffsereignisseiten').get_by_role('link', name='Weiter').click()
         expect(page.locator('tbody tr')).to_have_count(6)
-        page.get_by_text('Geltungsbereich', exact=True).click()
+        expect(page.get_by_role('heading', name='Geltungsbereich', exact=True)).to_be_visible()
         expect(page.get_by_text('Zeitangaben: Schweiz.', exact=False)).to_be_visible()
         _layout(page)
 

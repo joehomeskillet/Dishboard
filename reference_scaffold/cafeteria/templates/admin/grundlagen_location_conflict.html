@@ -45,7 +45,7 @@
 </section>
 <p class="text-secondary">{{ icon('info-circle', class='text-secondary') }}Neu laden verwirft diesen Formularstand. Daten des vorherigen Standorts sind am neuen Standort nicht verfügbar.</p>
 <div class="d-flex flex-wrap gap-2">
-{{ icon_button('actions.refresh', href=reload_url, text='Neu laden') }}
-{{ icon_button('actions.back', href=url_for('admin.master_data_list', kind=query_kinds[kind])) }}
+{{ icon_button('actions.refresh', href=reload_url, text='Neu laden', mode='text') }}
+{{ icon_button('actions.back', href=url_for('admin.master_data_list', kind=query_kinds[kind]), mode='text') }}
 </div></div></div>
 {% endblock %}

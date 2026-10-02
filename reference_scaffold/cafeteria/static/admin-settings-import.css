@@ -1,6 +1,5 @@
 /* WP17: compact CSV import; submitted fields stay enabled and named. */
-.dishboard-admin main .admin-statusbar-link,
-.dishboard-admin #csv-more > summary {
+.dishboard-admin main .admin-statusbar-link {
   min-width: var(--app-space-12);
   min-height: var(--app-space-12);
 }

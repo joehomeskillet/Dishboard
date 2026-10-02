@@ -369,7 +369,7 @@ def test_valid_return_context_preserves_page_and_escaped_search(editor_session):
 ], indirect=True, ids=['ingredient-js', 'ingredient-nojs'])
 @pytest.mark.parametrize('return_context', ['valid', 'invalid', 'absent'])
 def test_ingredient_footer_cancel_preserves_only_valid_list_context(editor_session, return_context):
-    """Footer cancel retains filters without saving, or returns to the default list."""
+    """UI-DELTA R-13: the remaining back action keeps the former cancel contract."""
     page, owner, evidence = editor_session
     before = _database_state(owner)
     evidence['filter_values'].update(q='Kräuter & "<Zitrone>" / ? #', page='2')
@@ -383,7 +383,9 @@ def test_ingredient_footer_cancel_preserves_only_valid_list_context(editor_sessi
     )
     assert response is not None and response.status == 200
     form = page.locator(evidence['form'])
-    cancel = form.locator('.admin-form-footer').get_by_role('link', name='Abbrechen', exact=True)
+    expect(form.locator('.admin-form-footer a')).to_have_count(0)
+    cancel = page.locator('main [data-semantic="actions.back"]')
+    expect(cancel).to_have_count(1)
     expect(cancel).to_be_visible()
     form.locator('[name="name"]').fill('R15 ungespeichert')
 
@@ -399,7 +401,7 @@ def test_ingredient_footer_cancel_preserves_only_valid_list_context(editor_sessi
     else:
         cancel.click()
         assert evidence['dialogs'] == []
-    _expect_list(page, evidence, 'footer-cancel', retained=return_context == 'valid')
+    _expect_list(page, evidence, 'canonical-back', retained=return_context == 'valid')
     assert evidence['writes'] == []
     assert _database_state(owner) == before
 

@@ -50,8 +50,10 @@ def test_csv_preview_registered_semantics(locale: str, pending: str, more: str) 
     with application.test_request_context():
         rendered = render_template(TEMPLATE, result=None, import_token=None, csrf_token=lambda: 'test-csrf')
     assert pending in rendered
-    assert more in rendered
+    assert more not in rendered
     assert 'id="csv-more"' in rendered
+    assert 'Cafeteria und Patientenplan verwenden getrennte Formate.' in rendered
+    assert '<details' not in rendered
 
 
 def test_csv_preview_invalid_error_position_uses_strong() -> None:
@@ -104,8 +106,9 @@ def test_csv_preview_review_evidence(
             expect(page.locator('.admin-statusbar-item').filter(
                 has=page.get_by_text('Zeilen', exact=True),
             ).locator('dd')).to_have_text('10')
-        expect(page.locator('#csv-more')).to_have_attribute('class', 'admin-compact-details admin-disclosure')
-        assert page.locator('#csv-more[open]').count() == (0 if state == 'empty' else 1)
+        expect(page.locator('#csv-more')).to_be_visible()
+        expect(page.locator('#csv-more summary')).to_have_count(0)
+        expect(page.locator('#csv-more')).to_contain_text('getrennte Formate')
         page.evaluate('document.activeElement.blur(); window.scrollTo(0, 0)')
         page.screenshot(path=str(tmp_path / f'after-{state}-{width}.png'), full_page=True)
         measurements.append(dict(state=state, width=width, **metric))
@@ -444,13 +447,10 @@ def test_csv_preview_frame_viewports_statusbar_nojs_keyboard(
                         assert metric['open'] == 0, metric
                         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
                         expect(page.locator('#csv-upload')).to_have_attribute('data-loading', '')
-                        more = page.locator('#csv-more > summary')
-                        more.focus()
-                        expect(more).to_be_focused()
-                        more.press('Enter')
+                        expect(page.locator('#csv-more summary')).to_have_count(0)
+                        page.locator('#file').focus()
+                        expect(page.locator('#file')).to_be_focused()
                         expect(page.get_by_text('Cafeteria und Patientenplan verwenden getrennte Formate.', exact=False)).to_be_visible()
-                        more.press('Enter')
-                        expect(page.locator('#csv-more')).not_to_have_attribute('open', '')
                         expect(page.locator('dl.admin-statusbar')).to_contain_text('Offen')
                         expect(page.locator('main .btn-primary')).to_have_accessible_name('Vorschau prüfen')
                         expect(page.locator('main .btn-primary')).to_have_attribute('aria-label', 'Vorschau prüfen')
