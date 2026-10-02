@@ -1,5 +1,6 @@
 """Real PostgreSQL and native HTTP contracts for the privately wired A2 slice."""
 import pytest
+from bs4 import BeautifulSoup
 from test_eh_http_contract import assert_login_redirect
 import io
 from PIL import Image
@@ -312,11 +313,17 @@ def test_view_is_complete_readonly_and_rejects_unknown_query_without_form_contex
     viewed = client.get(path + '/ansicht?yield=8')
     assert viewed.status_code == 200, viewed.text
     for text_value in ('Entwurf · nicht festgeschrieben', 'Nur lesen', 'Zweite Zeile',
-                       'Vorbereitung: 5 Minuten', 'Kochzeit: 12 Minuten', 'Zubereitung',
+                       'Zubereitung',
                        'Zutaten und Mengen', 'Kennzeichnungen: Nicht erfasst', 'Herkunft ansehen',
                        'Keine Gerichtvorlage', 'Zum Drucken zuerst einen Stand festhalten',
                        'Ansicht &amp; Herkunft'):
         assert text_value in viewed.text
+    metadata = BeautifulSoup(viewed.text, 'html.parser').select_one('.recipe-metadata')
+    assert metadata is not None
+    for label, value in [('Vorbereitung:', '5 Minuten'), ('Kochzeit:', '12 Minuten')]:
+        terms = metadata.find_all('dt', string=label)
+        assert len(terms) == 1
+        assert terms[0].find_next_sibling('dd').get_text(strip=True) == value
     assert 'name="_form_context"' not in viewed.text
     assert 'name="row_version"' not in viewed.text
     for query in ('yield=NaN', 'yield=0', 'yield=1&yield=2', 'page=1', 'recipe=bad'):

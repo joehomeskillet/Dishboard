@@ -50,8 +50,11 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'form_footer':
                 calls.append((path, call))
-    assert len(calls) == 15, 'Review compatibility inventory when consumers change'
-    migrated = {'_course_editor.html', '_week_service.html', '_week_settings.html', 'menu_editor.html'}
+    assert len(calls) == 14, 'Review compatibility inventory when consumers change'
+    migrated = {
+        '_course_editor.html', '_week_service.html', '_week_settings.html', 'menu_editor.html',
+        'gerichtvorlage_einplanen.html', 'gerichtvorlagen.html', 'grundlagen_food.html',
+    }
     assert {path.name for path, _ in calls if path.name in migrated} == migrated
     with semantic_app.test_request_context('/'):
         before = env.from_string(LEGACY).module.form_footer
@@ -86,6 +89,12 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
                     {% if not cell.template_proposal %}{{ icon_button('actions.save', aria_label=t('menu.save_return.aria'), emphasis='secondary', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'}) }}{% endif %}
                     {{ icon_button('actions.cancel', href=g.get('menu_collection_return') or back_url) }}
                 ''').render(**data)
+            elif path.name == 'gerichtvorlage_einplanen.html':
+                expected = data['continue_primary']
+            elif path.name == 'gerichtvorlagen.html':
+                expected = (data['archive_rare'] if populated else '') + data['save_primary']
+            elif path.name == 'grundlagen_food.html':
+                expected = icon_button('actions.save', form='food-core-form', emphasis='primary')
             else:
                 # Static form sections leave the primary emphasis to the week action.
                 expected = icon_button('actions.save', emphasis='secondary')
@@ -104,7 +113,7 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
     # UI-DELTA §0.1: static week forms/fallback; long notes use read dialogs.
-    assert len(calls) == 60, 'Review compatibility inventory when consumers change'
+    assert len(calls) == 13, 'Review compatibility inventory when consumers change'
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
     # DELTA-2c owns the frozen extended-call contract; removals are permitted.
@@ -359,12 +368,17 @@ def _controls(html):
 
 
 def test_every_existing_row_action_call_renders_byte_identically(semantic_app):  # noqa: F811
-    """Render actual call ASTs. Callers without show_text stay byte-identical."""
+    """Keep legacy calls exact and verify explicit DELTA text-mode consumers."""
     env = semantic_app.jinja_env
     calls = _row_calls(env)
     opted = [(path, call) for path, call in calls if _opts_into_show_text(call)]
-    plain = [(path, call) for path, call in calls if not _opts_into_show_text(call)]
-    assert len(plain) == 25, [f'{path.name}:{call.lineno}' for path, call in plain]
+    explicit = [(path, call) for path, call in calls if any(
+        isinstance(pair.key, nodes.Const) and pair.key.value == 'mode'
+        for pair in call.find_all(nodes.Pair))]
+    plain = [(path, call) for path, call in calls
+             if not _opts_into_show_text(call) and (path, call) not in explicit]
+    assert len(plain) == 24, [f'{path.name}:{call.lineno}' for path, call in plain]
+    assert [path.name for path, _ in explicit] == ['gerichtvorlagen.html']
     assert len(opted) == 1 and opted[0][0].name == 'vorlagen.html'
     source = (ROOT.parent / 'templates/admin/vorlagen.html').read_text(encoding='utf-8')
     assert 'ponytail:' not in source
@@ -377,6 +391,15 @@ def test_every_existing_row_action_call_renders_byte_identically(semantic_app): 
         template = _compile_call(env, call)
         assert _render_call(semantic_app, template, current, data) == _render_call(
             semantic_app, template, legacy, data), f'{path}:{call.lineno}'
+    for path, call in explicit:
+        template = _compile_call(env, call)
+        rendered = _render_call(semantic_app, template, current, data)
+        expected_href = data['url_for']('admin.dish_template_plan', public_id='item-1')
+        assert _controls(rendered)[1] == [(
+            'actions.open', expected_href, 'Liste als Menü einplanen',
+            'Liste als Menü einplanen', False, 'Einplanen',
+        )], path
+        assert not BeautifulSoup(rendered, 'html.parser').select('svg, img')
     screen_path, screen_call = opted[0]
     screen = _compile_call(env, screen_call)
     hidden_now = _render_call(semantic_app, screen, current, data)

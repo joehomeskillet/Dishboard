@@ -57,8 +57,12 @@ def test_cookbook_delta_contract(cookbook_server, browser, tmp_path, width, heig
         if page.locator('main [data-semantic="view.reset"]').count() != 1:
             failures.append('R-75: identical reset actions without archive filter')
         visit('/admin/kochbuecher?q=unmatched&archived=1', 'archive-search-empty')
-        # Clear all filters and clear only the query have different meanings.
-        expect(page.locator('main [data-semantic="view.reset"]')).to_have_count(2)
+        # DELTA-2b adds archive-only removal beside all-filter and query resets.
+        resets = page.locator('main [data-semantic="view.reset"]')
+        expect(resets).to_have_count(3)
+        assert sorted(resets.evaluate_all('nodes => nodes.map(node => node.getAttribute("href"))')) == [
+            '/admin/kochbuecher', '/admin/kochbuecher?archived=1', '/admin/kochbuecher?q=unmatched',
+        ]
         visit(path + '/ansicht', 'view')
         expect(page.locator('main form')).to_have_count(0)
         visit(path, 'editor')

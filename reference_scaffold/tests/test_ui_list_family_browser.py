@@ -114,13 +114,19 @@ MEASURE_JS = r"""() => {
   const packActions = (acts) => {
     // UI-DELTA §0.1/B-03 supersedes mandatory icon-only actions: explicit
     // text mode is valid, while a mixed renderer remains a deviation.
-    const texts = acts.filter(el => !el.matches('.ui-sem-control--text') ||
-      el.querySelector('svg, img')).map(visibleText).filter(Boolean);
+    const pureText = (el) => el.matches('.ui-sem-control--text') && !el.querySelector('svg, img') &&
+      [el, ...el.querySelectorAll('*')].filter(visible).every(node =>
+        ['::before', '::after'].every(pseudo => {
+          const s = getComputedStyle(node, pseudo);
+          return s.display === 'none' || s.visibility !== 'visible' || Number(s.opacity) === 0 ||
+            ['none', 'normal'].includes(s.content);
+        }));
+    const texts = acts.filter(el => !pureText(el)).map(visibleText).filter(Boolean);
     const icons = [...new Set(acts.flatMap(iconNames))];
     return {
       count: acts.length,
       withText: texts.length,
-      objectWithText: acts.filter(el => visibleText(el) && !namedDestination(el)).length,
+      objectWithText: acts.filter(el => visibleText(el) && !namedDestination(el) && !pureText(el)).length,
       texts: texts.slice(0, 8),
       icons: icons.slice(0, 8),
       family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins',
@@ -461,6 +467,15 @@ def test_named_hub_destinations_keep_metrics_without_exempting_object_actions():
                     link.evaluate('(el, original) => { el.href = original[0]; el.dataset.semantic = original[1]; }', [target, key])
                 link.evaluate("el => el.textContent = 'Bearbeiten'")
                 assert page.evaluate(MEASURE_JS)['lists'][0]['rowActions']['objectWithText'] == 1
+                # UI-DELTA permits an explicit text mode, including object actions.
+                link.evaluate("el => el.classList.add('ui-sem-control--text')")
+                assert page.evaluate(MEASURE_JS)['lists'][0]['rowActions']['objectWithText'] == 0
+                link.evaluate("el => el.insertAdjacentHTML('beforeend', '<svg></svg>')")
+                assert page.evaluate(MEASURE_JS)['lists'][0]['rowActions']['objectWithText'] == 1
+                link.locator('svg').evaluate('el => el.remove()')
+                style = page.add_style_tag(content='.ui-sem-control--text::after { content: "→"; }')
+                assert page.evaluate(MEASURE_JS)['lists'][0]['rowActions']['objectWithText'] == 1
+                style.evaluate('el => el.remove()')
         finally:
             browser.close()
 

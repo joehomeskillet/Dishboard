@@ -33,6 +33,17 @@
   color: var(--app-text);
 }
 .dishboard-admin .order-lines.admin-table--stack tbody tr { height: auto; }
+.dishboard-admin .order-save-actions { background: var(--app-bg); }
+@media (min-height: 700px) {
+  .dishboard-admin .order-save-actions[data-sticky-ready]:not(.is-static) {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+  }
+  .dishboard-admin form:has(:is(input, select, textarea):focus, .is-invalid) .order-save-actions[data-sticky-ready] {
+    position: static;
+  }
+}
 @media (max-width: 767.98px) {
   .dishboard-admin .order-lines.admin-table--stack tbody td:empty {
     display: none;

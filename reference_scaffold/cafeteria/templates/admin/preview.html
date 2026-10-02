@@ -14,21 +14,21 @@
   {% set week_context %}<span class="preview-context">KW {{ week_iso|iso_week }} / {{ week.isocalendar().year }} · Woche ab <time datetime="{{ week_iso }}">{{ week_iso|date_long }}</time></span>{% endset %}
   {% set saved_context %}<span class="preview-saved">Veröffentlichungsstand dieser Woche: {% if state == 'draft' %}{{ status_badge_sem('publish.unpublished') }} · {{ status_badge_sem('publish.draft') }}{% elif state == 'ready' %}{{ status_badge_sem('publish.unpublished') }} · {{ status_badge_sem('publish.ready') }}{% elif state == 'published' %}{{ status_badge_sem('publish.published') }}{% else %}{{ status_badge_sem('publish.unpublished') }} · {{ status_badge_sem('status.archived') }}{% endif %}</span>{% endset %}
   {% set profile_navigation %}
+  <div class="preview-toolbar">
     <nav class="preview-profiles" aria-label="Profil">
       <a href="{{ url_for('admin.preview', family='cafeteria', week=week_iso) }}"{% if family == 'cafeteria' %} aria-current="page"{% endif %}>{{ area_names.staff_guest }}</a>
       <a href="{{ url_for('admin.preview', family='patienten', week=week_iso) }}"{% if family == 'patienten' %} aria-current="page"{% endif %}>{{ area_names.patient }}</a>
     </nav>
-  {% endset %}
-  {{ page_header('Vorschau · ' ~ area_names[profile], actions=preview_banner, segments=profile_navigation, status_items=[
-    {'label': week_context, 'value': saved_context, 'variant': 'success' if state == 'published' else 'neutral'}
-  ]) }}
-  {% if g.get('preview_shown_draft') %}{{ status_badge_sem('publish.draft') }}{{ status_badge_sem('publish.unpublished') }}{% endif %}
-  <div class="preview-toolbar">
     <p class="preview-links">
       {{ icon_button('actions.print', href=url_for('admin.print_week', family=family, week=week_iso), aria_label='PDF der gewählten Woche öffnen', emphasis='primary', class='primary') }}
       {{ icon_button('actions.back', href=url_for('admin.' ~ family, week=week_iso), aria_label='Zurück zum Wochenplan', mode='icon') }}
     </p>
   </div>
+  {% endset %}
+  {{ page_header('Vorschau · ' ~ area_names[profile], actions=preview_banner, segments=profile_navigation, status_items=[
+    {'label': week_context, 'value': saved_context, 'variant': 'success' if state == 'published' else 'neutral'}
+  ]) }}
+  {% if g.get('preview_shown_draft') %}{{ status_badge_sem('publish.draft') }}{{ status_badge_sem('publish.unpublished') }}{% endif %}
   <p class="preview-notice" role="note">Gewählter Stand: gespeicherte Woche KW {{ week_iso|iso_week }}, nicht automatisch der veröffentlichte Plan. Veröffentlichen bleibt ein eigener, bestätigter Schritt im Wochenplan.</p>
   <aside class="preview-published" aria-labelledby="preview-published-title">
     <div class="preview-published-copy">

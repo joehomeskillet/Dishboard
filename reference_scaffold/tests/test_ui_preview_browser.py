@@ -146,17 +146,19 @@ def _assert_actions(page: Page) -> None:
         if 'ui-sem-control--icon-only' in classes:
             assert link.inner_text().strip() == ''
             assert link.get_attribute('aria-label')
+            assert link.locator('svg use').count() == 1
         elif 'ui-sem-control' in classes:
             assert link.inner_text().strip()
             assert link.get_attribute('aria-label')
-            # UI-DELTA §0.1/B-03: the labelled back action is text-only.
+            # UI-DELTA §0.1/B-03: an explicit text action has no icon.
             assert link.locator('svg').count() == 0
             assert link.inner_text().strip() in link.get_attribute('aria-label')
         else:
             assert link.inner_text().strip()
         assert box is not None and box['height'] >= minimum and box['width'] >= minimum, box
     uses = page.locator('.preview-links use, .preview-published use')
-    assert uses.count() == 2
+    # DELTA-3-06 migrated the back action to icon mode; both print actions remain.
+    assert uses.count() == 3
     for use in uses.all():
         assert use.evaluate('el => el.getBBox().width > 0'), use.get_attribute('href')
         assert use.evaluate('el => el.closest("svg").getAttribute("aria-hidden")') == 'true'

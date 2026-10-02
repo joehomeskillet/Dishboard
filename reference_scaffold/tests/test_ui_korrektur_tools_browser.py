@@ -5,6 +5,7 @@ import datetime as dt
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from urllib.parse import urlsplit
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -15,6 +16,7 @@ from cafeteria.api_keys import create_api_key, revoke_api_key
 from test_admin_workflow_routes import WEEK, _login, database_engine  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 from test_ui_korrektur_cookbooks_browser import _native_viewport_capture
+from test_delta_renderer_browser import VISIBILITY
 from test_ui_master_shell_browser import _cookie, _page, site as admin_site  # noqa: F401
 
 site = admin_site
@@ -461,7 +463,18 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
 
 
 def _assert_rendered_icons(page: Page) -> None:
-    # Closed disclosures are checked by callers after opening their controls.
+    # UI-DELTA B-02: copy confirmation uses two explicit text actions.
+    if urlsplit(page.url).path in {'/admin/cafeteria/copy', '/admin/patienten/copy'}:
+        controls = page.locator('main .ui-sem-control:visible')
+        expect(controls).to_have_count(2)
+        expect(controls).to_have_text(['Vorwoche kopieren', 'Zurück'])
+        for control in controls.all():
+            assert control.evaluate('el => el.classList.contains("ui-sem-control--text")')
+            assert control.locator('svg, img').count() == 0
+            assert control.inner_text().strip() in control.get_attribute('aria-label')
+            rendered = control.evaluate(VISIBILITY)
+            assert rendered['text'] and not rendered['icons'] and not rendered['pseudos'], rendered
+        return
     icons = page.locator('main svg.icon:visible')
     assert icons.count() > 0
     missing = icons.evaluate_all('''icons => icons.flatMap(icon => {

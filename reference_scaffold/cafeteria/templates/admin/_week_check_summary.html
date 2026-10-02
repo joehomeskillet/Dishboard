@@ -21,8 +21,8 @@
 {% set course_count = course_issues.affected_assignments if course_issues is defined and course_issues.affected_assignments else 0 %}
 {% set has_checks = allergen_stats.missing or allergen_stats.review_open or open_checks or time_ns.missing or course_count %}
 {% if has_checks %}
-<div class="container-xl" id="week-check-summary">
-  <p class="admin-week-checkline admin-list-secondary" role="status">
+<div class="container-xl d-flex flex-wrap align-items-center gap-2" id="week-check-summary">
+  <p class="admin-week-checkline admin-list-secondary mb-0 flex-grow-1" role="status">
     {%- if open_checks %} {{ open_checks }} {{ 'Menü' if open_checks == 1 else 'Menüs' }} mit offener Kartenprüfung.{% endif %}
     {%- if allergen_stats.missing %} {{ allergen_stats.missing }} {{ 'Menü' if allergen_stats.missing == 1 else 'Menüs' }}: Allergenangaben nicht erfasst (nicht allergenfrei).{% endif %}
     {%- if allergen_stats.review_open %} {{ allergen_stats.review_open }} {{ 'Menü' if allergen_stats.review_open == 1 else 'Menüs' }}: Allergenprüfung offen.{% endif %}

@@ -468,6 +468,25 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
                                 .map(e => `${e.name}:${e.type}`).sort(),
                             rows: [...document.querySelectorAll('main table tbody tr')].map(e => e.getBoundingClientRect().height)
                         })''')
+                        if name == 'components' and version == 'after':
+                            # DELTA-2b keeps filter fields in an operable dialog.
+                            # Compare their visible controls separately; workspace density
+                            # remains measured with the overlay closed.
+                            page.locator('[data-semantic="view.filter"]').click()
+                            dialog = page.locator('dialog.admin-filter-dialog')
+                            expect(dialog).to_be_visible()
+                            filter_fields = dialog.locator('input[name], select[name], textarea[name]')
+                            for control in filter_fields.all():
+                                expect(control).to_be_visible()
+                            exposed = filter_fields.evaluate_all('nodes => nodes.map(e => `${e.name}:${e.type}`)')
+                            assert sorted(exposed) == [
+                                'allergen:select-one', 'category:select-one', 'label:select-one',
+                                'origin:select-one', 'presence:select-one', 'status:select-one', 'usage:select-one',
+                            ]
+                            measurements[key][version]['visibleFields'] = sorted(
+                                measurements[key][version]['visibleFields'] + exposed)
+                            dialog.locator('[data-read-detail-close]').click()
+                            expect(dialog).not_to_be_visible()
                         # Compare actual successful fields and submitter contracts without recording secrets.
                         contract = page.locator('main form').evaluate_all('''forms => forms.map(f => {
                             const value = (k, v) => {

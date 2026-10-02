@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, form_errors, form_footer %}
+{% from 'admin/_macros.html' import page_header, form_errors %}
 {% from 'ui/_semantic.html' import icon_button, status_badge_sem, read_detail_trigger, read_detail_dialog %}
 {# Status labels only; no send action or state transition. #}
 {% set order_states = {'draft': 'publish.draft', 'abandoned': 'ui.order_abandoned', 'send_pending': 'ui.order_pending', 'sent': 'ui.order_sent', 'send_unknown': 'ui.order_unknown'} %}
@@ -62,7 +62,9 @@
 </tr>
 </tbody>
 </table>
-{{ form_footer(primary=icon_button('actions.save'), cancel_url=none, sticky=true, form_id='basket-save') }}
+<div class="order-save-actions d-flex justify-content-end py-2" data-sticky data-sticky-form="basket-save">
+  {{ icon_button('actions.save') }}
+</div>
 </form>
 <section id="korb-weitere" aria-labelledby="korb-bedarf-title">
 <h2 class="h3" id="korb-bedarf-title">Bedarf übernehmen</h2>

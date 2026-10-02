@@ -137,7 +137,7 @@ def test_component_error_and_result_count_follow_stable_profile_navigation(
             count = page.locator('#component-result-count')
             expect(count).to_contain_text('0 Treffer')
             assert count.evaluate(geometry)[1] >= positions[-1][1] + positions[-1][3]
-        assert max(abs(a - b) for a, b in zip(*positions, strict=True)) <= 1
+        assert max(abs(a - b) for a, b in zip(*positions, strict=True)) <= 1, positions
 
 
 def test_component_filter_has_no_content_disclosure(

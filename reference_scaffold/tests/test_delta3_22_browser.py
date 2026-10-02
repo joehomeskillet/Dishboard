@@ -91,6 +91,14 @@ def test_shopping_order_delta(b3, master_server, browser, monkeypatch, tmp_path,
             failures.append('R-31: duplicate basket return')
         original = page.locator('#basket-save').evaluate('form => [...new FormData(form)]')
         original_version = get_basket(state['engine'], state['location'], state['basket_id'])['row_version']
+        save_actions = page.locator('[data-sticky-form="basket-save"]')
+        expect(save_actions.locator('button')).to_have_count(1)
+        expect(save_actions.locator('button')).to_have_attribute('data-semantic', 'actions.save')
+        assert save_actions.evaluate('el => getComputedStyle(el).position') == ('sticky' if javascript else 'static')
+        if javascript:
+            page.locator('#line-qty-new').focus()
+            assert save_actions.evaluate('el => getComputedStyle(el).position') == 'static'
+            page.locator('#line-qty-new').evaluate('el => el.blur()')
         dialog = page.locator('dialog#korb-vorschau')
         if dialog.count():
             def background_geometry():
