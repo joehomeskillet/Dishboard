@@ -479,7 +479,20 @@ def test_native_sidebar_without_javascript_and_zoom_reflow(site, tmp_path):
         summary = disclosure.locator('summary')
         minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
         assert summary.bounding_box()['height'] >= minimum
-        assert summary.locator('use').evaluate('el => el.getBBox().width > 0')
+        expect(summary).to_have_attribute('aria-label', 'Menü')
+        expect(summary).to_have_attribute('title', 'Menü')
+        expect(summary).to_have_text('')
+        glyph = summary.locator('.navbar-toggler-icon')
+        expect(glyph).to_be_visible()
+        assert glyph.evaluate('''el => {
+            const style = getComputedStyle(el);
+            return style.backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+                ['::before', '::after'].every(pseudo => {
+                    const part = getComputedStyle(el, pseudo);
+                    return part.content === '\"\"' && parseFloat(part.width) > 0 &&
+                        parseFloat(part.height) > 0 && part.backgroundColor === style.backgroundColor;
+                });
+        }''')
         summary.focus()
         expect(summary).to_be_focused()
         assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'

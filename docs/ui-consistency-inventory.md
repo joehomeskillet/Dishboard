@@ -1,5 +1,18 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## DELTA-6 — gemeinsame Shell, 2026-10-02
+
+| Route / Umfang | Rolle / Zustand / Muster | Nachweis |
+|---|---|---|
+| Sämtliche Adminseiten mit `_workflow_sidebar.html` | Vorhandene Rollen; JS/No-JS, Desktop/Mobil, eingeklappte Sidebar. Abmelden als sichtbare Textaktion mit nativem POST und CSRF; mobiler Auslöser als identischer benannter Hamburger ohne sichtbaren Text. B-01/B-02/B-05, D-01. | `test_delta5_regression_browser.py`, `test_delta5_appwide_scan_browser.py`, `test_ui_shell_fixes_browser.py`, `test_admin_nav_browser.py`, `test_ui_master_shell_browser.py` |
+| `/admin/grundlagen`, `/admin/kuechenkalender`, `/admin/<family>/wochen`, `/admin/<family>/komponenten`, `/admin/<family>/menues`, `/admin/benutzer`, `/admin/einkaufslisten` | Gemeinsamer `segment_switch` und `profile_tabs`; Auswahl/Fokus/Hover, langsame Font-/Sprite-/Bereichsantworten. Admin-Zellreserve mit sichtbarem Umbruch; DE/EN und lange Labels, fünf Viewports 390/768/1024/1440/1920. N-02/N-03/N-04. | `test_delta5_geometry_browser.py`: echte verzögerte Fontrequests, exakt gleiche gemeinsame Segmentrechtecke. `test_delta_navigation_stability_browser.py`: leer/befüllt/Leser, fein/grob, klassische/Overlay-Scrollbars und Browser-Zurück; bestehende Grenze ≤1 CSS-px. |
+| Öffentliche Seiten, Login, Druck/PDF, Signage | Bestehende Fonts und Styles; keine Änderung an `tokens.css`. | `test_ui_master_tokens_browser.py`, `test_ui_fullwidth_shell_browser.py` sowie im DELTA-6-Brief verlangte Font-/Token-Verbrauchertests |
+
+Aktuelle Pflichtlauf-, Sicht- und Reviewbelege stehen im
+[DELTA-6-Report](/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/claude-session-2026-09-29/reports/DELTA-6-report.md).
+Dieser Eintrag behauptet weder Integration/Deploy noch die Abnahme der offenen
+L2-Inhaltsmigration. Die Scanbaseline wird nur um behobene Abmeldebefunde verkleinert.
+
 ## DELTA-2b — gemeinsamer Filterdialog, 2026-10-01
 
 Die alten Filter-Aufklapper und ihre Assertions sind durch UI-DELTA §0.1,

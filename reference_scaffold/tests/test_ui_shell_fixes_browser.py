@@ -15,7 +15,7 @@ from test_ui_master_shell_browser import _cookie, _goto, _page, site  # noqa: F4
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude' / 'evidence' / 'ui-korrektur-0912' / 'shell'
+EVIDENCE = ROOT / '.claude' / 'state' / 'ui-shell-evidence'
 LONG_NAME = 'A' * 80
 
 
@@ -42,11 +42,18 @@ def test_mobile_logout_remains_reachable_without_javascript(site, database_engin
         disclosure = page.locator('details.admin-nojs-nav')
         expect(disclosure).to_be_visible()
         expect(disclosure.locator('.admin-nav')).to_be_hidden()
+        summary = disclosure.locator('summary')
+        expect(summary).to_have_attribute('aria-label', 'Menü')
+        expect(summary.locator('.navbar-toggler-icon')).to_have_count(1)
+        assert summary.inner_text().strip() == ''
         disclosure.locator('summary').click()
         expect(disclosure.locator('.admin-nav')).to_be_visible()
         form = page.locator('form.admin-logout-form:visible')
         expect(form).to_have_count(1)
         expect(form).to_have_attribute('method', 'post')
+        logout = form.get_by_role('button', name='Abmelden', exact=True)
+        expect(logout).to_have_text('Abmelden')
+        expect(logout.locator('svg, .nav-link-icon')).to_have_count(0)
         csrf = form.locator('input[name="_csrf"]').input_value()
         assert csrf
         _screenshot(page, 'cafeteria-nojs-390x844.png')
@@ -69,9 +76,31 @@ def test_mobile_logout_remains_reachable_without_javascript(site, database_engin
     try:
         _goto(page, '/admin/cafeteria')
         expect(page.locator('form.admin-logout-form')).to_have_count(1)
-        page.get_by_role('button', name='Menü', exact=True).click()
+        toggle = page.get_by_role('button', name='Menü', exact=True)
+        assert toggle.inner_text().strip() == ''
+        expect(toggle.locator('.navbar-toggler-icon')).to_have_count(1)
+        toggle.click()
         expect(page.locator('form.admin-logout-form')).to_be_visible()
+        expect(page.get_by_role('button', name='Abmelden', exact=True)).to_have_text('Abmelden')
         _screenshot(page, 'cafeteria-js-390x844.png')
+    finally:
+        page.context.close()
+
+    page = _page(site, client, viewport={'width': 1440, 'height': 900})
+    try:
+        _goto(page, '/admin/cafeteria')
+        page.locator('[data-admin-nav-toggle]').click()
+        logout = page.get_by_role('button', name='Abmelden', exact=True)
+        expect(logout).to_be_visible()
+        expect(logout).to_have_text('Abmelden')
+        expect(logout.locator('svg')).to_have_count(0)
+        assert logout.evaluate('''el => {
+            const text = document.createRange(); text.selectNodeContents(el);
+            const label = text.getBoundingClientRect();
+            const rail = el.closest('aside').getBoundingClientRect();
+            return label.width > 1 && label.x >= rail.x && label.right <= rail.right;
+        }''')
+        _screenshot(page, 'cafeteria-collapsed-1440x900.png')
     finally:
         page.context.close()
 

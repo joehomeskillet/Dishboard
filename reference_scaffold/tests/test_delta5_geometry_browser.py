@@ -8,6 +8,7 @@ from time import monotonic, sleep
 import pytest
 from bs4 import BeautifulSoup
 from playwright.sync_api import expect, sync_playwright
+from flask import render_template_string
 
 from delta5_audit import MEASURE, PROBE, DocumentedFinding, record_transition, write_json
 from test_admin_workflow_routes import WEEK, _login, _payload
@@ -15,11 +16,65 @@ from test_delta_navigation_stability_browser import MEASURE as NAV_MEASURE, NAV,
 from test_delta_navigation_stability_browser import (  # noqa: F401
     app_engine, b3, installed_pg16, master_server, pg16, seeded_pg16,
 )
-from test_delta_renderer_browser import assert_stable, source_revision
+from test_delta_renderer_browser import PAGE, assert_stable, delta_site, source_revision  # noqa: F401
 from test_delta5_regression_browser import database_engine, regression_site  # noqa: F401
 from test_master_data_routes import create
 from test_menu_collection import _save, _scope
 from test_rendered_ui import browser  # noqa: F401
+from test_ui_semantics import semantic_app  # noqa: F401
+
+
+@pytest.mark.parametrize('width,height', [(1440, 900), (1024, 768), (768, 1024),
+                                        (390, 844), (1920, 1080)])
+def test_all_segment_navigation_font_swap(delta_site, semantic_app, width, height, tmp_path):  # noqa: F811
+    """Every shared segment consumer keeps rectangles while actual Fira HTTP requests wait."""
+    groups = [
+        ['Zutaten', 'Einheiten', 'Kategorien', 'Kennzeichnungen', 'Lagerorte'],
+        ['Beide', 'Cafeteria', 'Patienten'],
+        ['Alle lokalen Konten', 'Aktiv', 'Deaktiviert'],
+        ['Aktiv', 'Mit Archivierten'],
+        ['Ingredients', 'Units', 'Categories', 'Labels', 'Storage locations'],
+        ['Very long translated section label with complete readable information', 'Other section'],
+    ]
+    with semantic_app.test_request_context():
+        markup = render_template_string(PAGE.split('<nav id="navigation">')[0] + '''
+            {% from 'admin/_macros.html' import segment_switch %}
+            {% for labels in groups %}
+            {{ segment_switch(links[loop.index0], '0', label='Segments ' ~ loop.index) }}
+            {% endfor %}<p id="following">Following content</p></main></body></html>''',
+            groups=groups, links=[[dict(key=str(i), href='#section-' + str(i), label=label)
+                                   for i, label in enumerate(labels)] for labels in groups])
+    with (sync_playwright() as pw,
+          pw.chromium.launch(args=['--no-sandbox', '--disable-dev-shm-usage']) as font_browser,
+          font_browser.new_context(viewport={'width': width, 'height': height}) as context):
+        pending = []
+        released = False
+        context.route('**/delta6-segments', lambda route: route.fulfill(
+            content_type='text/html', body=markup))
+        context.route('**/*.woff2', lambda route: route.continue_() if released else pending.append(route))
+        page = context.new_page()
+        page.goto(delta_site[0] + '/delta6-segments', wait_until='domcontentloaded')
+        expect(page.locator('.admin-segments')).to_have_count(len(groups))
+        page.wait_for_function('document.fonts.status === "loading"')
+        assert pending, 'No actual delayed Fira request'
+        selectors = ['.admin-segments', '.admin-segments .nav-link', '#following']
+        measure = '''selectors => selectors.flatMap(s => [...document.querySelectorAll(s)]
+            .map(el => ({text:el.textContent.trim(), ...el.getBoundingClientRect().toJSON()})))'''
+        before = page.evaluate(measure, selectors)
+        released = True
+        for route in pending:
+            route.continue_()
+        page.evaluate('document.fonts.ready')
+        after = page.evaluate(measure, selectors)
+        page.screenshot(path=str(tmp_path / 'segments-font-loaded.png'))
+        write_json(tmp_path / 'all-segment-font-swap.json', dict(
+            revision=source_revision(), viewport=[width, height], browser=font_browser.version,
+            before=before, after=after))
+        for left, right in zip(before, after, strict=True):
+            assert all(left[axis] == right[axis] for axis in ('x', 'y', 'width', 'height')), (left, right)
+        for link in page.locator('.admin-segments .nav-link').all():
+            assert link.evaluate('el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight')
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
 
 
 def dialog_transition(page, trigger, selectors, purpose, tmp_path, version, javascript):
@@ -157,7 +212,6 @@ def test_actual_dialog_and_tab_measurements(regression_site, tmp_path, width, he
 
 
 @pytest.mark.parametrize('width,height', [(1440, 900), (390, 844)])
-@pytest.mark.xfail(strict=True, raises=DocumentedFinding, reason='DELTA-5 Befund B003')
 def test_delayed_assets_and_section_data(b3, master_server, browser, monkeypatch, tmp_path,  # noqa: F811
                                          width, height):
     """DX-T37: measure actual navigation while font/sprite and section responses wait."""

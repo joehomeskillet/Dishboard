@@ -35,7 +35,6 @@ def regression_site(monkeypatch, tmp_path, database_engine):  # noqa: F811
 
 
 @pytest.mark.parametrize('width,height', [(1440, 900), (390, 844)])
-@pytest.mark.xfail(strict=True, raises=DocumentedFinding, reason='DELTA-5 Befund B001/B002')
 def test_admin_routes_exclusive_rendering(regression_site, browser, tmp_path, width, height, request):  # noqa: F811
     """DX-T10/18/22/23/29: every visual admin GET, including actual open dialogs."""
     application, base, cookie, prepared = regression_site

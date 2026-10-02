@@ -603,6 +603,29 @@ Prüfmatrix: `tests/test_admin_nav_browser.py` plus bestehende Shell-/Rollen-Gat
 Desktop 1440 px, Mobile 390 px, Parent/Child/kein aktiver Eintrag, No-JS,
 Persistenz, lange Labels, reduzierte Rollen und Tastatur-Flyouts.
 
+### DELTA-6: exklusive Shell-Controls und Font-Swap (2026-10-02)
+
+Anmelden und Abmelden verwenden gemäss UI-DELTA B-02 ausschliesslich Text.
+Die native POST-Abmeldung mit CSRF bleibt auch in der eingeklappten Sidebar
+sichtbar und vollständig innerhalb der Leiste. Der mobile Menüauslöser zeigt
+in JS und No-JS ausschliesslich denselben Tabler-Hamburger; Name und Tooltip
+lauten «Menü». Offcanvas, Escape/Fokusrückgabe und native Details-Navigation
+bleiben erhalten. Navigationseinträge behalten ihre B-02/D-01-Ausnahme.
+
+Gemeinsame `segment_switch`-/`profile_tabs`-Zellen reservieren im Admin-CSS
+10 rem Breite, begrenzt durch den verfügbaren Raum. Alle Auswahlzustände nutzen
+Schriftgewicht 600. Lange Labels umbrechen innerhalb ihrer Zelle; die gesamte
+Navigation bleibt im normalen Dokumentfluss und bricht mobil sichtbar um.
+Die Reserve umfasst die vorhandenen DE-/EN-Bereichs-, Profil- und Statuslabels
+und entkoppelt ihre Geometrie vom Fira-Font-Swap. Globale Schriftdefinitionen,
+Markenfonts, Druck, Signage und öffentliche Styles bleiben unverändert.
+
+Nachweise: `test_delta5_regression_browser.py`, `test_delta5_geometry_browser.py`,
+`test_delta_navigation_stability_browser.py`, `test_ui_shell_fixes_browser.py`
+und bestehende Shell-/Token-Gates. Der neue gemeinsame Fonttest fordert exakt
+gleiche Rechtecke bei verzögerten echten Fontrequests in fünf Viewports;
+die bestehenden N-04-Tests behalten ihre Grenze von 1 CSS-px.
+
 ## Auftraggeber-Ergänzung 2026-09-20: Vereinfachung und kompakte Formulare
 
 Ergänzung zu den Auftraggeber-Prompts «Kompakte Formulare» und «Globale UI-Vereinfachung» (`docs/design/uiux-handoff-2026-09-20/07_ERGAENZUNGEN/`). Beispielbilder sind Denkweise und Komposition, keine Datenquelle und kein Funktionsumfang.
