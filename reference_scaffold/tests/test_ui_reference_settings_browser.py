@@ -139,7 +139,8 @@ def test_settings_normal_state_and_viewports(
         preview_button = page.get_by_role('button', name='Vorschau', exact=True)
         expect(preview_button).to_be_visible()
         expect(preview_button).to_have_attribute('data-semantic', 'actions.preview')
-        expect(page.locator('#display-reset-btn')).to_be_hidden()
+        expect(page.locator('#display-reset-btn')).to_be_visible()
+        expect(page.locator('#display-reset-hint')).to_be_visible()
         expect(page.locator('#display-reset-btn')).to_have_attribute(
             'aria-describedby', 'display-reset-hint',
         )
