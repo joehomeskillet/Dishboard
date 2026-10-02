@@ -13,6 +13,7 @@ from sqlalchemy import text
 from cafeteria.api_keys import create_api_key, revoke_api_key
 
 from test_admin_workflow_routes import WEEK, _login, database_engine  # noqa: F401
+from test_delta_renderer_browser import VISIBILITY
 from test_rendered_ui import browser  # noqa: F401
 from test_ui_korrektur_cookbooks_browser import _native_viewport_capture
 from test_ui_master_shell_browser import _cookie, _page, site as admin_site  # noqa: F401
@@ -461,8 +462,19 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
 
 
 def _assert_rendered_icons(page: Page) -> None:
-    # Closed disclosures are checked by callers after opening their controls.
     icons = page.locator('main svg.icon:visible')
+    if page.locator('#week-copy-form').count():
+        # UI-DELTA confirmation pages use explicit text actions, including pseudo-content.
+        expect(icons).to_have_count(0)
+        controls = page.locator('main .ui-sem-control:visible')
+        expect(controls).to_have_count(2)
+        expect(page.get_by_role('button', name='Vorwoche kopieren', exact=True)).to_be_visible()
+        expect(page.get_by_role('link', name='Zurück zur Wochenübersicht', exact=True)).to_be_visible()
+        for control in controls.all():
+            rendered = control.evaluate(VISIBILITY)
+            assert rendered['text'] and rendered['icons'] == 0, rendered
+        return
+    # All remaining callers still require visible, successfully rendered SVG icons.
     assert icons.count() > 0
     missing = icons.evaluate_all('''icons => icons.flatMap(icon => {
       const box = icon.getBBox();
