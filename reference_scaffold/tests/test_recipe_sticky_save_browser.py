@@ -11,8 +11,7 @@ from test_recipe_routes import app_engine, b3, fields, installed_pg16, pg16, see
 from test_rendered_ui import browser  # noqa: F401
 
 
-EVIDENCE = (Path(__file__).resolve().parents[2]
-            / '.claude/state/claude-session-2026-09-29/audit/UC/P1-B2')
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/delta3/DELTA-3-09/sticky-save'
 
 
 @pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])

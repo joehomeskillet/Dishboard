@@ -151,21 +151,42 @@ def test_recipe_editor_density_matrix(recipe_editor, recipe_server, browser):
                 assert page.goto(route).status == 200
                 _assert_controls(page)
                 for area in ('appearance', 'texts', 'activation', 'copy', 'lifecycle'):
-                    expect(page.locator(f'details[data-template-{area}]')).not_to_have_attribute('open', '')
-                expect(page.locator('#template-versions')).not_to_have_attribute('open', '')
+                    expect(page.locator(f'[data-template-{area}]')).to_be_visible()
+                    expect(page.locator(f'[data-template-{area}] > summary')).to_have_count(0)
+                expect(page.locator('#template-versions')).to_be_visible()
                 if state == 'selected':
-                    expect(page.locator('[data-recipe-selection]')).not_to_have_attribute('open', '')
+                    expect(page.locator('[data-recipe-selection]')).to_be_visible()
+                    expect(page.locator('[data-recipe-selection] > summary')).to_have_count(0)
                     normal = page.get_by_role('link', name='PDF mit aktiver Vorlage öffnen', exact=True)
                     expect(normal).to_be_visible()
                     assert urlsplit(normal.get_attribute('href')).path == f'/admin/rezepte/{recipe}/revisionen/{revision.public_id}/druck.pdf'
                 metrics = _capture(page, f'recipe-editor-{state}-{width}x{height}.png')
-                assert metrics['properties']['height'] <= 560
-                if state == 'selected' and width == 1440:
-                    assert metrics['name']['y'] < 650 and metrics['documentHeight'] < 2200
-                    assert normal.bounding_box()['y'] < 280
-                if state == 'selected' and width == 390:
-                    assert metrics['name']['y'] + metrics['name']['height'] <= height
-                    assert metrics['documentHeight'] < 3000
+                # DELTA: all properties remain visible instead of meeting a closed-card height cap.
+                controls = page.locator('[data-template-properties] :is(input:not([type="hidden"]), select, textarea, button)')
+                expect(controls).to_have_count(10)
+                container = metrics['properties']
+                boxes = []
+                for control in controls.all():
+                    expect(control).to_be_visible()
+                    box = control.bounding_box()
+                    assert box['x'] >= container['x'] - 1
+                    assert box['x'] + box['width'] <= container['x'] + container['width'] + 1
+                    assert box['y'] >= container['y'] - 1
+                    assert box['y'] + box['height'] <= container['y'] + container['height'] + 1
+                    boxes.append(box)
+                for index, a in enumerate(boxes):
+                    for b in boxes[index + 1:]:
+                        assert (a['x'] + a['width'] <= b['x'] + 1 or b['x'] + b['width'] <= a['x'] + 1
+                                or a['y'] + a['height'] <= b['y'] + 1 or b['y'] + b['height'] <= a['y'] + 1)
+                forms = page.locator('main form')
+                before = forms.evaluate_all('forms => forms.map(form => [...new FormData(form)])')
+                name = page.get_by_label('Vorlagenname', exact=True)
+                name.evaluate("el => el.scrollIntoView({block: 'center'})")
+                name.focus()
+                expect(name).to_be_focused()
+                name_box = name.bounding_box()
+                assert 0 <= name_box['y'] and name_box['y'] + name_box['height'] <= height
+                assert forms.evaluate_all('forms => forms.map(form => [...new FormData(form)])') == before
 
 
 @pytest.mark.parametrize("width,height", VIEWPORTS)
@@ -242,33 +263,19 @@ def test_editor_prioritises_form_and_one_primary_save_action(
         expect(page.locator("[data-template-status-scope]")).to_contain_text(
             "Patienten-Wochenpläne"
         )
-        activation = page.locator("details[data-template-activation] > summary")
-        expect(activation).to_have_accessible_name("Standard aktivieren")
-        expect(activation).to_have_attribute("data-ui-tooltip", "Standard aktivieren")
-        expect(activation).to_have_text("")
-        expect(page.locator("#template-versions > summary")).to_have_text(
-            "Versionen"
-        )
+        expect(page.locator('#template-activation-heading')).to_have_text('Aktivieren')
+        expect(page.locator('#template-versions-heading')).to_have_text('Versionen')
         expect(page.locator('[data-template-more-actions], [data-semantic="actions.more"]')).to_have_count(0)
-        for attribute, name in (('copy', 'Standard kopieren'), ('lifecycle', 'Standard archivieren')):
-            action = page.locator(f'details[data-template-{attribute}] > summary')
-            expect(action).to_be_visible()
-            expect(action).to_have_accessible_name(name)
-            expect(action).to_have_attribute('data-ui-tooltip', name)
-            expect(action).to_have_text('')
-            action.focus()
-            expect(action).to_be_focused()
+        for attribute, name in (('copy', 'Vorlage kopieren'), ('lifecycle', 'Vorlagenstatus')):
+            section = page.locator(f'[data-template-{attribute}]')
+            expect(section).to_be_visible()
+            expect(section.get_by_role('heading')).to_have_text(name)
+            expect(section.locator(':scope > summary')).to_have_count(0)
         form = page.locator("form[data-template-properties]")
         expect(form).to_be_visible()
-        expect(page.locator("details[data-template-appearance]")).not_to_have_attribute(
-            "open", ""
-        )
-        expect(page.locator("details[data-template-texts]")).not_to_have_attribute(
-            "open", ""
-        )
-        expect(page.locator("#template-week-layout")).not_to_have_attribute(
-            "open", ""
-        )
+        for selector in ('[data-template-appearance]', '[data-template-texts]', '#template-week-layout'):
+            expect(page.locator(selector)).to_be_visible()
+            assert page.locator(selector).evaluate('el => el.tagName') == 'SECTION'
         if width >= 1366:
             box = form.bounding_box()
             assert box is not None and box["y"] < height
@@ -315,7 +322,8 @@ def test_save_activate_and_load_version_keep_native_requests(
         expect(page.locator("[data-template-current-version]")).to_contain_text(
             "Version 2"
         )
-        page.locator("details[data-template-activation] summary").click()
+        expect(page.locator('[data-template-activation]')).to_be_visible()
+        expect(page.locator('[data-template-activation] > summary')).to_have_count(0)
         with page.expect_request(lambda request: request.method == "POST") as sent:
             page.get_by_role("button", name="Diese Version aktivieren", exact=True).click()
         activate = _assert_editor_target(sent.value, "patienten")
@@ -323,7 +331,7 @@ def test_save_activate_and_load_version_keep_native_requests(
         assert activate["action"] == ["activate"]
         assert activate["revision"] == ["2"]
 
-        page.locator("#template-versions > summary").click()
+        expect(page.locator('#template-versions-heading')).to_have_text('Versionen')
         restore_button = page.locator(
             '#template-versions button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]'
         )
@@ -421,7 +429,7 @@ def test_recipe_editor_native_200(recipe_editor, recipe_server, browser, tmp_pat
 
 
 @pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
-def test_closed_recipe_details_keep_inputs_and_active_print(recipe_editor, recipe_server, browser, javascript):
+def test_static_recipe_sections_keep_inputs_and_active_print(recipe_editor, recipe_server, browser, javascript):
     _, owner, client, _ = recipe_editor
     recipe, revision, _ = example(recipe_editor)
     route = recipe_path(recipe, revision.public_id)
@@ -432,16 +440,18 @@ def test_closed_recipe_details_keep_inputs_and_active_print(recipe_editor, recip
         posts = []
         page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
         for area in ('appearance', 'texts'):
-            summary = page.locator(f'[data-template-{area}] > summary')
-            summary.focus()
-            page.keyboard.press('Enter')
-            expect(page.locator(f'[data-template-{area}]')).to_have_attribute('open', '')
+            expect(page.locator(f'[data-template-{area}]')).to_be_visible()
+            expect(page.locator(f'[data-template-{area}] > summary')).to_have_count(0)
         page.get_by_label('Druckschrift', exact=True).select_option('fira')
         page.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Mein gespeicherter Entwurf')
         form = page.locator('[data-template-properties]')
         form_data = form.evaluate('form => [...new FormData(form)]')
-        for area in ('appearance', 'texts'):
-            page.locator(f'[data-template-{area}] > summary').click()
+        for label in ('Druckschrift', 'Zusatz unter dem Kopfbereich'):
+            field = page.get_by_label(label, exact=True)
+            field.focus()
+            page.keyboard.press('Escape')
+            expect(field).to_be_focused()
+            expect(field).to_be_visible()
         assert form.evaluate('form => [...new FormData(form)]') == form_data
         assert posts == [] and recipe_state(owner) == before
         with page.expect_response(lambda response: response.request.method == 'POST') as saved:
@@ -451,7 +461,8 @@ def test_closed_recipe_details_keep_inputs_and_active_print(recipe_editor, recip
         assert sent['version'] == ['0'] and sent['revision'] == ['1']
         assert sent['font'] == ['fira'] and sent['header_text'] == ['Mein gespeicherter Entwurf']
         expect(page.locator('[data-template-status-scope]')).to_contain_text('Version 1 · Angezeigt: Version 2')
-        expect(page.locator('[data-template-texts] > summary')).to_contain_text('Zusatztext vorhanden')
+        expect(page.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_be_visible()
+        expect(page.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('Mein gespeicherter Entwurf')
         normal = page.get_by_role('link', name='PDF mit aktiver Vorlage öffnen', exact=True)
         preview = page.get_by_role('link', name='Vorschau als PDF öffnen', exact=True)
         # As in the native PDF consumer, use the authenticated factory client:
@@ -462,32 +473,40 @@ def test_closed_recipe_details_keep_inputs_and_active_print(recipe_editor, recip
         assert normal_pdf.headers['x-print-template-revision'] == 'standard:1'
         assert preview_pdf.headers['x-print-template-revision'] == 'standard:2'
         assert normal_pdf.data != preview_pdf.data
-        page.locator('#template-versions > summary').click()
+        expect(page.locator('#template-versions-heading')).to_have_text('Versionen')
         _assert_controls(page)
         _capture(page, f'recipe-editor-saved-details-{javascript}-390x1100.png')
 
 
 @pytest.mark.parametrize('javascript', [True, False], ids=['js', 'nojs'])
-def test_field_error_opens_details_and_remains_marked_when_closed(
+def test_field_error_stays_visible_and_marked_in_static_section(
     editor_app, editor_server, database_engine, browser, javascript,
 ):
     with _context(editor_app, database_engine, browser, editor_server, (390, 844), javascript=javascript) as context:
         page = context.new_page()
         page.goto(f'/admin/vorlagen/patienten?week={DAY}')
-        page.locator('[data-template-texts] > summary').click()
+        expect(page.locator('[data-template-texts]')).to_be_visible()
+        expect(page.locator('[data-template-texts] > summary')).to_have_count(0)
         page.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('CHF 10')
-        page.locator('[data-template-texts] > summary').click()
+        expect(page.locator('[data-template-texts]')).to_be_visible()
+        expect(page.locator('[data-template-texts] > summary')).to_have_count(0)
         with page.expect_response(lambda response: response.request.method == 'POST') as response:
             page.get_by_role('button', name='Vorlage speichern', exact=True).click()
         assert response.value.status == 400
-        expect(page.locator('[data-template-texts]')).to_have_attribute('open', '')
+        expect(page.locator('[data-template-texts]')).to_be_visible()
         expect(page.locator('#template-header_text')).to_have_value('CHF 10')
         expect(page.locator('#template-header_text')).to_have_attribute('aria-invalid', 'true')
         assert page.locator('[data-template-properties] input[name=version]').input_value() == '0'
         if javascript:
             expect(page.locator('.error-region')).to_be_focused()
-        page.locator('[data-template-texts] > summary').click()
-        expect(page.locator('[data-template-texts] > summary [data-admin-details-error]')).to_be_visible()
+        expect(page.locator('[data-template-texts]')).to_be_visible()
+        expect(page.locator('[data-template-texts] > summary')).to_have_count(0)
+        field = page.locator('#template-header_text')
+        field.focus()
+        page.keyboard.press('Escape')
+        expect(field).to_be_focused()
+        expect(field).to_have_attribute('aria-invalid', 'true')
+        expect(page.locator('#template-error')).to_be_visible()
         _assert_controls(page)
         _capture(page, f'patient-editor-field-error-{javascript}-390x844.png')
 
@@ -518,21 +537,25 @@ def test_standalone_error_pages_keep_native_return_link(recipe_editor, recipe_se
             _capture(page, f'recipe-template-error-{unavailable}-{width}x{height}.png')
 
 
-def test_native_validation_reveals_closed_copy_form(recipe_editor, recipe_server, browser):
+def test_native_validation_focuses_visible_copy_form(recipe_editor, recipe_server, browser):
     with recipe_context(browser, recipe_server, recipe_editor[2], 390) as context:
         page = context.new_page()
         page.goto(BASE)
         posts = []
         page.on('request', lambda request: posts.append(request) if request.method == 'POST' else None)
         details = page.locator('[data-template-copy]')
-        expect(details).not_to_have_attribute('open', '')
+        expect(details).to_be_visible()
+        expect(details.locator(':scope > summary')).to_have_count(0)
         field = page.get_by_label('Name der Kopie', exact=True)
-        # Exercise browser constraint validation while its required field is hidden.
+        # Exercise browser constraint validation on the visible required field.
         field.evaluate('field => { field.value = ""; field.form.requestSubmit(); }')
-        expect(details).to_have_attribute('open', '')
+        expect(details).to_be_visible()
         expect(field).to_be_focused()
         expect(field).to_have_attribute('data-admin-native-invalid', '')
         assert posts == []
-        details.locator(':scope > summary').click()
-        expect(details.locator('[data-admin-details-error]')).to_be_visible()
+        page.keyboard.press('Escape')
+        expect(field).to_be_focused()
+        expect(field).to_be_visible()
+        assert field.evaluate('el => el.validity.valueMissing && Boolean(el.validationMessage)')
+        expect(details.locator('[data-admin-details-error]')).to_have_count(0)
         _capture(page, 'recipe-editor-native-invalid-390x1100.png')

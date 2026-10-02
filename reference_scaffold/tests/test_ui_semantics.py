@@ -1188,7 +1188,7 @@ def test_p4_judge_labels_render_from_owned_templates(semantic_app, template, key
     controls = BeautifulSoup(html, 'html.parser').select(f'a[data-semantic="{key}"], button[data-semantic="{key}"]')
     assert len(controls) == 1
     control = controls[0]
-    visible = text if template == 'rezepte_editor.html' and key == 'actions.back' else ''  # Spec §5.4.
+    visible = ''  # UI-DELTA §0.1/B-02: symbolic back navigation.
     assert (control.get_text(strip=True), control['aria-label']) == (visible, aria)
     assert text.lower() in aria.lower() and len(text) <= 18 and len(text.split()) <= 2
     assert control['data-ui-tooltip'] == aria
@@ -1279,10 +1279,11 @@ def test_p4_registry_visible_text_is_in_accessible_name(semantic_app, locale, mo
     assert image in image_control['aria-label'] and 'Suppe' in image_control['aria-label']
     assert image_control['data-ui-tooltip'] == image_control['aria-label']
     assert image_control.select_one('use')['href'].endswith('#tabler-photo')
-    edit_control = editor_doc.select_one('button[data-recipe-toggle^="step-details"]')
-    assert edit_control.get_text(strip=True) == ''
-    assert edit in edit_control['aria-label']
-    assert edit_control['data-ui-tooltip'] == edit_control['aria-label']
+    # UI-DELTA §0.1/D-02: editing fields are always visible, without toggle controls.
+    assert editor_doc.select_one('button[data-recipe-toggle^="step-details"]') is None
+    instruction = editor_doc.select_one('#step-details-0 textarea[name="steps.0.instruction"]')
+    assert instruction is not None and instruction.has_attr('required')
+    assert editor_doc.select_one('#step-details-0 summary') is None
     upload_button = BeautifulSoup(images, 'html.parser').select_one('button[data-semantic="actions.upload"]')
     assert upload_button.get_text(strip=True) == ''
     assert upload_button['aria-label'] == upload_button['data-ui-tooltip'] == upload

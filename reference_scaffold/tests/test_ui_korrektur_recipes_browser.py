@@ -1,6 +1,7 @@
 """Recipe correction UX keeps native contracts and full-width browser behavior."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -164,7 +165,10 @@ def test_recipe_pages_follow_correction_contract(
                 upload_box = upload.bounding_box()
                 assert content_box is not None and upload_box is not None
                 assert upload_box['y'] - content_box['y'] < height
-            expect(page.locator('td[data-label="Herkunft"] details').first).not_to_have_attribute('open', '')
+            expect(page.locator('td[data-label="Herkunft"] details')).to_have_count(0)
+            provenance = page.locator('td[data-label="Herkunft"]').first
+            expect(provenance.get_by_text('SHA-256', exact=True)).to_be_visible()
+            expect(provenance.locator('code')).to_have_text(re.compile(r'[0-9a-f]{64}'))
             _check_layout(page, width)
             _capture(page, 'bilder-regulaer', width, height, javascript)
 
@@ -185,9 +189,8 @@ def test_recipe_pages_follow_correction_contract(
             _open(page, base, revision_path)
             expect(page.get_by_role('heading', name='Gespeicherter Stand 1', exact=True)).to_be_visible()
             expect(page.get_by_text('Dieser gespeicherte Stand bleibt unverändert.', exact=False)).to_have_count(1)
-            technical = page.locator('.recipe-reading-actions details > summary').filter(has_text='Weitere Optionen')
-            expect(technical).to_have_count(1)
-            technical.click()
+            expect(page.locator('#recipe-technical-heading')).to_have_text('Technische Angaben')
+            expect(page.locator('.recipe-reading-actions details, .recipe-reading-actions summary')).to_have_count(0)
             expect(page.get_by_text('Vollständige Daten', exact=True)).to_be_visible()
             _check_layout(page, width)
             _capture(page, 'stand-regulaer', width, height, javascript)

@@ -63,9 +63,19 @@ def test_p3_editor_pages_polish(editor_app, editor_server, database_engine, brow
                 forms_before = page.locator('main form').evaluate_all(
                     'forms => forms.map(form => Array.from(new FormData(form)))'
                 )
-                if name in {'menu', 'vorlagen', 'assignment'}:
-                    # UI-DELTA §0.1: these consumers expose their help statically.
-                    # Keyboard navigation must keep it visible and forms unchanged.
+                if name == 'print':
+                    expect(page.locator('main .admin-hint')).to_have_count(0)
+                    inline_help = page.locator('#template-header_text-hint')
+                    expect(inline_help).to_be_visible()
+                    field = page.get_by_label('Zusatz unter dem Kopfbereich', exact=True)
+                    field.focus()
+                    expect(field).to_be_focused()
+                    assert field.evaluate('el => parseFloat(getComputedStyle(el).outlineWidth)') >= 2
+                    page.keyboard.press('Escape')
+                    expect(field).to_be_focused()
+                    expect(inline_help).to_be_visible()
+                else:
+                    # UI-DELTA §0.1: all remaining consumers expose help statically.
                     expect(page.locator('main details, main summary')).to_have_count(0)
                     help_selector = {
                         'menu': '#accompaniment-hint, #components-hint',
@@ -73,32 +83,19 @@ def test_p3_editor_pages_polish(editor_app, editor_server, database_engine, brow
                         'assignment': '[id^="screen-choice-"][id$="-hint"]',
                     }[name]
                     hints = page.locator(help_selector)
-                    expect(hints.first).to_be_visible()
                     for hint in hints.all():
                         expect(hint).to_be_visible()
+                    expect(hints.first).to_be_visible()
                     trigger = page.locator('main .btn:visible').first
                     trigger.focus()
                     expect(trigger).to_be_focused()
                     page.keyboard.press('Tab')
                     page.keyboard.press('Shift+Tab')
                     expect(trigger).to_be_focused()
+                    assert trigger.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
                     for hint in hints.all():
                         expect(hint).to_be_visible()
-                else:
-                    # The print editor's disclosure contract is outside DELTA-3-L3.
-                    help_details = page.locator('main .admin-hint:visible').first
-                    trigger = help_details.locator(':scope > summary')
-                    expect(help_details).not_to_have_attribute('open', '')
-                    trigger.focus()
-                    expect(trigger).to_be_focused()
-                    page.keyboard.press('Enter')
-                    expect(help_details).to_have_attribute('open', '')
-                    expect(help_details.locator('.form-hint')).to_be_visible()
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                assert trigger.evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
-                if name == 'print':
-                    page.keyboard.press('Enter')
-                    expect(help_details).not_to_have_attribute('open', '')
                 assert page.locator('main form').evaluate_all(
                     'forms => forms.map(form => Array.from(new FormData(form)))'
                 ) == forms_before
@@ -210,8 +207,10 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         expect(page.locator('[data-template-status-scope]')).to_contain_text('Aktiv für ' + ('Patienten' if family == 'patienten' else 'Cafeteria') + '-Wochenpläne:')
         expect(page.locator('main .btn-primary')).to_have_count(1)
         _targets(page)
-        page.locator('details[data-template-appearance] summary').click()
-        page.locator('details[data-template-texts] > summary').click()
+        expect(page.locator('[data-template-appearance]')).to_be_visible()
+        expect(page.locator('[data-template-appearance] > summary')).to_have_count(0)
+        expect(page.locator('[data-template-texts]')).to_be_visible()
+        expect(page.locator('[data-template-texts] > summary')).to_have_count(0)
         page.get_by_label('Vorlagenname', exact=True).fill('Herbst am Südhang')
         page.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Guten Appetit')
         page.get_by_label('Farbpalette', exact=True).select_option('brand')
@@ -229,15 +228,18 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         # Chrome's native PDF viewer has private DOM. Inspect its real pixels;
         # the PDF response/text contract is independently asserted above.
         assert page.evaluate('navigator.pdfViewerEnabled')
-        page.locator('details[data-template-activation] summary').click()
+        expect(page.locator('[data-template-activation]')).to_be_visible()
+        expect(page.locator('[data-template-activation] > summary')).to_have_count(0)
         page.get_by_role('button', name='Diese Version aktivieren', exact=True).click()
         expect(page.locator('[data-template-status-scope]')).to_contain_text('Version 2')
         assert 'Guten Appetit' in pdf_text(client.get(f'/admin/{family}/preview/print?week={DAY}'))
-        page.locator('details[data-template-copy] summary').click()
+        expect(page.locator('[data-template-copy]')).to_be_visible()
+        expect(page.locator('[data-template-copy] > summary')).to_have_count(0)
         page.get_by_label('Name der Kopie', exact=True).fill('Herbst Kopie')
         page.get_by_role('button', name='Kopie erstellen', exact=True).click()
         expect(page.get_by_label('Vorlagenname', exact=True)).to_have_value('Herbst Kopie')
-        page.locator('details[data-template-lifecycle] > summary').click()
+        expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+        expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
         confirmation = page.get_by_role('checkbox', name='Ich möchte diese Vorlage archivieren.', exact=True)
         page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
         expect(confirmation).to_be_focused()
@@ -246,11 +248,13 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_disabled()
         expect(page.locator('main .btn-primary:visible')).to_have_count(1)
-        expect(page.locator('main .btn-primary')).to_have_accessible_name('Archivierte Vorlage prüfen')
+        expect(page.locator('main .btn-primary')).to_have_accessible_name('Vorschau als PDF öffnen')
+        expect(page.locator('.page-header [data-semantic="actions.preview"]')).to_have_count(0)
         page.get_by_label('Vorlage', exact=True).select_option('standard')
         page.get_by_role('button', name='Woche öffnen', exact=True).click()
         page.keyboard.press('Escape')
-        page.locator('#template-versions > summary').click()
+        expect(page.locator('#template-versions-heading')).to_have_text('Versionen')
+        expect(page.locator('#template-versions > summary')).to_have_count(0)
         restore = page.locator('#template-versions button[aria-label="Version 1 wiederherstellen: als neuen Entwurf laden"]')
         expect(restore).to_be_visible()
         restore.click()
@@ -261,9 +265,8 @@ def test_real_editor_save_preview_activate_copy_restore(editor_app, editor_serve
         assert pdfs and not failures
         page.get_by_label('Vorlagenname', exact=True).focus()
         page.keyboard.press('Tab')
-        expect(page.locator('details[data-template-appearance] summary')).to_be_focused()
-        page.keyboard.press('Enter')
-        page.keyboard.press('Tab')
+        expect(page.get_by_label('Druckschrift', exact=True)).to_be_focused()
+        page.keyboard.press('Escape')
         expect(page.get_by_label('Druckschrift', exact=True)).to_be_focused()
         page.screenshot(path=str(tmp_path / f'print-editor-{family}-{width}.png'), full_page=True)
 
@@ -275,7 +278,8 @@ def test_two_sessions_get_conflict_and_native_no_js_flow(editor_app, editor_serv
         a, b = first.new_page(), second.new_page()
         for page in (a, b):
             page.goto(f'/admin/vorlagen/patienten?week={DAY}')
-            page.locator('details[data-template-texts] > summary').click()
+            expect(page.locator('[data-template-texts]')).to_be_visible()
+            expect(page.locator('[data-template-texts] > summary')).to_have_count(0)
         a.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Erste Sitzung')
         a.get_by_role('button', name='Vorlage speichern', exact=True).click()
         expect(a.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('Erste Sitzung')
@@ -287,10 +291,12 @@ def test_two_sessions_get_conflict_and_native_no_js_flow(editor_app, editor_serv
         expect(b.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('Zweite Sitzung')
         b.get_by_role('link', name='Aktuellen Stand neu laden', exact=True).click()
         expect(b.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('Erste Sitzung')
-        b.locator('details[data-template-texts] > summary').click()
+        expect(b.locator('[data-template-texts]')).to_be_visible()
+        expect(b.locator('[data-template-texts] > summary')).to_have_count(0)
         b.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Zweite Sitzung bestätigt')
         b.get_by_role('button', name='Vorlage speichern', exact=True).click()
-        b.locator('details[data-template-activation] summary').click()
+        expect(b.locator('[data-template-activation]')).to_be_visible()
+        expect(b.locator('[data-template-activation] > summary')).to_have_count(0)
         b.get_by_role('button', name='Diese Version aktivieren', exact=True).click()
         expect(b.locator('[data-template-status-scope]')).to_contain_text('Version 3')
         _targets(b)
@@ -333,5 +339,5 @@ def test_hub_and_editor_statusbar_viewports_keyboard_and_no_js(
         _targets(page)
         page.get_by_label('Vorlagenname', exact=True).focus()
         page.keyboard.press('Tab')
-        expect(page.locator('details[data-template-appearance] summary')).to_be_focused()
+        expect(page.get_by_label('Druckschrift', exact=True)).to_be_focused()
         page.screenshot(path=str(tmp_path / f'vorlagen-editor-{width}-js{javascript}.png'), full_page=True)

@@ -12,8 +12,7 @@ from test_admin_workflow_routes import WEEK, _login, _payload
 from test_delta_renderer_browser import VISIBILITY
 from test_menu_collection import _save, _scope
 
-EVIDENCE = Path('/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/'
-                'claude-session-2026-09-29/audit/DELTA/DELTA-3-08')
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/delta3/DELTA-3-08'
 
 
 @pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])

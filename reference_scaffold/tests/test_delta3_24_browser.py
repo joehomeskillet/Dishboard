@@ -15,8 +15,7 @@ from test_delta_renderer_browser import VISIBILITY
 from test_eh_pages_browser import _error, browser, build_family_app  # noqa: F401
 from test_auth_routes import auth_app  # noqa: F401
 
-EVIDENCE = Path('/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/'
-                'claude-session-2026-09-29/audit/DELTA/DELTA-3-24')
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/delta3/DELTA-3-24'
 
 
 @pytest.fixture(scope='module')

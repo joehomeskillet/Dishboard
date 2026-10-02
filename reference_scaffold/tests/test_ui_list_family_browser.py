@@ -1,7 +1,8 @@
 """Listenfamilie: jede Admin-Liste vermessen, vergleichen und per Baseline absichern.
 
 Zielwerte aus UI-DIRECT-ACTIONS-2026-09-29 (§3, §4, §10): alle verfügbaren
-Zeilenaktionen direkt, benannt und icon-only; keine Karte je Zeile,
+Zeilenaktionen direkt und benannt; UI-DELTA §0.1/B-03 erlaubt exklusiven
+Symbol- oder expliziten Textmodus. Keine Karte je Zeile,
 gleiche Kopf-/Haupt-/Sekundärtypografie.
 UI_LIST_FAMILY_REPORT=1 schreibt Vergleich und Screenshots; die Baseline darf
 dabei nur sinken. Neue Abweichungen werden auch im Berichtsmodus abgewiesen.
@@ -476,6 +477,28 @@ def test_named_hub_destinations_keep_metrics_without_exempting_object_actions():
                 style = page.add_style_tag(content='.ui-sem-control--text::after { content: "→"; }')
                 assert page.evaluate(MEASURE_JS)['lists'][0]['rowActions']['objectWithText'] == 1
                 style.evaluate('el => el.remove()')
+        finally:
+            browser.close()
+
+
+def test_explicit_text_mode_exempts_only_unmixed_controls():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox'])
+        try:
+            page = browser.new_page()
+            for mode, markup, expected in (
+                ('ui-sem-control--text', 'Einplanen', 0),
+                ('', 'Einplanen', 1),
+                ('ui-sem-control--icon', 'Einplanen', 1),
+                ('ui-sem-control--text', '<svg></svg>Einplanen', 1),
+                ('ui-sem-control--text', '<img alt="">Einplanen', 1),
+            ):
+                page.set_content(f'<main><table><tbody><tr><td>'
+                                 f'<a class="btn ui-sem-control {mode}" href="/plan">{markup}</a>'
+                                 '</td></tr></tbody></table></main>')
+                pack = page.evaluate(MEASURE_JS)['lists'][0]['rowActions']
+                assert pack['count'] == 1
+                assert pack['withText'] == pack['objectWithText'] == expected
         finally:
             browser.close()
 

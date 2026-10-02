@@ -1,5 +1,4 @@
 {% from 'admin/_macros.html' import icon %}
-{% from 'ui/_semantic.html' import icon_summary %}
 {% macro text_lines(value) %}{% for line in value.split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endmacro %}
 {% macro recipe_body(doc, asset_recipe_id, prefix) %}
 {% if doc.identity.kind == 'revision' %}
@@ -48,13 +47,13 @@
 <figcaption>{{ image.caption or 'Ohne Bildunterschrift' }}<br>Quelle: {{ image.source_url or 'Nicht angegeben' }}<br>Lizenz: {{ image.source_license or 'Nicht angegeben' }}<br>Abrufzeit: {{ image.fetched_at or 'Nicht angegeben' }}</figcaption>
 </figure>{% endfor %}
 </div></section>{% endif %}
-<details class="recipe-originals mt-3">
-{{ icon_summary('recipe.original_quantities', aria_label=t('recipe.original_quantities.aria'), attrs={'data-print-label': t('recipe.original_quantities.label')}) }}
+<section class="recipe-originals mt-3" aria-labelledby="{{ prefix }}-originals-heading">
+<h2 class="h3" id="{{ prefix }}-originals-heading">{{ t('recipe.original_quantities.label') }}</h2>
 <p class="mt-2">Originalausbeute: {{ doc.yield.original_amount }} {{ doc.yield.unit }}</p>
 <dl class="recipe-original-quantities">{% for row in doc.ingredients %}<div><dt class="d-inline fw-normal">{{ row.text }}:</dt> <dd class="d-inline m-0">{{ row.original_amount if row.original_amount is not none else 'Menge nicht erfasst' }} {{ row.unit or 'Einheit nicht erfasst' }}</dd></div>{% endfor %}</dl>
-</details>
-<details class="recipe-provenance mt-2">
-{{ icon_summary('recipe.provenance', aria_label=t('recipe.provenance.aria'), attrs={'data-print-label': t('recipe.provenance.label')}) }}
+</section>
+<section class="recipe-provenance mt-2" aria-labelledby="{{ prefix }}-provenance-heading">
+<h2 class="h3" id="{{ prefix }}-provenance-heading">{{ t('recipe.provenance.label') }}</h2>
 <ol class="mt-2">
 {% for origin in doc.provenance %}<li>
 <strong>{{ origin.label }}</strong>{% if origin.source.reference %} · {{ origin.source.reference }}{% endif %}
@@ -63,7 +62,7 @@
 {% if origin.source.note %}<div>Quellennotiz: {{ text_lines(origin.source.note) }}</div>{% endif %}
 <div>Gilt für: {% for use in origin.uses %}{% if use == 'recipe' %}Rezept{% else %}{% set number = use.split(':')[1]|int %}<a href="#{{ prefix }}-ingredient-{{ number }}">Zutat {{ number }} · {{ doc.ingredients[number - 1].text }}</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</div>
 </li>{% endfor %}
-</ol></details>
+</ol></section>
 {% endmacro %}
 <article id="recipe-document" class="recipe-document" aria-label="Rezeptblatt" data-document-version="{{ document.document_version }}">
 {{ recipe_body(document, recipe_id, 'recipe') }}

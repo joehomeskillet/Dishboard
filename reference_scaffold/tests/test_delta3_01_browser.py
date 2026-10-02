@@ -13,8 +13,7 @@ from test_admin_ux_browser import admin_app, admin_engine, browser, live_server 
 from test_admin_workflow_routes import _login
 from test_delta_renderer_browser import VISIBILITY, assert_stable
 
-EVIDENCE = Path('/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/'
-                'claude-session-2026-09-29/audit/DELTA/DELTA-3-01')
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/delta3/DELTA-3-01'
 GEOMETRY = '''() => {
   const boxes = {};
   for (const selector of ['.page-wrapper', '.navbar-vertical', '#operations-overview',

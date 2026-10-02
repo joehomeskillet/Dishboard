@@ -16,8 +16,7 @@ from test_rendered_ui import browser  # noqa: F401
 from test_screen_template_browser import published_app, server  # noqa: F401
 from test_screen_template_routes import screen_app  # noqa: F401
 
-EVIDENCE = Path('/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/'
-                'claude-session-2026-09-29/audit/DELTA/DELTA-3-13')
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/delta3/DELTA-3-13'
 ROUTES = ['/admin/screens', f'/admin/vorlagen?week={DAY}',
           '/admin/screens/cafeteria/wochenvorlage', '/admin/screens/patienten/wochenvorlage']
 

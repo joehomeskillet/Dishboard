@@ -335,7 +335,7 @@ def test_reading_document_and_explicit_revision_calculator_keep_exact_stand(a3):
         body = detail.text.split('<article id="recipe-document"', 1)[1].split('</article>', 1)[0]
         assert not any(tag in body for tag in ('<input', '<select', '<textarea', '<form', '<table'))
         assert '0.1875 KG' in body and 'Berechnete Ausbeute:' in body
-        assert 'Originalmengen ansehen' in body and '0.125' in body
+        assert 'Originalmengen</h2>' in body and '0.125' in body
         assert 'Allergenangaben sind in diesen Rezeptdaten nicht erfasst.' in body
         assert '10 Minuten' in body and '0 Minuten' in body
     calculator = client.get(frozen.location + '?mode=scale&yield=6')
@@ -386,8 +386,9 @@ def test_document_partial_retains_legacy_and_exact_child_contents_without_curren
     else:
         assert 'Keine Schritte gespeichert.' in html and 'Menge nicht erfasst' in html
         assert 'Einheit nicht erfasst' in html
-        # Existing recipe metadata separates the label and its exact zero value.
+        # Preserve both semantic term/value markup and the readable exact zero value.
         assert re.search(r'<dt\b[^>]*>Kochzeit:</dt>\s*<dd\b[^>]*>0 Minuten</dd>', html)
+        assert 'Kochzeit: 0 Minuten' in ' '.join(re.sub(r'<[^>]+>', ' ', html).split())
         assert 'Vorbereitung:' not in html
         assert values['source']['note'] in html and 'KI-unterstützte Angaben;' in html
         assert 'Nur ein Kochhinweis' in html
