@@ -21,7 +21,6 @@
   display: block;
   opacity: 1;
 }
-.print-template-editor details > summary:not(.ui-sem-control):not(.admin-hint-trigger),
 .output-area-panels details > summary:not(.ui-sem-control):not(.admin-hint-trigger) { min-height: var(--app-list-row-min-height); }
 .print-template-preview {
   display: block;

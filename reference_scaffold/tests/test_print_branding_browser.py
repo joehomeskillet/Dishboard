@@ -24,7 +24,8 @@ def test_brand_selection_saved_preview_and_activation(editor_app, editor_server,
         page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
         response = page.goto(f'/admin/vorlagen/{family}?week={DAY}')
         assert response is not None and response.status == 200
-        page.locator('details[data-template-appearance] summary').click()
+        expect(page.locator('[data-template-appearance]')).to_be_visible()
+        expect(page.locator('[data-template-appearance] summary')).to_have_count(0)
         for label in ('Druckschrift', 'Farbpalette', 'Logo'):
             page.get_by_label(label, exact=True).select_option('active_brand')
         page.get_by_role('button', name='Vorlage speichern', exact=True).click()
@@ -43,7 +44,8 @@ def test_brand_selection_saved_preview_and_activation(editor_app, editor_server,
         frame.scroll_into_view_if_needed()
         _wait_for_pdf_paint(page, frame, tmp_path / f'brand-pdf-{family}-{width}.png')
         page.screenshot(path=str(tmp_path / f'brand-editor-{family}-{width}.png'), full_page=True)
-        page.locator('details[data-template-activation] summary').click()
+        expect(page.locator('[data-template-activation]')).to_be_visible()
+        expect(page.locator('[data-template-activation] summary')).to_have_count(0)
         page.get_by_role('button', name='Diese Version aktivieren', exact=True).click()
         expect(page.locator('[data-template-status-scope]')).to_contain_text('Version 2')
         download = client.get(f'/admin/{family}/preview/print?week={DAY}')

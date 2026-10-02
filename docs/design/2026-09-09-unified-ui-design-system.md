@@ -1903,6 +1903,25 @@ Desktop; vier Beispielzutaten, zwei Schritte. Der Seitenkopf enthält ein eindeu
 
 ##### Modul Rezepte (2026-09-20)
 
+**DELTA-3-09 (2026-10-01, UI-DELTA §0.1):** Im Rezepteditor sind Zutatenzusätze,
+vollständige Anleitungen, Kennzeichnungen, Bilder und Quellen statische
+Formularabschnitte. Die bisherigen Inhaltsaufklapper und Schrittkurzfassungen
+entfallen; Feldnamen, IDs, POST-Werte und Fehlerfokus bleiben erhalten.
+Abschnittslinks verwenden den Textmodus und stehen vor der KI-Warnung.
+Der Symbol-Rückweg im Kopf erhält den Listenkontext; sein identischer Zweitzugang
+im Speicherfuss entfällt. Archivbestätigungen verwenden reine Textaktionen.
+Nachweise: `test_delta3_09_browser.py`, `test_recipe_density_browser.py` und
+paketbezogener DELTA-3-09-Report.
+
+**DELTA-3-10 (2026-10-01, UI-DELTA §0.1):** Rezeptblätter zeigen Originalmengen
+und Herkunft unter statischen, lokalisierten Überschriften, auch im Druck und
+bei eingebetteten Zubereitungen. Technische Angaben und vollständiger Snapshot
+der unveränderlichen Revision bleiben sichtbar. Der Prüfnachweis zum Festhalten
+steht direkt im Verlauf; die Prüfsumme einzelner Stände bleibt über deren
+bestehenden Öffnen-Link erreichbar. PDF und HTML bleiben getrennte Ziele.
+Nachweise: `test_delta3_10_browser.py`, Rezeptblatt-/Revisionstests und
+paketbezogener DELTA-3-10-Report.
+
 > **ABGELÖST (2026-09-29; [SDD Direkte Symbolaktionen](2026-09-29-direct-symbol-actions-sdd.md)):** Ein-Direktaktions-/Menü-Regel der Übersicht und Verwerfen unter „Weitere Aktionen“ sind abgelöst. Verwerfen startet direkt den bestehenden Bestätigungsschritt. Historische Prüfbelege werden nicht zur Direktaktionsabnahme umgedeutet.
 
 Die Rezeptübersicht verwendet M22/M23: Suche und Kennzeichnung zuerst, Titel-,
@@ -1919,12 +1938,18 @@ Entwurf oder Import bestätigt keine Allergenfreigabe. Fehlende globale Prüfzah
 werden nicht durch Zahlen der aktuellen Ergebnisseite ersetzt.
 
 Editor-Sprunglinks und direkt bedienbare Mengen bleiben erhalten. Kennzeichnungen
-verwenden ab 1024 px drei Spalten, mobil eine; ausgewählte Werte öffnen den
-Bereich. Quellenangaben stehen unter «Weitere Optionen», bei Inhalt geöffnet.
-Im Import liegt ein weiterer Upload nachrangig. Zielrezept und Zielversion
-erscheinen mit JavaScript bei «Vorhandenes überspringen», bei vorhandenen Werten
-oder Fehlern; ohne JavaScript bleiben sie in nativen Details erreichbar. Die
-Controls bleiben stets im Formular und werden weder deaktiviert noch geleert.
+verwenden ab 1024 px drei Spalten, mobil eine; die Abschnitte sind statisch.
+**DELTA-3-11 (2026-10-01, UI-DELTA §0.1):** Auch Import-Upload, Zielrezept,
+Zielversion, technische Angaben und Bildquellen bleiben sichtbar. Die Controls
+bleiben stets im Formular und werden weder deaktiviert noch geleert.
+Leere Quellennotizen entfallen samt Label, fehlende Hashes heissen «Nicht erfasst».
+Eine fehlende Einheit bleibt eine leere Tabellenzelle. Anlegen und Zurücksetzen
+besitzen je einen kanonischen Zugang im Kopf beziehungsweise Filter.
+**DELTA-3-L2-MERGE (2026-10-02):** Der gemeinsame DELTA-2b-Filterdialog
+schliesst D-79 ohne Aufklapper in der Arbeitsfläche. GET-Felder bleiben im
+ursprünglichen Formular; Öffnen und Schliessen verändern keine Nachbargeometrie.
+DELTA-2c lässt die leere Aktionsgruppe bei Importzeilen ohne Rezeptlink weg
+(P-16/P-07); vorhandene Bearbeitungslinks bleiben direkt erreichbar.
 Bestätigter Import hat genau eine dominante Übernahmeaktion; Speichern bleibt
 dann sekundär. CSRF, CAS, signierte Kontexte und alle gesendeten Werte bleiben
 unverändert. Browsernachweise: Rezeptsuche, Filter, Import und Portionsplanung.
@@ -1934,9 +1959,10 @@ History und Konflikt verwenden R14/R15/R17/R22/R34 sowie M44/M51/M57/M59.
 Pro Zustand bleibt eine sichtbare Primäraktion; ohne Schreibaktion wird die
 vorhandene Suche bzw. Rücknavigation hervorgehoben. Bestätigte Importstapel
 betonen die Übernahme, übernommene Stapel die Rückkehr zur Rezeptliste.
-Verwerfen liegt unter «Weitere Aktionen», gefolgt von einer nativen
-Bestätigungsstufe mit Folgetext und `btn-danger`; der Submit-Vertrag bleibt gleich.
-Such-/Dateiformat-/Mengenhilfe nutzt `hint()` mit Tastatur- und No-JS-Zugang.
+Verwerfen bleibt eine reine Textbestätigung mit sichtbarer Konsequenz und
+`btn-danger`; JavaScript verwendet die bestehende native Bestätigung.
+Der Submit-Vertrag bleibt gleich. Such-/Dateiformat-/Mengenhilfe nutzt
+`hint(mode='inline')` und bleibt auch ohne JavaScript sichtbar.
 Sicherheits-, Übernahme-, Konflikt- und aufgelöste Referenztexte bleiben inline.
 Tabellen verwenden eine Struktur mit `admin-table--stack`, `scope="col"`
 und `data-label`; unter 768 px werden Zeilen gestapelt. Statusbadges verwenden
@@ -2543,6 +2569,20 @@ behält ihre Beschreibungs-ID. Leere Aktionszellen für Lesende bleiben wirklich
 leer. Frühere Aufklappanforderungen dieser Übersichtsseite sind durch UI-DELTA
 §0.1 abgelöst; Druckeditoren gehören zu separaten Paketen. Aktueller Prüfstand
 und konkrete Sichtnachweise stehen im DELTA-3-13-Report.
+
+**DELTA-3-12 (2026-10-01, UI-DELTA §0.1):** In den Druckeditoren stehen
+Gestaltung, Texte, Layout, Rezeptauswahl, Aktivierung, Versionen, Kopie und
+Archivierung in statischen Abschnitten. Die Vorlagen-/Wochenauswahl steht vor
+Statushinweisen. Der Katalogrückweg bleibt im Kopf; die PDF-Vorschau besitzt
+einen Zugang im Vorschaubereich. Fehler- und Sicherheitsbestätigungen zeigen
+reinen Text. Die native Pflicht-Checkbox mit externer Formularzuordnung,
+unveränderliche Revisionen und alle GET-/POST-Felder bleiben erhalten.
+**DELTA-3-L2-MERGE (2026-10-02):** Der gemeinsame DELTA-2b-Filterdialog
+schliesst D-45. Die Rezeptauswahl behält ihre GET-Felder einschliesslich
+Vorlagen-/Rezeptrevision und Ausbeute. Rückkehr mit JavaScript stellt Fokus und
+Scrollposition wieder her; ohne JavaScript führt der native Anker zum Auslöser.
+Nachweise: `test_delta3_12_browser.py`; aktueller Laufstand im
+`DELTA-3-L2-MERGE-report.md`, historische Nachweise im DELTA-3-12-Report.
 
 **Polish P3: editoren (2026-09-24).** Aktive und archivierte Vorlagen verwenden
 `admin-status--active/neutral` mit Icon und Text. Die Wochenauswahl hat eine

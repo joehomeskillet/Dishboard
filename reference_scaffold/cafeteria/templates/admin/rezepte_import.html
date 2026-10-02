@@ -1,6 +1,6 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, icon, empty_state, disclosure_section, hint, list_row %}
-{% from 'ui/_semantic.html' import icon_button, icon_summary, status_badge_sem %}
+{% from 'admin/_macros.html' import page_header, icon, empty_state, hint, list_row %}
+{% from 'ui/_semantic.html' import icon_button, status_badge_sem %}
 {% set workflow_nav = 'recipes' %}
 {% set layout_variant = 'standard' %}
 {% block title %}Rezepte importieren · Menüplanung{% endblock %}
@@ -21,14 +21,13 @@
 </div>
 {% endif %}
 
-{% if batch %}<details class="admin-compact-details mb-3" data-import-upload>{{ icon_summary('actions.upload') }}{% endif %}
-<section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-upload-title">
+<section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-upload-title" data-import-upload>
   <div class="card-header py-2"><h2 class="card-title mb-0" id="recipe-import-upload-title">{{ 'Andere Datei wählen' if batch else 'Datei importieren' }}</h2></div>
   <form class="card-body py-2 admin-compact-form" method="post" action="{{ url_for('admin.recipe_import_create') }}" enctype="multipart/form-data" data-loading>
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <div class="row g-2 align-items-end mb-2">
       <div class="col-12 col-lg">
-        <div class="d-flex align-items-center gap-2"><label class="form-label" for="source_file">Quelldatei</label>{{ hint('Höchstens 5 MiB, UTF-8, Schema Version 1.', 'import-file-hint') }}</div>
+        <div class="d-flex flex-wrap align-items-center gap-2"><label class="form-label" for="source_file">Quelldatei</label>{{ hint('Höchstens 5 MiB, UTF-8, Schema Version 1.', 'import-file-hint', mode='inline') }}</div>
         <input class="form-control" id="source_file" name="source_file" type="file" accept=".csv,.json,text/csv,application/json" required>
       </div>
       <div class="col-12 col-lg-auto">
@@ -49,7 +48,6 @@
     </fieldset>
   </form>
 </section>
-{% if batch %}</details>{% endif %}
 
 {% if batch %}
 <section class="card mb-3 admin-compact-section" aria-labelledby="recipe-import-batch-title" data-checked-file="{{ batch.source_filename or '' }}" data-batch-id="{{ batch.public_id }}">
@@ -69,13 +67,14 @@
     Noch keine Bestätigung. Übernahme in Rezepte braucht zuerst diese Signatur.
     {% endif %}
     </p>
-    {% call disclosure_section(id='import-technical', has_error=error) %}
+    <section id="import-technical" aria-labelledby="import-technical-heading">
+      <h3 class="h4" id="import-technical-heading">Technische Angaben</h3>
       <div class="text-break">
         <p class="mb-1">Importstapel {{ batch.public_id }} · Version {{ batch.row_version }}</p>
-        <p class="mb-1">Adapter {{ batch.adapter_kind }} · Status {{ batch.status }} · Dateihash {{ batch.source_sha256 or '—' }}</p>
+        <p class="mb-1">Adapter {{ batch.adapter_kind }} · Status {{ batch.status }} · Dateihash {{ batch.source_sha256 or 'Nicht erfasst' }}</p>
         {% if batch.confirmation_hash_sha256 %}<p class="mb-0">Bestätigte Signatur {{ batch.confirmation_hash_sha256 }}.</p>{% endif %}
       </div>
-    {% endcall %}
+    </section>
     <fieldset class="mb-3">
       <legend class="form-label">Sichtbare Quellennotiz</legend>
       <div class="recipe-tag-options">
@@ -105,9 +104,10 @@
           </select>
         </div>
       </div>
-      <p class="admin-compact-summary admin-list-secondary">Quellennotiz: {{ payload.source.note if payload.source else '—' }}{% if payload.ingredients %} · {{ payload.ingredients|map(attribute='ingredient_text')|join(', ') }}{% endif %}</p>
-      <details class="admin-compact-details" id="row-{{ candidate.row_number }}-details"{% if error or candidate.target_recipe_public_id or candidate.target_row_version %} open{% endif %}>
-        {{ icon_summary('ui.disclosure.details', aria_label=t('recipe.import.row_details', row=candidate.row_number)) }}
+      {% if (payload.source and payload.source.note) or payload.ingredients %}
+      <p class="admin-compact-summary admin-list-secondary">{% if payload.source and payload.source.note %}Quellennotiz: {{ payload.source.note }}{% endif %}{% if payload.ingredients %}{% if payload.source and payload.source.note %} · {% endif %}{{ payload.ingredients|map(attribute='ingredient_text')|join(', ') }}{% endif %}</p>
+      {% endif %}
+      <div id="row-{{ candidate.row_number }}-details">
         <div class="admin-compact-detail-body">
           <p class="text-secondary">Ursprung {{ candidate.origin_ref }} · {{ candidate.original_source_kind }} bleibt unverändert.</p>
           {% for ingredient in payload.ingredients or [] %}
@@ -115,7 +115,7 @@
             <div class="admin-compact-name"><strong>{{ ingredient.ingredient_text }}</strong></div>
             <div class="admin-compact-quantity">
               <label class="form-label" for="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-qty">Menge</label>
-              <input class="form-control" id="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-qty" name="row.{{ candidate.row_number }}.ingredient.{{ loop.index0 }}.quantity" value="{{ ingredient.quantity or '' }}">
+              <input class="form-control" id="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-qty" name="row.{{ candidate.row_number }}.ingredient.{{ loop.index0 }}.quantity" value="{{ ingredient.quantity if ingredient.quantity is not none else '' }}">
             </div>
             <div class="admin-compact-unit">
               <label class="form-label" for="row-{{ candidate.row_number }}-ing-{{ loop.index0 }}-unit">Einheit</label>
@@ -138,17 +138,17 @@
             </div>
           </div>
         </div>
-      </details>
+      </div>
     </article>
     {% endfor %}
     {% if batch.status == 'draft' %}
     <div class="admin-form-footer mt-3">
       {{ icon_button('actions.save', name='action', value='save', emphasis='primary' if not (batch.confirmation_hash_sha256 and can_import) else 'secondary') }}
       {{ icon_button('actions.confirm', name='action', value='acknowledge', emphasis='secondary' if (batch.confirmation_hash_sha256 and can_import) else none) }}
-      <details data-import-discard>{{ icon_summary('actions.delete', object=batch.source_filename or 'Importstapel') }}
+      <div data-import-discard>
           <p id="discard-consequence">Der Importstapel wird verworfen. Ungespeicherte Änderungen gehen verloren; vorhandene Rezepte bleiben unverändert.</p>
-          {{ icon_button('actions.delete', name='action', value='cancel', text='Verwerfen', aria_label='Verwerfen bestätigen', show_text=true, emphasis='danger', consequence_key='actions.delete', attrs={'aria-describedby': 'discard-consequence'}) }}
-      </details>
+          {{ icon_button('actions.delete', name='action', value='cancel', text='Verwerfen', aria_label='Verwerfen bestätigen', mode='text', emphasis='danger', consequence_key='actions.delete', attrs={'aria-describedby': 'discard-consequence', 'data-confirm': 'Importstapel verwerfen? Ungespeicherte Änderungen gehen verloren. Vorhandene Rezepte bleiben unverändert.'}) }}
+      </div>
     </div>
     {% endif %}
     <noscript><p class="form-hint">Ohne JavaScript werden alle Felder beim Absenden mitgesendet.</p></noscript>

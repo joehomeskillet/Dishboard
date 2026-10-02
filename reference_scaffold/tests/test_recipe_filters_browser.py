@@ -74,7 +74,6 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         page.screenshot(path=str(evidence / f'recipes-{width}-js-{javascript}.png'), caret='initial')
         page.locator('nav[aria-label="Rezeptseiten"] a[href*="page=1"]').click()
         expect(page.locator('.recipe-row')).to_have_count(50)
-        expect(page.locator('.recipe-row')).to_have_count(50)
         expect(page.locator('.recipe-row [data-semantic="publish.draft"]')).to_have_count(50)
         page.get_by_role('link', name='Zurücksetzen', exact=True).click()
         assert urlsplit(page.url).query == ''
@@ -89,7 +88,11 @@ def test_native_recipe_filters_and_paging_are_read_only(b3, filter_catalog, mast
         expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_have_text('Keine passenden Rezepte')
         expect(page.locator('main .btn-primary')).to_have_count(1)
         expect(page.locator('[data-empty-kind="no_match"] .btn-primary')).to_have_count(0)
-        expect(page.locator('[data-empty-kind="no_match"] [data-semantic="view.reset"]')).to_be_visible()
+        expect(page.locator('[data-empty-kind="no_match"] [data-semantic="view.reset"]')).to_have_count(0)
+        reset = form.get_by_role('link', name='Zurücksetzen', exact=True)
+        expect(reset).to_have_count(1)
+        expect(reset).to_have_attribute('href', '/admin/rezepte')
+        expect(reset).to_be_visible()
         expect(page.get_by_label('Kennzeichnung', exact=True)).to_have_value(filter_catalog['tag'])
         expect(page.locator('#tag option:checked')).to_have_text('Regional · archiviert')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
@@ -176,18 +179,34 @@ def test_polish_recipe_pages(b3, master_server, browser, javascript):  # noqa: F
                     assert row_style == ('grid' if width < 768 else 'table-row')
                 if name == 'rezepte':
                     page.locator('[data-semantic="view.filter"]').click()
-                    expect(page.locator('#text-hint')).to_be_visible()
                     expect(page.locator('.admin-filter-dialog details')).to_have_count(0)
+                hint_id, focus_selector = {
+                    'rezepte': ('#text-hint', '#q'),
+                    'import': ('#import-file-hint', '#source_file'),
+                    'images': ('#image-format-hint', '#image-file'),
+                    'scale': ('#yield-hint', '#target-yield'),
+                    'revisionen': ('#history-hint', 'button[form="recipe-freeze-form"]'),
+                    'conflict': ('#copy-hint', 'main textarea'),
+                }[name]
+                expect(page.locator(hint_id)).to_be_visible()
+                expect(page.locator('main .admin-hint > summary')).to_have_count(0)
+                focus_target = page.locator(focus_selector).first
+                focus_target.focus()
+                page.keyboard.press('Escape')
+                if name == 'rezepte' and javascript:
+                    filters = page.locator('.admin-filter-dialog')
+                    expect(filters).not_to_be_visible()
+                    trigger = page.locator('[data-semantic="view.filter"]')
+                    expect(trigger).to_be_focused()
+                    trigger.press('Enter')
+                    expect(filters).to_be_visible()
+                    focus_target.focus()
+                expect(focus_target).to_be_focused()
+                expect(page.locator(hint_id)).to_be_visible()
+                if name == 'rezepte':
                     page.locator('.admin-filter-dialog [data-read-detail-close]').click()
-                else:
-                    help_control = page.locator('.admin-hint > summary').first
-                    help_control.focus()
-                    expect(help_control).to_be_focused()
-                    page.keyboard.press('Enter')
-                    expect(help_control.locator('..')).to_have_attribute('open', '')
-                    expect(page.locator('#' + help_control.get_attribute('aria-describedby'))).to_be_visible()
-                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                    page.keyboard.press('Enter')
+                    expect(page.locator('.admin-filter-dialog')).not_to_be_visible()
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
                 if name == 'revisionen':
                     expected = page.locator('#recipe-freeze-form').evaluate('f => [...new FormData(f)]')
                     freeze = page.get_by_role('button', name='Gespeicherten Stand festhalten', exact=True)

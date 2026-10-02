@@ -51,7 +51,10 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
             if isinstance(call.node, nodes.Name) and call.node.name == 'form_footer':
                 calls.append((path, call))
     assert len(calls) == 15, 'Review compatibility inventory when consumers change'
-    migrated = {'_course_editor.html', '_week_service.html', '_week_settings.html', 'menu_editor.html'}
+    migrated = {'_course_editor.html', '_week_service.html', '_week_settings.html',
+                'menu_editor.html', 'rezepte_editor.html', 'print_template_editor.html',
+                'bestellung_korb.html', 'grundlagen_food.html', 'gerichtvorlagen.html',
+                'gerichtvorlage_einplanen.html'}
     assert {path.name for path, _ in calls if path.name in migrated} == migrated
     with semantic_app.test_request_context('/'):
         before = env.from_string(LEGACY).module.form_footer
@@ -86,6 +89,24 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
                     {% if not cell.template_proposal %}{{ icon_button('actions.save', aria_label=t('menu.save_return.aria'), emphasis='secondary', attrs={'formaction': '/admin/' ~ family ~ '/menu?return_to=week'}) }}{% endif %}
                     {{ icon_button('actions.cancel', href=g.get('menu_collection_return') or back_url) }}
                 ''').render(**data)
+            elif path.name in {'rezepte_editor.html', 'gerichtvorlage_einplanen.html'}:
+                # UI-DELTA §0.1/R-09: canonical return is in the header; save keeps its form.
+                expected = save
+            elif path.name == 'gerichtvorlagen.html':
+                expected = (data['archive_rare'] if populated else '') + save
+            elif path.name == 'grundlagen_food.html':
+                expected = icon_button('actions.save', form='food-core-form', emphasis='primary')
+            elif path.name == 'bestellung_korb.html':
+                expected = icon_button('actions.save')
+                # Dropping redundant cancel_url=None preserves the complete footer bytes.
+                assert all(kw.key != 'cancel_url' for kw in call.kwargs)
+                explicit_none = copy(call)
+                explicit_none.kwargs = [*call.kwargs, nodes.Keyword('cancel_url', nodes.Const(None))]
+                assert rendered == _compile_call(env, explicit_none).render(form_footer=after, **data)
+            elif path.name == 'print_template_editor.html':
+                # UI-DELTA §0.1/R-53: header keeps the identical catalogue return.
+                expected = icon_button('actions.save', type='submit',
+                                       aria_label='Entwurf speichern' if populated else 'Vorlage speichern')
             else:
                 # Static form sections leave the primary emphasis to the week action.
                 expected = icon_button('actions.save', emphasis='secondary')
@@ -103,8 +124,11 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    # UI-DELTA §0.1: static week forms/fallback; long notes use read dialogs.
-    assert len(calls) == 60, 'Review compatibility inventory when consumers change'
+    # UI-DELTA §0.1: migrated week and recipe sections no longer use disclosures.
+    assert len(calls) == 0, 'Review compatibility inventory when consumers change'
+    migrated_disclosures = {'rezepte_editor.html', 'rezepte_revision.html', 'rezepte_revisionen.html',
+                           'rezepte_images.html', 'rezepte_import.html', 'print_template_editor.html'}
+    assert not any(path.name in migrated_disclosures for path, _ in calls)
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
     # DELTA-2c owns the frozen extended-call contract; removals are permitted.
@@ -375,8 +399,31 @@ def test_every_existing_row_action_call_renders_byte_identically(semantic_app): 
     data = _action_context(False)
     for path, call in plain:
         template = _compile_call(env, call)
-        assert _render_call(semantic_app, template, current, data) == _render_call(
-            semantic_app, template, legacy, data), f'{path}:{call.lineno}'
+        actual = _render_call(semantic_app, template, current, data)
+        previous = _render_call(semantic_app, template, legacy, data)
+        modes = [pair.value.value for pair in call.find_all(nodes.Pair)
+                 if isinstance(pair.key, nodes.Const) and pair.key.value == 'mode']
+        if 'text' in modes:
+            # DELTA-3-18 migrated this existing planning action to exclusive text.
+            assert path.name == 'gerichtvorlagen.html' and modes == ['text']
+            current_doc = BeautifulSoup(actual, 'html.parser')
+            previous_doc = BeautifulSoup(previous, 'html.parser')
+            assert len(current_doc.select('a, button')) == len(previous_doc.select('a, button')) == 1
+            action = current_doc.select_one('a')
+            old_action = previous_doc.select_one('a')
+            assert action.get_text(strip=True) == 'Einplanen'
+            assert not action.select('svg')
+            assert action['data-semantic'] == 'actions.open'
+            expected_attrs = dict(old_action.attrs)
+            expected_attrs['class'] = [
+                'ui-sem-control--text' if item == 'ui-sem-control--icon-only' else item
+                for item in old_action['class']
+            ]
+            assert action.attrs == expected_attrs
+            assert current_doc.select_one('.admin-row-actions').attrs == previous_doc.select_one('.admin-row-actions').attrs
+        else:
+            assert set(modes) <= {'icon'}
+            assert actual == previous, f'{path}:{call.lineno}'
     screen_path, screen_call = opted[0]
     screen = _compile_call(env, screen_call)
     hidden_now = _render_call(semantic_app, screen, current, data)

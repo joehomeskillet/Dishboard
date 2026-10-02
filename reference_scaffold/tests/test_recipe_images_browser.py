@@ -115,7 +115,8 @@ def test_native_upload_freeze_history_scaling_and_assets(a3, recipe_server, brow
         expect(page.locator('td').get_by_text('0.1875', exact=True)).to_be_visible()
         assert len(posts) == 2 and snapshot(owner) == before
         page.get_by_role('link', name='Rezept ansehen', exact=True).click()
-        page.locator('details.admin-disclosure > summary').filter(has_text='Weitere Optionen').click()
+        expect(page.locator('#recipe-technical-heading')).to_have_text('Technische Angaben')
+        expect(page.locator('.recipe-reading-actions details')).to_have_count(0)
         expect(page.get_by_text('quantity_places', exact=True)).to_be_visible()
         geometry(page)
         capture(page, tmp_path, f'revision-{width}-js{javascript}')

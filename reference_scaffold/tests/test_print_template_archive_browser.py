@@ -51,33 +51,38 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         page.on('response', record_asset)
         page.on('pageerror', lambda error: errors.append(str(error)))
 
-        def capture_error_glyph(phase):
-            selector = 'details[data-template-lifecycle] > summary [data-admin-details-error] svg > use'
-            glyph = page.locator(selector)
-            expect(glyph).to_be_visible()
-            expect(glyph).to_have_attribute('href', f'{urlsplit(sprite_url).path}#tabler-circle-x')
-            page.wait_for_function('''selector => {
-                const glyph = document.querySelector(selector);
-                return glyph && glyph.getBBox().width > 0 && glyph.getBBox().height > 0;
-            }''', arg=selector)
-            geometry = glyph.evaluate('''el => ({href: new URL(el.getAttribute('href'), location.href).href,
-                width: el.getBBox().width, height: el.getBBox().height})''')
+        def capture_native_error(phase):
+            confirmation = page.get_by_label('Ich möchte diese Vorlage archivieren.', exact=True)
+            expect(confirmation).to_be_visible()
+            expect(confirmation).to_be_focused()
+            expect(page.locator('[data-template-lifecycle] summary, [data-template-lifecycle] [data-admin-details-error]')).to_have_count(0)
+            feedback = confirmation.evaluate('''el => ({
+                missing: el.validity.valueMissing, valid: el.validity.valid,
+                message: el.validationMessage, form: el.form.id,
+                rect: el.getBoundingClientRect().toJSON()
+            })''')
+            assert feedback['missing'] and not feedback['valid'] and feedback['message']
+            assert feedback['form'] == 'archive-form' and feedback['rect']['width'] > 0
             (tmp_path / f'archive-error-{phase}.json').write_text(
-                json.dumps({'assets': assets, 'glyph': geometry}, indent=2))
+                json.dumps({'assets': assets, 'native_feedback': feedback}, indent=2))
+            page.screenshot(path=str(tmp_path / f'archive-error-{phase}.png'))
 
         response = page.goto(f'/admin/vorlagen/{family}?week={DAY}')
         assert response is not None and response.status == 200
         expect(page.get_by_role('button', name='Vorlage archivieren', exact=True)).to_have_count(0)
-        page.locator('details[data-template-copy] summary').click()
+        expect(page.locator('[data-template-copy]')).to_be_visible()
+        expect(page.locator('[data-template-copy] > summary')).to_have_count(0)
         page.get_by_label('Name der Kopie', exact=True).fill('Aktive Ersatzvorlage')
         page.get_by_role('button', name='Kopie erstellen', exact=True).click()
         copy_id = parse_qs(urlsplit(page.url).query)['template'][0]
-        page.locator('details[data-template-activation] summary').click()
+        expect(page.locator('[data-template-activation]')).to_be_visible()
+        expect(page.locator('[data-template-activation] > summary')).to_have_count(0)
         page.get_by_role('button', name='Diese Version aktivieren', exact=True).click()
         expect(page.locator('[data-template-status-scope]')).to_contain_text('Version 1')
         page.get_by_label('Vorlage', exact=True).select_option('standard')
         page.get_by_role('button', name='Woche öffnen', exact=True).click()
-        page.locator('details[data-template-lifecycle] summary').click()
+        expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+        expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
         confirmation = page.get_by_role('checkbox', name='Ich möchte diese Vorlage archivieren.', exact=True)
         expect(confirmation).to_be_visible()
         label = confirmation.locator('..')
@@ -91,7 +96,7 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         assert confirmation.evaluate('el => el.validity.valueMissing')
         assert not posts and snapshot(database_engine) == before_confirmation
         if javascript:
-            capture_error_glyph('first-invalid')
+            capture_native_error('first-invalid')
         confirmation.press('Space')
         expect(confirmation).to_be_checked()
         confirmation.press('Space')
@@ -99,7 +104,7 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
         assert not posts and snapshot(database_engine) == before_confirmation
         if javascript:
-            capture_error_glyph('second-invalid')
+            capture_native_error('second-invalid')
         label.click()
         expect(confirmation).to_be_checked()
         page.get_by_role('button', name='Vorlage archivieren', exact=True).focus()
@@ -109,7 +114,8 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         assert post.value.status == 303
         assert len(posts) == 1
         assert set(parse_qs(posts[0].post_data)) == {'_csrf', 'action', 'version', 'revision'}
-        page.locator('details[data-template-lifecycle] summary').click()
+        expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+        expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
         reactivate = page.get_by_role('button', name='Druckvorlage Standard reaktivieren', exact=True)
         expect(reactivate).to_be_visible()
         expect(reactivate).to_have_text('Reaktivieren')
@@ -120,7 +126,8 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         _targets(page)
         before = snapshot(database_engine)
         assert client.get(old_pdf_url).data == original_pdf.data
-        page.locator('#template-versions > summary').click()
+        expect(page.locator('#template-versions-heading')).to_have_text('Versionen')
+        expect(page.locator('#template-versions > summary')).to_have_count(0)
         page.get_by_role('link', name='Version 1 öffnen', exact=True).click()
         expect(page.get_by_role('heading', name='PDF-Vorschau · Version 1', exact=True)).to_be_visible()
         page.get_by_role('link', name='Alle Vorlagen', exact=True).click()
@@ -134,7 +141,8 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         _targets(page)
         page.screenshot(path=str(tmp_path / f'archive-catalog-{family}-{width}-js{javascript}.png'), full_page=True)
         item.get_by_role('link', name='Standard bearbeiten', exact=True).click()
-        page.locator('details[data-template-lifecycle] summary').click()
+        expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+        expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
         expect(reactivate).to_be_visible()
         expect(reactivate).to_have_text('Reaktivieren')
         expect(reactivate).to_have_attribute('data-ui-tooltip', 'Druckvorlage Standard reaktivieren')
@@ -150,7 +158,8 @@ def test_archive_reactivate_native_lifecycle(editor_app: Any, editor_server: str
         page.screenshot(path=str(tmp_path / f'archive-editor-{family}-{width}-js{javascript}.png'), full_page=True)
         reactivate.click()
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_enabled()
-        page.locator('details[data-template-lifecycle] summary').click()
+        expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+        expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
         expect(page.get_by_role('button', name='Vorlage archivieren', exact=True)).to_be_visible()
         expect(page.locator(f'#template-select option[value="{copy_id}"]')).to_contain_text('Aktiv: Revision 1')
         assert client.get(old_pdf_url).data == original_pdf.data
@@ -203,12 +212,14 @@ def test_archive_confirmation_survives_late_pdf_response(editor_app, editor_serv
             page.on('pageerror', lambda error: errors.append(str(error)))
             response = page.goto(url, wait_until='domcontentloaded')
             assert response is not None and response.status == 200
-            page.locator('details[data-template-lifecycle] summary').click()
+            expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+            expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
             confirmation = page.get_by_role('checkbox', name='Ich möchte diese Vorlage archivieren.', exact=True)
             expect(confirmation).to_be_visible()
             assert confirmation.evaluate('el => el.form.id === "archive-form" && !el.closest("form")')
             expect(page.locator('#archive-form')).to_have_count(1)
-            page.locator('details[data-template-activation] summary').click()
+            expect(page.locator('[data-template-activation]')).to_be_visible()
+            expect(page.locator('[data-template-activation] > summary')).to_have_count(0)
             active_pdf = page.get_by_role('link', name='PDF mit aktiver Vorlage öffnen', exact=True)
             original_href = active_pdf.get_attribute('href')
             assert original_href == f'/admin/{family}/preview/print?week={DAY}'
@@ -246,7 +257,8 @@ def test_archive_confirmation_survives_late_pdf_response(editor_app, editor_serv
                 page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
             assert post.value.status == 303 and len(posts) == 1
             assert set(parse_qs(posts[0].post_data)) == {'_csrf', 'action', 'version', 'revision'}
-            page.locator('details[data-template-lifecycle] summary').click()
+            expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+            expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
             reactivate = page.get_by_role('button', name='Druckvorlage Kopie reaktivieren', exact=True)
             expect(reactivate).to_be_visible()
             expect(reactivate).to_have_text('Reaktivieren')
@@ -277,7 +289,8 @@ def test_historical_lifecycle_conflict_keeps_revision_until_reload(editor_app, e
         expect(page.get_by_label('Vorlagenname', exact=True)).to_have_value('Kopie')
         assert client.post(url, data=fields('archive', 3, 1)).status_code == 303
         before = snapshot(database_engine)
-        page.locator('details[data-template-lifecycle] summary').click()
+        expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+        expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
         page.get_by_role('checkbox', name='Ich möchte diese Vorlage archivieren.', exact=True).check()
         with page.expect_response(lambda response: response.request.method == 'POST') as post:
             page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
@@ -333,7 +346,8 @@ def test_archive_conflict_preserves_original_version_and_focus(editor_app: Any, 
         page.goto(url)
         assert client.post(url, data=fields('archive', 3)).status_code == 303
         before = snapshot(database_engine)
-        page.locator('details[data-template-lifecycle] summary').click()
+        expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+        expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
         page.get_by_role('checkbox', name='Ich möchte diese Vorlage archivieren.', exact=True).check()
         with page.expect_response(lambda response: response.request.method == 'POST') as post:
             page.get_by_role('button', name='Vorlage archivieren', exact=True).click()
@@ -342,7 +356,8 @@ def test_archive_conflict_preserves_original_version_and_focus(editor_app: Any, 
         assert page.locator('input[name="version"]').evaluate_all('items => items.every(item => item.value === "3")')
         assert snapshot(database_engine) == before
         page.get_by_role('link', name='Aktuellen Stand neu laden', exact=True).click()
-        page.locator('details[data-template-lifecycle] summary').click()
+        expect(page.locator('[data-template-lifecycle]')).to_be_visible()
+        expect(page.locator('[data-template-lifecycle] > summary')).to_have_count(0)
         reactivate = page.get_by_role('button', name='Druckvorlage Kopie reaktivieren', exact=True)
         expect(reactivate).to_be_visible()
         expect(reactivate).to_have_text('Reaktivieren')
