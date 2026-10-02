@@ -1,7 +1,8 @@
 """Listenfamilie: jede Admin-Liste vermessen, vergleichen und per Baseline absichern.
 
 Zielwerte aus UI-DIRECT-ACTIONS-2026-09-29 (§3, §4, §10): alle verfügbaren
-Zeilenaktionen direkt, benannt und icon-only; keine Karte je Zeile,
+Zeilenaktionen direkt und benannt; UI-DELTA §0.1/B-03 erlaubt exklusiven
+Symbol- oder expliziten Textmodus. Keine Karte je Zeile,
 gleiche Kopf-/Haupt-/Sekundärtypografie.
 UI_LIST_FAMILY_REPORT=1 schreibt Vergleich und Screenshots; die Baseline darf
 dabei nur sinken. Neue Abweichungen werden auch im Berichtsmodus abgewiesen.
@@ -114,13 +115,14 @@ MEASURE_JS = r"""() => {
   const packActions = (acts) => {
     // UI-DELTA §0.1/B-03 supersedes mandatory icon-only actions: explicit
     // text mode is valid, while a mixed renderer remains a deviation.
-    const texts = acts.filter(el => !el.matches('.ui-sem-control--text') ||
-      el.querySelector('svg, img')).map(visibleText).filter(Boolean);
+    const textActions = acts.filter(el => !el.matches('.ui-sem-control--text') ||
+      el.querySelector('svg, img'));
+    const texts = textActions.map(visibleText).filter(Boolean);
     const icons = [...new Set(acts.flatMap(iconNames))];
     return {
       count: acts.length,
       withText: texts.length,
-      objectWithText: acts.filter(el => visibleText(el) && !namedDestination(el)).length,
+      objectWithText: textActions.filter(el => visibleText(el) && !namedDestination(el)).length,
       texts: texts.slice(0, 8),
       icons: icons.slice(0, 8),
       family: icons.length ? (icons.every((name) => name.startsWith('tabler')) ? 'tabler' : 'gemischt') : 'keins',
@@ -461,6 +463,28 @@ def test_named_hub_destinations_keep_metrics_without_exempting_object_actions():
                     link.evaluate('(el, original) => { el.href = original[0]; el.dataset.semantic = original[1]; }', [target, key])
                 link.evaluate("el => el.textContent = 'Bearbeiten'")
                 assert page.evaluate(MEASURE_JS)['lists'][0]['rowActions']['objectWithText'] == 1
+        finally:
+            browser.close()
+
+
+def test_explicit_text_mode_exempts_only_unmixed_controls():
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=['--no-sandbox'])
+        try:
+            page = browser.new_page()
+            for mode, markup, expected in (
+                ('ui-sem-control--text', 'Einplanen', 0),
+                ('', 'Einplanen', 1),
+                ('ui-sem-control--icon', 'Einplanen', 1),
+                ('ui-sem-control--text', '<svg></svg>Einplanen', 1),
+                ('ui-sem-control--text', '<img alt="">Einplanen', 1),
+            ):
+                page.set_content(f'<main><table><tbody><tr><td>'
+                                 f'<a class="btn ui-sem-control {mode}" href="/plan">{markup}</a>'
+                                 '</td></tr></tbody></table></main>')
+                pack = page.evaluate(MEASURE_JS)['lists'][0]['rowActions']
+                assert pack['count'] == 1
+                assert pack['withText'] == pack['objectWithText'] == expected
         finally:
             browser.close()
 
