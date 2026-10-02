@@ -100,9 +100,8 @@ def test_calendar_template_uses_shared_statusbar_and_primary_action(
             expect(primary).to_have_text('')
             expect(primary).to_have_attribute('href', event_url)
             expect(header.locator(f'a.btn-primary[href="{event_url}"]')).to_have_count(1)
-            plan_buttons = page.get_by_role('link', name=re.compile(r'^Planen für '))
-            expect(plan_buttons.first).to_be_visible()
-            expect(page.locator('.kitchen-cal-plan.btn-primary')).to_have_count(0)
+            expect(page.locator('.kitchen-cal-plan')).to_have_count(0)
+            expect(page.locator('.kitchen-cal-day-head:visible, .kitchen-cal-list-head h2 a:visible').first).to_be_visible()
         else:
             expect(primary).to_have_count(0)
             expect(page.get_by_role('link', name='Anlass anlegen')).to_have_count(0)
@@ -128,10 +127,11 @@ def test_anlass_template_preserves_post_fields_and_shared_patterns() -> None:
     assert 'data-sticky' not in text
     assert "icon_button('actions.save')" in text
     assert "form_footer(save_action, url_for('admin.kitchen_calendar'))" in text
-    assert 'disclosure_section(' in text
+    assert 'disclosure_section(' not in text
+    assert '<section id="event-optional"' in text
     assert 'Anlass anlegen' in text
     assert 'Anlass bearbeiten' in text
-    assert 'Weitere Optionen' in text
+    assert 'Zeit und Notiz (optional)' in text
     assert 'Zum Kalender' not in text
 
 

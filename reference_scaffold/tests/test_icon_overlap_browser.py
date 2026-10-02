@@ -272,15 +272,17 @@ def test_filters_tabs_and_calendar_have_distinct_hit_areas(
             page.evaluate('document.fonts.ready')
             head = page.locator('.kitchen-cal-grid .kitchen-cal-day-head').filter(has_text='29').first
             if width >= 1024:
-                plan = head.locator('..').locator('.kitchen-cal-plan')
+                expect(head.locator('..').locator('.kitchen-cal-plan')).to_have_count(0)
                 next_day = head.locator('xpath=ancestor::td/following-sibling::td[1]').locator('.kitchen-cal-day-head')
                 try:
-                    evidence.append(_separate(page, plan, next_day))
+                    evidence.append(_separate(page, head, next_day))
                 except AssertionError as error:
                     failures.append((f'calendar/{profile}', str(error)))
             else:
                 row = page.locator('.kitchen-cal-list-head').filter(has_text='29. September')
-                evidence.append(_separate(page, row.locator('h2 a'), row.locator('.kitchen-cal-plan')))
+                expect(row.locator('.kitchen-cal-plan')).to_have_count(0)
+                next_day = row.locator('xpath=ancestor::li/following-sibling::li[1]').locator('h2 a')
+                evidence.append(_separate(page, row.locator('h2 a'), next_day))
             page.screenshot(path=str(tmp_path / f'calendar-{profile}.png'))
     (tmp_path / 'hit-areas.json').write_text(json.dumps({'evidence': evidence, 'failures': failures}, indent=2))
     assert not failures, failures

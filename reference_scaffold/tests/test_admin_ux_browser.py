@@ -114,7 +114,7 @@ def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page,
     page.set_viewport_size({'width': 390, 'height': 844})
     page.goto(f'/admin/{family}?week={DAY}')
     header = page.locator(f'form[action="/admin/{family}/header"]')
-    page.locator('details.admin-week-settings > summary').click()
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
     title = header.locator('input[name="title"]')
     original_title = title.input_value()
     preview_links = page.locator('a[href*="/preview"]')
@@ -159,7 +159,7 @@ def test_admin_editor_dirty_state_blocks_preview_and_publish(page_context: Page,
     assert publish_button.is_disabled() is publish_disabled_before
     assert publish_button.text_content() == publish_text_before
 
-    page.locator('details.admin-week-service').first.locator('summary').click()
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     service = page.locator(f'form[action="/admin/{family}/service"]').first
     notice = service.locator('[name="notice"]')
     original_notice = notice.input_value()

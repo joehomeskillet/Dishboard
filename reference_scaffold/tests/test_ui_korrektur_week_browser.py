@@ -37,8 +37,8 @@ def _goto(page: Page, family: str) -> None:
 
 
 def _open_week_forms(page: Page) -> None:
-    page.locator('details.admin-week-settings').evaluate('el => { el.open = true }')
-    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
 
 
 def _open_more_actions(page: Page) -> None:
@@ -190,9 +190,7 @@ def test_a04_week_and_service_details_closed_then_same_payloads(
     page = page_context
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, family)
-    settings = page.locator('details.admin-week-settings')
-    assert settings.get_attribute('open') is None
-    assert page.locator('details.admin-week-service').first.get_attribute('open') is None
+    expect(page.locator('details.admin-week-settings, details.admin-week-service')).to_have_count(0)
     _open_week_forms(page)
     header = page.locator(f'form[action="/admin/{family}/header"]')
     header.locator('[name="title"]').fill('Wochenangebot September')
@@ -290,31 +288,37 @@ def test_a07_long_note_collapses_and_keeps_allergen_warning_visible(
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, family)
     card = page.locator('.menu-slot').first
-    details = card.locator('details.admin-week-note')
+    details = card.locator('dialog.ui-read-detail')
     expect(details).to_have_count(1)
-    expect(details.locator('summary')).to_have_text('Hinweis anzeigen')
+    expect(details).to_be_hidden()
+    expect(details.locator('h2')).to_have_text('Menühinweise')
     expect(card.locator('[data-menu-metadata] > p')).to_contain_text('Allergenangaben nicht erfasst')
     order = card.evaluate('''(root, family) => {
         const nodes = [...root.querySelectorAll('*')];
         const index = selector => nodes.indexOf(root.querySelector(selector));
         const result = [
             index('.dish-type'), index('h3'), index('.admin-week-components'),
-            index('[data-menu-metadata] > p'), index('[data-menu-metadata] .labels'),
-            index('.admin-week-review-line'),
+            index('[data-menu-metadata] > p'),
         ];
+        for (const selector of ['[data-menu-metadata] .labels', '.admin-week-review-line']) {
+            if (root.querySelector(selector)) result.push(index(selector));
+        }
         if (family === 'cafeteria') {
             result.push(nodes.findIndex(node =>
                 node.tagName === 'P' && node.textContent.includes('Mitarbeitende CHF')
             ));
         }
-        result.push(index('a[href*="/menu"]'), index('details.admin-week-note'));
+        result.push(index('a[href*="/menu"]'), index('dialog.ui-read-detail'));
         return result;
     }''', family)
     assert all(position >= 0 for position in order), order
     assert order == sorted(order), order
     assert LONG_NOTE.strip() not in (card.inner_text() or '')
-    details.locator('summary').click()
-    assert LONG_NOTE.strip() in card.inner_text()
+    card.locator('[data-read-detail]').click()
+    expect(details).to_be_visible()
+    assert LONG_NOTE.strip() in details.inner_text()
+    page.keyboard.press('Escape')
+    expect(details).to_be_hidden()
     warning = card.locator('[data-menu-metadata] > p').filter(has_text='Allergenangaben nicht erfasst')
     expect(warning).to_be_visible()
     assert warning.evaluate('el => el.closest("details")') is None
@@ -333,7 +337,7 @@ def test_a07_hint_collapses_at_140_character_boundary(
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, 'cafeteria')
     card = page.locator('.menu-slot').first
-    details = card.locator('details.admin-week-note')
+    details = card.locator('dialog.ui-read-detail')
     expect(details).to_have_count(1 if collapsed else 0)
     if collapsed:
         expect(details).to_contain_text('x' * hint_length)
@@ -351,12 +355,12 @@ def test_cafeteria_weekend_hint_sits_in_page_header_before_status(
     page = page_context
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, 'cafeteria')
-    hint = page.locator('.admin-page-header .form-hint')
+    hint = page.locator('#weekend-hint')
     expect(hint).to_have_text('Wochenendbetrieb: Samstag und Sonntag sind im Raster.')
     assert page.evaluate('''() => {
-        const hint = document.querySelector('.admin-page-header .form-hint');
+        const hint = document.querySelector('#weekend-hint');
         const status = document.querySelector('.admin-week-controls');
-        return Boolean(hint && status && (hint.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING));
+        return Boolean(hint && status && (status.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING));
     }''')
 
 
@@ -391,11 +395,10 @@ def test_a12_empty_and_review_open_screenshots(
     page = page_context
     page.set_viewport_size({'width': 1366, 'height': 768})
     _goto(page, family)
-    first_slot = page.get_by_role('link', name='Erster Slot öffnen')
-    if family == 'cafeteria':
-        expect(first_slot).to_be_visible()
-    else:
-        expect(first_slot).to_have_count(0)
+    expect(page.get_by_role('link', name='Erster Slot öffnen')).to_have_count(0)
+    first_slot = page.locator('.menu-slot').first.locator('[data-semantic="actions.add"]')
+    expect(first_slot).to_be_visible()
+    expect(page.locator(f'a[href="{first_slot.get_attribute("href")}"]')).to_have_count(1)
     _shot(page, family, 'empty', 1366, 768)
     profile = PROFILE_BY_FAMILY[family]
     values = deepcopy(_staff_values() if profile == 'staff_guest' else _patient_values())
@@ -418,7 +421,7 @@ def test_a13_tab_order_actions_then_first_card_not_covered_by_sticky(
     trigger = page.locator('[data-bs-target="#week-publish-modal"]')
     _tab_to(page, trigger)
     page.keyboard.press('Tab')
-    checks = page.locator('#week-check-summary details > summary')
+    checks = page.locator('#week-check-entries-trigger')
     expect(checks).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.locator('a[href*="/preview"]')).to_be_focused()
@@ -431,10 +434,10 @@ def test_a13_tab_order_actions_then_first_card_not_covered_by_sticky(
     page.keyboard.press('Tab')
     expect(page.get_by_role('button', name='Wochenvorgaben übernehmen', exact=True)).to_be_focused()
     page.keyboard.press('Tab')
-    settings = page.locator('details.admin-week-settings > summary')
+    settings = page.locator('.admin-week-settings [name="title"]')
     expect(settings).to_be_focused()
-    page.keyboard.press('Tab')
-    service = page.locator('details.admin-week-service > summary').first
+    service = page.locator('.admin-week-service select').first
+    _tab_to(page, service)
     expect(service).to_be_focused()
     first_edit = page.locator('.menu-slot a.btn').first
     _tab_to(page, first_edit)

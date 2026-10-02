@@ -303,9 +303,10 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
                     expect(btn).not_to_have_class('btn-primary')
                     assert btn.bounding_box()['height'] >= minimum
 
-            # The creation form is closed while selecting a week; copy effects open on demand.
+            # UI-DELTA keeps creation fields visible while selecting or copying a week.
             expect(page.locator('.week-filter')).to_be_visible()
-            expect(page.locator('#new-week-date')).to_be_hidden()
+            expect(page.locator('#new-week-date')).to_be_visible()
+            expect(page.locator('#new-week-form details, #new-week-form summary')).to_have_count(0)
             copy = first_row.locator('.admin-row-actions')
             copy_link = copy.get_by_role('link', name='Woche ab 31.08.2026 kopieren', exact=True)
             expect(copy.locator('[data-semantic="actions.more"]')).to_have_count(0)
@@ -334,10 +335,10 @@ def test_week_management_ui_korrektur(live_branding, database_engine, browser, t
         page = context.new_page()
         page.goto(f'{origin}/admin/{family}/wochen')
 
-        # The create form stays closed until the icon action opens it.
+        # UI-DELTA keeps the complete create form visible; the icon focuses its date.
         form = page.locator('#new-week-form')
         expect(form).to_have_count(1)
-        expect(page.locator('#new-week-date')).to_be_hidden()
+        expect(page.locator('#new-week-date')).to_be_visible()
 
         page.locator('#new-week-title').click()
         expect(page.locator('#new-week-date')).to_be_visible()

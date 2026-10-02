@@ -228,3 +228,14 @@
     justify-self: stretch;
   }
 }
+
+/* UI-DELTA: native service fields occupy a fixed section of each meal. */
+.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-settings .admin-overview-form {
+  margin-top: 0;
+}
+.dishboard-admin .admin-main[data-layout="workspace"] :is(section.admin-week-service, section.admin-week-course-editor) {
+  grid-column: 1 / -1;
+  grid-row: auto;
+  min-width: 0;
+  justify-self: stretch;
+}

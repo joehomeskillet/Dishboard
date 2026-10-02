@@ -157,16 +157,11 @@
   font-size: var(--app-font-size-label);
 }
 .dishboard-admin .admin-week-checkline { margin: 0 0 var(--app-space-2); }
-.dishboard-admin .admin-week-check-entries > summary {
-  cursor: pointer; list-style: none; display: inline-flex; align-items: center;
-  min-height: var(--app-control-min-height);
-}
-.dishboard-admin .admin-week-check-entries > summary::-webkit-details-marker { display: none; }
-.dishboard-admin .admin-week-check-entries:not([open]) > :not(summary) { display: none; }
 .dishboard-admin .admin-week-check-list { margin: var(--app-space-2) 0 0; padding: 0; list-style: none; }
 .dishboard-admin .admin-week-check-list a {
   display: flex; align-items: center; min-height: var(--app-control-min-height);
 }
+.dishboard-admin .admin-week-check-list .admin-list-primary { display: block; }
 .dishboard-admin .admin-week-check-list a + a { border-top: 1px solid var(--app-border); }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-meal-head {
   display: flex;
@@ -276,9 +271,6 @@
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-components span:not(:last-child)::after {
   content: " · ";
-}
-.dishboard-admin .admin-main[data-layout="workspace"] .admin-week-review-line:not(:has(.slot-badge)) {
-  display: none;
 }
 .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-review-line {
   display: flex;
@@ -406,6 +398,11 @@
 @media (max-width: 767.98px) {
   .dishboard-admin .admin-main[data-layout="workspace"] .admin-week-status {
     text-align: left;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dishboard-admin .ui-sem-control[form="week-review-form"].admin-btn-loading::after {
+    animation: none;
   }
 }
 @media (max-width: 991.98px) {

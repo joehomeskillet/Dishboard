@@ -210,7 +210,7 @@ def test_course_week_html_allergens_rendered(app) -> None:
     (True, {}),
     (False, {'VEGGIE': {'soup': {'state': 'not_offered', 'public_id': 'saved', 'row_version': 3}}}),
 ])
-def test_course_options_open_for_errors_or_existing_exceptions(app, has_error, exceptions) -> None:
+def test_course_options_static_for_errors_or_existing_exceptions(app, has_error, exceptions) -> None:
     from flask import render_template_string
     with app.test_request_context():
         html = render_template_string(
@@ -220,8 +220,9 @@ def test_course_options_open_for_errors_or_existing_exceptions(app, has_error, e
             week_form_kind='courses' if has_error else None,
             week_form_values={'day': DAY, 'meal': 'LUNCH'},
         )
-    assert (f'id="course-{DAY}-LUNCH-exceptions" open' in html) == (has_error or bool(exceptions))
-    assert 'Weitere Optionen' in html
+    assert f'<section id="course-{DAY}-LUNCH-exceptions"' in html
+    assert '<details' not in html and '<summary' not in html
+    assert 'Abweichungen je Menü' in html
     if exceptions:
         assert 'name="VEGGIE_soup_public_id" value="saved"' in html
         assert 'name="VEGGIE_soup_row_version" value="3"' in html

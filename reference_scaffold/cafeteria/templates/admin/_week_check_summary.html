@@ -1,4 +1,5 @@
-{% from 'admin/_macros.html' import disclosure_section %}
+{% from 'ui/_semantic.html' import read_detail_trigger, read_detail_dialog %}
+{% from 'admin/_macros.html' import list_row %}
 {% set allergen_stats = namespace(missing=0, review_open=0) %}
 {% for cell in cells if cell.row_version > 0 and cell.title %}
   {% if not cell.allergens %}
@@ -28,7 +29,9 @@
     {%- if time_ns.missing %} {{ time_ns.missing }} {{ 'Mahlzeit' if time_ns.missing == 1 else 'Mahlzeiten' }}: Zeiten nicht eingetragen.{% endif %}
     {%- if course_count %} {{ course_count }} {{ 'Gang' if course_count == 1 else 'Gänge' }} prüfen.{% if course_issues.missing_allergens %} {{ course_issues.missing_allergens }} ohne Allergenangaben (nicht allergenfrei).{% endif %}{% endif %}
   </p>
-  {% call disclosure_section(title='Betroffene Einträge', id='week-check-entries', details_class='admin-week-check-entries') %}
+  {% set check_context = area_names[profile] ~ ' · KW ' ~ iso_week ~ ' · ' ~ date_range %}
+  {{ read_detail_trigger('week-check-entries', 'ui.read_detail.review', check_context) }}
+  {% call read_detail_dialog('week-check-entries', 'Betroffene Einträge', check_context) %}
     <div class="admin-week-check-list">
       {% for cell in cells if cell.row_version > 0 and cell.title and cell.review_open %}
       <a href="#week-slot-{{ cell.day }}-{{ cell.meal }}-{{ cell.option }}">{{ cell.day_label }} · {{ cell.meal_label }} · {{ cell.option_label }}: Kartenprüfung offen</a>
@@ -47,7 +50,17 @@
           <a href="#service-{{ cell.day }}-{{ cell.meal }}">{{ cell.day_label }} · {{ cell.meal_label }}: Zeiten nicht eingetragen</a>
         {% endif %}
       {% endfor %}
-      {% if course_count %}<a href="#course-issues">{{ course_count }} {{ 'Gang' if course_count == 1 else 'Gänge' }} prüfen</a>{% endif %}
+      {% if course_count %}
+      <section id="course-issues" aria-labelledby="course-issues-title">
+        <h3 id="course-issues-title">Gangangaben prüfen</h3>
+        <div role="list" aria-labelledby="course-issues-title">
+          {% for item in course_issues['items'] %}
+          {% set course_link %}<a href="#course-{{ item.day }}-{{ item.meal }}">{{ item.day }} · {{ 'Mittag' if item.meal == 'LUNCH' else 'Abend' }} · {{ 'Suppe' if item.kind == 'soup' else 'Dessert' }}{% if item.option %} · {{ 'Vegetarisch' if item.option == 'VEGGIE' else 'Menü 1' }}{% endif %}: {% if 'missing_allergens' in item.problems %}Allergenangaben fehlen{% endif %}{% if 'missing_nutrition' in item.problems %}{% if 'missing_allergens' in item.problems %} · {% endif %}Nährwertangaben fehlen{% endif %}</a>{% endset %}
+          <div role="listitem">{{ list_row(primary=course_link) }}</div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
     </div>
   {% endcall %}
 </div>

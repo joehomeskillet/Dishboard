@@ -1,5 +1,5 @@
 {# Atomic soup+dessert editor. Context: meal_cell, day_iso, meal_code, meal_label, family, week_value, week_csrf, recipe_page, shared, exceptions. #}
-{% from 'admin/_macros.html' import disclosure_section, form_footer %}
+{% from 'admin/_macros.html' import form_footer %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set recipe_choices = (recipe_page.choices if recipe_page is defined else []) %}
 {% set recipe_retained = (recipe_page.retained if recipe_page is defined else []) %}
@@ -32,7 +32,8 @@
               </optgroup>
               {% endif %}
 {% endmacro %}
-{% call disclosure_section(title='Gänge planen', id=form_id, open=course_open, details_class='admin-week-course-editor') %}
+<section id="{{ form_id }}" class="admin-week-course-editor" aria-labelledby="{{ form_id }}-title">
+  <h3 id="{{ form_id }}-title" class="h4">Gänge planen</h3>
   {% include 'admin/_course_recipe_search.html' %}
   <form method="post" action="/admin/{{ family }}/courses" class="card card-sm mb-0">
     <div class="card-body">
@@ -49,9 +50,8 @@
         recipe_public_id=course_values.get(kind ~ '_recipe', course.recipe_public_id|default(''))) %}
       <input type="hidden" name="{{ kind }}_public_id" value="{{ course.public_id|default('', true) }}">
       <input type="hidden" name="{{ kind }}_row_version" value="{{ course.row_version|default(0) }}">
-      {% call disclosure_section(title=kind_label ~ (' planen' if course.state == 'unplanned' else ' · Details'), open=course.state == 'planned' or course.recipe_public_id|default('') or course_open, details_class='mb-2') %}
       <fieldset class="mb-2">
-        <legend class="visually-hidden">{{ kind_label }}</legend>
+        <legend class="h4">{{ kind_label }}</legend>
         <div class="row g-2">
           <div class="col-12 col-md-4">
             <label class="form-label" for="{{ form_id }}-{{ kind }}-state">Status</label>
@@ -69,10 +69,9 @@
           </div>
         </div>
       </fieldset>
-      {% endcall %}
       {% endfor %}
-      {% call disclosure_section(title='Weitere Optionen', id=form_id ~ '-exceptions', has_content=exceptions|length > 0, has_error=course_open) %}
-        <p class="form-label">Abweichungen je Menü</p>
+      <section id="{{ form_id }}-exceptions" aria-labelledby="{{ form_id }}-exceptions-title">
+        <h4 id="{{ form_id }}-exceptions-title">Abweichungen je Menü</h4>
         {% for option_code, option_label in (('MENU_1', 'Menü 1'), ('VEGGIE', 'Vegetarisch')) %}
           {% set option_exc = exceptions.get(option_code, {}) %}
           {% for kind, kind_label in (('soup', 'Suppe'), ('dessert', 'Dessert')) %}
@@ -85,7 +84,6 @@
               recipe_public_id=course_values.get(prefix ~ '_recipe', override.recipe_public_id|default(''))) %}
             <input type="hidden" name="{{ option_code }}_{{ kind }}_public_id" value="{{ override.public_id|default('', true) }}">
             <input type="hidden" name="{{ option_code }}_{{ kind }}_row_version" value="{{ override.row_version|default(0) }}">
-            {% call disclosure_section(title=option_label ~ ' · ' ~ kind_label, open=override.state in ('planned', 'not_offered') or override.recipe_public_id|default('') or course_open, details_class='mb-2') %}
             <div class="row g-2 mb-2">
               <div class="col-12 col-md-4">
                 <label class="form-label" for="{{ form_id }}-{{ option_code }}-{{ kind }}-state">{{ option_label }} · {{ kind_label }}</label>
@@ -102,11 +100,10 @@
                 </select>
               </div>
             </div>
-            {% endcall %}
           {% endfor %}
         {% endfor %}
-      {% endcall %}
-      {{ form_footer(icon_button('actions.save'), cancel_url=none) }}
+      </section>
+      {{ form_footer(icon_button('actions.save', emphasis='secondary')) }}
     </div>
   </form>
-{% endcall %}
+</section>

@@ -55,7 +55,7 @@ def test_ac11_course_editor_retains_bound_recipe(browser, live_server, admin_app
         
         page.goto(f'/admin/cafeteria?week={DAY}&recipe_search=zzzz-kein-treffer')
         
-        page.locator('summary:has-text("Gänge planen")').first.click(force=True)
+        expect(page.locator('.admin-week-course-editor select[name="soup_recipe"]').first).to_be_visible()
         
         expect(page.locator('select[name="soup_recipe"] option:checked').first).to_have_text(re.compile('Gemüsesuppe'))
         expect(page.locator('select[name="VEGGIE_soup_recipe"] option:checked').first).to_have_text(re.compile('Tomatensuppe'))
@@ -102,18 +102,19 @@ def test_ac12_course_issues_in_info_bar(browser, live_server, admin_app, admin_e
         page.goto(f'/admin/cafeteria?week={DAY}')
         
         # Gang warnings stay visible in the week check summary. The affected
-        # courses open from the native «Gangangaben prüfen» disclosure.
+        # Course details share the affected-entry dialog; no second local trigger.
         course_status = page.locator('#week-check-summary')
         expect(course_status).to_contain_text('1 Gang prüfen')
         expect(course_status).to_contain_text('ohne Allergenangaben')
         expect(course_status).to_contain_text('nicht allergenfrei')
 
-        issues = page.locator('details#course-issues')
+        page.locator('#week-check-entries-trigger').click()
+        issues = page.locator('#course-issues')
         expect(issues).to_have_count(1)
-        issues.locator('summary').click()
-        expect(issues).to_have_attribute('open', '')
+        issues.scroll_into_view_if_needed()
         expect(issues).to_be_in_viewport()
         expect(issues).to_contain_text('Allergenangaben fehlen')
+        page.locator('#week-check-entries [data-read-detail-close]').click()
         
         expect(page.locator(f'.menu-slot[data-day="{DAY}"][data-option="MENU_1"]')).not_to_contain_text('Geprüft')
         
@@ -152,16 +153,15 @@ def test_course_disclosure_form_contract_and_viewports(
         assert fields == expected
         for width in (360, 768, 1024, 1440):
             page.set_viewport_size({'width': width, 'height': 900})
-            if not editor.evaluate('(el) => el.open'):
-                editor.locator(':scope > summary').click()
-            expect(form.locator('select[name="soup_recipe"]')).not_to_be_visible()
-            for summary in editor.locator('summary:visible').all():
-                minimum = summary.evaluate("e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
-                assert summary.bounding_box()['height'] >= minimum
+            expect(editor.locator('details, summary')).to_have_count(0)
+            expect(form.locator('select[name="soup_recipe"]')).to_be_visible()
+            for control in form.locator('select').all():
+                minimum = control.evaluate("e => matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
+                expect(control).to_be_visible()
+                assert control.bounding_box()['height'] >= minimum
             assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
             page.screenshot(path=str(EVIDENCE / f'wp26-{family}-{javascript_enabled}-{width}.png'), full_page=True)
-        # Native disclosures never alter which fields are submitted, including CAS.
-        editor.locator(':scope > summary').click()
+        # Static fields preserve atomic submission, including every CAS value.
         expect(page.get_by_role('link', name=f'Suppe planen · {DAY} · LUNCH')).to_be_visible()
         page.locator(f'a[href="#course-{DAY}-LUNCH-soup-state"]').click()
         expect(form.locator('select[name="soup_state"]')).to_be_visible()
@@ -522,7 +522,7 @@ def test_native_course_add_edit_preserves_neighbor_slots(
             for index in range(50):
                 _recipe(admin_engine, actor, scope.location_id, f'AAA Seitenauswahl {index:02d}')
             search = editor.locator('form[method="get"]')
-            search.locator('xpath=ancestor::details[1]').locator(':scope > summary').click()
+            expect(search.locator('[name="recipe_search"]')).to_be_visible()
             search.locator('[name="recipe_search"]').fill('ZZZ Eingereichtes Dessert')
             with page.expect_navigation(wait_until='domcontentloaded'):
                 search.get_by_role('button').first.click()

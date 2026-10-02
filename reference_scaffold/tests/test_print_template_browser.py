@@ -94,13 +94,10 @@ def test_p3_editor_pages_polish(editor_app, editor_server, database_engine, brow
                 expect(page.locator('.admin-day-card')).to_have_count(7)
                 expect(page.locator('main .btn-primary:visible')).to_have_count(1)
                 weekend_help = page.locator('#weekend-hint')
-                expect(weekend_help).not_to_have_attribute('open', '')
-                weekend_help.locator('summary').focus()
-                page.keyboard.press('Enter')
-                expect(weekend_help.locator('.form-hint')).to_be_visible()
+                expect(weekend_help.locator('summary')).to_have_count(0)
+                expect(weekend_help).to_be_visible()
+                expect(weekend_help).to_contain_text('Samstag und Sonntag sind im Raster.')
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-                page.keyboard.press('Enter')
-                expect(weekend_help).not_to_have_attribute('open', '')
 
 
 @pytest.fixture(scope='module')

@@ -53,7 +53,7 @@
       <h3 class="admin-list-primary mb-0" id="service-{{ loop.index }}"><time datetime="{{ service.date }}">{{ service.date[8:10] }}.{{ service.date[5:7] }}.{{ service.date[:4] }}</time> · {{ 'Mittagessen' if service.meal == 'LUNCH' else 'Abendessen' }}</h3>
   {% endset %}
   {% set secondary %}{% if service.notice %}<span class="text-break">{{ service.notice }}</span>{% endif %}{% endset %}
-  {% set times %}{% if service.get('start') or service.get('end') %}{{ service.get('start') or '–' }}–{{ service.get('end') or '–' }}{% endif %}{% endset %}
+  {% set times %}{% if service.get('start') and service.get('end') %}{{ service.get('start') }}–{{ service.get('end') }}{% elif service.get('start') %}ab {{ service.get('start') }}{% elif service.get('end') %}bis {{ service.get('end') }}{% endif %}{% endset %}
   {% set state_label %}{% if service.state != 'open' %}{{ label(service_labels[service.state], 'neutral') }}{% endif %}{% endset %}
   <div role="listitem">{{ list_row(primary=primary, secondary=secondary if service.notice else none, meta=times if service.get('start') or service.get('end') else none, status=state_label if service.state != 'open' else none) }}</div>
   {% endfor %}

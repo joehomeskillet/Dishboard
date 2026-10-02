@@ -1,7 +1,9 @@
 """DB-free UC-G0d/G0e compatibility and attribute trust-boundary contracts."""
 from __future__ import annotations
 
+from collections import Counter
 from copy import copy, deepcopy
+from hashlib import sha256
 from itertools import product
 from types import SimpleNamespace
 
@@ -85,8 +87,8 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
                     {{ icon_button('actions.cancel', href=g.get('menu_collection_return') or back_url) }}
                 ''').render(**data)
             else:
-                expected = icon_button('actions.save', emphasis=(
-                    'secondary' if path.name == '_week_service.html' else None))
+                # Static form sections leave the primary emphasis to the week action.
+                expected = icon_button('actions.save', emphasis='secondary')
             actual = BeautifulSoup(rendered, 'html.parser')
             assert len(actual.select('.admin-form-footer')) == 1
             assert actual.select('button, a') == BeautifulSoup(expected, 'html.parser').select('button, a'), path
@@ -101,14 +103,18 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    assert len(calls) == 74, 'Review compatibility inventory when consumers change'
+    # UI-DELTA §0.1: static week forms/fallback; long notes use read dialogs.
+    assert len(calls) == 60, 'Review compatibility inventory when consumers change'
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
-    assert len(extended) == 10
-    assert {path.name for path, _ in extended} == {
-        '_course_editor.html', '_course_recipe_search.html', '_week_check_summary.html',
-        '_week_controls.html', '_week_menu_card.html', '_week_service.html', '_week_settings.html',
-    }
+    # DELTA-2c owns the frozen extended-call contract; removals are permitted.
+    from test_delta_renderer_contract import assert_consumer_ratchet
+
+    assert_consumer_ratchet(Counter(
+        (path.relative_to(ROOT.parent / 'templates/admin').as_posix(),
+         sha256(repr(call).encode()).hexdigest()[:16])
+        for path, call in extended
+    ))
     text = 'Suppe <&>' if populated else ''
     values = dict.fromkeys([
         'note', 'shared_note', 'menu_week_public_id', 'prepared_recipe_choice', 'label',

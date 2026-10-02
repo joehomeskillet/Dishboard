@@ -1,7 +1,5 @@
-{% from 'admin/_macros.html' import disclosure_section %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% if recipe_page is defined and recipe_page.query is defined %}
-{% call disclosure_section(title='Rezepte suchen', open=recipe_page.query.search or recipe_page.previous_offset is not none, details_class='mb-2') %}
 <form method="get" action="/admin/{{ family }}" class="admin-filter-bar admin-week-course-search" aria-label="Rezepte für Gänge suchen" data-dirty-tracking="off">
     <input type="hidden" name="week" value="{{ week_value }}">
     <div class="row g-2 align-items-end">
@@ -25,5 +23,4 @@
     </div>
     <p class="form-hint mb-0">Suche und Seitenwechsel speichern die Gänge nicht. Bereits geplante Rezepte bleiben in der Auswahl erhalten.</p>
 </form>
-{% endcall %}
 {% endif %}

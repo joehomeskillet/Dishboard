@@ -55,7 +55,7 @@ def test_week_creation_and_tablet_layout(page_context):
             }""")
             expect(page.get_by_role('navigation', name='Backend')).to_be_hidden()
         assert not page.evaluate('document.documentElement.scrollWidth > document.documentElement.clientWidth + 1')
-        expect(page.locator('#new-week-date')).to_be_hidden()
+        expect(page.locator('#new-week-date')).to_be_visible()
         create = page.get_by_role('link', name='Neue Woche anlegen', exact=True)
         expect(create).to_have_text('')
         # Before enhancement this is also a valid no-JS link to the visible form.
@@ -63,7 +63,8 @@ def test_week_creation_and_tablet_layout(page_context):
         create.focus()
         page.keyboard.press('Enter')
         expect(page.locator('#new-week-date')).to_be_visible()
-        expect(create).to_have_attribute('aria-expanded', 'true')
+        expect(page.locator('#new-week-date')).to_be_focused()
+        assert create.get_attribute('aria-expanded') is None
         for selector in ['input[type="date"]', 'input[name="title"]', 'textarea', 'button[type="submit"]']:
             for control in page.locator(selector).all():
                 if control.is_visible():
@@ -90,12 +91,13 @@ def test_empty_week_creation_and_error_retention(admin_app, admin_engine, live_s
         context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
         page = context.new_page()
         page.goto(f'/admin/{family}/wochen')
-        empty_create = page.locator('[data-empty-kind="none"]').get_by_role('link', name='Anlegen', exact=True)
+        expect(page.locator('[data-empty-kind="none"] a')).to_have_count(0)
+        empty_create = page.get_by_role('link', name='Neue Woche anlegen', exact=True)
         expect(empty_create).to_have_text('')
         empty_create.click()
         expect(page.locator('#new-week-date')).to_be_visible()
         if javascript:
-            expect(empty_create).to_have_attribute('aria-expanded', 'true')
+            expect(page.locator('#new-week-date')).to_be_focused()
         page.get_by_label('Wochenbeginn (Montag)').fill('2026-09-01')
         page.get_by_label('Wochentitel', exact=True).fill('Eingabe behalten')
         submit = page.get_by_role('button', name='Anlegen', exact=True)
@@ -157,10 +159,11 @@ def test_management_density_keyboard_and_native_actions(
                 assert measurement['primaryCount'] == 1
                 if width == 1440:
                     assert max(measurement['rowHeights']) <= 64, measurement
-                summary = page.locator('.page-header-subtitle')
+                summary = page.locator('.week-list-summary')
                 expect(summary).to_be_visible()
                 expect(summary).to_have_text('4 gespeicherte Wochen')
                 expect(summary).not_to_contain_text('zu prüfen')
+                assert page.locator('.week-filter').bounding_box()['y'] < summary.bounding_box()['y']
                 expect(page.locator('dl.admin-statusbar')).to_have_count(0)
                 expect(page.locator('.week-filter .active')).to_have_attribute('aria-current', 'page')
                 expect(page.locator('.week-filter .active')).to_have_attribute('href', f'/admin/{family}/wochen')

@@ -63,7 +63,7 @@ def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tm
                             const meals = [...days[0].querySelectorAll('.patient-admin-meal')];
                             const image = days[0].querySelector('[data-menu-image] img');
                             const mealGaps = meals.map(meal => {
-                                const parts = [...meal.querySelectorAll('.admin-week-meal-head, .menu-slot, .admin-week-service, .admin-week-course')]
+                                const parts = [...meal.querySelectorAll('.admin-week-meal-head, .menu-slot, .admin-week-service, .admin-week-course, .admin-week-course-editor')]
                                     .map(e => e.getBoundingClientRect()).sort((a, b) => a.top - b.top);
                                 let end = meal.getBoundingClientRect().top, gap = 0;
                                 for (const part of parts) {
@@ -72,7 +72,13 @@ def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tm
                                 }
                                 return Math.max(gap, meal.getBoundingClientRect().bottom - end);
                             });
+                            const staticHeights = [...days[0].querySelectorAll('.admin-week-meal')].map(meal =>
+                                [...meal.querySelectorAll('section.admin-week-service, section.admin-week-course-editor')]
+                                    .reduce((sum, e) => sum + e.getBoundingClientRect().height, 0));
                             return {width: innerWidth, documentWidth: document.documentElement.scrollWidth,
+                                readHeight: boxes[0].height - Math.max(0, ...staticHeights),
+                                hiddenCourseFields: [...days[0].querySelectorAll('.admin-week-course-editor select')]
+                                    .filter(e => !e.getClientRects().length).length,
                                 dayHeight: boxes[0].height, firstDayTop: boxes[0].top,
                                 visibleDays: boxes.filter(r => r.top >= 0 && r.bottom <= innerHeight).length,
                                 mealOffset: meals.length ? Math.abs(meals[0].getBoundingClientRect().top -
@@ -97,23 +103,23 @@ def test_wp21_density_keyboard_and_nojs(admin_app, admin_engine, live_server, tm
                             expect(page.locator('.admin-day-card').first).to_contain_text('Suppe: Gemüsesuppe')
                             expect(page.locator('.admin-day-card').first).to_contain_text('Dessert: Fruchtsalat')
                             expect(page.locator('.admin-day-card').first).to_contain_text('Allergenangaben fehlen')
-                        service = page.locator('.admin-week-service > summary').first
+                        service = page.locator('.admin-week-service select').first
                         service.focus()
-                        page.keyboard.press('Enter')
-                        expect(page.locator('.admin-week-service[open]').first).to_be_visible()
-                        page.keyboard.press('Tab')
+                        expect(page.locator('details.admin-week-service')).to_have_count(0)
+                        expect(page.locator('.admin-week-service').first).to_be_visible()
                         expect(page.locator('.admin-week-service select').first).to_be_focused()
                         assert page.locator(':focus').evaluate('e => parseFloat(getComputedStyle(e).outlineWidth)') >= 2
     (tmp_path / 'measurements.json').write_text(json.dumps(measurements, indent=2))
     print('WP21_METRICS=' + json.dumps(measurements))
     desktop = [row for row in measurements if row['width'] == 1440]
     for row in desktop:
-        assert row['dayHeight'] <= (260 if family == 'cafeteria' else 300), row
+        # UI-DELTA requires static fields: retain the reading-area density bound
+        # and prove fields remain visible instead of demanding two folded days.
+        assert row['readHeight'] <= (260 if family == 'cafeteria' else 300), row
+        assert row['hiddenCourseFields'] == 0, row
         assert row['mealOffset'] <= 8, row
         assert row['mealGap'] <= 160, row
         assert max(row['imageWidth'], row['imageHeight']) <= 96, row
-        if family == 'cafeteria':
-            assert row['visibleDays'] >= 2, row
 
 
 @pytest.mark.parametrize('family', ('cafeteria', 'patienten'))
@@ -150,10 +156,8 @@ def test_wp21_nojs_publish_keeps_exact_payload(admin_app, admin_engine, live_ser
         page.goto(f'/admin/{family}?week={DAY}')
         form = page.locator('#week-publish-form')
         before = dict(form.locator('input[name]').evaluate_all('els => els.map(e => [e.name, e.value])'))
-        summary = page.locator('.admin-week-nojs-publish > summary')
-        summary.focus()
-        page.keyboard.press('Enter')
-        page.keyboard.press('Tab')
+        expect(page.locator('.admin-week-nojs-publish summary')).to_have_count(0)
+        page.locator('.admin-week-nojs-publish button').focus()
         expect(page.locator('.admin-week-nojs-publish button')).to_be_focused()
         with page.expect_response(lambda response: response.request.method == 'POST') as published:
             page.keyboard.press('Enter')
@@ -192,9 +196,8 @@ def test_week_overview_responsive_matrix_without_horizontal_overflow(
     page = page_context
     page.set_viewport_size({'width': width, 'height': height})
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings, details.admin-week-service').evaluate_all(
-        'els => els.forEach(el => { el.open = true })',
-    )
+    expect(page.locator('details.admin-week-settings, details.admin-week-service')).to_have_count(0)
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     toggle = page.get_by_role('button', name='Menü', exact=True)
     nav = page.get_by_role('navigation', name='Backend')
     if width < 992:  # K2-A: sidebar breakpoint moved from 1200 to 992 (navbar-expand-lg)
@@ -309,7 +312,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     page = page_context
     page.set_viewport_size({'width': 360, 'height': 800})
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings > summary').click()
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
     header = page.locator(f'form[action="/admin/{family}/header"]')
     header.locator('[name="title"]').fill('Gespeicherte Wochenangaben')
     header.locator('[name="shared_note"]').fill('Saisonales Angebot')
@@ -329,11 +332,11 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     assert payload['week'] == [DAY]
     # The existing POST redirects to a legacy header fragment; inspect persisted overview data.
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-settings > summary').click()
+    expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
     expect(header.locator('[name="title"]')).to_have_value('Gespeicherte Wochenangaben')
     expect(header.locator('[name="shared_note"]')).to_have_value('Saisonales Angebot')
 
-    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     service = page.locator(f'form[action="/admin/{family}/service"]').first
     service.locator('[name="service_state"]').select_option('open')
     service.locator('[name="notice"]').fill('Geänderte Ausgabezeit')
@@ -352,7 +355,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
     assert payload['service_start'] == ['11:45']
     assert payload['service_end'] == ['13:45']
     page.goto(f'/admin/{family}?week={DAY}')
-    page.locator('details.admin-week-service').first.evaluate('el => { el.open = true }')
+    expect(page.locator('.admin-week-service [name="notice"]').first).to_be_visible()
     expect(service.locator('[name="service_state"]')).to_have_value('open')
     expect(service.locator('[name="notice"]')).to_have_value('Geänderte Ausgabezeit')
     expect(service.locator('[name="service_start"]')).to_have_value('11:45')
@@ -360,7 +363,7 @@ def test_week_header_and_service_save_keep_dirty_guard_and_exact_payloads(
 
 
 def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engine, tmp_path, caplog):  # noqa: F811
-    """Compare owned templates to the assigned release candidate, without checkout."""
+    """Compare the fixed release candidate with equivalent expanded form content."""
     _save_reviewed(admin_engine, 'staff_guest', _staff_values())
     _save_reviewed(admin_engine, 'patient', _patient_values())
     root = Path(__file__).resolve().parents[2]
@@ -394,12 +397,24 @@ def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engi
                     response = page.goto(route)
                     assert response is not None and response.status == 200, caplog.text
                     page.evaluate('document.fonts.ready')
+                    if phase == 'before':
+                        # UI-DELTA replaces these disclosures with static native forms.
+                        page.evaluate('''() => {
+                            document.querySelectorAll(`details.admin-week-settings, details.admin-week-service,
+                                details.admin-week-course-editor, .admin-week-course-editor details,
+                                #new-week-form details`).forEach(e => { e.open = true; });
+                            document.querySelector('#new-week-form')?.classList.add('show');
+                        }''')
                     metrics = page.evaluate('''() => ({
                         height: document.documentElement.scrollHeight,
                         width: document.documentElement.scrollWidth,
                         rows: [...document.querySelectorAll('.admin-day-card, .patient-admin-day, tr[data-week-id]')]
                             .map(e => e.getBoundingClientRect().height),
+                        legacyClose: document.querySelectorAll(
+                            '#week-publish-modal .modal-header > button.btn-close[data-bs-dismiss="modal"]').length,
                         fields: [...document.querySelectorAll('main input, main select, main textarea, main button')]
+                            .filter(e => !e.matches(
+                                '#week-publish-modal .modal-header > button.btn-close[data-bs-dismiss="modal"]'))
                             .map(e => ({tag: e.tagName, type: e.type, name: e.name,
                                 value: e.name === '_csrf' ? Boolean(e.value) : e.value,
                                 form: e.form?.id, action: e.form?.getAttribute('action'),
@@ -414,6 +429,8 @@ def test_p4_density_and_native_form_contract(page_context, admin_app, admin_engi
     for name in routes:
         for width in (360, 1440):
             before, after = (measurements[f'{phase}-{name}-{width}'] for phase in ('before', 'after'))
+            assert before['legacyClose'] == (1 if name in ('cafeteria', 'patienten') else 0)
+            assert after['legacyClose'] == 0
             assert after['fields'] == before['fields'], (name, width)
             assert after['width'] <= width, (name, width, after)
             if width == 1440:
@@ -513,14 +530,18 @@ def test_publish_guidance_correction_review_and_publish(
         assert refused.status == 400 and 'Allergendeklaration ist nicht geprüft.' in refused.text()
         assert state() == blocked
 
-        summary.locator('summary').click()
-        affected = summary.locator(f'a[href="#{slot_id}"]').filter(has_text='Allergenangaben nicht erfasst')
+        summary.locator('#week-check-entries-trigger').click()
+        details = page.locator('#week-check-entries')
+        expect(details).to_be_visible()
+        affected = details.locator(f'a[href="#{slot_id}"]').filter(has_text='Allergenangaben nicht erfasst')
         expect(affected).to_have_count(1)
         expect(affected).to_contain_text('Montag · Mittag · Menü 1: Allergenangaben nicht erfasst')
         before_navigation = len(posts)
         affected.click()
         page.wait_for_url(live_server + overview + '#' + slot_id)
+        expect(details).to_be_hidden()
         slot = page.locator(f'#{slot_id}')
+        expect(slot).to_be_in_viewport()
         edit = slot.locator(f'a[href="{editor}"]')
         expect(edit).to_have_count(1)
         expect(edit).to_have_attribute('aria-label', re.compile(r'.* – ' + re.escape(target_title) + r' bearbeiten$'))
@@ -577,7 +598,7 @@ def test_publish_guidance_correction_review_and_publish(
             expect(page.locator('#week-publish-modal')).to_be_visible()
             confirm = publish_form.get_by_role('button', name=re.compile('Veröffentlichen'))
         else:
-            page.locator('.admin-week-nojs-publish > summary').click()
+            expect(page.locator('.admin-week-nojs-publish summary')).to_have_count(0)
             confirm = page.locator('.admin-week-nojs-publish button')
         published = submit(confirm, f'/admin/{family}/publish')
         assert published == {key: [value] for key, value in expected_publish.items()}

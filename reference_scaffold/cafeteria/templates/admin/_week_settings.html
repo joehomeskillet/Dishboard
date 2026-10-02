@@ -1,14 +1,11 @@
-{# Week title/note form, collapsed until needed. #}
-{% from 'admin/_macros.html' import disclosure_section, form_footer %}
+{# Static week title/note form; one unchanged native save action. #}
+{% from 'admin/_macros.html' import form_footer %}
 {% from 'ui/_semantic.html' import icon_button %}
-{% set title_summary = (title[:48] ~ ('…' if title|length > 48 else '')) if title else 'Kein Wochentitel' %}
-{% set note_summary = (shared_note[:48] ~ ('…' if shared_note|length > 48 else '')) if shared_note else 'Kein Hinweis' %}
 {% set header_error = week_form_kind|default(none) == 'header' %}
 {% set header_values = week_form_values if header_error else {} %}
 {% set header_errors = week_form_errors if header_error else {} %}
-{% set week_settings_open = header_error or status == 'error' or (flashes and 'Wochenangaben' in flashes|join(' ')) %}
-{% set settings_summary %}Wochenangaben ändern <span class="text-secondary">{{ title_summary }} · {{ note_summary }}</span>{% endset %}
-{% call disclosure_section(title=settings_summary, open=week_settings_open, details_class='admin-week-settings') %}
+<section class="admin-week-settings" aria-labelledby="week-settings-title">
+  <h2 class="h3" id="week-settings-title">Wochenangaben</h2>
   <form{% if header_form_id %} id="{{ header_form_id }}"{% endif %} method="post" data-dirty-form action="/admin/{{ family }}/header" class="admin-overview-form card mb-3">
     <div class="card-body">
       {{ form_errors(header_errors.values()|list) }}
@@ -25,10 +22,10 @@
       </div>
     </div>
     <div class="card-footer">
-      {{ form_footer(icon_button('actions.save'), cancel_url=none) }}
+      {{ form_footer(icon_button('actions.save', emphasis='secondary')) }}
     </div>
     <input type="hidden" name="_csrf" value="{{ week_csrf }}">
     <input type="hidden" name="week" value="{{ week_value }}">
     <input type="hidden" name="row_version" value="{{ header_values.get('row_version', week_row_version) }}">
   </form>
-{% endcall %}
+</section>

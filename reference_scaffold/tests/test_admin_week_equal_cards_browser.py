@@ -74,38 +74,43 @@ def test_week_patterns_keep_empty_and_filled_slots_actionable(
             page.screenshot(path=str(evidence / f'{name}-{state}-day.png'))
             assert page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches") is touch
         editor_url = page.locator('.admin-week-card-action a').first.get_attribute('href')
-        # Exercise native disclosures before/after migration with identical fixtures.
+        # UI-DELTA replaces week/service disclosures with always visible fields.
         for section in ('settings', 'service', 'course-editor', 'check-entries'):
-            details = page.locator(f'details.admin-week-{section}').first
-            summary = details.locator(':scope > summary')
-            summary.focus()
-            page.keyboard.press('Enter')
-            expect(details).to_have_attribute('open', '')
-            if section == 'service':
-                # Opening a disclosure must not rotate its edit action into another symbol.
-                assert summary.locator('svg').evaluate("el => getComputedStyle(el).transform") == 'none'
+            static = section in ('settings', 'service', 'course-editor')
+            details = page.locator(f'.admin-week-{section}' if static else '#week-check-entries').first
+            if static:
+                expect(details.locator(':scope > summary')).to_have_count(0)
+                expect(details.locator('input:not([type="hidden"])').first).to_be_visible()
+            else:
+                trigger = page.locator('#week-check-entries-trigger')
+                trigger.focus()
+                trigger.press('Enter')
+                expect(details).to_be_visible()
             metrics[section] = details.evaluate('''element => {
                 const rect = element.getBoundingClientRect();
-                const style = getComputedStyle(element.querySelector('summary'));
+                const heading = element.querySelector('summary, h2, .form-label');
+                const style = getComputedStyle(heading);
                 return {height: rect.height, width: rect.width,
-                    summaryHeight: element.querySelector('summary').getBoundingClientRect().height,
+                    summaryHeight: heading.getBoundingClientRect().height,
                     summaryGap: style.gap, summaryPadding: style.padding,
                     overflow: document.documentElement.scrollWidth > innerWidth + 1};
             }''')
             assert not metrics[section]['overflow'], metrics[section]
-            summary.scroll_into_view_if_needed()
+            details.scroll_into_view_if_needed()
             page.screenshot(path=str(evidence / f'{name}-{section}-open.png'))
             save = details.locator('form[method="post"] [data-semantic="actions.save"]')
             if section != 'check-entries':
                 expect(save).to_have_count(1)
                 save.scroll_into_view_if_needed()
                 page.screenshot(path=str(evidence / f'{name}-{section}-footer.png'))
-            summary.focus()
-            page.keyboard.press('Space')
-            expect(details).not_to_have_attribute('open', '')
+            if not static:
+                details.locator('[data-read-detail-close]').press('Enter')
+                expect(details).to_be_hidden()
+                expect(trigger).to_be_focused()
         if not javascript:
             fallback = page.locator('.admin-week-nojs-publish')
-            fallback.locator('summary').click()
+            expect(fallback.locator('summary')).to_have_count(0)
+            expect(fallback).to_be_visible()
             expect(fallback.locator('button')).to_have_attribute('form', 'week-publish-form')
             page.screenshot(path=str(evidence / f'{name}-publish-open.png'))
         with admin_app.test_request_context():
@@ -222,7 +227,7 @@ def _assert_edit_link_context(page: Page, family: str, titles: list[str]) -> Non
         'Sonntag, 6. September',
     )
     per_day = 2 if family == 'cafeteria' else 4
-    links = page.locator('.menu-slot').get_by_role('link')
+    links = page.locator('.menu-slot .admin-week-card-action').get_by_role('link')
     assert links.count() == len(titles) == (10 if family == 'cafeteria' else 28)
     for index, title in enumerate(titles):
         day_index, slot = divmod(index, per_day)
@@ -256,7 +261,7 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
     options[-1]['allergen_review_status'] = 'not_checked'
     cookie = client.get_cookie('session')
     assert cookie is not None
-    with browser.new_context(base_url=live_server, java_script_enabled=False) as context:
+    with browser.new_context(base_url=live_server, java_script_enabled=False, reduced_motion='reduce') as context:
         context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server, 'httpOnly': True}])
         page = context.new_page()
         assert page.goto(f'/admin/{family}?week={DAY}').status == 200
@@ -271,7 +276,18 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
             assert cards.locator('h3').all_text_contents() == [option['title'] for option in options]
             for component in options[-1]['components']:
                 assert component.strip() in cards.last.inner_text()
-            assert options[-1]['note'].strip() in (cards.last.text_content() or '')
+            note_trigger = cards.last.locator('[data-read-detail]')
+            note_dialog = page.locator('#' + note_trigger.get_attribute('data-read-detail'))
+            note_trigger.press('Enter')
+            expect(note_dialog).to_be_visible()
+            expect(note_dialog.locator('.shared-note')).to_have_text(options[-1]['note'].strip())
+            close = note_dialog.locator('[data-read-detail-close]')
+            close_box = close.bounding_box()
+            minimum = close.evaluate("e => parseFloat(getComputedStyle(e).getPropertyValue('--app-control-min-height'))")
+            assert close_box and close_box['width'] >= minimum and close_box['height'] >= minimum
+            close.press('Enter')
+            expect(note_dialog).to_be_hidden()
+            expect(note_trigger).to_be_focused()
             assert 'Enthält: Milch' in cards.last.inner_text()
             dimensions = cards.evaluate_all('''elements => elements.map(element => {
                 const box = element.getBoundingClientRect();
@@ -297,12 +313,11 @@ def test_all_week_editor_cards_share_size_without_hiding_long_content(
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
             assert page.locator('[style], [onclick], script:not([src])').count() == 0
             _assert_edit_link_context(page, family, [option['title'] for option in options])
-            page.locator('details.admin-week-service').evaluate_all(
-                'els => els.forEach(el => { el.open = true })',
-            )
+            expect(page.locator('details.admin-week-service')).to_have_count(0)
             controls = page.locator(
                 '.admin-week-service :is(input:not([type="hidden"]), select, button), '
-                '.patient-admin-meal form :is(input:not([type="hidden"]), select, button):visible, .menu-slot .btn',
+                '.patient-admin-meal form :is(input:not([type="hidden"]), select, button):visible, '
+                '.menu-slot .btn:not([data-read-detail-close])',
             )
             for control in controls.all():
                 box = control.bounding_box()

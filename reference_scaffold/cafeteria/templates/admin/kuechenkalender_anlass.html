@@ -1,5 +1,5 @@
 {% extends 'admin/base_tabler.html' %}
-{% from 'admin/_macros.html' import page_header, field, select, textarea, form_errors, disclosure_section, form_footer %}
+{% from 'admin/_macros.html' import page_header, field, select, textarea, form_errors, form_footer %}
 {% from 'ui/_semantic.html' import icon_button %}
 {% set workflow_nav = 'calendar' %}
 {% set layout_variant = 'calendar' %}
@@ -18,8 +18,6 @@
 ) }}
 {% endblock %}
 {% block content %}
-{% set optional_content = values.starts_at or values.ends_at or values.note %}
-{% set optional_errors = field_errors.get('starts_at') or field_errors.get('ends_at') or field_errors.get('note') %}
 {% if field_errors %}{{ form_errors(field_errors) }}{% endif %}
 <form class="card" id="kitchen-event-form" method="post" action="{{ url_for('admin.kitchen_event_save', public_id=event.public_id) if event else url_for('admin.kitchen_event_create') }}">
   <div class="card-body">
@@ -35,13 +33,14 @@
       <div class="col-12">{{ field('title', 'Titel', values.title, required=true, error=field_errors.get('title')) }}</div>
       <div class="col-12 col-md-6">{{ field('guest_count', 'Gästezahl', values.guest_count, type='number', required=true, error=field_errors.get('guest_count'), hint='Dient nur der Anzeige, skaliert keine Mengen.') }}</div>
     </div>
-    {% call disclosure_section(title='Weitere Optionen', id='event-optional', has_content=optional_content, has_error=optional_errors) %}
+    <section id="event-optional" aria-labelledby="event-optional-title">
+    <h2 id="event-optional-title" class="h3">Zeit und Notiz (optional)</h2>
     <div class="row g-3">
       <div class="col-12 col-md-6">{{ field('starts_at', 'Beginn', values.starts_at, type='time', required=false, error=field_errors.get('starts_at')) }}</div>
       <div class="col-12 col-md-6">{{ field('ends_at', 'Ende', values.ends_at, type='time', required=false, error=field_errors.get('ends_at')) }}</div>
       <div class="col-12">{{ textarea('note', 'Notiz', values.note, required=false, rows=3, error=field_errors.get('note')) }}</div>
     </div>
-    {% endcall %}
+    </section>
   </div>
   {% set save_action %}{{ icon_button('actions.save') }}{% endset %}
   {{ form_footer(save_action, url_for('admin.kitchen_calendar')) }}

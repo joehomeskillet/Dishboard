@@ -110,7 +110,8 @@ def test_real_week_review_loading_preserves_native_post(
                     glyphWidth: glyph.width, glyphHeight: glyph.height,
                     spinner: {content: spinner.content, width: spinner.width, height: spinner.height,
                         left: spinner.left, top: spinner.top, position: spinner.position,
-                        boxSizing: spinner.boxSizing, transform: spinner.transform},
+                        boxSizing: spinner.boxSizing, transform: spinner.transform,
+                        animationName: spinner.animationName},
                     spinnerBox: [x, y, x + width, y, x + width, y + height, x, y + height]
                         .every(Number.isFinite) ? [x, y, x + width, y, x + width, y + height, x, y + height] : null};
         }'''
@@ -268,6 +269,7 @@ def test_real_week_review_loading_preserves_native_post(
         assert busy['disabled'] and busy['busy'] == 'true' and busy['loading'], busy
         assert busy['spinner']['content'] == '""' and spinner_box is not None
         assert busy['spinner']['position'] == 'absolute'
+        assert busy['spinner']['animationName'] == 'none'
         assert busy['spinner']['boxSizing'] == 'border-box' and busy['spinner']['transform'] == 'none'
         assert busy['x'] <= min(spinner_box[::2]) < max(spinner_box[::2]) <= busy['x'] + busy['width']
         assert busy['y'] <= min(spinner_box[1::2]) < max(spinner_box[1::2]) <= busy['y'] + busy['height']

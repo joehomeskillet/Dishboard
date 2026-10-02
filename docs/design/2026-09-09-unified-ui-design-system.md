@@ -28,6 +28,43 @@ Fachliche Informationen, notwendige Warnungen, Berechtigungen und Schutzschritte
 
 ### DELTA-2: exklusive Renderer und Lesedetails (2026-10-01)
 
+DELTA-3-03 (Wochenplanung): Wochenendhinweise stehen statisch in der Inhaltszone.
+Die No-JS-Veröffentlichungsbestätigung ist ein statischer Abschnitt; im Dialog
+bleiben die Textaktionen «Abbrechen» und «Veröffentlichen». Das zusätzliche
+Schliesskreuz und der doppelte Erste-Slot-Zugang entfallen. Prüfdetails D-15/D-16
+stehen gemeinsam im Lesedialog «Betroffene Einträge». Menü-, Ausgabe- und
+Gangsprünge schliessen ihn über den gemeinsamen Hintergrundziel-Vertrag.
+Prüfstatus und Publikationssperren bleiben unmittelbar sichtbar. Beim nativen
+No-JS-Schliessen kehrt der Anker zum sichtbaren, fokussierbaren Auslöser zurück;
+Zeilen und Spalten bleiben unverändert. Der JS-Pfad erhält zusätzlich die
+Dokument-Scrollposition innerhalb von 1 CSS-px (Präzisierung vom 01.10., 19:55).
+
+DELTA-3-04: Wochenangaben und Ausgabeangaben stehen als kompakte statische
+Formularabschnitte mit ihren bisherigen Speicheraktionen bereit. Menübeschreibung
+und Hinweis ab 140 Zeichen nutzen den gemeinsamen Lesedialog; Kurztexte bleiben
+sichtbar. Prüf-/Kennzeichnungswrapper entstehen nur bei vorhandenem Inhalt.
+Einseitige Ausgabezeiten werden als «ab» beziehungsweise «bis» angezeigt.
+
+DELTA-3-05: Gänge, Abweichungen je Menü und Rezeptsuche stehen statisch bereit.
+Rezeptsuche bleibt ein eigenständiges GET-Formular; die sechs Gangentscheidungen
+bleiben gemeinsam im bestehenden POST-Formular samt CSRF und Versionsfeldern.
+Sprunglinks führen weiterhin direkt zum zugehörigen Auswahlfeld.
+
+DELTA-3-06: Die Wochenanlage samt optionalem Hinweis steht unterhalb der
+Bereichswahl. Der Kopfzugang fokussiert das Datumsfeld; die leere Liste bietet
+keinen zweiten gleichen Auslöser. Wochenstatistik und Vorschau-Status folgen
+der jeweiligen Bereichsnavigation. Kopierbestätigungen nutzen Textaktionen;
+einseitige Ausgabezeiten enthalten keine Platzhalter.
+
+DELTA-3-07: Leere Kalendertage führen ausschliesslich über ihren Tageskopf in
+die zugehörige Woche. Anlasszeit und Notiz stehen statisch im bestehenden
+Formular. Zusätzliche Tageseinträge öffnen über den gemeinsamen Zweck
+«Einträge am {Datum} anzeigen» einen Lesedialog mit allen Anlässen und Menüs
+des Tages. Die Zahl weiterer Einträge bleibt nichtinteraktiv daneben sichtbar.
+Raster und mobile Liste erhalten eindeutige IDs; ihre drei direkt sichtbaren
+Menüs und fachlichen Zielparameter bleiben erhalten. Der No-JS-Schliessanker
+verwendet dieselbe Rückkehr zum Auslöser wie die Wochenprüfdetails.
+
 **Vorrang UI-DELTA §0.1:** Die folgenden Regeln lösen die älteren Mischbutton-,
 Leerstrich- und Inhaltsdisclosure-Regeln dieses Dokuments gezielt ab. Insbesondere
 sind die Inline-Aufklapper in R06/R12/R17/R19/R21/R34, M03/M04/M19/M25/M55/M57

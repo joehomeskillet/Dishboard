@@ -142,10 +142,13 @@ def test_workspace_longtext_remains_readable(page_context: Page, admin_app: Flas
     card = page.locator('.menu-slot').last
     note = values['days'][-1]['services'][-1]['options'][-1]['note'].strip()
     assert note in (card.text_content() or '')
-    details = card.locator('details.admin-week-note')
-    expect(details.locator('summary')).to_have_text('Hinweis anzeigen')
-    details.locator('summary').click()
-    assert note in card.inner_text()
+    details = card.locator('dialog.ui-read-detail')
+    expect(details.locator('h2')).to_have_text('Menühinweise')
+    card.locator('[data-read-detail]').click()
+    expect(details).to_be_visible()
+    assert note in details.inner_text()
+    page.keyboard.press('Escape')
+    expect(details).to_be_hidden()
     expect(card.locator('h3')).to_contain_text('Langtext-Menükarte')
     _assert_no_overflow(page)
 
@@ -205,7 +208,7 @@ def test_workspace_header_conflict_nojs_returns_409(
         context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server, 'httpOnly': True}])
         page = context.new_page()
         page.goto(f'/admin/{family}?week={DAY}')
-        page.locator('details.admin-week-settings > summary').click()
+        expect(page.locator('.admin-week-settings [name="title"]')).to_be_visible()
         header = page.locator(f'form[action="/admin/{family}/header"]')
         stale_version = header.locator('[name="row_version"]').input_value()
         persist_week_header(

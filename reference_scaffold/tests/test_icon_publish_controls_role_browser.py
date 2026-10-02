@@ -94,7 +94,7 @@ def test_publish_controls_follow_capability_and_preserve_post_contract(
             expect(page.locator('#week-publish-modal')).to_be_visible()
             confirm = form.get_by_role('button', name='Veröffentlichen', exact=True)
         else:
-            page.locator('.admin-week-nojs-publish > summary').click()
+            expect(page.locator('.admin-week-nojs-publish summary')).to_have_count(0)
             confirm = page.locator('.admin-week-nojs-publish button')
         expect(confirm).to_be_visible()
         expect(confirm).to_be_enabled()

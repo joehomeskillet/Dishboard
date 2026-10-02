@@ -199,7 +199,7 @@
     "long_labels": 0,
     "legacy_labels": 0,
     "wrong_icons": 0,
-    "local_lists": 1,
+    "local_lists": 0,
     "local_filters": 0,
     "list_typography_overrides": 0,
     "local_status": 0,
@@ -607,7 +607,7 @@
     "list_typography_overrides": 0,
     "local_status": 1,
     "local_footers": 0,
-    "raw_details": 1,
+    "raw_details": 0,
     "css_px_heights": 0
   },
   "admin/kuechenkalender_anlass.html": {

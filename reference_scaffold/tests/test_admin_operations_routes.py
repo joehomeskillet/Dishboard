@@ -6,6 +6,7 @@ from datetime import timedelta
 from html import unescape
 
 import pytest
+from bs4 import BeautifulSoup
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.pool import NullPool
@@ -56,10 +57,13 @@ def _load(client, **changes):  # noqa: F811
 
 
 def _cafeteria_week_grid(body):
-    match = re.search(r'<section class="admin-week-days[^"]*"[^>]*>(.*?)</section>', body, re.S)
-    assert match, 'Wochenübersicht Cafeteria fehlt'
-    days = re.findall(r'<article class="card admin-day-card[^"]*">.*?<h2>(.*?)</h2>', match.group(1), re.S)
-    slots = re.findall(r'data-day="([^"]+)" data-meal="([^"]+)" data-option="([^"]+)"', match.group(1))
+    grid = BeautifulSoup(body, 'html.parser').select_one('section.admin-week-days')
+    assert grid is not None, 'Wochenübersicht Cafeteria fehlt'
+    days = [heading.get_text(strip=True) for heading in grid.select('article.admin-day-card > .card-header > h2')]
+    slots = [
+        (slot['data-day'], slot['data-meal'], slot['data-option'])
+        for slot in grid.select('[data-day][data-meal][data-option]')
+    ]
     return days, slots
 
 
