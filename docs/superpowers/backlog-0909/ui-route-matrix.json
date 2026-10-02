@@ -10501,7 +10501,7 @@
       "kind": "partial",
       "extends": [],
       "includes": [],
-      "sha256": "aa1005debe77ba7224b5df2747cd8aa5849952013c189d775af6bb17f0bc65b4",
+      "sha256": "bc2ecb838862c5960622db8ca4dbd60ddb0ed837e5873d3d54b48bf7e7326857",
       "used_by_endpoints": [
         "admin.cafeteria",
         "admin.patienten"
@@ -10921,7 +10921,7 @@
         "admin/_country_select.html",
         "admin/_macros.html"
       ],
-      "sha256": "9ae73f9f55748f364b5f5adfb8318db6066767036eb2652df98c1effc0bcb342",
+      "sha256": "01d7c14d91a3ca6c712ddb61497570a542db1d0034b3bf3c27abe495f4e78e9a",
       "used_by_endpoints": [
         "admin.components_get"
       ],
@@ -11508,7 +11508,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "f1e85cd59ca8a679f76ee4027521cdd517ecda40c46fca6b5df4286557ce16eb",
+      "sha256": "e22fea31fb5aa40b7d10b5559194aa7826c5c9ae5d93720dd236634fb8af441a",
       "used_by_endpoints": [
         "admin.preview"
       ],
@@ -12597,7 +12597,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "b79f9aea6616ead6b20f6b3e6407bb56a0a5c7e09e7fa8141b172aad83126e1e",
+      "sha256": "ed2fef7fefc3f4f9280edc964517ff1fd65c5a44b33e04cae9dcda546b183677",
       "used_by_endpoints": [
         "admin.order_basket"
       ],
