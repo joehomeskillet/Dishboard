@@ -8221,47 +8221,6 @@
       }
     },
     {
-      "endpoint": "favicon",
-      "rule": "/favicon.ico",
-      "methods": [
-        "GET"
-      ],
-      "blueprint": "",
-      "classification": "static",
-      "visual": false,
-      "templates": [],
-      "capability": null,
-      "roles": [
-        "anonymous"
-      ],
-      "method_roles": {},
-      "layout_variant": "none",
-      "owning_mp": "unmapped",
-      "family_variants": [],
-      "module": "cafeteria",
-      "source_discovered": true,
-      "fixture": "not_visual",
-      "states": [],
-      "hooks": [],
-      "density": {
-        "mockups": [],
-        "rules": [],
-        "acceptance": [
-          "A01"
-        ],
-        "owning_mp": "MP-UI-DENSITY-SHELL",
-        "core_task": "Bestehende Favicon-Antwort; kein eigenständiger UI-Screen",
-        "example_url": "/favicon.ico",
-        "example_semantics": "Feste öffentliche Asset-URL, keine Live-Identität.",
-        "fixture_source": "reference_scaffold/tests/test_favicon.py",
-        "state_evidence": {},
-        "source_status": "verified_runtime_registration",
-        "browser_status": "not_applicable",
-        "usability_status": "not_applicable",
-        "notes": "DELTA-3-09 Pflichtgate: bestehende Registrierung nachgetragen; keine Produkt- oder Screenshot-Baselineänderung."
-      }
-    },
-    {
       "endpoint": "static",
       "rule": "/static/<path:filename>",
       "methods": [
