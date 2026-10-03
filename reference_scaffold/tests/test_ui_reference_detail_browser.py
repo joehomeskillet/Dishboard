@@ -222,7 +222,7 @@ def test_detail_reference_normal_all_viewports(detail_revisions, detail_server, 
         # Status badge & Immutable card
         expect(page.get_by_role('heading', name=f'Gespeicherter Stand {rev_num}')).to_be_visible()
         expect(page.get_by_text('Dieser gespeicherte Stand bleibt unverändert.', exact=False)).to_be_visible()
-        page.locator('.recipe-reading-actions details > summary').filter(has_text='Weitere Optionen').click()
+        expect(page.locator('#recipe-technical-heading')).to_have_text('Technische Angaben')
         expect(page.get_by_text(sha256, exact=True).first).to_be_visible()
         expect(page.get_by_text(rev_id, exact=True).first).to_be_visible()
 
@@ -246,9 +246,8 @@ def test_detail_reference_normal_all_viewports(detail_revisions, detail_server, 
         assert gallery_img.first.evaluate('el => el.naturalHeight > 0')
 
         # Snapshot details
-        summary = page.locator('.recipe-reading-actions details > summary').filter(has_text='Weitere Optionen')
-        expect(summary).to_be_visible()
-        expect(page.locator('details[open]')).to_be_visible()
+        expect(page.locator('[aria-labelledby="recipe-technical-heading"]')).to_be_visible()
+        expect(page.locator('main details, main summary')).to_have_count(0)
         expect(page.get_by_role('heading', name='Vollständige Daten', exact=True)).to_be_visible()
 
         # Geometry and accessibility checks

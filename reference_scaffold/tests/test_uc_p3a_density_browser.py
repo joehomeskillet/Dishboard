@@ -104,8 +104,9 @@ def test_recipe_document_screen_and_print(readable_recipe, recipe_editor, recipe
                 expect(document).to_contain_text('Vorbereitung: 0 Minuten')
                 expect(document).to_contain_text('Kochzeit: 20 Minuten')
                 page.screenshot(path=str(destination / f'recipe-{label}.png'), full_page=True)
-                page.locator('.recipe-originals > summary').click()
-                page.locator('.recipe-provenance > summary').click()
+                expect(page.locator('.recipe-originals > h2')).to_have_text('Originalmengen')
+                expect(page.locator('.recipe-provenance > h2')).to_have_text('Herkunft')
+                expect(document.locator('details, summary')).to_have_count(0)
                 expect(document.locator('.recipe-original-quantities > div')).to_have_text([
                     'Karotte: 800 G', 'Wasser: 200 G', 'Salz: 8 G', 'Kräuter: 4 G',
                 ])

@@ -27,11 +27,11 @@ def _values(form):
         [key, typeof value === 'string' ? value : {name: value.name, size: value.size, type: value.type}])''')
 
 
-def _disclosure(page, summary, name, javascript, failures, tmp_path):
+def _confirmation_control(page, summary, name, javascript, failures, tmp_path):
     expect(summary).to_be_visible()
-    assert summary.evaluate("el => el.tagName === 'SUMMARY'")
-    assert summary.inner_text().strip() == ''
-    expect(summary.locator('svg[aria-hidden="true"]')).to_have_count(1)
+    assert summary.evaluate("el => el.tagName === 'BUTTON'")
+    expect(summary).to_have_text('Verwerfen')
+    expect(summary.locator('svg')).to_have_count(0)
     expect(summary.locator('button, a')).to_have_count(0)
     minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
     box = summary.bounding_box()
@@ -80,12 +80,21 @@ def _disclosure(page, summary, name, javascript, failures, tmp_path):
         expect(page.get_by_role('tooltip', name=name, exact=True)).to_be_visible()
         page.keyboard.press('Escape')
         expect(page.get_by_role('tooltip', name=name, exact=True)).to_be_hidden()
-    was_open = summary.evaluate('el => el.parentElement.open')
-    page.keyboard.press('Enter')
-    assert summary.evaluate('el => el.parentElement.open') is not was_open
+    page.keyboard.press('Escape')
     expect(summary).to_be_focused()
-    page.keyboard.press('Space')
-    assert summary.evaluate('el => el.parentElement.open') is was_open
+    expect(summary).to_be_visible()
+    assert summary.evaluate("el => getComputedStyle(el, '::after').content") == 'none'
+
+
+def _static_fields(page, section, fields):
+    expect(section).to_be_visible()
+    expect(section.locator('details, summary')).to_have_count(0)
+    for field in fields:
+        expect(field).to_be_visible()
+        field.focus()
+        page.keyboard.press('Escape')
+        expect(field).to_be_focused()
+        expect(field).to_be_visible()
 
 
 @pytest.mark.parametrize('locale', ['de', 'en'])
@@ -115,8 +124,8 @@ def test_native_import_image_disclosures(
         page = context.new_page()
         page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
         assert page.goto(base + initial_path).status == 200
-        upload = page.locator('[data-import-upload] > summary')
-        upload.press('Enter')
+        upload = page.locator('[data-import-upload]')
+        expect(upload.get_by_role('heading')).to_have_text('Andere Datei wählen')
         upload_form = page.locator('form[action="/admin/rezepte/import"]')
         expect(upload_form).to_have_attribute('method', 'post')
         expect(upload_form).to_have_attribute('enctype', 'multipart/form-data')
@@ -125,7 +134,7 @@ def test_native_import_image_disclosures(
         upload_form.locator('input[name="annotation"][value="unreviewed"]').check()
         original_upload = _values(upload_form)
         before = import_snapshot(owner)
-        _disclosure(page, upload, names[0], javascript, failures, tmp_path)
+        _static_fields(page, upload, [page.locator('#source_file')])
         assert _values(upload_form) == original_upload
         assert import_snapshot(owner) == before and posts == []
         with page.expect_response(lambda response: response.request.method == 'POST') as response:
@@ -143,11 +152,11 @@ def test_native_import_image_disclosures(
         original = _values(form)
         before = import_snapshot(owner)
         for row in (1, 2):
-            _disclosure(page, page.locator(f'#row-{row}-details > summary'),
-                        names[1].format(row), javascript, failures, tmp_path)
+            section = page.locator(f'#row-{row}-details')
+            _static_fields(page, section, section.locator('input').all())
         expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
-        more = form.locator('[data-import-discard] > summary')
-        _disclosure(page, more, names[2], javascript, failures, tmp_path)
+        more = form.locator('[data-import-discard] button[name="action"][value="cancel"]')
+        _confirmation_control(page, more, 'Verwerfen bestätigen', javascript, failures, tmp_path)
         assert _values(form) == original
         assert import_snapshot(owner) == before and len(posts) == 1
         expect(page.locator('[data-hostile]')).to_have_count(0)
@@ -159,9 +168,6 @@ def test_native_import_image_disclosures(
             'locale': locale, 'javascript': javascript, 'coarse': width == 390,
         }, indent=2))
         page.screenshot(path=str(tmp_path / 'import-closed.png'), full_page=False)
-        discard = more
-        expect(discard).to_have_text('')
-        discard.press('Enter')
         confirm = form.locator('button[name="action"][value="cancel"]')
         expect(confirm).to_be_visible()
         expect(confirm).to_have_text('Verwerfen')
@@ -173,6 +179,17 @@ def test_native_import_image_disclosures(
         confirm.scroll_into_view_if_needed()
         expect(confirm).to_be_in_viewport(ratio=1)
         page.screenshot(path=str(tmp_path / 'import-confirmation.png'), full_page=False)
+        if javascript:
+            dismissed = []
+            def dismiss(dialog):
+                dismissed.append({'type': dialog.type, 'message': dialog.message})
+                dialog.dismiss()
+            page.once('dialog', dismiss)
+            confirm.click()
+            assert dismissed == [{'type': 'confirm', 'message': confirm.get_attribute('data-confirm')}]
+            assert _values(form) == original and len(posts) == 1
+            assert import_snapshot(owner) == before
+            page.once('dialog', lambda dialog: dialog.accept())
         with page.expect_response(lambda response: response.request.method == 'POST') as response:
             confirm.click()
         assert response.value.status == 303 and len(posts) == 2
@@ -206,8 +223,8 @@ def test_native_import_image_disclosures(
         page.locator('#image-file').set_input_files(
             {'name': 'recipe.png', 'mimeType': 'image/png', 'buffer': png()})
         image_form.locator('[name="caption"]').fill(TITLE)
-        options = image_form.locator('summary[data-semantic="ui.disclosure.more_options"]')
-        options.press('Enter')
+        options = image_form.locator('section[aria-labelledby="image-source-heading"]')
+        expect(options.get_by_role('heading')).to_have_text('Quelle (optional)')
         image_form.locator('[name="source_url"]').fill('https://example.invalid/image.png')
         image_form.locator('[name="source_license"]').fill('CC0')
         image_form.locator('[name="fetched_at"]').fill('2026-09-28T10:30:00+02:00')
@@ -217,13 +234,14 @@ def test_native_import_image_disclosures(
             'source_url', 'source_license', 'fetched_at',
         }
         before_image = recipe_snapshot(owner)
-        _disclosure(page, options, names[3], javascript, failures, tmp_path)
+        _static_fields(page, options, options.locator('input').all())
         assert _values(image_form) == image_values
         assert recipe_snapshot(owner) == before_image and len(posts) == 2
         expect(page.locator('[data-hostile]')).to_have_count(0)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
         page.screenshot(path=str(tmp_path / 'image-options-open.png'), full_page=False)
-        options.press('Enter')
+        page.keyboard.press('Escape')
+        expect(options).to_be_visible()
         assert _values(image_form) == image_values
         page.screenshot(path=str(tmp_path / 'image-options-closed.png'), full_page=False)
         with page.expect_response(lambda response: response.request.method == 'POST') as response:

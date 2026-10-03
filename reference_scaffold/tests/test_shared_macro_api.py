@@ -54,6 +54,7 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
     migrated = {
         '_course_editor.html', '_week_service.html', '_week_settings.html', 'menu_editor.html',
         'gerichtvorlage_einplanen.html', 'gerichtvorlagen.html', 'grundlagen_food.html',
+        'rezepte_editor.html', 'print_template_editor.html',
     }
     assert {path.name for path, _ in calls if path.name in migrated} == migrated
     with semantic_app.test_request_context('/'):
@@ -95,6 +96,13 @@ def test_every_existing_footer_call_renders_byte_identically(semantic_app, famil
                 expected = (data['archive_rare'] if populated else '') + data['save_primary']
             elif path.name == 'grundlagen_food.html':
                 expected = icon_button('actions.save', form='food-core-form', emphasis='primary')
+            elif path.name == 'rezepte_editor.html':
+                # DELTA-3-09: header owns the return; save retains its native form.
+                expected = data['save_primary']
+            elif path.name == 'print_template_editor.html':
+                # DELTA-3-12: header owns the catalogue return, native submit stays.
+                expected = icon_button('actions.save', type='submit',
+                                       aria_label='Entwurf speichern' if populated else 'Vorlage speichern')
             else:
                 # Static form sections leave the primary emphasis to the week action.
                 expected = icon_button('actions.save', emphasis='secondary')
@@ -112,8 +120,11 @@ def test_every_existing_disclosure_call_renders_byte_identically(semantic_app, p
         for call in env.parse(path.read_text()).find_all(nodes.Call):
             if isinstance(call.node, nodes.Name) and call.node.name == 'disclosure_section':
                 calls.append((path, call))
-    # UI-DELTA §0.1: static week forms/fallback; long notes use read dialogs.
-    assert len(calls) == 13, 'Review compatibility inventory when consumers change'
+    # UI-DELTA §0.1: migrated week and recipe sections no longer use disclosures.
+    assert len(calls) == 0, 'Review compatibility inventory when consumers change'
+    migrated_disclosures = {'rezepte_editor.html', 'rezepte_revision.html', 'rezepte_revisionen.html',
+                           'rezepte_images.html', 'rezepte_import.html', 'print_template_editor.html'}
+    assert not any(path.name in migrated_disclosures for path, _ in calls)
     extended = [(path, call) for path, call in calls if any(
         kw.key == 'details_class' for kw in call.kwargs)]
     # DELTA-2c owns the frozen extended-call contract; removals are permitted.
@@ -377,8 +388,8 @@ def test_every_existing_row_action_call_renders_byte_identically(semantic_app): 
         for pair in call.find_all(nodes.Pair))]
     plain = [(path, call) for path, call in calls
              if not _opts_into_show_text(call) and (path, call) not in explicit]
-    assert len(plain) == 24, [f'{path.name}:{call.lineno}' for path, call in plain]
-    assert [path.name for path, _ in explicit] == ['gerichtvorlagen.html']
+    assert len(plain) == 23, [f'{path.name}:{call.lineno}' for path, call in plain]
+    assert [path.name for path, _ in explicit] == ['gerichtvorlagen.html', 'rezepte_revisionen.html']
     assert len(opted) == 1 and opted[0][0].name == 'vorlagen.html'
     source = (ROOT.parent / 'templates/admin/vorlagen.html').read_text(encoding='utf-8')
     assert 'ponytail:' not in source
@@ -394,6 +405,13 @@ def test_every_existing_row_action_call_renders_byte_identically(semantic_app): 
     for path, call in explicit:
         template = _compile_call(env, call)
         rendered = _render_call(semantic_app, template, current, data)
+        if path.name == 'rezepte_revisionen.html':
+            # DELTA-3-10 makes both existing history actions explicitly icon-only.
+            modes = [pair.value.value for pair in call.find_all(nodes.Pair)
+                     if isinstance(pair.key, nodes.Const) and pair.key.value == 'mode']
+            assert modes == ['icon', 'icon']
+            assert rendered == _render_call(semantic_app, template, legacy, data), path
+            continue
         expected_href = data['url_for']('admin.dish_template_plan', public_id='item-1')
         assert _controls(rendered)[1] == [(
             'actions.open', expected_href, 'Liste als Menü einplanen',

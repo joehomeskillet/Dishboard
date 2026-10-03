@@ -69,20 +69,13 @@ def _page(playwright_browser, case, tmp_path, width, zoom, javascript, has_touch
         context.close()
 
 
-def _toggle(page, selector, javascript):
-    details = page.locator(selector)
-    summary = details.locator(':scope > summary')
-    # A preceding mouse submit can leave the pointer over another action after navigation.
-    page.mouse.move(0, 0)
-    summary.press('Enter')
-    expect(details).to_have_attribute('open', '')
-    if javascript and summary.get_attribute('data-ui-tooltip'):
-        expect(page.get_by_role('tooltip')).to_have_count(1)
-        expect(page.get_by_role('tooltip')).to_have_text(summary.get_attribute('data-ui-tooltip'))
-        page.keyboard.press('Escape')
-        expect(page.get_by_role('tooltip')).to_have_count(0)
-        expect(summary).to_be_focused()
-    return summary
+def _static_section(page, selector, javascript):
+    section = page.locator(selector)
+    expect(section).to_be_visible()
+    expect(section.locator(':scope > summary')).to_have_count(0)
+    expect(section.get_by_role('heading').first).to_be_visible()
+    assert section.evaluate('el => el.tagName') != 'DETAILS'
+    return section
 
 def _form_fields(form, action):
     fields = form.evaluate('f => [...new FormData(f)]')
@@ -153,6 +146,7 @@ def test_print_editor_context_disclosures_and_native_archive(
         assert "script-src 'self'" in response.headers['content-security-policy']
         page.evaluate('document.fonts.ready')
         expect(page.locator('.page-header-subtitle')).to_have_text(case['label'] + ' · Vorlageneditor.')
+        navigation = page.locator('#template-select').locator('xpath=ancestor::form')
         expect(page.locator('[data-template-status-scope]')).to_contain_text('Aktiv für ' + case['scope'])
         if case['kind'] == 'recipes':
             expect(page.locator('[data-template-normal-print]')).to_contain_text('Suppe · Stand 1')
@@ -161,34 +155,30 @@ def test_print_editor_context_disclosures_and_native_archive(
         prefix = f'{case["kind"]}-{width}-{zoom}x-js{javascript}'
         _capture(page, tmp_path / f'{prefix}-initial.png', zoom)
         for attribute, heading in [('appearance', 'Druckgestaltung'), ('texts', 'Kopf- und Fusszeile')]:
-            summary = page.locator(f'[data-template-{attribute}] > summary')
-            expect(summary).to_contain_text(heading)
-            summary.press('Enter')
+            section = _static_section(page, f'[data-template-{attribute}]', javascript)
+            expect(section.get_by_role('heading')).to_have_text(heading)
         page.get_by_label('Vorlagenname', exact=True).fill('Ungespeicherter Vorlagenname')
         page.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Mein Text bleibt erhalten')
         before = page.locator('main form').evaluate_all('forms => forms.map(f => [...new FormData(f)])')
-        activation = _toggle(page, '[data-template-activation]', javascript)
+        _static_section(page, '[data-template-activation]', javascript)
         expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
-        more = _toggle(page, '[data-template-copy]', javascript)
+        _static_section(page, '[data-template-copy]', javascript)
         expect(page.locator('[data-template-activation]')).to_contain_text('Aktive Druckvorlage')
-        expect(page.locator('#template-versions > summary')).to_contain_text('Versionen')
+        expect(page.locator('#template-versions-heading')).to_have_text('Versionen')
         assert page.locator('main form').evaluate_all('forms => forms.map(f => [...new FormData(f)])') == before
         _capture(page, tmp_path / f'{prefix}-opened.png', zoom)
         # Defer only presentation mismatches so RED captures the complete native flow.
         if page.locator('.page-header .admin-statusbar').count():
             presentation.append('Redundant header status cards remain')
-        selected_name = page.get_by_label('Vorlagenname', exact=True).get_attribute('value')
-        for summary, name in ((activation, f'{selected_name} aktivieren'),
-                              (more, f'{selected_name} kopieren')):
-            _label_issue(presentation, summary, '', name)
-            if summary.locator('svg[aria-hidden="true"]').count() != 1:
-                presentation.append(f'{name}: missing decorative icon')
-            summary.focus()
-            assert summary.evaluate('el => getComputedStyle(el).outlineStyle') != 'none'
-            summary.press('Space')
-            expect(summary.locator('..')).not_to_have_attribute('open', '')
-            summary.press('Space')
-            expect(summary.locator('..')).to_have_attribute('open', '')
+        expect(page.locator('#template-activation-heading')).to_have_text('Aktivieren')
+        expect(page.locator('#copy-heading')).to_have_text('Vorlage kopieren')
+        copy_name = page.get_by_label('Name der Kopie', exact=True)
+        copy_name.focus()
+        assert copy_name.evaluate('el => getComputedStyle(el).outlineStyle != "none" || getComputedStyle(el).boxShadow != "none"')
+        page.keyboard.press('Escape')
+        expect(copy_name).to_be_focused()
+        expect(page.locator('[data-template-copy]')).to_be_visible()
+        assert page.locator('main form').evaluate_all('forms => forms.map(f => [...new FormData(f)])') == before
         assert not posts
         expect(page.get_by_label('Vorlagenname', exact=True)).to_have_value('Ungespeicherter Vorlagenname')
         expect(page.get_by_label('Zusatz unter dem Kopfbereich', exact=True)).to_have_value('Mein Text bleibt erhalten')
@@ -211,7 +201,12 @@ def test_print_editor_context_disclosures_and_native_archive(
             assert query['yield'] == ['8']
         else:
             assert query['week'] == [DAY]
-        _toggle(page, '[data-template-lifecycle]', javascript)
+        # Measure local navigation relative to the shared shell's flash boundary.
+        # Global flash text wraps independently and remains outside this consumer.
+        page.evaluate('document.fonts.ready')
+        navigation_before = navigation.evaluate(
+            'el => { const b = el.getBoundingClientRect(), flash = document.querySelector(".flash-region").getBoundingClientRect(); return {x:b.x+scrollX, y:b.y-flash.bottom, width:b.width, height:b.height}; }')
+        _static_section(page, '[data-template-lifecycle]', javascript)
         confirm = page.get_by_label('Ich möchte diese Vorlage archivieren.', exact=True)
         archive = page.get_by_role('button', name='Vorlage archivieren', exact=True)
         _label_issue(presentation, archive, 'Archivieren', 'Vorlage archivieren')
@@ -228,21 +223,25 @@ def test_print_editor_context_disclosures_and_native_archive(
             archive.click()
         assert len(posts) == 2
         assert posts[-1].url == archive_url and parse_qs(posts[-1].post_data) == archive_fields
+        page.evaluate('document.fonts.ready')
+        navigation_after = navigation.evaluate(
+            'el => { const b = el.getBoundingClientRect(), flash = document.querySelector(".flash-region").getBoundingClientRect(); return {x:b.x+scrollX, y:b.y-flash.bottom, width:b.width, height:b.height}; }')
+        assert all(abs(navigation_after[key] - value) <= 1 for key, value in navigation_before.items()), (navigation_before, navigation_after)
         expect(page.get_by_label('Vorlagenname', exact=True)).to_be_disabled()
         expect(page.get_by_text('Diese Vorlage ist archiviert.', exact=False)).to_be_visible()
-        _toggle(page, '[data-template-lifecycle]', javascript)
+        _static_section(page, '[data-template-lifecycle]', javascript)
         restore_form = page.locator('form').filter(has=page.locator('input[name="action"][value="reactivate"]'))
         restore = restore_form.locator('button[type="submit"]')
         _label_issue(presentation, restore, 'Reaktivieren', 'Druckvorlage Kontextkopie reaktivieren')
         if case['kind'] == 'recipes' and width == 1440 and zoom == 1 and javascript:
             case['app'].config['UI_LOCALE'] = 'en'
             page.reload(wait_until='networkidle')
-            _toggle(page, '[data-template-lifecycle]', javascript)
+            _static_section(page, '[data-template-lifecycle]', javascript)
             _label_issue(presentation, restore, 'Reactivate', 'Reactivate print template Kontextkopie')
             _capture(page, tmp_path / f'{prefix}-reactivate-en.png', zoom)
             case['app'].config['UI_LOCALE'] = 'de'
             page.reload(wait_until='networkidle')
-            _toggle(page, '[data-template-lifecycle]', javascript)
+            _static_section(page, '[data-template-lifecycle]', javascript)
         restore_fields = _form_fields(restore_form, 'reactivate')
         restore_url = restore_form.evaluate('f => new URL(f.getAttribute("action"), f.baseURI).href')
         expect(page.get_by_text('ohne sie für den Druck zu aktivieren.', exact=False)).to_be_visible()
@@ -253,7 +252,7 @@ def test_print_editor_context_disclosures_and_native_archive(
         assert len(posts) == 3
         assert posts[-1].url == restore_url and parse_qs(posts[-1].post_data) == restore_fields
         expect(page.locator('[data-template-status-scope]')).to_contain_text('Nicht aktiv für ' + case['scope'])
-        _toggle(page, '[data-template-activation]', javascript)
+        _static_section(page, '[data-template-activation]', javascript)
         activate_form = page.locator('[data-template-activation] form')
         activate = activate_form.locator('button[type="submit"]')
         activate_name = 'Revision 1 prüfen und aktivieren' if case['kind'] == 'recipes' else 'Diese Version aktivieren'
@@ -288,7 +287,7 @@ def test_print_editor_coarse_controls_preserve_native_forms(
         assert response.status == 200
         page.evaluate('document.fonts.ready')
         page.get_by_label('Vorlagenname', exact=True).fill('Touch-Entwurf bleibt erhalten')
-        page.locator('[data-template-texts] > summary').press('Enter')
+        _static_section(page, '[data-template-texts]', javascript)
         page.get_by_label('Zusatz unter dem Kopfbereich', exact=True).fill('Touch-Zusatz bleibt erhalten')
         forms = page.locator('main form')
         form_state = '''forms => forms.map(f => ({
@@ -302,16 +301,17 @@ def test_print_editor_coarse_controls_preserve_native_forms(
         copy_before = _form_fields(copy_form, 'copy')
         selectors = ('[data-template-activation]', '[data-template-copy]')
         for selector in selectors:
-            expect(page.locator(selector + ' > summary.ui-sem-control--icon-only')).to_have_count(1)
-            expect(page.locator(selector)).not_to_have_attribute('open', '')
-        for stage in ('closed', 'opened', 'closed-again'):
+            _static_section(page, selector, javascript)
+        copy_name = page.get_by_label('Name der Kopie', exact=True)
+        for stage in ('initial', 'focused', 'escaped'):
+            if stage == 'focused':
+                copy_name.focus()
+            elif stage == 'escaped':
+                page.keyboard.press('Escape')
+                expect(copy_name).to_be_focused()
             for selector in selectors:
-                if stage == 'opened':
-                    _toggle(page, selector, javascript)
-                elif stage == 'closed-again':
-                    page.locator(selector + ' > summary').press('Space')
-                    expect(page.locator(selector)).not_to_have_attribute('open', '')
-            page.locator(selectors[-1] + ' > summary').scroll_into_view_if_needed()
+                _static_section(page, selector, javascript)
+            copy_name.scroll_into_view_if_needed()
             for moment in ('before-capture', 'after-capture'):
                 if moment == 'after-capture':
                     page.screenshot(path=str(tmp_path / f'{case["kind"]}-coarse-{stage}.png'), full_page=False)

@@ -13,8 +13,7 @@ from test_admin_workflow_routes import _login
 from test_component_catalog_routes import _create_csrf, _create_fields
 from test_delta_renderer_browser import VISIBILITY
 
-EVIDENCE = Path('/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/'
-                'claude-session-2026-09-29/audit/DELTA/DELTA-3-14')
+EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/delta3/DELTA-3-14'
 
 
 @pytest.mark.parametrize('width,coarse', [(1440, False), (1440, True), (390, False), (390, True)])

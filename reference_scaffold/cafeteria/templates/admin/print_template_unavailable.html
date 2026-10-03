@@ -20,7 +20,7 @@
   <h1>{{ t('ui.print_unavailable.label') }}</h1>
   <div class="alert alert-warning" role="alert">{{ icon_label('ui.request_failed') }}</div>
   {% call empty_state('error', t('ui.print_unavailable.label'), t('ui.request_failed.label')) %}
-  {{ icon_button('ui.templates_back', href=url_for('admin.vorlagen'), text='Zur Übersicht', show_text=true, aria_label=t('ui.templates_back.aria')) }}
+  {{ icon_button('ui.templates_back', href=url_for('admin.vorlagen'), text='Zur Übersicht', mode='text', aria_label=t('ui.templates_back.aria')) }}
   {% endcall %}
 </main>
 </body>

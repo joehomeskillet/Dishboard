@@ -1462,6 +1462,10 @@ reference_scaffold/tests/test_delta3_05_browser.py
 reference_scaffold/tests/test_delta3_06_browser.py
 reference_scaffold/tests/test_delta3_07_browser.py
 reference_scaffold/tests/test_delta3_08_browser.py
+reference_scaffold/tests/test_delta3_09_browser.py
+reference_scaffold/tests/test_delta3_10_browser.py
+reference_scaffold/tests/test_delta3_11_browser.py
+reference_scaffold/tests/test_delta3_12_browser.py
 reference_scaffold/tests/test_delta3_13_browser.py
 reference_scaffold/tests/test_delta3_14_browser.py
 reference_scaffold/tests/test_delta3_15_browser.py

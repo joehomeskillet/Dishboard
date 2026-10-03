@@ -188,6 +188,24 @@ def test_recovery_skips_context_processors(app):
     assert 'Ungültige Zeichen im Titel.' in response.get_data(as_text=True)
 
 
+@pytest.mark.parametrize('reload_url,expected', [
+    ('javascript:alert(1)', '/admin/rezepte'),
+    ('//example.invalid/redirect', '/admin/rezepte'),
+    ('https://example.invalid/redirect', '/admin/rezepte'),
+    ('/admin/rezepte?next=//example.invalid', '/admin/rezepte'),
+    ('/admin/rezepte/neu', '/admin/rezepte/neu'),
+    ('/admin/kochbuecher/00000000-0000-0000-0000-000000000001',
+     '/admin/kochbuecher/00000000-0000-0000-0000-000000000001'),
+])
+def test_recovery_link_keeps_only_allowlisted_local_targets(app, reload_url, expected):
+    with app.test_request_context('/'):
+        response = render_form_error(RecipeConflictError(), submitted=[], reload_url=reload_url)
+    assert response.status_code == 409
+    assert f'href="{expected}"' in response.get_data(as_text=True)
+    assert 'javascript:' not in response.get_data(as_text=True)
+    assert 'example.invalid' not in response.get_data(as_text=True)
+
+
 @pytest.mark.parametrize('javascript', [True, False])
 @pytest.mark.parametrize('name', ['ordinary', 'group'])
 def test_chromium_focuses_single_target(browser, server, javascript, name):

@@ -52,8 +52,6 @@
 </table>
 </div>
 {% else %}{% set filtered = has_filters %}
-{% call empty_state('no_match' if filtered else 'none', 'Keine passenden Rezepte' if filtered else 'Noch keine Rezepte', 'Filter anpassen oder zurücksetzen.' if filtered else 'Beginnen Sie mit einem neuen Rezeptentwurf.') %}
-{% if filtered %}{{ icon_button('view.reset', href=url_for('admin.recipes_list')) }}{% elif can_write %}{{ icon_button('actions.add', href=url_for('admin.recipe_new'), emphasis='secondary') }}{% endif %}
-{% endcall %}{% endif %}
+{{ empty_state('no_match' if filtered else 'none', 'Keine passenden Rezepte' if filtered else 'Noch keine Rezepte', 'Filter anpassen oder zurücksetzen.' if filtered else 'Beginnen Sie mit einem neuen Rezeptentwurf.') }}{% endif %}
 {{ pagination(page, has_next, prev_url, next_url, 'Rezeptseiten') }}
 {% endblock %}

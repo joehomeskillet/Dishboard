@@ -14,7 +14,7 @@
 {% block title %}{{ document.title }} · {{ t('navigation.recipes.label') }}{% endblock %}
 {% block page_header %}
 {% call page_header(t('navigation.recipes.label'), document.title, status_items=[{'label': t('recipe.recipe.label'), 'value': 'Entwurf · nicht festgeschrieben' if recipe.active else 'Archiviert', 'variant': 'neutral'}]) %}
-{{ icon_button('actions.back', href=url_for('admin.recipes_list'), icon_only=can_write and recipe.active, text='Zur Liste', aria_label='Zur Liste der Rezepte', title='Zur Liste der Rezepte', emphasis='primary' if not (can_write and recipe.active) else none) }}
+{{ icon_button('actions.back', href=url_for('admin.recipes_list'), mode='icon', text='Zur Liste', aria_label='Zur Liste der Rezepte', title='Zur Liste der Rezepte', emphasis='primary' if not (can_write and recipe.active) else none) }}
 {% set actions = [] %}
 {% if can_write and recipe.active %}{% set _ = actions.append({'key': 'actions.edit', 'href': url_for('admin.recipe_edit', recipe_id=recipe_id), 'emphasis': 'primary'}) %}{% endif %}
 {% if links.latest_revision %}{% set _ = actions.append({'key': 'actions.open_pdf', 'href': url_for('admin.recipe_revision_pdf', recipe_id=recipe_id, revision_id=links.latest_revision.public_id), 'aria_label': t('recipe.pdf_open.aria', revision=links.latest_revision.revision_number, name=document.title)}) %}{% endif %}
