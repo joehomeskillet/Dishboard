@@ -310,7 +310,7 @@ def test_blocked_sprite_keeps_actions_named(
             else:
                 _assert_nojs(page)
             if javascript:
-                logo = page.locator('.admin-brand > .asset-image-frame')
+                logo = page.locator('.admin-brand-mark > .asset-image-frame')
                 expect(logo.locator('.asset-image-placeholder')).to_have_text('Klinik Südhang')
                 expect(logo.locator('img.admin-logo')).to_be_hidden()
                 box = logo.bounding_box()

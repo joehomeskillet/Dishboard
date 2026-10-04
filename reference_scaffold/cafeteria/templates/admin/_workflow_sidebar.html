@@ -43,7 +43,7 @@
 {% if not tabler_admin %}
 <aside class="admin-sidebar">
   <div class="admin-brand">
-    {{ brand_logo(brand, 'admin-logo', width=164, height=32) }}
+    <div class="admin-brand-mark">{{ brand_logo(brand, 'admin-logo', width=164, height=32) }}</div>
     <span>Menüplanung</span>
   </div>
   <div class="admin-user"><div><strong>{{ user.name if user else 'Küche Administration' }}</strong><span>{{ roles|default([])|join(', ') }}</span></div></div>
@@ -59,7 +59,7 @@
       <span class="navbar-toggler-icon" aria-hidden="true"></span>
     </button>
     <div class="navbar-brand admin-brand">
-      {{ brand_logo(brand, 'admin-logo', width=164, height=32) }}
+      <div class="admin-brand-mark">{{ brand_logo(brand, 'admin-logo', width=164, height=32) }}</div>
       <span>Menüplanung</span>
     </div>
     <noscript><details class="admin-nojs-nav d-lg-none">

@@ -588,9 +588,9 @@ bilden die Hierarchie (4 px innerhalb, 12 px zwischen Hauptgruppen).
 Nur der tatsächlich aktive Eintrag trägt `aria-current="page"` und die starke
 aktive Fläche. Sein Parent bleibt ohne aktive Fläche; Chevron und Schriftgewicht
 zeigen den geöffneten Bereich. Icons stehen nur auf der Hauptebene. Labels sind
-einzeilig mit Ellipsis und vollständigem `title`; Rollen und Ziele bleiben gleich.
+vollständig mit Umbruch und `title` gemäss SIDEBAR-BRAND; Rollen und Ziele bleiben gleich.
 
-Desktop ab 992 px kann die Sidebar von 248 px auf eine 72-px-Icon-Leiste reduzieren.
+Desktop ab 992 px kann die Sidebar von 248 px auf eine 128-px-Icon-Leiste reduzieren.
 Ein externer, verzögert geladener Controller merkt die Auswahl in `localStorage`;
 ein kurzer initialer Breitenwechsel ist wegen CSP und Progressive Enhancement
 akzeptiert. Ohne JavaScript bleibt die volle Sidebar, der Umschalter verborgen.
@@ -625,6 +625,51 @@ Nachweise: `test_delta5_regression_browser.py`, `test_delta5_geometry_browser.py
 und bestehende Shell-/Token-Gates. Der neue gemeinsame Fonttest fordert exakt
 gleiche Rechtecke bei verzögerten echten Fontrequests in fünf Viewports;
 die bestehenden N-04-Tests behalten ihre Grenze von 1 CSS-px.
+
+### SIDEBAR-BRAND: ruhiger Markenbereich und lesbare Navigation (2026-10-04)
+
+Der Nutzerbrief vom 4. Oktober ersetzt für die Sidebar die ältere Pflicht zu
+einzeiligen Labels mit Ellipsis. Die Desktopbreite bleibt 248 px: das längste
+vorhandene Label «Vorschau & Bildschirme» benötigte im Vorher-Browser 174 px bei
+nur 148 px verfügbarem Raum. Sichtbarer Umbruch erhält die volle Arbeitsbreite
+rechts davon. Oberpunkte verwenden einheitlich 20-px-Icons und Schriftgewicht
+600; geöffnete Gruppen bleiben stärker gewichtet, die rosa aktive Markierung
+bleibt allein am tatsächlich aktiven Unterpunkt. Icons und Chevron stehen bei
+mehrzeiligen Labels an der ersten Zeile. Unterpunkte bleiben 32 px eingerückt,
+mit 4 px Abstand und gemeinsamen 36/44-px-Mindestzielen statt zusätzlichem
+Tabler-Zeilenpadding. Hauptgruppen behalten 12 px Abstand. Auch Flyouts zeigen
+vollständige Labels, ohne Ellipsis oder abgeschnittene Wörter.
+
+Die aktive Markenquelle und der gemeinsame `brand_logo`-Renderer bleiben
+unverändert. Ein eigener Sidebar-Wrapper fasst das proportional skalierte Logo
+in einer dezenten weissen Fläche ein: höchstens 190 px breit, 48 px hoch,
+1-px-Rahmen aus dem vorhandenen Sidebar-Token, Bild höchstens 164 × 32 px.
+Beide Bildmasse sind automatisch; natürliche Seitenverhältnisse bleiben auch
+für quadratische, hochkantige und breite Uploads erhalten. Die feste Rahmenhöhe
+reserviert den Raum beim Bildladen. Aussenabstand 16 px; «Menüplanung» folgt
+ausserhalb der weissen Fläche als ruhige Produktbezeichnung. Die eingeklappte
+Leiste ist 128 px breit: im Assetbestand gibt es kein eigenständiges Signet;
+die originale Wortmarke bleibt deshalb vollständig und proportional mit knapp
+20 px Bildhöhe lesbar statt auf 9 px in einer 72-px-Leiste zu schrumpfen.
+Aussenabstand 8 px, Logo-Rahmen 40 px hoch; mindestens 12 px Logo-Randabstand.
+Der mobile Kopf behält sein einzelnes Markenlogo und den benannten Hamburger.
+Bei offenem Offcanvas bleibt derselbe Markenbereich mit Produktzeile fixiert
+über der separat scrollbaren Navigation; 104 px Kopfraum verhindern Überdeckung.
+Auch bei geöffnetem No-JS-Menü bleiben Marke und Produktzeile über dessen eigenem
+Scrollbereich sichtbar; nur der native Summary-Hamburger ist sichtbar, der
+funktionslose JavaScript-Auslöser ausgeblendet. Der Bild-Fallback behält im Markenrahmen seine
+reservierten Masse und lesbaren Alternativtext. Der Benutzer-/Abmeldebereich erhält eine dezente
+Trennlinie. Native POST-Abmeldung, CSRF, Rollen, Routen und Offcanvas-/No-JS-
+Bedienung bleiben erhalten. DELTA-6 und N-01 bis N-04 gelten weiter.
+
+Nachweise: `test_sidebar_brand_browser.py`, `test_admin_nav_browser.py`,
+`test_ui_master_shell_browser.py`, `test_branding_header_browser.py` und die
+Pflicht-/Verbraucherläufe des Briefs. Die Screenshotmatrix verwendet echte
+`/admin/cafeteria`-Antworten für Admin/Editor, DE/EN, 1440 × 900, 1280 × 800,
+390 × 844 offen/geschlossen sowie die eingeklappte Desktop-Leiste. Der neue
+Geometrietest prüft zusätzlich 1024/768/1920 px, feine/grobe Zeiger und No-JS.
+Historische 48-px-, Ellipsis- und breite Logo-Karten-Regeln sind für diesen
+Sidebar-Umfang durch den aktuellen Brief abgelöst; die Palette bleibt gleich.
 
 ## Auftraggeber-Ergänzung 2026-09-20: Vereinfachung und kompakte Formulare
 

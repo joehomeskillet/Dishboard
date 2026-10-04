@@ -1719,6 +1719,7 @@ reference_scaffold/tests/test_shopping_list_pdf_http.py
 reference_scaffold/tests/test_shopping_list_period.py
 reference_scaffold/tests/test_shopping_list_routes.py
 reference_scaffold/tests/test_shopping_stock_db.py
+reference_scaffold/tests/test_sidebar_brand_browser.py
 reference_scaffold/tests/test_signage_cafeteria_day.py
 reference_scaffold/tests/test_signage_cafeteria_week.py
 reference_scaffold/tests/test_signage_engine.py
