@@ -1,8 +1,6 @@
 """Real PostgreSQL/Chromium A04 forms, with and without application JavaScript."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 from playwright.sync_api import expect
 
@@ -12,8 +10,7 @@ from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
 from test_week_form_rerender import DAY, WEEK, _form, _snapshot
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/week-form-rerender-0912'
-VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (720, 450)]
+VIEWPORTS =[(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (720, 450)]
 
 
 @pytest.fixture
@@ -51,7 +48,7 @@ def _submit(page, form, expected):
 @pytest.mark.parametrize('family', ['cafeteria', 'patienten'])
 @pytest.mark.parametrize('kind', ['header', 'service'])
 @pytest.mark.parametrize('javascript', [True, False])
-def test_week_form_errors_save_and_stale_resubmit(week_page, admin_engine, family, kind, javascript):  # noqa: F811
+def test_week_form_errors_save_and_stale_resubmit(week_page, admin_engine, family, kind, javascript, tmp_path):  # noqa: F811
     page, client = week_page
     page.goto(f'/admin/{family}?week={WEEK}')
     form = _locator(page, family, kind)
@@ -83,12 +80,11 @@ def test_week_form_errors_save_and_stale_resubmit(week_page, admin_engine, famil
         expect(form.locator('.error-region')).to_be_focused()
     else:
         expect(form.locator(f'[name="{field}"]')).to_be_focused()
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
     for width, height in VIEWPORTS:
         page.set_viewport_size({'width': width, 'height': height})
         form.locator('.error-region').scroll_into_view_if_needed()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
-        page.screenshot(path=str(EVIDENCE / f'{family}-{kind}-{javascript}-{width}x{height}.png'))
+        page.screenshot(path=str(tmp_path / f'{family}-{kind}-{javascript}-{width}x{height}.png'))
     page.set_viewport_size({'width': 1440, 'height': 900})
     if kind == 'service':
         form.locator('[name="service_start"]').fill('kein Beginn')

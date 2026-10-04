@@ -22,8 +22,6 @@ from test_ui_output_hubs_browser import published_hub_app  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
-ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / '.claude' / 'evidence' / 'ui-fullwidth-0912' / 'a'
 DESKTOP = ((1024, 768), (1440, 900), (1920, 1080), (2560, 1440))
 COMPACT = ((390, 844), (720, 450))
 WIDTH_METRICS = '''() => {
@@ -107,15 +105,15 @@ def _assert_width(page, name: str, width: int, height: int):
         assert metrics['ratio'] >= 0.95, (name, width, metrics)
 
 
-def _shot(page, endpoint: str, state: str, width: int, height: int):
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
+def _shot(page, evidence: Path, endpoint: str, state: str, width: int, height: int):
+    evidence.mkdir(parents=True, exist_ok=True)
     page.screenshot(
-        path=str(EVIDENCE / f'{endpoint}-{state}-{width}x{height}.png'),
+        path=str(evidence / f'{endpoint}-{state}-{width}x{height}.png'),
         full_page=True,
     )
 
 
-def test_group_a_pages_use_full_working_width(fullwidth_site, browser):  # noqa: F811
+def test_group_a_pages_use_full_working_width(fullwidth_site, browser, tmp_path):  # noqa: F811
     site = fullwidth_site
     week = WEEK_START.isoformat()
     routes = (
@@ -141,12 +139,12 @@ def test_group_a_pages_use_full_working_width(fullwidth_site, browser):  # noqa:
                 response = page.goto(path)
                 assert response is not None and response.status == 200, (endpoint, path, response)
                 _assert_width(page, endpoint, width, height)
-                _shot(page, endpoint, state, width, height)
+                _shot(page, tmp_path, endpoint, state, width, height)
         finally:
             context.close()
 
 
-def test_screen_template_unavailable_uses_full_width(fullwidth_site, database_engine, browser):  # noqa: F811
+def test_screen_template_unavailable_uses_full_width(fullwidth_site, database_engine, browser, tmp_path):  # noqa: F811
     site = fullwidth_site
     bad_value = (
         '{"schema_version": 999, "version": 0, '
@@ -171,6 +169,6 @@ def test_screen_template_unavailable_uses_full_width(fullwidth_site, database_en
             assert not metrics['overflow'], (width, metrics)
             if width >= 1024:
                 assert metrics['ratio'] >= 0.95, (width, metrics)
-            _shot(page, 'wochenvorlage', 'unavailable-503', width, height)
+            _shot(page, tmp_path, 'wochenvorlage', 'unavailable-503', width, height)
         finally:
             context.close()

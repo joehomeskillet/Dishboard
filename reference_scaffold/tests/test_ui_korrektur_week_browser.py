@@ -21,13 +21,18 @@ from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
-ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = Path(os.environ.get('UI_EVIDENCE_DIR', ROOT / '.claude' / 'evidence' / 'ui-korrektur-0912')) / 'week'
 FAMILIES = ('cafeteria', 'patienten')
 PROFILE_BY_FAMILY = {'cafeteria': 'staff_guest', 'patienten': 'patient'}
 SLOT_COUNT = {'cafeteria': 10, 'patienten': 28}
 VIEWPORTS = ((1366, 768), (1920, 1080), (768, 1024), (390, 844), (720, 450))
 LONG_NOTE = 'Vollständiger langer Rezepturhinweis bleibt sichtbar und darf nicht gekürzt werden. ' * 4
+
+
+@pytest.fixture
+def evidence(tmp_path: Path) -> Path:
+    """Screenshots are run evidence: tmp_path unless UI_EVIDENCE_DIR asks for an export."""
+    override = os.environ.get('UI_EVIDENCE_DIR')
+    return Path(override) / 'week' if override else tmp_path
 
 
 def _goto(page: Page, family: str) -> None:
@@ -79,10 +84,10 @@ def _assert_page_container_width(page: Page, width: int) -> None:
         assert layout['containerWidth'] >= frame_width - 2, layout
 
 
-def _shot(page: Page, family: str, state: str, width: int, height: int) -> None:
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
+def _shot(page: Page, evidence: Path, family: str, state: str, width: int, height: int) -> None:
+    evidence.mkdir(parents=True, exist_ok=True)
     page.screenshot(
-        path=str(EVIDENCE / f'{family}-{state}-{width}x{height}.png'),
+        path=str(evidence / f'{family}-{state}-{width}x{height}.png'),
         full_page=True,
     )
 
@@ -134,7 +139,7 @@ def test_a01_single_area_nav_and_single_week_review_link(page_context: Page, fam
 @pytest.mark.parametrize('family', FAMILIES)
 @pytest.mark.parametrize(('width', 'height'), ((1366, 768), (1920, 1080)))
 def test_a02_first_menu_slot_fits_viewport_without_scroll(
-    page_context: Page, admin_app: Flask, family: str, width: int, height: int,  # noqa: F811
+    page_context: Page, admin_app: Flask, family: str, width: int, height: int, evidence: Path,  # noqa: F811
 ) -> None:
     profile = PROFILE_BY_FAMILY[family]
     _save_reviewed(admin_app.extensions['cafeteria_db'], profile, _staff_values() if profile == 'staff_guest' else _patient_values())
@@ -148,7 +153,7 @@ def test_a02_first_menu_slot_fits_viewport_without_scroll(
     assert box is not None
     assert box['y'] >= 0
     assert box['y'] + box['height'] <= height + 1, (family, width, height, box)
-    _shot(page, family, 'regular', width, height)
+    _shot(page, evidence, family,'regular', width, height)
 
 
 @pytest.mark.parametrize('family', FAMILIES)
@@ -241,7 +246,7 @@ def test_a05_empty_times_are_not_standard_hours(
 
 @pytest.mark.parametrize(('family', 'profile'), (('cafeteria', 'staff_guest'), ('patienten', 'patient')))
 def test_a06_live_checked_and_missing_allergens_are_separate(
-    page_context: Page, admin_app: Flask, family: str, profile: str,  # noqa: F811
+    page_context: Page, admin_app: Flask, family: str, profile: str, evidence: Path,  # noqa: F811
 ) -> None:
     engine = admin_app.extensions['cafeteria_db']
     values = _a06_values(profile)
@@ -265,7 +270,7 @@ def test_a06_live_checked_and_missing_allergens_are_separate(
     expect(card.locator('[data-menu-metadata] [data-allergen-state="missing"]')).to_contain_text('Allergenangaben nicht erfasst')
     expect(card.locator('[data-menu-metadata] [data-allergen-state="missing"]')).to_be_visible()
     expect(card.locator('[data-menu-metadata]')).to_contain_text('nicht allergenfrei')
-    _shot(page, family, 'a06', 1366, 768)
+    _shot(page, evidence, family,'a06', 1366, 768)
 
     values['title'] = f"{values['title']} geändert"
     _save_reviewed(engine, profile, values)
@@ -367,7 +372,7 @@ def test_cafeteria_weekend_hint_sits_in_page_header_before_status(
 @pytest.mark.parametrize('family', FAMILIES)
 @pytest.mark.parametrize(('width', 'height'), VIEWPORTS)
 def test_a11_a12_full_width_and_no_horizontal_scroll(
-    page_context: Page, admin_app: Flask, family: str, width: int, height: int,  # noqa: F811
+    page_context: Page, admin_app: Flask, family: str, width: int, height: int, evidence: Path,  # noqa: F811
 ) -> None:
     profile = PROFILE_BY_FAMILY[family]
     _save_reviewed(admin_app.extensions['cafeteria_db'], profile, _staff_values() if profile == 'staff_guest' else _patient_values())
@@ -384,13 +389,13 @@ def test_a11_a12_full_width_and_no_horizontal_scroll(
         _assert_no_overflow(page)
         if zoom == 1:
             _assert_page_container_width(page, width)
-        _shot(page, family, state, width, height)
+        _shot(page, evidence, family,state, width, height)
         page.evaluate("document.documentElement.style.zoom = ''")
 
 
 @pytest.mark.parametrize('family', FAMILIES)
 def test_a12_empty_and_review_open_screenshots(
-    page_context: Page, admin_app: Flask, family: str,  # noqa: F811
+    page_context: Page, admin_app: Flask, family: str, evidence: Path,  # noqa: F811
 ) -> None:
     page = page_context
     page.set_viewport_size({'width': 1366, 'height': 768})
@@ -399,14 +404,14 @@ def test_a12_empty_and_review_open_screenshots(
     first_slot = page.locator('.menu-slot').first.locator('[data-semantic="actions.add"]')
     expect(first_slot).to_be_visible()
     expect(page.locator(f'a[href="{first_slot.get_attribute("href")}"]')).to_have_count(1)
-    _shot(page, family, 'empty', 1366, 768)
+    _shot(page, evidence, family,'empty', 1366, 768)
     profile = PROFILE_BY_FAMILY[family]
     values = deepcopy(_staff_values() if profile == 'staff_guest' else _patient_values())
     values['days'][0]['services'][0]['options'][0]['allergen_review_status'] = 'not_checked'
     _save(admin_app.extensions['cafeteria_db'], profile, values)
     _goto(page, family)
     expect(page.locator('main')).to_have_attribute('data-status', 'review_open')
-    _shot(page, family, 'review_open', 1366, 768)
+    _shot(page, evidence, family,'review_open', 1366, 768)
 
 
 @pytest.mark.parametrize('family', FAMILIES)

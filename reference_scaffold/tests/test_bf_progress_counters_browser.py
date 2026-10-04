@@ -91,6 +91,8 @@ def test_t22_moved_ingredient_keeps_identity_when_quantity_is_invalid(
         page = context.new_page()
         page.goto(base + f'/admin/rezepte/{created.public_id}', wait_until='load')
         page.get_by_role('button', name='Zutat 1 davor einfügen', exact=True).click()
+        # Row actions are server round trips: wait for the re-rendered rows before filling them.
+        expect(page.locator('[id="ingredients.1.ingredient_text"]')).to_have_value('Karotte')
         page.locator('[id="ingredients.0.ingredient_text"]').fill('Karotte grob')
         page.locator('[id="ingredients.0.quantity"]').fill('3')
         page.locator('[id="ingredients.0.unit_code"]').select_option('G')
@@ -98,6 +100,7 @@ def test_t22_moved_ingredient_keeps_identity_when_quantity_is_invalid(
         page.locator('[id="ingredients.1.quantity"]').fill('1')
         page.locator('[id="ingredients.1.unit_code"]').select_option('G')
         page.get_by_role('button', name='Zutat 2 nach oben verschieben', exact=True).click()
+        expect(page.locator('[id="ingredients.0.ingredient_text"]')).to_have_value('Karotte fein')
         page.locator('[id="ingredients.0.quantity"]').fill('2,5')
         assert page.locator('[name="ingredients.0.line_public_id"]').input_value() == line_id
         page.locator('.admin-form-footer [form="recipe-editor"][data-semantic="actions.save"]').click()

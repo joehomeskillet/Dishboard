@@ -23,7 +23,6 @@ from test_shopping_list_db import (  # noqa: F401
 )
 
 EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/sp-ui-0914'
-PDF_EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/spdf-route-0915'
 ROUTE_VIEWPORTS = ((390, 844), (1440, 900))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080))
 
@@ -111,13 +110,13 @@ def _shot(page, name):
     path.chmod(0o600)
 
 
-def _pdf_shot(page, name):
-    """SPDF-ROUTE evidence lives in its own directory; never overwrites another WP's PNGs."""
+def _pdf_shot(page, evidence, name):
+    """SPDF-ROUTE evidence goes to the test's tmp_path; it never lands in a tracked evidence folder."""
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), name
     assert page.evaluate(SMALL_TARGETS) == [], name
-    PDF_EVIDENCE.mkdir(parents=True, exist_ok=True)
-    PDF_EVIDENCE.chmod(0o700)
-    path = PDF_EVIDENCE / f'{name}.png'
+    evidence.mkdir(parents=True, exist_ok=True)
+    evidence.chmod(0o700)
+    path = evidence / f'{name}.png'
     page.screenshot(path=str(path), full_page=True)
     path.chmod(0o600)
 
@@ -270,7 +269,7 @@ def test_keyboard_and_200_percent_zoom(server, browser, tmp_path):  # noqa: F811
 
 
 @pytest.mark.parametrize('width,height', ((1440, 900), (390, 844)))
-def test_pdf_link_visible_focusable_and_serves_pdf(server, browser, width, height):  # noqa: F811
+def test_pdf_link_visible_focusable_and_serves_pdf(server, browser, width, height, tmp_path):  # noqa: F811
     base, cookie, owner, engine, ids = server
     _seed_component(owner, engine, ids)
     scope = _scope(ids)
@@ -294,7 +293,7 @@ def test_pdf_link_visible_focusable_and_serves_pdf(server, browser, width, heigh
         assert response.status == 200
         assert response.headers['content-type'] == 'application/pdf'
         page.evaluate('window.scrollTo(0, 0)')
-        _pdf_shot(page, f'pdf-link-{width}x{height}')
+        _pdf_shot(page, tmp_path, f'pdf-link-{width}x{height}')
 
 
 FRAME_VIEWPORTS = ((360, 844), (768, 1024), (1024, 768), (1440, 900))

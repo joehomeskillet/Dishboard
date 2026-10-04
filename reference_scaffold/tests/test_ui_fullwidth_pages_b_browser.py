@@ -18,7 +18,6 @@ from test_ui_master_shell_browser import _page, site  # noqa: F401
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/ui-fullwidth-0912/b'
 WIDE = ((1024, 768), (1440, 900), (1920, 1080), (2560, 1440))
 COMPACT = ((390, 844), (720, 450))
 VIEWPORTS = COMPACT + WIDE
@@ -54,7 +53,7 @@ def _first(html: str, prefix: str) -> str:
     return match.group(1)
 
 
-def _check(page: Page, endpoint: str, state: str, width: int) -> None:
+def _check(page: Page, evidence: Path, endpoint: str, state: str, width: int) -> None:
     metrics = page.evaluate(METRICS)
     assert not metrics['overflow'], (endpoint, state, width, metrics)
     if width >= 1024:
@@ -62,8 +61,8 @@ def _check(page: Page, endpoint: str, state: str, width: int) -> None:
         assert metrics['maxWidth'] in {'none', '', '100%'}, (endpoint, state, width, metrics)
         assert abs(metrics['inner'] - metrics['available']) <= 1, (endpoint, state, width, metrics)
         assert metrics['ratio'] >= 0.95, (endpoint, state, width, metrics)
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
-    page.screenshot(path=str(EVIDENCE / f'{endpoint}-{state}-{width}.png'), full_page=True)
+    evidence.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=str(evidence / f'{endpoint}-{state}-{width}.png'), full_page=True)
 
 
 def _local_user(client) -> str:
@@ -156,7 +155,7 @@ def _pages(client) -> list[tuple[str, str, str]]:
     ]
 
 
-def test_group_b_pages_use_full_working_width(site):  # noqa: F811
+def test_group_b_pages_use_full_working_width(site, tmp_path):  # noqa: F811
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     pages = _pages(client)
@@ -169,7 +168,7 @@ def test_group_b_pages_use_full_working_width(site):  # noqa: F811
             page.set_viewport_size({'width': width, 'height': height})
             for endpoint, state, path in pages:
                 _open(page, path)
-                _check(page, endpoint, state, width)
+                _check(page, tmp_path, endpoint, state, width)
         page.set_viewport_size({'width': 1440, 'height': 900})
         _open(page, '/admin/benutzer/neu')
         page.fill('#new-username', 'bad.user')
@@ -182,7 +181,7 @@ def test_group_b_pages_use_full_working_width(site):  # noqa: F811
         for width, height in VIEWPORTS:
             page.set_viewport_size({'width': width, 'height': height})
             page.evaluate('document.fonts.ready')
-            _check(page, 'admin.local_user_new', 'invalid', width)
+            _check(page, tmp_path, 'admin.local_user_new', 'invalid', width)
         _open(page, '/admin/rezepte/neu')
         page.locator('#recipe-editor').evaluate('form => { form.noValidate = true; }')
         create = page.get_by_role('button', name='Anlegen', exact=True)
@@ -192,6 +191,6 @@ def test_group_b_pages_use_full_working_width(site):  # noqa: F811
         for width, height in VIEWPORTS:
             page.set_viewport_size({'width': width, 'height': height})
             page.evaluate('document.fonts.ready')
-            _check(page, 'admin.recipe_new', 'invalid', width)
+            _check(page, tmp_path, 'admin.recipe_new', 'invalid', width)
     finally:
         page.context.close()

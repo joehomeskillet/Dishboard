@@ -23,7 +23,6 @@ site = admin_site
 
 
 ROOT = Path(__file__).resolve().parents[2]
-API_EVIDENCE = ROOT / '.claude/evidence/density-api-fix-0913'
 VIEWPORTS = (
     ('desktop-1366', 1366, 768),
     ('desktop-1440', 1440, 900),
@@ -82,9 +81,11 @@ def _assert_full_width(page: Page, width: int) -> None:
         assert metrics['ratio'] >= 0.95, (width, metrics)
 
 
-def _screenshot(page: Page, name: str, width: int, height: int, masks: list[object] | None = None) -> None:
-    API_EVIDENCE.mkdir(parents=True, exist_ok=True)
-    options = {'path': str(API_EVIDENCE / f'{name}-{width}x{height}.png'), 'full_page': True}
+def _screenshot(
+    page: Page, evidence: Path, name: str, width: int, height: int, masks: list[object] | None = None,
+) -> None:
+    evidence.mkdir(parents=True, exist_ok=True)
+    options = {'path': str(evidence / f'{name}-{width}x{height}.png'), 'full_page': True}
     if masks:
         options['mask'] = masks
     page.screenshot(**options)
@@ -94,7 +95,7 @@ def _api_prefix_mask_locators(page: Page):
     return page.locator('[data-api-key-prefix]')
 
 
-def test_tool_pages_put_primary_content_before_administration(site) -> None:  # noqa: F811
+def test_tool_pages_put_primary_content_before_administration(site, tmp_path) -> None:  # noqa: F811
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     page = _page(site, client, viewport={'width': 1366, 'height': 768})
@@ -117,7 +118,7 @@ def test_tool_pages_put_primary_content_before_administration(site) -> None:  # 
         expect(page.locator('#api-key-create')).to_be_visible()
         expect(create.get_by_role('alert')).to_be_visible()
         _assert_no_duplicate_primary_action(page)
-        _screenshot(page, 'schnittstellen-fehler', 1366, 768)
+        _screenshot(page, tmp_path,'schnittstellen-fehler', 1366, 768)
 
         _goto(page, '/admin/import-preview')
         expect(page.get_by_role('heading', name='Daten importieren', exact=True)).to_be_visible()
@@ -133,7 +134,7 @@ def test_tool_pages_put_primary_content_before_administration(site) -> None:  # 
             & Node.DOCUMENT_POSITION_FOLLOWING
         )''')
         _assert_no_duplicate_primary_action(page)
-        _screenshot(page, 'import-bereit', 1366, 768)
+        _screenshot(page, tmp_path,'import-bereit', 1366, 768)
 
         target = (WEEK + dt.timedelta(days=7)).isoformat()
         _goto(page, f'/admin/cafeteria/copy?week={target}')
@@ -188,7 +189,7 @@ def _api_density_client(site, monkeypatch):
     return client
 
 
-def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
+def test_api_density_viewports_and_publication_truth(site, monkeypatch, tmp_path) -> None:
     client = _api_density_client(site, monkeypatch)
     measurements = []
     for javascript in (True, False):
@@ -248,17 +249,17 @@ def test_api_density_viewports_and_publication_truth(site, monkeypatch) -> None:
                         .filter(node => node.right > innerWidth + 1).slice(0, 12)
                 })''')
                 measurements.append({'width': width, 'javascript': javascript, **geometry})
-                (API_EVIDENCE / 'geometry.json').write_text(json.dumps(measurements, indent=2))
-                page.screenshot(path=str(API_EVIDENCE / f'keys-{width}-js-{javascript}.png'),
+                (tmp_path /'geometry.json').write_text(json.dumps(measurements, indent=2))
+                page.screenshot(path=str(tmp_path /f'keys-{width}-js-{javascript}.png'),
                                 full_page=True, mask=[prefix_mask])
                 assert geometry['documentOverflow'] <= 1, (width, javascript, geometry)
             finally:
                 page.context.close()
-    (API_EVIDENCE / 'geometry.json').write_text(json.dumps(measurements, indent=2))
+    (tmp_path /'geometry.json').write_text(json.dumps(measurements, indent=2))
 
 
 @pytest.mark.parametrize('javascript,width', ((True, 1440), (False, 1440), (True, 390), (False, 390)))
-def test_api_density_native_lifecycle_and_error_retention(site, javascript, width) -> None:
+def test_api_density_native_lifecycle_and_error_retention(site, javascript, width, tmp_path) -> None:
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     page = _page(site, client, viewport={'width': width, 'height': 900}, java_script_enabled=javascript)
@@ -266,7 +267,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
         _goto(page, '/admin/api')
         expect(page.get_by_text('Noch keine API-Schlüssel vorhanden.', exact=True)).to_be_visible()
         expect(page.locator('table[data-api-keys]')).to_have_count(0)
-        _screenshot(page, f'empty-api-js-{javascript}', width, 900)
+        _screenshot(page, tmp_path,f'empty-api-js-{javascript}', width, 900)
         expect(page.locator('#api-create > summary')).to_have_count(0)
         form = page.locator('#api-key-create')
         expect(form).to_be_visible()
@@ -308,7 +309,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
             }''')
             assert alert_geometry['documentOverflow'] <= 1, alert_geometry
             assert alert_geometry['hintTop'] >= alert_geometry['keyBottom'], alert_geometry
-        page.screenshot(path=str(API_EVIDENCE / f'created-{width}-js-{javascript}.png'), full_page=True,
+        page.screenshot(path=str(tmp_path /f'created-{width}-js-{javascript}.png'), full_page=True,
                         mask=[page.locator('[data-new-key] code'), _api_prefix_mask_locators(page)])
         _goto(page, '/admin/api')
         expect(page.locator('[data-new-key]')).to_have_count(0)
@@ -352,7 +353,7 @@ def test_api_density_native_lifecycle_and_error_retention(site, javascript, widt
                 tooltips: [...document.querySelectorAll('[role="tooltip"]')].map(tip => ({
                     box: tip.getBoundingClientRect().toJSON(), text: tip.textContent}))};
         }''')
-        (API_EVIDENCE / f'revoke-reopen-{width}-js-{javascript}.json').write_text(json.dumps(geometry, indent=2))
+        (tmp_path /f'revoke-reopen-{width}-js-{javascript}.json').write_text(json.dumps(geometry, indent=2))
         if javascript:
             page.once('dialog', lambda dialog: dialog.dismiss())
             confirm.click()
@@ -408,7 +409,7 @@ def test_tool_forms_keep_native_targets_and_payloads_without_javascript(site) ->
     assert observed[True] == observed[False]
 
 
-def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  # noqa: F811
+def test_tool_pages_fit_required_viewports_and_capture_evidence(site, tmp_path) -> None:  # noqa: F811
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     target = (WEEK + dt.timedelta(days=7)).isoformat()
@@ -430,7 +431,7 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
                 if width in {1366, 1440, 1920}:
                     box = page.locator(primary).first.bounding_box()
                     assert box is not None and box['y'] + box['height'] <= height, (name, box)
-                _screenshot(page, name, width, height)
+                _screenshot(page, tmp_path,name, width, height)
         finally:
             page.context.close()
 
@@ -445,7 +446,7 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
             page.wait_for_load_state('networkidle')
             expect(page.locator('#api-key-create').get_by_role('alert')).to_be_visible()
             _assert_full_width(page, width)
-            _screenshot(page, 'schnittstellen-fehler', width, height)
+            _screenshot(page, tmp_path,'schnittstellen-fehler', width, height)
 
             _goto(page, '/admin/import-preview')
             page.locator('input[type="file"]').set_input_files({
@@ -457,7 +458,7 @@ def test_tool_pages_fit_required_viewports_and_capture_evidence(site) -> None:  
             page.wait_for_load_state('networkidle')
             expect(page.locator('.error-region')).to_be_visible()
             _assert_full_width(page, width)
-            _screenshot(page, 'import-fehler', width, height)
+            _screenshot(page, tmp_path,'import-fehler', width, height)
         finally:
             page.context.close()
 
@@ -487,7 +488,7 @@ def _assert_rendered_icons(page: Page) -> None:
     assert missing == []
 
 
-def test_owned_import_copy_review_fit_density_viewports(site) -> None:  # noqa: F811
+def test_owned_import_copy_review_fit_density_viewports(site, tmp_path) -> None:  # noqa: F811
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     target = (WEEK + dt.timedelta(days=7)).isoformat()
@@ -506,12 +507,12 @@ def test_owned_import_copy_review_fit_density_viewports(site) -> None:  # noqa: 
                 _assert_full_width(page, width)
                 expect(page.locator(primary).first).to_be_visible()
                 _assert_rendered_icons(page)
-                _screenshot(page, f'density-{name}', width, height)
+                _screenshot(page, tmp_path,f'density-{name}', width, height)
         finally:
             page.context.close()
 
 
-def test_import_checked_result_is_not_relabeled_after_new_selection(site) -> None:  # noqa: F811
+def test_import_checked_result_is_not_relabeled_after_new_selection(site, tmp_path) -> None:  # noqa: F811
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     page = _page(site, client, viewport={'width': 1440, 'height': 900})
@@ -549,12 +550,12 @@ def test_import_checked_result_is_not_relabeled_after_new_selection(site) -> Non
         assert page.locator('input[name="import_token"]').input_value()
         expect(page.get_by_role('heading', name='Andere Datei prüfen', exact=True)).to_be_visible()
         _assert_rendered_icons(page)
-        _screenshot(page, 'import-stale-selection', 1440, 900)
+        _screenshot(page, tmp_path,'import-stale-selection', 1440, 900)
     finally:
         page.context.close()
 
 
-def test_import_copy_review_disclosures_keep_payloads_and_keyboard(site) -> None:  # noqa: F811
+def test_import_copy_review_disclosures_keep_payloads_and_keyboard(site, tmp_path) -> None:  # noqa: F811
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     target = (WEEK + dt.timedelta(days=7)).isoformat()
@@ -590,16 +591,15 @@ def test_import_copy_review_disclosures_keep_payloads_and_keyboard(site) -> None
             assert review_fields['week'] == WEEK.isoformat()
             expect(page.locator('.admin-list-row h3').first).to_be_visible()  # shared list row (P4)
             _assert_full_width(page, 390)
-            _screenshot(page, f'disclosure-nojs-{javascript}', 390, 844)
+            _screenshot(page, tmp_path,f'disclosure-nojs-{javascript}', 390, 844)
         finally:
             page.context.close()
 
 
-def test_import_copy_review_native_cdp_zoom_is_not_css_zoom(site) -> None:  # noqa: F811
+def test_import_copy_review_native_cdp_zoom_is_not_css_zoom(site, tmp_path) -> None:  # noqa: F811
     app, origin, engine, playwright_browser = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     target = (WEEK + dt.timedelta(days=7)).isoformat()
-    API_EVIDENCE.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(prefix='density-imports-zoom-') as profile:
         with playwright_browser.browser_type.launch_persistent_context(
             profile, channel='chromium', headless=True, no_viewport=True,
@@ -623,22 +623,21 @@ def test_import_copy_review_native_cdp_zoom_is_not_css_zoom(site) -> None:  # no
                 page.evaluate('document.fonts.ready')
                 assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
                 assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
-                capture = _native_viewport_capture(page, API_EVIDENCE / f'native-200-{name}.png')
+                capture = _native_viewport_capture(page, tmp_path /f'native-200-{name}.png')
                 zoom = capture['layout']['cssVisualViewport']['zoom']
                 assert zoom == 2, capture['layout']
                 _assert_rendered_icons(page)
                 assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
                 proof[name] = {'zoom': zoom, 'png': capture['png']}
-            (API_EVIDENCE / 'native-200.cdp.json').write_text(json.dumps(proof, indent=2))
+            (tmp_path /'native-200.cdp.json').write_text(json.dumps(proof, indent=2))
 
 
 @pytest.mark.parametrize('width,height', ((320, 844), (2560, 1440)))
 @pytest.mark.parametrize('javascript', (False, True))
-def test_import_density_missing_viewports(site, width, height, javascript) -> None:  # noqa: F811
+def test_import_density_missing_viewports(site, width, height, javascript, tmp_path) -> None:  # noqa: F811
     app, _, engine, _ = site
     client, _ = _login(app, engine, ['Cafeteria.Admin'])
     target = (WEEK + dt.timedelta(days=7)).isoformat()
-    API_EVIDENCE.mkdir(parents=True, exist_ok=True)
     page = _page(site, client, viewport={'width': width, 'height': height},
                  java_script_enabled=javascript)
     try:
@@ -649,7 +648,7 @@ def test_import_density_missing_viewports(site, width, height, javascript) -> No
             ('csv-empty', '/admin/import-preview', 'Vorschau prüfen'),
         ):
             _goto(page, path)
-            page.screenshot(path=str(API_EVIDENCE / f'{name}-{width}-js-{javascript}.png'), full_page=True)
+            page.screenshot(path=str(tmp_path /f'{name}-{width}-js-{javascript}.png'), full_page=True)
             _assert_full_width(page, width)
             _assert_rendered_icons(page)
             button = page.get_by_role('button', name=action, exact=True)
@@ -676,7 +675,7 @@ def test_import_density_missing_viewports(site, width, height, javascript) -> No
         expect(page.get_by_role('heading', name='Bereit zum Import', exact=True)).to_be_visible()
         expect(page.get_by_role('button', name='Geprüfte Datei importieren')).to_be_visible()
         assert page.locator('input[name="import_token"]').input_value()
-        page.screenshot(path=str(API_EVIDENCE / f'csv-ready-{width}-js-{javascript}.png'), full_page=True)
+        page.screenshot(path=str(tmp_path /f'csv-ready-{width}-js-{javascript}.png'), full_page=True)
         _assert_full_width(page, width)
         _assert_rendered_icons(page)
         page.locator('#file').set_input_files({
@@ -686,7 +685,7 @@ def test_import_density_missing_viewports(site, width, height, javascript) -> No
         page.get_by_role('button', name='Vorschau prüfen', exact=True).click()
         expect(page.locator('#file-error')).to_be_visible()
         expect(page.locator('#file')).to_have_attribute('aria-invalid', 'true')
-        page.screenshot(path=str(API_EVIDENCE / f'csv-error-{width}-js-{javascript}.png'), full_page=True)
+        page.screenshot(path=str(tmp_path /f'csv-error-{width}-js-{javascript}.png'), full_page=True)
         _assert_full_width(page, width)
         _assert_rendered_icons(page)
     finally:
