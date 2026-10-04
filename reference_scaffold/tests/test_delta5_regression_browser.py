@@ -8,7 +8,7 @@ from flask import render_template_string
 from playwright.sync_api import expect
 from werkzeug.serving import make_server
 
-from delta5_audit import PROBE, DocumentedFinding, admin_routes, write_json
+from delta5_audit import PROBE, admin_routes, write_json
 from test_admin_workflow_routes import _login, database_engine  # noqa: F401
 from test_delta_renderer_browser import PAGE, delta_site, source_revision  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
@@ -48,9 +48,6 @@ def test_admin_routes_exclusive_rendering(regression_site, browser, tmp_path, wi
         context.add_cookies([{'name': cookie.key, 'value': cookie.value, 'url': base}])
         page = context.new_page()
         for route in admin_routes(application, prepared):
-            if route['waiting']:
-                rows.append({**route, 'result': 'wartet auf L2'})
-                continue
             if not route['paths']:
                 rows.append({**route, 'result': 'nicht geprüft', 'reason': 'Fixture-Pfad fehlt'})
             for path in route['paths']:
@@ -109,16 +106,8 @@ def test_admin_routes_exclusive_rendering(regression_site, browser, tmp_path, wi
         pytest.fail(f'Unverified routes: {unchecked}')
     findings = [(r['path'], f['kind'], f['selector'], f.get('text'))
                 for r in rows for f in r.get('findings', [])]
-    known = {
-        ('mixed', '#sidebar-menu > div:nth-child(3) > form:nth-child(3) > button:nth-child(2)', 'Abmelden'),
-        ('mixed', 'body:nth-child(2) > div:nth-child(3) > aside:nth-child(1) > div:nth-child(1)'
-         ' > button:nth-child(1)', 'Menü'),
-    }
-    unexpected = [f for f in findings if f[1:] not in known]
-    if unexpected:
-        pytest.fail(f'Undocumented product findings: {unexpected}')
     if findings:
-        raise DocumentedFinding(findings)
+        pytest.fail(f'Product findings: {findings}')
 
 
 @pytest.mark.parametrize('markup,kinds', [

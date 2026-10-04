@@ -189,9 +189,6 @@ def admin_routes(application, prepared):
         if endpoint == 'admin.master_data_list':
             paths.update('/admin/grundlagen?kind=' + kind
                          for kind in ('foods', 'units', 'categories', 'tags', 'storage_locations'))
-        # Recipe/print migration belongs to DELTA-3 L2, not this source revision.
-        waiting = endpoint.startswith(('admin.recipe_', 'admin.recipes_', 'admin.print_template_'))
-        waiting |= endpoint == 'admin.recipe_print_template_editor'
         result.append(dict(endpoint=endpoint, templates=row['templates'], paths=sorted(paths),
-                           waiting=waiting, classification=row['classification']))
+                           classification=row['classification']))
     return result

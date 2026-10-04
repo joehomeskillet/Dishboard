@@ -61,10 +61,7 @@ def _cases(app, prepared):
                 path += '?year=2026&month=9'
             route = re.sub(r'<(?:[^<>:]+:)?([^<>]+)>', lambda m: (
                 family if m[1] == 'family' else '<' + m[1] + '>'), rule.rule)
-            cases.append({'endpoint': row['endpoint'], 'route': route, 'path': path,
-                          'waits_for_l2': route.startswith('/admin/rezepte')
-                          or row['endpoint'] in {'admin.print_template_editor',
-                                                 'admin.recipe_print_template_editor'}})
+            cases.append({'endpoint': row['endpoint'], 'route': route, 'path': path})
     return cases
 
 
@@ -146,12 +143,11 @@ def _scan_page(page, case, width, findings, coverage):
     page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
     rows = page.evaluate(PROBE.read_text(encoding='utf-8'))
     for row in rows:
-        findings.append({'route': case['route'], 'viewport': width,
-                         'waits_for_l2': case.get('waits_for_l2', False), **row})
+        findings.append({'route': case['route'], 'viewport': width, **row})
     coverage.append({'route': case['route'], 'viewport': width, 'status': response.status,
                      'landing': urlsplit(page.url).path,
                      'endpoint': case.get('endpoint', 'special'), 'measurement': 'rendered_dom',
-                     'waits_for_l2': case.get('waits_for_l2', False), 'findings': len(rows)})
+                     'findings': len(rows)})
 
 
 def test_delta5_detector_rendered_counterexamples(browser):  # noqa: F811
