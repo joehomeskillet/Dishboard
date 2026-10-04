@@ -14,7 +14,6 @@ from test_recipe_revision_routes import a3, app_engine, b3, installed_pg16, pg16
 from test_rendered_ui import browser  # noqa: F401
 
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/ui-korrektur-0912/recipes'
 VIEWPORTS = (
     ('desktop-1366', 1366, 768),
     ('desktop-1920', 1920, 1080),
@@ -61,10 +60,10 @@ def _check_layout(page: Page, width: int) -> None:
                 assert box is not None and box['height'] >= action_size and box['width'] >= 24, box
 
 
-def _capture(page: Page, state: str, width: int, height: int, javascript: bool) -> None:
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
+def _capture(page: Page, evidence: Path, state: str, width: int, height: int, javascript: bool) -> None:
+    evidence.mkdir(parents=True, exist_ok=True)
     suffix = 'js' if javascript else 'nojs'
-    page.screenshot(path=str(EVIDENCE / f'{state}-{width}x{height}-{suffix}.png'), full_page=True)
+    page.screenshot(path=str(evidence / f'{state}-{width}x{height}-{suffix}.png'), full_page=True)
 
 
 @pytest.mark.parametrize('javascript', [False, True])
@@ -72,6 +71,7 @@ def test_recipe_pages_follow_correction_contract(
     navigation,  # noqa: F811
     recipe_server,  # noqa: F811
     browser,  # noqa: F811
+    tmp_path: Path,
     javascript: bool,
 ) -> None:
     recipe_id, _, revision_id = navigation
@@ -109,13 +109,13 @@ def test_recipe_pages_follow_correction_contract(
             expect(row.locator('[data-semantic="actions.open"]')).to_be_visible()
             expect(row.locator('[data-semantic="actions.history"]')).to_be_visible()
             _check_layout(page, width)
-            _capture(page, 'liste-regulaer', width, height, javascript)
+            _capture(page, tmp_path, 'liste-regulaer', width, height, javascript)
 
             _open(page, base, '/admin/rezepte?q=zzzz-ui-korrektur-empty')
             expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_have_text('Keine passenden Rezepte')
             expect(page.locator('[data-empty-kind="no_match"] .empty-title')).to_be_visible()
             _check_layout(page, width)
-            _capture(page, 'liste-leer', width, height, javascript)
+            _capture(page, tmp_path, 'liste-leer', width, height, javascript)
 
             editor_path = f'/admin/rezepte/{recipe_id}'
             _open(page, base, editor_path)
@@ -149,7 +149,7 @@ def test_recipe_pages_follow_correction_contract(
                 link.focus()
                 expect(link).to_be_focused()
             _check_layout(page, width)
-            _capture(page, 'editor-regulaer', width, height, javascript)
+            _capture(page, tmp_path, 'editor-regulaer', width, height, javascript)
 
             images_path = f'{editor_path}/bilder'
             _open(page, base, images_path)
@@ -170,7 +170,7 @@ def test_recipe_pages_follow_correction_contract(
             expect(provenance.get_by_text('SHA-256', exact=True)).to_be_visible()
             expect(provenance.locator('code')).to_have_text(re.compile(r'[0-9a-f]{64}'))
             _check_layout(page, width)
-            _capture(page, 'bilder-regulaer', width, height, javascript)
+            _capture(page, tmp_path, 'bilder-regulaer', width, height, javascript)
 
             revisions_path = f'{editor_path}/revisionen'
             _open(page, base, revisions_path)
@@ -183,7 +183,7 @@ def test_recipe_pages_follow_correction_contract(
             }
             expect(page.get_by_role('link', name='Gespeicherten Stand 1 ansehen', exact=True)).to_be_visible()
             _check_layout(page, width)
-            _capture(page, 'staende-regulaer', width, height, javascript)
+            _capture(page, tmp_path, 'staende-regulaer', width, height, javascript)
 
             revision_path = f'{revisions_path}/{revision_id}'
             _open(page, base, revision_path)
@@ -193,7 +193,7 @@ def test_recipe_pages_follow_correction_contract(
             expect(page.locator('.recipe-reading-actions details, .recipe-reading-actions summary')).to_have_count(0)
             expect(page.get_by_text('Vollständige Daten', exact=True)).to_be_visible()
             _check_layout(page, width)
-            _capture(page, 'stand-regulaer', width, height, javascript)
+            _capture(page, tmp_path, 'stand-regulaer', width, height, javascript)
 
             scale_path = f'{editor_path}/skalierung'
             _open(page, base, scale_path)
@@ -201,7 +201,7 @@ def test_recipe_pages_follow_correction_contract(
             assert amount.get_attribute('method') == 'get'
             expect(page.locator('main summary').filter(has_text='Symbole')).to_have_count(0)
             _check_layout(page, width)
-            _capture(page, 'mengen-regulaer', width, height, javascript)
+            _capture(page, tmp_path, 'mengen-regulaer', width, height, javascript)
 
             _open(page, base, '/admin/rezepte/neu')
             page.locator('#recipe-editor').evaluate('form => { form.noValidate = true; }')
@@ -215,6 +215,6 @@ def test_recipe_pages_follow_correction_contract(
             expect(page.locator('.page-header-subtitle')).to_have_text('Rezeptaktion nicht möglich')
             expect(page.locator('#recipe-error')).to_be_visible()
             _check_layout(page, width)
-            _capture(page, 'konflikt', width, height, javascript)
+            _capture(page, tmp_path, 'konflikt', width, height, javascript)
 
         assert errors == []

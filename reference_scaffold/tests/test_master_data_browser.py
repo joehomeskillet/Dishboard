@@ -20,9 +20,6 @@ from test_master_data_routes import (  # noqa: F401
 from test_rendered_ui import browser  # noqa: F401
 
 
-EVIDENCE = Path(__file__).resolve().parents[2] / '.claude/evidence/ui-korrektur-0912/grundlagen'
-
-
 @pytest.fixture
 def master_server(b3):  # noqa: F811
     app, _, client, _ = b3
@@ -134,7 +131,7 @@ def test_native_food_save_conflict_archive_and_framework(b3, master_server, brow
         assert page.locator('.card').first.evaluate('el => getComputedStyle(el).display') == 'flex'
         expected_conflict = 'Failed to load resource: the server responded with a status of 409 (CONFLICT)'
         assert all(error == expected_conflict for error in errors) and len(errors) <= 1
-        evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(EVIDENCE)))
+        evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', tmp_path))
         evidence.mkdir(parents=True, exist_ok=True)
         evidence.chmod(0o700)
         page.get_by_role('heading', level=1).click()
@@ -283,7 +280,7 @@ def test_location_conflict_native_recovery(b3, master_server, browser, width, ja
         assert page.locator('main button[type="submit"]').count() == 0
         expect(page.get_by_role('link', name='Neu laden', exact=True)).to_have_attribute('href', path)
         targets(page)
-        evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', str(EVIDENCE)))
+        evidence = Path(os.environ.get('MASTER_DATA_EVIDENCE_DIR', tmp_path))
         evidence.mkdir(parents=True, exist_ok=True)
         evidence.chmod(0o700)
         screenshot = evidence / f'location-conflict-{width}-js-{javascript}-existing-{existing}.png'

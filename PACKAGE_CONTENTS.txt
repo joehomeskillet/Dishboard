@@ -1315,7 +1315,6 @@ reference_scaffold/tests/fixtures/golden_staff_guest.pdf
 reference_scaffold/tests/fixtures/weekly_print_notes.json
 reference_scaffold/tests/list_family_baseline.json
 reference_scaffold/tests/local_user_test_support.py
-reference_scaffold/tests/manual_delta3_before.py
 reference_scaffold/tests/prepared_food_fixtures.py
 reference_scaffold/tests/review_support.py
 reference_scaffold/tests/test_access_event_routes.py

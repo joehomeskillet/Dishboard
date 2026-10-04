@@ -7,6 +7,3 @@
 # Zeilen mit # sind Kommentare. Vor jeder ID eine Kommentarzeile: Datum, Grund, belegender Commit
 # (git log -S '<assertierter Text>'). Meldet das Gate «BEKANNT ROT, JETZT GRÜN», die Zeile löschen.
 # Gesperrte Abnahmetests (*_accept.py) stehen nie hier: Wenn sie rot sind, ist das Produkt falsch.
-
-# 2026-09-26 rot auf Produktion R13 2526935 (Baseline-Lauf): Rezept-Freeze v2 200-%-Zoom. V3-4: seither nur ein grüner Lauf (r18b-0927 d-8) - bleibt bis zur zweiten Bestätigung.
-tests/test_recipe_freeze_v2_browser.py::test_both_routes_reflow_at_native_chromium_200_percent_zoom

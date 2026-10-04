@@ -18,17 +18,15 @@ from test_recipe_search_db import (  # noqa: F401
 )
 from test_rendered_ui import browser  # noqa: F401
 
-EVIDENCE = Path(os.environ.get('UI_EVIDENCE_DIR', Path(__file__).resolve().parents[2] / '.claude/evidence/fts-ui-0915'))
-
 
 @pytest.mark.parametrize('width,height', [(1440, 900), (390, 844)])
 def test_native_text_search_is_keyboard_operable_ranked_and_no_overflow(
-        b3, search_lab, master_server, browser, width, height):  # noqa: F811
+        b3, search_lab, master_server, browser, width, height, tmp_path):  # noqa: F811
     lab = search_lab
     title_hit = lab['recipe']('Zauberwort Auflauf')
     lab['recipe']('Andere Suppe', steps=[step('Sauce langsam passieren')])
     base, cookie = master_server
-    evidence = EVIDENCE
+    evidence = Path(os.environ.get('UI_EVIDENCE_DIR', tmp_path))
     evidence.mkdir(parents=True, exist_ok=True)
     with browser.new_context(viewport={'width': width, 'height': height}, java_script_enabled=False,
                              reduced_motion='reduce', service_workers='block') as context:

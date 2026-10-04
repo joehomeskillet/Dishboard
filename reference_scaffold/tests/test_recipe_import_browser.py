@@ -20,9 +20,7 @@ from test_recipe_import_routes import create
 from test_rendered_ui import browser  # noqa: F401
 from test_ui_korrektur_cookbooks_browser import _native_viewport_capture
 
-EVIDENCE = Path(os.environ.get('UI_EVIDENCE_DIR', Path(__file__).resolve().parents[2] / '.claude/evidence/density-imports-0913/after'))
-
-ROUTE_VIEWPORTS = ((360, 844), (1440, 900))
+ROUTE_VIEWPORTS =((360, 844), (1440, 900))
 COMMIT_VIEWPORTS = (*ROUTE_VIEWPORTS, (720, 450))
 SHARED_VIEWPORTS = ((1024, 768), (768, 1024), (1920, 1080))
 
@@ -333,16 +331,18 @@ def test_static_row_fields_stay_in_formdata_and_keep_file_identity(
         })
         expect(identity).to_contain_text('rezepte.json')
         expect(identity).not_to_contain_text('andere-rezepte.json')
-        EVIDENCE.mkdir(parents=True, exist_ok=True)
-        page.screenshot(path=str(EVIDENCE / 'rezepte-import-identity-1440.png'), full_page=True)
+        evidence = Path(os.environ.get('UI_EVIDENCE_DIR', tmp_path))
+        evidence.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(evidence / 'rezepte-import-identity-1440.png'), full_page=True)
         assert page.locator('main style').count() == 0
 
 
-def test_recipe_import_native_cdp_zoom(b3, master_server, browser) -> None:  # noqa: F811
+def test_recipe_import_native_cdp_zoom(b3, master_server, browser, tmp_path) -> None:  # noqa: F811
     _, _, client, _ = b3
     create(client)
     base, cookie = master_server
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    evidence = Path(os.environ.get('UI_EVIDENCE_DIR', tmp_path))
+    evidence.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(prefix='recipe-import-zoom-') as profile:
         with browser.browser_type.launch_persistent_context(
             profile, channel='chromium', headless=True, no_viewport=True, base_url=base,
@@ -358,7 +358,7 @@ def test_recipe_import_native_cdp_zoom(b3, master_server, browser) -> None:  # n
             page.evaluate('document.fonts && document.fonts.ready')
             assert page.evaluate('[innerWidth, outerWidth, devicePixelRatio]') == [720, 1440, 2]
             assert page.evaluate('getComputedStyle(document.documentElement).zoom') == '1'
-            capture = _native_viewport_capture(page, EVIDENCE / 'native-200-rezepte-import.png')
+            capture = _native_viewport_capture(page, evidence / 'native-200-rezepte-import.png')
             assert capture['layout']['cssVisualViewport']['zoom'] == 2
             expect(page.get_by_role('heading', level=1)).to_have_text('Rezepte')
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth + 1')
