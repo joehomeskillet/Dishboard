@@ -317,10 +317,11 @@ def test_mobile_focus_escape_and_viewports(site, database_engine, tmp_path):  # 
                 for link in page.locator('.admin-nav-area > .nav-link').all():
                     assert link.bounding_box()['height'] >= minimum
                     assert float(link.evaluate('el => getComputedStyle(el).fontSize').removesuffix('px')) >= 15
-                    # Wrapped full text -> single-line ellipsis plus complete title (24 September).
+                    # Sidebar brief 4 October: full text wraps, keeping the complete title.
                     title = link.locator('.nav-link-title')
-                    assert title.evaluate('el => getComputedStyle(el).whiteSpace') == 'nowrap'
-                    assert title.evaluate('el => getComputedStyle(el).textOverflow') == 'ellipsis'
+                    assert title.evaluate('el => getComputedStyle(el).whiteSpace') == 'normal'
+                    assert title.evaluate('el => getComputedStyle(el).textOverflow') != 'ellipsis'
+                    assert title.evaluate('el => el.scrollWidth <= el.clientWidth')
                     assert link.get_attribute('title') == title.inner_text()
                 for link in page.locator('.admin-nav-subitems .nav-link').all():
                     assert link.bounding_box()['height'] >= minimum

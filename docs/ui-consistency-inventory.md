@@ -1,5 +1,17 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## SIDEBAR-BRAND — Navigation und Marke, 2026-10-04
+
+| Route / Umfang | Rolle / Zustand / Muster | Nachweis |
+|---|---|---|
+| `/admin/cafeteria`; gemeinsame `_workflow_sidebar.html` | Admin/Editor, DE/EN; 1440 × 900, 1280 × 800, 390 × 844 geschlossen/offen, 128-px-Leiste. Kompakter Markenrahmen, natürliche Logo-Proportion, lesbare eingeklappte Wortmarke, mobile Produktzeile über separat scrollbarer Navigation in JS/No-JS, vollständige Labels mit Umbruch; R01/R05/R09, M01, A16/A17/A20/A23/A24. | `test_sidebar_brand_browser.py`: eigene Vorher-/Nachher-PNGs und JSON-Messungen im absoluten Brief-Verzeichnis `audit/SIDEBAR/{before,after}/`. Weitere Geometrie bei 1024/768/1920 px, feiner/grober Zeiger, No-JS, Rollen-Flyouts und Laden von Font/Logo. Sichtbarkeit beim Scrollen und Logo-Mindesthöhe 18 px; Bildausfall in `test_bf_asset_failure_browser.py`. |
+| Alle vorhandenen Sidebar-, Branding- und Shell-Verbraucher | Native Navigation, Rollenprädikate, POST/CSRF-Abmeldung, Fokus und Offcanvas bleiben erhalten. Symbol-/Text-Exklusivität B-02/B-05; N-01…N-04. | `test_admin_nav_browser.py`, `test_ui_master_shell_browser.py`, `test_branding_header_browser.py` und Pflicht-/Consumer-Gates des Briefs; Ergebnisse im [SIDEBAR-BRAND-Report](/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/claude-session-2026-09-29/reports/SIDEBAR-BRAND-report.md). |
+
+Die Desktopbreite bleibt 248 px. Locale `en` wird geprüft; die bestehende
+Sidebar enthält weiterhin dieselben deutschen Navigationslabels. Öffentliche
+Logo-Ausgabe, Druck und Signage werden nicht verändert. Dieser Eintrag stellt
+keinen Integration-, Deploy- oder Benutzerabnahmebeleg dar.
+
 ## DELTA-6 — gemeinsame Shell, 2026-10-02
 
 | Route / Umfang | Rolle / Zustand / Muster | Nachweis |

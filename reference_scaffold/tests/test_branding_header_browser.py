@@ -34,7 +34,12 @@ def _assert_logo_box(page: Page, selector: str, height: int, size: tuple[int, in
                 && box.top >= parent.top && box.bottom <= parent.bottom + 1,
             visible: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight};
     }''')
-    assert metrics['height'] == height, metrics
+    if selector == '.admin-logo':
+        assert 0 < metrics['height'] <= height, metrics
+        assert abs(metrics['width'] / metrics['height'] /
+                   (metrics['naturalWidth'] / metrics['naturalHeight']) - 1) <= .01, metrics
+    else:
+        assert metrics['height'] == height, metrics
     assert metrics['width'] > 0 and metrics['naturalWidth'] > 0 and metrics['naturalHeight'] > 0
     assert metrics['fit'] == 'contain' and metrics['contained'] and metrics['visible'], metrics
     if size is not None:

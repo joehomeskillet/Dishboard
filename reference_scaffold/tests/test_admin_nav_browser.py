@@ -149,8 +149,8 @@ def test_icon_rail_keyboard_flyouts_persistence_and_resize(nav_site):
     toggle.click()
     expect(toggle).to_have_attribute('aria-expanded', 'false')
     expect(toggle).to_have_attribute('aria-label', 'Navigation ausklappen')
-    assert page.locator('.admin-sidebar').bounding_box()['width'] == 72
-    assert page.locator('main').bounding_box()['x'] == 72
+    assert page.locator('.admin-sidebar').bounding_box()['width'] == 128
+    assert page.locator('main').bounding_box()['x'] == 128
     parents = page.locator('#sidebar-menu .admin-nav-area > .nav-link')
     assert _style(parents.first, 'background-color') == 'rgb(49, 88, 91)'
     expect(page.locator('#sidebar-menu .admin-nav-subitems')).to_be_hidden()
@@ -171,18 +171,18 @@ def test_icon_rail_keyboard_flyouts_persistence_and_resize(nav_site):
             assert _style(parent, 'background-color') == 'rgba(0, 0, 0, 0)'
             expect(flyout.locator('[aria-current="page"]')).to_have_count(1)
             page.screenshot(path=str(SHOTS / 'after-flyout.png'))
-        assert flyout.bounding_box()['x'] == 72
+        assert flyout.bounding_box()['x'] == 128
         assert flyout.bounding_box()['height'] <= 804
         page.keyboard.press('Escape')
         expect(flyout).to_be_hidden()
         expect(parent).to_be_focused()
         expect(parent).to_have_attribute('aria-expanded', 'false')
     page.reload(wait_until='networkidle')
-    assert page.locator('.admin-sidebar').bounding_box()['width'] == 72
+    assert page.locator('.admin-sidebar').bounding_box()['width'] == 128
     parents.nth(1).click()
     page.locator('#admin-nav-flyout').get_by_role('link', name='Zutaten', exact=True).click()
     page.wait_for_url('**/admin/grundlagen')
-    assert page.locator('.admin-sidebar').bounding_box()['width'] == 72
+    assert page.locator('.admin-sidebar').bounding_box()['width'] == 128
     page.set_viewport_size({'width': 390, 'height': 844})
     expect(toggle).to_be_hidden()
     page.get_by_role('button', name='Menü', exact=True).click()
@@ -220,9 +220,10 @@ def test_long_label_and_reduced_role(nav_site):
     long_name = 'Sehr lange Navigationsbezeichnung ohne Zeilenumbruch'
     parent.evaluate('(el, text) => { el.title = text; el.querySelector(".nav-link-title").textContent = text; }', long_name)
     label = parent.locator('.nav-link-title')
-    assert _style(label, 'white-space') == 'nowrap'
-    assert _style(label, 'text-overflow') == 'ellipsis'
-    assert label.evaluate('el => el.scrollWidth > el.clientWidth')
+    assert _style(label, 'white-space') == 'normal'
+    assert _style(label, 'text-overflow') != 'ellipsis'
+    assert label.evaluate('el => el.scrollWidth <= el.clientWidth')
+    assert label.bounding_box()['height'] > float(_style(label, 'line-height')[:-2])
     assert parent.get_attribute('title') == long_name
     page.locator('[data-admin-nav-toggle]').click()
     parent.click()
@@ -236,5 +237,5 @@ def test_storage_denied_still_allows_navigation(nav_site):
     page.add_init_script('Object.defineProperty(window, "localStorage", {get() {throw new Error("disabled");}})')
     _goto(page)
     page.locator('[data-admin-nav-toggle]').click()
-    assert page.locator('.admin-sidebar').bounding_box()['width'] == 72
+    assert page.locator('.admin-sidebar').bounding_box()['width'] == 128
     page.context.close()
