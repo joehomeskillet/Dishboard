@@ -35,6 +35,8 @@
 }
 .dishboard-admin .admin-filter-bar > div { max-width: 100%; }
 .dishboard-admin .admin-users-history td { overflow-wrap: anywhere; }
+.dishboard-admin .admin-access-history-note > .ui-sem-label { flex-shrink: 0; }
+.dishboard-admin .admin-access-history-note > span:last-child { min-width: 0; }
 .dishboard-admin .admin-statusbar-item {
   padding: var(--app-space-2) var(--app-space-3);
 }

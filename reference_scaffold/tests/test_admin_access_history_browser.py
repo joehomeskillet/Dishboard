@@ -61,6 +61,15 @@ def test_native_history_filters_pagination_keyboard_and_outage(
             expect(text_role).to_have_css('font-size', size)
             expect(text_role).to_have_css('font-weight', weight)
             expect(text_role).to_have_css('font-style', 'normal')
+        history_note = page.locator('.admin-users-history .card-footer > p').first
+        history_note_label = history_note.locator(':scope > .ui-sem-label')
+        history_note_text = history_note.locator(':scope > .ui-sem-label + span')
+        expect(history_note_text).to_be_visible()
+        label_box = history_note_label.bounding_box()
+        text_box = history_note_text.bounding_box()
+        assert label_box is not None and text_box is not None
+        assert text_box['x'] - label_box['x'] - label_box['width'] >= 4
+        assert label_box['height'] <= 24
         _layout(page)
         page.get_by_label('Zugang', exact=True).focus()
         page.keyboard.press('Tab')

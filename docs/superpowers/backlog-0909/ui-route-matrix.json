@@ -19,7 +19,7 @@
     "discovery": "cafeteria.create_app().url_map plus templates/*.html on disk",
     "route_count": 162,
     "template_count": 103,
-    "html_route_count": 80,
+    "html_route_count": 78,
     "design_manifest_commit": "39625ccc0d8b576fae9edaeb8cf0b5c70b1af912",
     "browser_status": "not_run",
     "usability_status": "not_run"
@@ -2389,7 +2389,7 @@
       ],
       "blueprint": "admin",
       "classification": "html_fragment",
-      "visual": true,
+      "visual": false,
       "templates": [],
       "capability": "draft.read",
       "roles": [
@@ -2406,59 +2406,29 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
-      "states": [
-        "default",
-        "access_denied_401",
-        "access_denied_403",
-        "invalid",
-        "conflict_if_versioned"
-      ],
+      "fixture": "not_visual",
+      "states": [],
       "hooks": [
         "admin.js",
         "tabler.min.js",
         "csrf"
       ],
       "density": {
-        "mockups": [
-          "M01",
-          "M10",
-          "M11",
-          "M15",
-          "M20"
-        ],
-        "rules": [
-          "R01",
-          "R02",
-          "R03",
-          "R04",
-          "R05",
-          "R06",
-          "R07",
-          "R08",
-          "R09",
-          "R10"
-        ],
+        "mockups": [],
+        "rules": [],
         "acceptance": [
-          "A01",
-          "A23"
+          "A01"
         ],
         "owning_mp": "MP-UI-DENSITY-WEEKS",
-        "core_task": "Woche und Tagesangebote samt Mahlzeiten, Warnungen und bereichsgerechten Preisen bearbeiten",
+        "core_task": "Bestehende html_fragment-Antwort; kein eigenständiger UI-Screen",
         "example_url": "/admin/cafeteria/header?week=2026-08-31",
         "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
         "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
-        "state_evidence": {
-          "default": "not_run",
-          "access_denied_401": "not_run",
-          "access_denied_403": "not_run",
-          "invalid": "not_run",
-          "conflict_if_versioned": "not_run"
-        },
+        "state_evidence": {},
         "source_status": "verified_runtime_registration",
-        "browser_status": "not_run",
-        "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Maschinenfragment ohne direkte Nutzernavigation; keine eigenständige visuelle Abnahme."
       }
     },
     {
@@ -5661,7 +5631,7 @@
       ],
       "blueprint": "admin",
       "classification": "html_fragment",
-      "visual": true,
+      "visual": false,
       "templates": [],
       "capability": "draft.read",
       "roles": [
@@ -5678,59 +5648,29 @@
       ],
       "module": "cafeteria.admin.workflow_routes",
       "source_discovered": true,
-      "fixture": "isolated_pg_schema31_seed_plus_synthetic_week",
-      "states": [
-        "default",
-        "access_denied_401",
-        "access_denied_403",
-        "invalid",
-        "conflict_if_versioned"
-      ],
+      "fixture": "not_visual",
+      "states": [],
       "hooks": [
         "admin.js",
         "tabler.min.js",
         "csrf"
       ],
       "density": {
-        "mockups": [
-          "M01",
-          "M10",
-          "M11",
-          "M15",
-          "M20"
-        ],
-        "rules": [
-          "R01",
-          "R02",
-          "R03",
-          "R04",
-          "R05",
-          "R06",
-          "R07",
-          "R08",
-          "R09",
-          "R10"
-        ],
+        "mockups": [],
+        "rules": [],
         "acceptance": [
-          "A01",
-          "A23"
+          "A01"
         ],
         "owning_mp": "MP-UI-DENSITY-WEEKS",
-        "core_task": "Woche und Tagesangebote samt Mahlzeiten, Warnungen und bereichsgerechten Preisen bearbeiten",
+        "core_task": "Bestehende html_fragment-Antwort; kein eigenständiger UI-Screen",
         "example_url": "/admin/cafeteria/service?week=2026-08-31&day=2026-08-31&meal=LUNCH",
         "example_semantics": "Parameter in geschweiften Klammern sind fixture-erzeugte Identitäten, keine existierenden Live-IDs.",
         "fixture_source": "reference_scaffold/tests/test_ui_route_inventory.py::_prepare_inventory_entities",
-        "state_evidence": {
-          "default": "not_run",
-          "access_denied_401": "not_run",
-          "access_denied_403": "not_run",
-          "invalid": "not_run",
-          "conflict_if_versioned": "not_run"
-        },
+        "state_evidence": {},
         "source_status": "verified_runtime_registration",
-        "browser_status": "not_run",
-        "usability_status": "not_run",
-        "notes": "Ist-Dichte und Interaktionen noch nicht visuell geprüft; historische Captures sind keine aktuelle Abnahme."
+        "browser_status": "not_applicable",
+        "usability_status": "not_applicable",
+        "notes": "Maschinenfragment ohne direkte Nutzernavigation; keine eigenständige visuelle Abnahme."
       }
     },
     {
@@ -10694,7 +10634,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "2128658a0a10fa0dfb72e5c70ed1603a31ed1439b6853cb235890bab8a5d1efe",
+      "sha256": "5401b8b02b887d3259fdc04c012155b4bb979eb2a03fa730aaa8bfaaee9d736a",
       "used_by_endpoints": [
         "admin.access_history"
       ],
