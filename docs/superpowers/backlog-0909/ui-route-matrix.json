@@ -10634,7 +10634,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "5401b8b02b887d3259fdc04c012155b4bb979eb2a03fa730aaa8bfaaee9d736a",
+      "sha256": "ce1a680fb42f0194b9ee76cab5731f1150240f9667132a725f8ed1b47c20d120",
       "used_by_endpoints": [
         "admin.access_history"
       ],
@@ -10907,7 +10907,7 @@
         "_menu_image.html",
         "admin/_macros.html"
       ],
-      "sha256": "132602e0f4031c3476594f413cb6254c78a2616dd430363576f88801bfd8ca52",
+      "sha256": "79a82deda9ec5526232f3b62c0533354fb8817af935ca8e7a299f4c0a5e9fae1",
       "used_by_endpoints": [
         "admin.display_settings"
       ],
@@ -11260,7 +11260,7 @@
         "admin/_local_user_forms.html",
         "admin/_macros.html"
       ],
-      "sha256": "7140a25d9ed76e9ab3f197e6a08c04ea4fdbda76b9ec86a1277e53a22c1481a3",
+      "sha256": "124e989751f88ae2e013fc07f119cf554e11a203e8a85e82ab36d1c1a73c98f5",
       "used_by_endpoints": [
         "admin.local_user_detail"
       ],
@@ -11281,7 +11281,7 @@
       "includes": [
         "admin/_macros.html"
       ],
-      "sha256": "6b5a8b1ad830be7d2dab722fb2516366008ef4880b6d28f676f90da0d0da21ba",
+      "sha256": "8ae83bb4c93e78588abb0300fc0922cb721e5911f44f84301db9e7d6c94b9395",
       "used_by_endpoints": [
         "admin.local_user_events"
       ],
@@ -11349,7 +11349,7 @@
         "_menu_metadata.html",
         "admin/_macros.html"
       ],
-      "sha256": "a3894c869d522061dc7002cabdf280476e5e3401d92cc9801ac1beae1c1fa8af",
+      "sha256": "11333d6a316a7a711cd6f9b98eda90cbf03a3b2ee82f60d2a1427754f4c22c79",
       "used_by_endpoints": [
         "admin.menu_collection"
       ],

@@ -1,5 +1,16 @@
 # UI-Konsistenzinventar — Migrationsliste P4/P5
 
+## GROK-BACKLOG — Rückkehrkontext und Navigationsziele, 2026-10-05
+
+| Route / Umfang | Rolle / Zustand / Muster | Nachweis |
+|---|---|---|
+| `/admin/<family>/menues`, `/admin/<family>/menu` | Bestehende Menürechte, beide Profile; ungefiltert/gefiltert, Liste/Karten/Pagination/Abbrechen. Leere optionale Suche fehlt im Rückkehrlink; Suchwert und Seite bleiben erhalten. | `test_menu_collection.py`, `test_menu_collection_browser.py`, `test_ui_reference_list_browser.py`, `test_icon_menu_unsaved_changes_browser.py` |
+| `/admin/benutzer/<id>`, `/admin/benutzer/protokoll`, `/admin/benutzer/zugriffsverlauf` | Admin, zielgefilterter Kontoverlauf; Kontoereignisse und Zugriffsverlauf als sichtbare Textnavigation ohne Symbol. Native Ziele, Rechte und Formulare erhalten; UI-DELTA B-02/B-05. | `test_admin_access_history_browser.py`: vier Ziele per Fokus/Enter/GET, 390 px No-JS/grober Zeiger und 1440 px JS; zusätzlich vorhandene Konto-/Verlaufs-Suiten |
+| `/admin/<family>/menues`, `/admin/design/darstellung` | Admin, beide Profile; Wochenplan und Vorschauziel Menüs als Textnavigation ohne Symbol, UI-DELTA B-02/B-05. | `test_menu_collection_browser.py`: sichtbare Zielnamen, unveränderte hrefs, Fokus/Enter/GET, kein POST und kein horizontaler Überlauf bei 390 px No-JS/grob und 1440 px JS |
+
+Tatsächliche Gate-Ausgaben und eigene Browseraufnahmen stehen im
+[GROK-BACKLOG-Report](/nvmetank1/projects/menuplan/.claude/worktrees/icon-first-r18/.claude/state/claude-session-2026-09-29/reports/GROK-BACKLOG-report.md).
+
 ## SIDEBAR-BRAND — Navigation und Marke, 2026-10-04
 
 | Route / Umfang | Rolle / Zustand / Muster | Nachweis |
