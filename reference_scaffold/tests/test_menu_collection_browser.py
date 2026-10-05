@@ -363,7 +363,7 @@ def test_menu_text_names_keep_active_and_archived_keyboard_targets(
     cookie = client.get_cookie('session')
     assert cookie is not None
     destination = (f'/admin/{family}/menu?week=2026-08-31&day=2026-08-31&meal=LUNCH&option=MENU_1'
-                   '&from=menus&q=&page=1')
+                   '&from=menus&page=1')
     with browser.new_context(base_url=live_server, java_script_enabled=javascript) as context:
         context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
         page = context.new_page()

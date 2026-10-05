@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from html import unescape
 import re
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 import cafeteria
@@ -113,6 +115,36 @@ def test_pagination_keeps_duplicate_titles_as_individual_occurrences(client, dat
     body = client.get('/admin/patienten/menues?q=Wiederkehrendes&page=2').get_data(as_text=True)
     assert body.count('data-menu-id=') == 2 and 'page=1' in body and 'page=3' not in body
     assert 'q=Wiederkehrendes' in body
+
+
+@pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
+@pytest.mark.parametrize('query', ['', 'Wiederkehrendes Menü'])
+def test_collection_links_omit_empty_search_and_keep_return_context(client, database_engine, family, profile, query):
+    scope = _scope(client, database_engine, profile)
+    for offset in range(25):
+        _save(database_engine, scope, week=WEEK + timedelta(weeks=offset), title='Wiederkehrendes Menü')
+    path = f'/admin/{family}/menues'
+    response = client.get(path, query_string={'q': query} if query else {})
+    assert response.status_code == 200
+    links = [unescape(href) for href in re.findall(r'href="([^"]+)"', response.text)]
+    editor_links = [href for href in links if urlsplit(href).path == f'/admin/{family}/menu']
+    assert len(editor_links) == 48  # 24 occurrences, each with list and card action.
+    for href in editor_links:
+        values = parse_qs(urlsplit(href).query, keep_blank_values=True)
+        assert values['from'] == ['menus'] and values['page'] == ['1']
+        assert values.get('q') == ([query] if query else None)
+        assert all(value != '' for items in values.values() for value in items)
+    pages = [parse_qs(urlsplit(href).query, keep_blank_values=True) for href in links
+             if urlsplit(href).path == path and 'page=' in href]
+    assert pages == [{'page': ['2'], **({'q': [query]} if query else {})}]
+    editor = client.get(editor_links[0])
+    assert editor.status_code == 200
+    return_links = [unescape(href) for href in re.findall(r'href="([^"]+)"', editor.text)
+                    if urlsplit(unescape(href)).path == path and 'page=' in unescape(href)]
+    assert len(return_links) == 1
+    assert parse_qs(urlsplit(return_links[0]).query, keep_blank_values=True) == {
+        'page': ['1'], **({'q': [query]} if query else {}),
+    }
 
 
 def test_collection_returns_and_renders_selected_accompaniment(client, database_engine):

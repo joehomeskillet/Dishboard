@@ -646,7 +646,7 @@ def menu_get(family: str):
             and re.fullmatch(r'[1-9][0-9]{0,4}', raw_page) is not None
             and int(raw_page) <= 10000):
         g.menu_collection_return = url_for(
-            'admin.menu_collection', family=family, q=query, page=int(raw_page),
+            'admin.menu_collection', family=family, q=query or None, page=int(raw_page),
         )
     return _render_menu_page(profile, family, scope, week, day, meal, option)
 
