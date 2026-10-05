@@ -6,7 +6,7 @@
 {% block title %}Kontoereignisse · Benutzer & Zugriff{% endblock %}
 {% block page_header %}{% call page_header('Benutzer & Zugriff', 'Kontoereignisse') %}
 {{ icon_button('actions.back', href=url_for('admin.local_users_list'), emphasis='primary') }}
-<nav class="btn-list" aria-label="Kontoverlauf">{{ icon_button('actions.history', href=url_for('admin.access_history'), text='Zugriffsverlauf', title='Zugriffsverlauf öffnen') }}</nav>{% endcall %}{% endblock %}
+<nav class="btn-list" aria-label="Kontoverlauf">{{ icon_button('actions.history', href=url_for('admin.access_history'), text='Zugriffsverlauf', title='Zugriffsverlauf öffnen', mode='text') }}</nav>{% endcall %}{% endblock %}
 {% block content %}
 <section class="card admin-users-history" aria-labelledby="events-title"><h2 class="visually-hidden" id="events-title">Kontoereignisse</h2>
 {% if rows %}<div class="table-responsive"><table class="table table-vcenter card-table admin-table admin-table--stack"><thead><tr><th scope="col">Zeitpunkt</th><th scope="col">Konto</th><th scope="col">Ereignis</th><th scope="col">Ausgeführt von</th></tr></thead><tbody>

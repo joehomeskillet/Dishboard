@@ -10,12 +10,47 @@ from sqlalchemy.exc import OperationalError
 
 from test_access_history_reads import _seed_history
 from test_admin_access_history_routes import PATH
-from test_admin_local_users_browser import _layout, live_accounts
-from test_admin_local_users_routes import admin_account
+from test_admin_local_users_browser import _context, _layout, live_accounts
+from test_admin_local_users_routes import _create, admin_account
 from test_auth_routes import auth_app
 from test_print_template_browser import browser
 
 __all__ = ['live_accounts', 'admin_account', 'auth_app', 'browser']
+
+
+@pytest.mark.parametrize('width,javascript', [(390, False), (1440, True)])
+def test_history_navigation_keeps_visible_destinations(live_accounts, browser, tmp_path, width, javascript):
+    origin, client, _, issuer = live_accounts
+    target = _create(issuer)
+    routes = (
+        (f'/admin/benutzer/{target.public_id}', (
+            ('Kontoereignisse', f'/admin/benutzer/protokoll?target={target.public_id}'),
+            ('Zugriffsverlauf', PATH),
+        )),
+        (PATH, (('Kontoereignisse', '/admin/benutzer/protokoll'),)),
+        ('/admin/benutzer/protokoll', (('Zugriffsverlauf', PATH),)),
+    )
+    with _context(browser, origin, client, width, javascript) as context:
+        page = context.new_page()
+        posts = []
+        page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
+        for index, (path, destinations) in enumerate(routes):
+            for label, destination in destinations:
+                assert page.goto(origin + path, wait_until='networkidle').status == 200
+                nav = page.get_by_role('navigation', name='Kontoverlauf', exact=True)
+                expect(nav.get_by_role('link')).to_have_count(len(destinations))
+                link = nav.locator(f'a[href="{destination}"]')
+                expect(link).to_have_text(label)
+                expect(link.locator('svg')).to_have_count(0)
+                _layout(page)
+                page.screenshot(path=str(tmp_path / f'history-nav-{index}-{label}-{width}.png'), full_page=True)
+                link.focus()
+                expect(link).to_be_focused()
+                with page.expect_navigation() as navigation:
+                    link.press('Enter')
+                assert navigation.value.status == 200 and navigation.value.request.method == 'GET'
+                assert page.url == origin + destination
+        assert posts == []
 
 
 @pytest.mark.parametrize('width,javascript', [(390, False), (1440, True)])
