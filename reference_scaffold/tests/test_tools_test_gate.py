@@ -210,6 +210,62 @@ def test_junit_rejects_entity_declarations(tmp_path):
         gate().read_junit([path])
 
 
+def test_process_redacts_xml_escaped_secrets_in_attributes_text_and_tails(tmp_path, monkeypatch):
+    import xml.etree.ElementTree as ET
+    from types import SimpleNamespace
+    from _test_gate_pools import Pool
+
+    secret = 'sample&secret'
+    output = tmp_path / 'process'
+
+    def run(arguments, **kwargs):
+        root = ET.Element('testsuite', name=secret)
+        case = ET.SubElement(root, 'testcase', classname='tests.test_x', name='test_one')
+        failure = ET.SubElement(case, 'failure', message=secret)
+        failure.text = secret
+        failure.tail = secret
+        ET.SubElement(case, 'system-out').text = 'https://user:sample&secret@example.invalid/'
+        ET.ElementTree(root).write(output / 'junit.xml', encoding='utf-8')
+        return SimpleNamespace(returncode=1, stdout=secret)
+
+    monkeypatch.setattr(gate().subprocess, 'run', run)
+    pool = Pool('synthetic', {'GATE_SECRET': secret}, ('synthetic:pg', 'synthetic:redis'))
+    assert gate().run_process(pool, ['tests/test_x.py'], output, 920, sys.executable, ()) == 1
+    saved = (output / 'junit.xml').read_text()
+    assert 'sample&amp;secret' not in saved
+    root = ET.fromstring(saved)
+    for element in root.iter():
+        for value in [*element.attrib.values(), element.text or '', element.tail or '']:
+            assert secret not in value
+    assert root.attrib['name'] == '[redacted]'
+    failure = root.find('./testcase/failure')
+    assert failure is not None
+    assert failure.attrib['message'] == failure.text == failure.tail == '[redacted]'
+    assert root.findtext('./testcase/system-out') == 'https://[redacted]@example.invalid/'
+    assert (output / 'pytest.log').read_text() == '[redacted]'
+    assert gate().read_junit([output / 'junit.xml']).statuses == {'tests/test_x.py::test_one': 'failed'}
+
+
+def test_junit_redaction_rejects_entity_declarations(tmp_path):
+    from _test_gate_results import redact_junit
+
+    path = tmp_path / 'entity.xml'
+    path.write_text('<!DOCTYPE testsuite [<!ENTITY value "expanded">]>'
+                    '<testsuite><testcase classname="tests.test_x" name="&value;"/></testsuite>')
+    with pytest.raises(ValueError, match='DOCTYPE'):
+        redact_junit(path, {})
+
+
+def test_tier_zero_missing_ruff_is_an_infrastructure_error(tmp_path, monkeypatch):
+    import _test_gate_tiers as tiers
+
+    monkeypatch.setattr(tiers.shutil, 'which', lambda command: None)
+    monkeypatch.setattr(tiers.subprocess, 'run', lambda *args, **kwargs:
+                        pytest.fail('Missing Ruff must stop before launching any static checks'))
+    with pytest.raises(ValueError, match='Tier 0 requires Ruff on PATH'):
+        tiers.run_static(tmp_path, sys.executable, tmp_path / 'static')
+
+
 def test_lock_prevents_second_gate_on_same_resources():
     from contextlib import ExitStack
     from uuid import uuid4

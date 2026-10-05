@@ -22,7 +22,7 @@ from _test_gate_pools import (
 )
 from _test_gate_results import (
     Results, compare_results, is_infrastructure as is_infrastructure, merge_junit, read_baseline,
-    read_junit, redact, reference_changes, select_reference, shard_files, write_timings,
+    read_junit, redact, redact_junit, reference_changes, select_reference, shard_files, write_timings,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +86,7 @@ def run_process(pool: Pool, files: list[str], output: Path, seed: int, python: s
     (output / 'pytest.log').write_text(redact(result.stdout, environment))
     junit = output / 'junit.xml'
     if junit.exists():
-        junit.write_text(redact(junit.read_text(), environment))
+        redact_junit(junit, environment)
     (output / 'process.json').write_text(json.dumps({
         'exit': result.returncode, 'seconds': time.monotonic() - started,
     }) + '\n')

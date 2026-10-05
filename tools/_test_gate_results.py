@@ -156,3 +156,16 @@ def redact(text: str, env: dict[str, str]) -> str:
         if len(value) >= 8 and any(word in key.upper() for word in ('PASSWORD', 'SECRET', 'TOKEN')):
             text = text.replace(value, '[redacted]')
     return text
+
+
+def redact_junit(path: Path, env: dict[str, str]) -> None:
+    """Redact decoded XML values before serializing the report again."""
+    tree = ET.parse(path, parser=ET.XMLParser(target=JunitTreeBuilder()))
+    for element in tree.iter():
+        for key, value in element.attrib.items():
+            element.set(key, redact(value, env))
+        if element.text is not None:
+            element.text = redact(element.text, env)
+        if element.tail is not None:
+            element.tail = redact(element.tail, env)
+    tree.write(path, encoding='utf-8', xml_declaration=True)

@@ -9,18 +9,18 @@ from pathlib import Path
 
 
 def run_static(root: Path, python: str, output: Path) -> int:
+    if not shutil.which('ruff'):
+        raise ValueError('Tier 0 requires Ruff on PATH')
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
-    commands = []
-    if shutil.which('ruff'):
-        commands.append(['rtk', 'ruff', 'check', 'tools/test_gate.py', 'tools/_test_gate_results.py',
-                         'tools/_test_gate_pools.py', 'tools/_test_gate_browser.py',
-                         'tools/_test_gate_impact.py', 'tools/_test_gate_tiers.py',
-                         'reference_scaffold/tests/_support', 'reference_scaffold/tests/conftest.py'])
-    commands.extend([
+    commands = [
+        ['rtk', 'ruff', 'check', 'tools/test_gate.py', 'tools/_test_gate_results.py',
+         'tools/_test_gate_pools.py', 'tools/_test_gate_browser.py',
+         'tools/_test_gate_impact.py', 'tools/_test_gate_tiers.py',
+         'reference_scaffold/tests/_support', 'reference_scaffold/tests/conftest.py'],
         ['rtk', python, str(root / 'tools/test_template_syntax.py')],
         ['rtk', python, str(root / 'tools/build_manifest.py'), '--verify'],
         ['rtk', python, str(root / 'tools/validate_package.py'), '--offline'],
-    ])
+    ]
     results = []
     for index, command in enumerate(commands):
         start = time.monotonic()

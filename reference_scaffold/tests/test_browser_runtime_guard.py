@@ -45,3 +45,36 @@ def test_asyncio_file_cannot_share_a_process_with_managed_browser(tmp_path):
     source.write_text('import asyncio\ndef invoke():\n    return asyncio.run(work())\n')
     with pytest.raises(pytest.UsageError, match='Mixed'):
         conftest.pytest_collection_modifyitems([item(managed), item(managed, path=source)], config())
+
+
+@pytest.mark.parametrize('selected_browser', ['firefox', 'webkit'])
+def test_non_chromium_browser_does_not_request_shared_chromium(selected_browser):
+    from _support.browser import browser
+
+    closed = []
+    instance = SimpleNamespace(close=lambda: closed.append(selected_browser))
+    request = SimpleNamespace(getfixturevalue=lambda name:
+                              pytest.fail(f'{selected_browser} must not request {name}'))
+    fixture = browser.__wrapped__(request=request, browser_name=selected_browser,
+                                  launch_browser=lambda: instance)
+    assert next(fixture) is instance
+    fixture.close()
+    assert closed == [selected_browser]
+
+
+def test_chromium_browser_requests_shared_fixture_without_owning_its_cleanup():
+    from _support.browser import browser
+
+    requested = []
+    instance = SimpleNamespace(close=lambda: pytest.fail('Shared fixture owns Chromium cleanup'))
+
+    def getfixturevalue(name):
+        requested.append(name)
+        return instance
+
+    request = SimpleNamespace(getfixturevalue=getfixturevalue)
+    fixture = browser.__wrapped__(request=request, browser_name='chromium',
+                                  launch_browser=lambda: pytest.fail('Chromium must reuse shared browser'))
+    assert next(fixture) is instance
+    fixture.close()
+    assert requested == ['shared_browser']

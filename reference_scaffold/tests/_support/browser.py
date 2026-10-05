@@ -21,10 +21,10 @@ def shared_browser(playwright: Playwright, browser_type_launch_args: dict,
 
 
 @pytest.fixture(scope='session')
-def browser(shared_browser: Browser, browser_name: str, launch_browser) -> Iterator[Browser]:
+def browser(request: pytest.FixtureRequest, browser_name: str, launch_browser) -> Iterator[Browser]:
     # Retain pytest-playwright's browser_name parametrization and non-Chromium CLI support.
     if browser_name == 'chromium':
-        yield shared_browser
+        yield request.getfixturevalue('shared_browser')
     else:
         instance = launch_browser()
         try:
