@@ -292,7 +292,8 @@
     }
 
     function refreshFormDirty(form) {
-        setFormDirty(form, formValues(form) !== initialFormValues.get(form));
+        setFormDirty(form, form.dataset.formPending === 'true'
+            || formValues(form) !== initialFormValues.get(form));
     }
 
     function setFormDirty(form, dirty) {
@@ -369,8 +370,14 @@
     function updateDirtyState() {
         const isDirty = dirtyForms.size > 0;
         const previewLinks = document.querySelectorAll('a[href*="/preview"]');
-        const publishForms = document.querySelectorAll('form[action*="/publish"]');
+        const publishForms = document.querySelectorAll('form[action*="/publish"], form[action$="/menu/review"]');
         let flashRegion = document.getElementById('admin-dirty-action-reason');
+        const messageRegion = document.querySelector('.flash-region');
+        // Keep one description, in the established live region after navigation.
+        if (flashRegion && isDirty && messageRegion && !messageRegion.contains(flashRegion)) {
+            messageRegion.prepend(flashRegion);
+            flashRegion.setAttribute('role', 'status');
+        }
         if (!flashRegion && isDirty) {
             const existing = document.querySelector('.flash-region');
             // Reuse the empty live region. A message already in it stays intact.
@@ -664,6 +671,9 @@
                 }
             });
             const legend = row.querySelector('[data-row-legend]');
+            row.querySelectorAll('button[name="form_intent"]').forEach(button => {
+                button.value = button.value.replace(/:\d+$/, `:${index}`);
+            });
             if (legend) legend.textContent = `${title} ${index + 1}`;
             const kindGroup = row.querySelector('[data-component-kind] [role="radiogroup"]');
             if (kindGroup) kindGroup.setAttribute('aria-label', `Eingabeart für ${title} ${index + 1}`);
@@ -775,7 +785,12 @@
             syncComponentRow(row);
         });
 
+        form.addEventListener('submit', event => {
+            form.dataset.menuFormIntent = event.submitter?.name === 'form_intent' ? event.submitter.value : '';
+        });
         form.addEventListener('formdata', (e) => {
+            // Helper responses retain blank rows and their parallel columns exactly.
+            if (form.dataset.menuFormIntent) return;
             for (const [selector, names] of [
                 ['.component-row', [
                     'component_public_id', 'component_text', 'recipe_revision_public_id',
@@ -794,22 +809,6 @@
                     }
                 });
             }
-        });
-
-        form.addEventListener('input', (e) => {
-            const search = e.target.closest('[data-recipe-search]');
-            if (!search) return;
-            const select = search.closest('[data-row]')?.querySelector('select[name="recipe_revision_public_id"]');
-            if (!select) return;
-            const query = search.value.trim().toLowerCase();
-            select.querySelectorAll('option').forEach(option => {
-                if (!option.value) return;
-                const haystack = `${option.textContent || ''} ${option.dataset.yield || ''}`.toLowerCase();
-                option.hidden = Boolean(query) && !haystack.includes(query) && !option.selected;
-            });
-            select.querySelectorAll('optgroup').forEach(group => {
-                group.hidden = !Array.from(group.querySelectorAll('option')).some(option => !option.hidden);
-            });
         });
 
         form.addEventListener('change', (e) => {
@@ -831,6 +830,7 @@
             const removeButton = e.target.closest('[data-remove-row]');
             const moveButton = e.target.closest('[data-move-row]');
             if (!addButton && !removeButton && !moveButton) return;
+            e.preventDefault();
             let focusTarget;
             let list;
             if (addButton) {
@@ -1019,7 +1019,10 @@
     });
     // Enhancement may normalize controls; that rendered state is the baseline.
     forms.forEach(form => {
-        if (form.method === 'post') initialFormValues.set(form, formValues(form));
+        if (form.method === 'post') {
+            initialFormValues.set(form, formValues(form));
+            if (form.dataset.formPending === 'true') refreshFormDirty(form);
+        }
     });
 })();
 

@@ -19,6 +19,7 @@ from test_admin_workflow_routes import WEEK, _login, _payload
 from test_menu_collection import _save, _scope
 from test_branding_browser import live_branding as live_branding
 from test_admin_workflow_routes import app as workflow_app, database_engine as database_engine  # noqa: F401
+from test_menu_form_intents_browser import _native_menu_form_contract
 
 
 @pytest.mark.parametrize('family,profile', [('cafeteria', 'staff_guest'), ('patienten', 'patient')])
@@ -100,6 +101,7 @@ def test_wp04_reference_post_and_density(live_branding, database_engine, browser
             'week': ['2026-08-31'], 'day': ['2026-08-31'], 'meal': ['LUNCH'],
             'option': ['MENU_1'], 'row_version': ['1'], 'dish_template_public_id': [''],
             'title': ['Referenzmenü'], 'accompaniment': ['none'], 'description': [''], 'note': [''],
+            'recipe_search': [''], 'recipe_offset': ['0'],
             'allergen_mode': ['manual'], 'allergen_code': ['GLUTEN', 'MILK'],
             'origin_mode': ['manual'],
             'label_mode': ['manual'], 'component_public_id': [''], 'component_text': ['Kartoffeln'],
@@ -564,7 +566,13 @@ def test_p4_density_and_form_contract_against_base(live_branding, database_engin
     for key, pair in measurements.items():
         before, after = pair['before'], pair['after']
         assert after['width'] <= int(key.rsplit('-', 1)[1]), (key, pair)
-        if key.startswith(('menu_editor-', 'components-')):
+        if key.startswith('menu_editor-'):
+            assert after['visibleFields'] == sorted(before['visibleFields'] + ['recipe_search:search']), key
+            before_form = next(form for form in contracts[key]['before'] if form['action'] == '/admin/cafeteria/menu')
+            after_forms = contracts[key]['after']
+            index = next(i for i, form in enumerate(after_forms) if form['action'] == before_form['action'])
+            after_forms[index] = _native_menu_form_contract(before_form, after_forms[index])
+        if key.startswith('components-'):
             assert after['visibleFields'] == before['visibleFields'], (key, pair)
         if key.startswith('components-'):
             # Shared search/filter has two identical unnamed GET submitters.

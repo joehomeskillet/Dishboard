@@ -1399,3 +1399,42 @@ OCR ungeprüft: Provider HTTP 402. Screenshots/Messmatrix: `/tmp/pytest-of-root/
 | static/recipe-admin.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | static/recipe-document.css | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | **TOTAL** | 39 | 12 | 5 | 1 | 27 | 11 | 20 |
+
+## Native Menühelfer und erhaltene Entwürfe — 2026-10-05
+
+Route: `GET/POST /admin/<family>/menu`, Familien `cafeteria` und `patienten`.
+Rollen im Browser: `Cafeteria.Admin` und `Cafeteria.Editor`; native HTTP-Verträge prüfen zusätzlich
+fehlende Schreibberechtigung, ungültiges CSRF und unveränderten Datenbestand.
+
+Bausteine lassen sich ohne JavaScript hinzufügen, verschieben und entfernen;
+alle fünf Spalten (Komponente, Text, Rezeptrevision, Zielmenge, Einheit) bleiben
+zusammen. Herkunftsaktionen prüfen dieselbe vollständige Bausteingruppe. Suche
+und Seitenwechsel lesen den gesamten berechtigten Rezeptbestand und erhalten
+gebundene Revisionen sowie sämtliche Formularwerte. Nur bewusstes Speichern
+schreibt; Enter im Textfeld bleibt ein nativer Save.
+
+Jede Antwort mit behaltenen POST-Werten bleibt vorsorglich ungespeichert bis
+Speichern oder frischem GET. Dirty-Text, Navigationswarnung und gesperrte
+Prüf-/Vorschauaktionen überstehen neue Dokumente und spätere Eingabeänderungen.
+Gespeicherte Effekte bleiben bei 400 erreichbar, 409 retained-only löst keine
+neuen Wiederanzeige-Reads aus, Reviewtoken entstehen nur bei 200.
+
+Aktuelle neue Funktionsbelege: `tests/test_menu_form_intents.py`,
+`tests/test_menu_form_origin_intents.py`, `tests/test_menu_form_intents_browser.py`
+und `tests/test_menu_form_pending_browser.py`. Herkunfts-Sicherheitsfälle zweimal
+28/28; native Intent-/Pending-Browserfälle zweimal 12/12 grün. Sichtprüfung:
+Main-Captures Patientensuche bei 1440×900 und 390×844, feiner Zeiger, No-JS,
+Initial-/Zeilen-/Suchzustand. Kein horizontaler Überlauf, direkte gemeinsame
+Symbolaktionen, alle Angaben statisch erreichbar. Weitere Bestandsprüfungen
+und genaue Befehle/Zeiten stehen im `MERGE-CANDIDATES-report.md` unter
+`.claude/state/claude-session-2026-09-29/reports/` des Worktrees icon-first-r18.
+Die vorliegenden Aufnahmen behaupten keine Geräte- oder Produktionsabnahme.
+
+Bestandsverträge nach Einführung der nativen Helfer: 27 gezielte Browserfälle
+grün, einschließlich Vorschlagskonflikten (409 und unveränderte Autorität),
+vollständiger Tastaturfolge und Dichtevergleich gegen unverändertes d2e66fed.
+Herkunftsaktionen laufen mit/ohne JavaScript, in beiden Familien, bei 1440 px
+mit feinem und 390 px mit grobem Zeiger. Gemeinsame Symbolbuttons bleiben
+36/44 px; Hilfs-POSTs schreiben keine Daten. Neue Suchfelder und alle neun
+Submitter werden vor dem exakten Vergleich des bisherigen Save-Vertrags
+einzeln geprüft. Vollständige Dateigates und Abschlussstatus: siehe Bericht.

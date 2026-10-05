@@ -344,6 +344,8 @@ def render_menu_editor(
     effects: dict[str, Any], flashes: list[str],
     origin_conflict: str | None = None,
     recipe_page: RecipeChoicePage | None = None,
+    focus_target: str | None = None,
+    form_pending: bool = False,
 ) -> str:
     return render_template(
         'admin/menu_editor.html', profile=profile, family=family, week=week,
@@ -352,6 +354,8 @@ def render_menu_editor(
         catalog_choices=catalog_choices, allergens=allergens, labels=labels,
         effects=effects, flashes=flashes, origin_conflict=origin_conflict,
         recipe_page=recipe_page if recipe_page is not None else EMPTY_RECIPE_PAGE,
+        focus_target=focus_target or '',
+        form_pending=form_pending,
         unit_display_names={} if cell.get('retained_only') else _unit_display_names(),
         **({'user': session.get('user'), 'roles': list(getattr(g, 'auth_roles', ())),
             'area_names': {}} if cell.get('retained_only') else _template_context()),

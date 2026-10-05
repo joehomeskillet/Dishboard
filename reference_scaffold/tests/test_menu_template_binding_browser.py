@@ -162,7 +162,7 @@ def test_proposal_conflict_resubmit_preserves_original_hidden_authority(
                 lambda response: response.request.method == 'POST'
                 and response.url.endswith('/menu?return_to=week')
             ) as rejected:
-                page.locator('form[data-menu-editor] button[type="submit"]').click()
+                page.get_by_role('button', name='Menü speichern', exact=True).click()
             response = rejected.value
             assert response.status == 409
             data = response.request.post_data
