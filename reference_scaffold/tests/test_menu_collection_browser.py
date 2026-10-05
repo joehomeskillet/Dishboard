@@ -394,6 +394,40 @@ def test_menu_text_names_keep_active_and_archived_keyboard_targets(
                 expect(page.locator('input[name="title"]')).to_have_value('Menü D3')
 
 
+@pytest.mark.parametrize('width,javascript', [(390, False), (1440, True)])
+@pytest.mark.parametrize('path,label,target,selector', [
+    ('/admin/cafeteria/menues', 'Wochenplan', '/admin/cafeteria', '[data-semantic="navigation.weekplan"]'),
+    ('/admin/patienten/menues', 'Wochenplan', '/admin/patienten', '[data-semantic="navigation.weekplan"]'),
+    ('/admin/design/darstellung', 'Menüs', '/admin/cafeteria/menues', '.display-preview a.ui-sem-control'),
+])
+def test_collection_and_display_section_links_keep_text_destinations(
+    admin_app, admin_engine, browser, live_server, tmp_path, width, javascript, path, label, target, selector,
+):
+    client, _ = _login(admin_app, admin_engine, ['Cafeteria.Admin'])
+    cookie = client.get_cookie('session')
+    assert cookie is not None
+    with browser.new_context(base_url=live_server, viewport={'width': width, 'height': 900},
+                             java_script_enabled=javascript, has_touch=width == 390,
+                             reduced_motion='reduce') as context:
+        context.add_cookies([{'name': 'session', 'value': cookie.value, 'url': live_server}])
+        page = context.new_page()
+        posts = []
+        page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
+        assert page.goto(path).status == 200
+        link = page.locator(selector)
+        expect(link).to_have_text(label)
+        expect(link.locator('svg')).to_have_count(0)
+        expect(link).to_have_attribute('href', target)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        page.screenshot(path=str(tmp_path / f'section-link-{width}.png'), full_page=True)
+        link.focus()
+        with page.expect_navigation() as navigation:
+            link.press('Enter')
+        assert navigation.value.status == 200 and navigation.value.request.method == 'GET'
+        assert urlsplit(page.url).path == target
+        assert posts == []
+
+
 def test_p4_density_and_form_contract_against_base(live_branding, database_engine, browser, tmp_path):
     """Render identical fixtures with base and current templates, without changing files."""
     from pathlib import Path

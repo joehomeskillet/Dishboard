@@ -65,7 +65,7 @@
         <div class="mb-3">
           {{ field('example', 'Notiz (Beispiel)', value='Frisch zubereitet', id='display-example', readonly=true) }}
         </div>
-        {{ icon_button('actions.open', href=url_for('admin.menu_collection', family='cafeteria')) }}
+        {{ icon_button('navigation.menus', href=url_for('admin.menu_collection', family='cafeteria'), mode='text') }}
         </div>
       </div>
     </article>

@@ -8,7 +8,7 @@
 {% set layout_variant = 'standard' %}
 {% block page_header %}
 {% call page_header('Menüs', description='Gespeicherte Menüs aus allen Wochen.') %}
-{{ icon_button('navigation.weekplan', href=url_for('admin.' ~ family), emphasis='primary') }}
+{{ icon_button('navigation.weekplan', href=url_for('admin.' ~ family), mode='text', emphasis='primary') }}
 {% endcall %}
 {% endblock %}
 {% block content %}
