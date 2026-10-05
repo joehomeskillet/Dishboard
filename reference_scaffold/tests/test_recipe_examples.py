@@ -254,3 +254,61 @@ def test_requested_later_images_and_draft_apply_do_not_claim_completed_import() 
     assert 'add_recipe_image' not in data['import_mapping']['not_called']
     assert all(row['publication'] == 'not_requested' and row['status'] == 'DRAFT' for row in data['weekly_drafts'])
     assert validate()['imported'] is False
+
+
+def test_all_38_menu_adapters_pass_the_real_native_parser_and_preserve_origin() -> None:
+    """Retain offline parser coverage from the historical example-import candidate."""
+    from cafeteria.workflow_partial_form import parse_menu_item_form
+    from werkzeug.datastructures import MultiDict
+
+    count = 0
+    for draft in load()['weekly_drafts']:
+        profile = draft['profile_code']
+        for day in draft['values']['days']:
+            for service in day['services']:
+                if service['service_state'] != 'open':
+                    continue
+                for option in service['options']:
+                    components = option['components']
+                    fields = MultiDict({
+                        '_csrf': 'offline-shape-only', 'week': draft['week_start'],
+                        'day': day['date'], 'meal': service['meal_code'],
+                        'option': option['type_code'], 'row_version': '0',
+                        'title': option['title'], 'description': option.get('description', ''),
+                        'note': option.get('note', ''), 'allergen_mode': 'manual',
+                        'origin_mode': 'manual', 'label_mode': 'manual',
+                    })
+                    for component in components:
+                        for key, value in (
+                            ('component_public_id', ''), ('component_text', component),
+                            ('recipe_revision_public_id', ''), ('target_quantity', ''),
+                            ('target_quantity_unit_code', ''),
+                        ):
+                            fields.add(key, value)
+                    for allergen in option.get('allergens', []):
+                        fields.add('allergen_code', allergen['code'])
+                        fields.add('allergen_presence__' + allergen['code'], allergen['presence'])
+                    for origin in option.get('origins', []):
+                        fields.add('origin_ingredient', origin['ingredient'])
+                        fields.add('origin_country_code', origin['country_code'])
+                    for label in option.get('labels', []):
+                        fields.add('label_code', label['code'])
+                    if profile == 'staff_guest':
+                        for field in ('internal', 'external'):
+                            price = option[field + '_rappen']
+                            fields.add(field + '_chf', f'{price // 100}.{price % 100:02d}')
+                    parsed = parse_menu_item_form(profile, fields)
+                    assert parsed.payload['title'] == option['title']
+                    assert [row['component_text'] for row in parsed.payload['assignments']] == components
+                    assert parsed.payload['labels'] == [row['code'] for row in option.get('labels', [])]
+                    assert parsed.payload['allergens'] == option.get('allergens', [])
+                    assert parsed.payload['origins'] == [
+                        {'ingredient': row['ingredient'], 'country_code': row['country_code'],
+                         'text': f"{row['ingredient']}: {row['country_code']}"}
+                        for row in option.get('origins', [])
+                    ]
+                    if profile == 'patient':
+                        assert 'internal_rappen' not in parsed.payload
+                        assert 'internal_chf' not in fields and 'external_chf' not in fields
+                    count += 1
+    assert count == 38
