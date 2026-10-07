@@ -209,7 +209,7 @@ def test_template_proposal_prefills_salad_and_shows_proposal_hint(
             lambda response: response.request.method == 'POST'
             and response.url.endswith('/menu?return_to=week')
         ) as saved:
-            page.locator('form[data-menu-editor] button[type="submit"]').click()
+            page.locator('form[data-menu-editor] [data-sticky] button[data-semantic="actions.save"]').click()
         response = saved.value
         assert response.status == 303
         data = response.request.post_data
