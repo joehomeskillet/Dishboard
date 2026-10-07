@@ -50,7 +50,11 @@ def test_automatic_origin_removal_explains_lock_and_tracks_mode(editor_page, fam
     }''')
     assert point['visible']
     assert point['receivesPointer']
-    page.mouse.click(point['x'], point['y'])
+    if javascript:
+        # Native actionability waits for Space-triggered scrolling to settle.
+        wrapper.click()
+    else:
+        page.mouse.click(point['x'], point['y'])
     expect(wrapper).to_be_focused()
     expect(action).to_be_disabled()
     assert description_id in wrapper.get_attribute('aria-describedby').split()
