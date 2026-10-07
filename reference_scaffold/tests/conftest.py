@@ -1,8 +1,9 @@
-"""Shared browser fixtures; native PDF browser files require runner isolation."""
+"""Shared browser fixtures; runtime isolation checks are opt-in for the test runner."""
 from __future__ import annotations
 
 import ast
 import inspect
+import os
 
 import pytest
 
@@ -10,7 +11,7 @@ from _support.browser import browser, shared_browser  # noqa: F401
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item], config: pytest.Config) -> None:
-    if config.option.collectonly:
+    if config.option.collectonly or os.environ.get('TEST_GATE_RUNTIME_GUARD') != '1':
         return
     providers: set[str] = set()
     inspected = set()

@@ -70,6 +70,7 @@ def run_process(pool: Pool, files: list[str], output: Path, seed: int, python: s
                 lease_fds: tuple[int, ...]) -> int:
     output.mkdir(mode=0o700, exist_ok=True)
     environment = pool.env.copy()
+    environment['TEST_GATE_RUNTIME_GUARD'] = '1'
     environment['PYTHONPATH'] = os.pathsep.join(filter(None, (
         str(TESTS), str(SCAFFOLD), str(ROOT / 'tools'), environment.get('PYTHONPATH', ''),
     )))

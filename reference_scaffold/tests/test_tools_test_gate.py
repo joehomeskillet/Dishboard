@@ -256,6 +256,24 @@ def test_junit_redaction_rejects_entity_declarations(tmp_path):
         redact_junit(path, {})
 
 
+def test_runner_enables_runtime_guard_for_each_pytest_process(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from _test_gate_pools import Pool
+
+    environments = []
+
+    def run(arguments, **kwargs):
+        environments.append(kwargs['env'])
+        return SimpleNamespace(returncode=0, stdout='')
+
+    monkeypatch.setattr(gate().subprocess, 'run', run)
+    pool = Pool('synthetic', {'TEST_GATE_RUNTIME_GUARD': '0'}, ('synthetic:pg', 'synthetic:redis'))
+    assert gate().run_process(pool, ['tests/test_x.py'], tmp_path / 'process',
+                              920, sys.executable, ()) == 0
+    assert environments[0]['TEST_GATE_RUNTIME_GUARD'] == '1'
+    assert pool.env['TEST_GATE_RUNTIME_GUARD'] == '0'
+
+
 def test_tier_zero_missing_ruff_is_an_infrastructure_error(tmp_path, monkeypatch):
     import _test_gate_tiers as tiers
 

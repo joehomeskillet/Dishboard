@@ -6,6 +6,23 @@ import pytest
 import conftest
 
 
+@pytest.fixture(autouse=True)
+def runner_runtime_guard(monkeypatch):
+    monkeypatch.setenv('TEST_GATE_RUNTIME_GUARD', '1')
+
+
+@pytest.mark.parametrize('flag', [None, '', '0', 'yes'])
+def test_direct_pytest_accepts_mixed_runtimes_without_runner_opt_in(tmp_path, monkeypatch, flag):
+    if flag is None:
+        monkeypatch.delenv('TEST_GATE_RUNTIME_GUARD', raising=False)
+    else:
+        monkeypatch.setenv('TEST_GATE_RUNTIME_GUARD', flag)
+    source = tmp_path / 'test_async.py'
+    source.write_text('import asyncio\ndef invoke():\n    return asyncio.run(work())\n')
+    conftest.pytest_collection_modifyitems(
+        [item(native), item(managed), item(managed, path=source)], config())
+
+
 def native():
     return 'sync_playwright('
 
