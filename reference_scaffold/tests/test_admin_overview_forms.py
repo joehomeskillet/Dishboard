@@ -12,6 +12,7 @@ from cafeteria.workflow_partial_store import persist_menu_item, persist_service_
 from test_admin_ux_browser import live_server, page_context  # noqa: F401
 from test_admin_workflow_routes import DATABASE_URL, DAY, WEEK, _login, _payload, _scope
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
+from test_menu_template_binding_db import stored_state
 
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason='TEST_DATABASE_URL fehlt.')
 
@@ -143,7 +144,7 @@ def test_copy_link_on_empty_week_submits_exact_native_form(
 @pytest.mark.parametrize('width', [1440, 390])
 @pytest.mark.parametrize('javascript', [True, False])
 def test_menu_direct_origin_action_preserves_native_form(
-    page_context, browser, live_server, tmp_path, family, width, javascript,  # noqa: F811
+    page_context, admin_engine, browser, live_server, tmp_path, family, width, javascript,  # noqa: F811
 ):
     with browser.new_context(
         base_url=live_server, storage_state=page_context.context.storage_state(),
@@ -165,13 +166,16 @@ def test_menu_direct_origin_action_preserves_native_form(
         page.locator('[name="origin_country_code"]').first.select_option('CH')
         form = page.locator('form[data-menu-editor]')
         before = form.evaluate('f => Object.fromEntries(new FormData(f))')
+        before_state = stored_state(admin_engine)
         assert before['_csrf']
         expect(page.locator('[data-semantic="actions.more"]')).to_have_count(0)
         remove = page.locator('#origins-list [data-remove-row]').first
         expect(remove).to_be_visible()
         expect(remove).to_have_text('')
         expect(remove).to_have_accessible_name('Herkunft löschen')
-        expect(remove).to_have_attribute('type', 'button')
+        expect(remove).to_have_attribute('type', 'submit')
+        expect(remove).to_have_attribute('name', 'form_intent')
+        expect(remove).to_have_attribute('value', 'origin_remove:0')
         remove.scroll_into_view_if_needed()
         box = remove.bounding_box()
         size = 44 if width == 390 else 36
@@ -186,12 +190,21 @@ def test_menu_direct_origin_action_preserves_native_form(
             page.get_by_role('button', name='Herkunft hinzufügen', exact=True).press('Enter')
             page.locator('[name="origin_ingredient"]').last.fill('Kartoffel')
             page.locator('[name="origin_country_code"]').last.select_option('CH')
-        remove.press('Enter')
-        expect(field).to_have_value('Kartoffel' if javascript else 'Tomate')
-        assert not posts and not errors
+        if javascript:
+            remove.press('Enter')
+        else:
+            with page.expect_response(lambda response: response.request.method == 'POST'
+                                      and response.url.endswith('/menu')) as helper:
+                remove.press('Enter')
+            assert helper.value.status == 200
+            page.wait_for_load_state()
+        expect(field).to_have_value('Kartoffel' if javascript else '')
+        assert len(posts) == int(not javascript) and not errors
+        assert stored_state(admin_engine) == before_state
         assert form.locator('[name="_csrf"]').input_value() == before['_csrf']
+        assert form.locator('[name="row_version"]').input_value() == before['row_version']
         expect(page.get_by_label('Menüname', exact=True)).to_have_value('Direkte Herkunftsaktion')
         with page.expect_response(lambda response: response.request.method == 'POST') as saved:
             form.locator('[data-sticky]').get_by_role('button', name='Menü speichern', exact=True).click()
-        assert saved.value.status == 303 and len(posts) == 1
+        assert saved.value.status == 303 and len(posts) == 1 + int(not javascript)
         assert not errors

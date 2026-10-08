@@ -43,6 +43,34 @@ _MENU_REPEATED = frozenset(
     'origin_ingredient origin_country_code label_code'.split()
 )
 
+# Form-only control fields. They steer one non-persisting rearrangement or one recipe
+# page read and are stripped before the save parser runs, so `parse_menu_item_form`
+# keeps its exact existing input contract and still rejects every other unknown field.
+MENU_FORM_ONLY_FIELDS = frozenset({'form_intent', 'recipe_search', 'recipe_offset'})
+MENU_MAX_ROWS = 50
+RECIPE_MAX_OFFSET = 999999
+RECIPE_SEARCH_MAX_LENGTH = 200
+RECIPE_SEARCH_FOCUS = 'recipe-search'
+# Parallel arrays of one row group always move together; a length mismatch fails closed.
+_ROW_GROUPS = {
+    'component': ('component_public_id', 'component_text', 'recipe_revision_public_id',
+                  'target_quantity', 'target_quantity_unit_code'),
+    'origin': ('origin_ingredient', 'origin_country_code'),
+}
+_ROW_ANCHORS = {'component': 'component-{index}-id', 'origin': 'origin-{index}-ingredient'}
+_ROW_INTENTS = {
+    'component_add': ('component', 'add'),
+    'component_remove': ('component', 'remove'),
+    'component_move_up': ('component', 'up'),
+    'component_move_down': ('component', 'down'),
+    'origin_add': ('origin', 'add'),
+    'origin_remove': ('origin', 'remove'),
+}
+_INDEXED_ACTIONS = frozenset({'remove', 'up', 'down'})
+_RECIPE_INTENTS = frozenset({'recipe_search', 'recipe_page_next', 'recipe_page_previous'})
+_INTENT_VALUE = re.compile(r'([a-z][a-z_]{0,31})(?::(\d{1,3}))?')
+_OFFSET_VALUE = re.compile(r'\d{1,6}')
+
 _WEEKDAYS = (
     'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag',
     'Freitag', 'Samstag', 'Sonntag',
@@ -92,6 +120,22 @@ class ParsedComponentUpdate:
 @dataclass(frozen=True)
 class ParsedComponentStatus:
     expected_component_row_version: int
+
+
+@dataclass(frozen=True)
+class MenuFormIntent:
+    """One validated menu form submission that must not persist anything.
+
+    ``name`` is the empty string for a deliberate save and otherwise one allowlisted
+    row or recipe-page action. ``search`` and ``offset`` describe the recipe choice
+    page the response has to read; they are carried by every submission so the view
+    survives rearrangements, validation errors and conflicts alike.
+    """
+
+    name: str
+    index: int | None
+    search: str
+    offset: int
 
 
 def _values(form: Mapping[str, object], key: str) -> list[str]:
@@ -562,6 +606,186 @@ def parse_menu_item_form(
         payload=payload,
         template_context=proposal,
     )
+
+
+def _form_only_scalar(form: Mapping[str, object], key: str) -> str:
+    """One optional form-only control value; a duplicate scalar fails closed."""
+    if key not in form:
+        return ''
+    values = _values(form, key)
+    if len(values) != 1:
+        raise WorkflowValidationError(
+            f'Formularfeld mehrfach gesendet: {key}', field_name=key,
+        )
+    return values[0]
+
+
+def _recipe_view(form: Mapping[str, object]) -> tuple[str, int]:
+    search = _form_only_scalar(form, 'recipe_search')
+    if len(search) > RECIPE_SEARCH_MAX_LENGTH or any(character < ' ' for character in search):
+        raise WorkflowValidationError('Rezeptsuche ist ungültig.', field_name='recipe_search')
+    raw_offset = _form_only_scalar(form, 'recipe_offset')
+    if raw_offset == '':
+        return search, 0
+    if _OFFSET_VALUE.fullmatch(raw_offset) is None or int(raw_offset, 10) > RECIPE_MAX_OFFSET:
+        raise WorkflowValidationError('Rezeptseite ist ungültig.', field_name='recipe_offset')
+    return search, int(raw_offset, 10)
+
+
+def parse_menu_form_intent(form: Mapping[str, object], page_limit: int) -> MenuFormIntent:
+    """Read the requested non-persisting menu form intent and its recipe page view.
+
+    An absent ``form_intent`` means a deliberate save; the returned intent then only
+    carries the validated recipe search and page offset. Every other value must match
+    the explicit allowlist exactly, including whether the action carries a row index,
+    so an unknown, duplicated or index-mismatched action fails closed before any write.
+    """
+    search, offset = _recipe_view(form)
+    if 'form_intent' not in form:
+        return MenuFormIntent(name='', index=None, search=search, offset=offset)
+    requested = _values(form, 'form_intent')
+    if len(requested) != 1:
+        raise WorkflowValidationError(
+            'Formularfeld mehrfach gesendet: form_intent', field_name='form_intent',
+        )
+    match = _INTENT_VALUE.fullmatch(requested[0])
+    if match is None:
+        raise WorkflowValidationError('Formularaktion ist unbekannt.', field_name='form_intent')
+    name, raw_index = match.group(1), match.group(2)
+    if name in _RECIPE_INTENTS:
+        if raw_index is not None:
+            raise WorkflowValidationError('Formularaktion ist unbekannt.', field_name='form_intent')
+        if name == 'recipe_search':
+            offset = 0
+        elif name == 'recipe_page_next':
+            offset = min(offset + page_limit, RECIPE_MAX_OFFSET)
+        else:
+            offset = max(offset - page_limit, 0)
+        return MenuFormIntent(name=name, index=None, search=search, offset=offset)
+    if name not in _ROW_INTENTS:
+        raise WorkflowValidationError('Formularaktion ist unbekannt.', field_name='form_intent')
+    indexed = _ROW_INTENTS[name][1] in _INDEXED_ACTIONS
+    if indexed != (raw_index is not None):
+        raise WorkflowValidationError('Formularaktion ist unbekannt.', field_name='form_intent')
+    return MenuFormIntent(
+        name=name, index=int(raw_index, 10) if raw_index is not None else None,
+        search=search, offset=offset,
+    )
+
+
+def _row_columns(
+    values: Mapping[str, object], names: tuple[str, ...],
+) -> tuple[dict[str, list[str]], int]:
+    columns: dict[str, list[str]] = {}
+    lengths = set()
+    for name in names:
+        if name not in values:
+            raise WorkflowValidationError(
+                f'Fehlendes Formularfeld: {name}', field_name=name,
+            )
+        column = values[name]
+        if not isinstance(column, list) or any(not isinstance(item, str) for item in column):
+            raise WorkflowValidationError(
+                f'Formularfeld ist ungültig: {name}', field_name=name,
+            )
+        columns[name] = list(column)
+        lengths.add(len(column))
+    if len(lengths) != 1:
+        raise WorkflowValidationError(
+            'Zusammengehörige Felder sind unvollständig.', field_name=names[-1],
+        )
+    return columns, lengths.pop()
+
+
+def _row_group_is_submitted(values: Mapping[str, object], names: tuple[str, ...]) -> bool:
+    """A helper search may omit the whole group; empty injected lists are not a row group.
+
+    ``_request_menu_values`` fills missing component columns with empty lists while
+    still omitting an absent recipe column. That combination is not a submitted
+    binding shape. Any non-empty column, or every name present, is a real group.
+    """
+    present = [name for name in names if name in values]
+    if not present:
+        return False
+    for name in present:
+        column = values[name]
+        if not isinstance(column, list) or len(column) > 0:
+            return True
+    return len(present) == len(names)
+
+
+def _optional_row_group(values: Mapping[str, object], names: tuple[str, ...]) -> None:
+    """Search/page may omit a whole row group; a partial group is an ambiguous shape."""
+    if not _row_group_is_submitted(values, names):
+        return
+    _row_columns(values, names)
+
+
+def menu_form_row_group_complete(values: Mapping[str, object], group: str) -> bool:
+    """True when the named parallel arrays are absent together or present and aligned.
+
+    A missing or shifted recipe array must not be rendered as explicit empty selects:
+    that form would detach stored bindings on the next Save. Callers therefore refuse
+    to keep request values when this returns False, instead of guessing by position.
+    """
+    names = _ROW_GROUPS[group]
+    if not _row_group_is_submitted(values, names):
+        return True
+    try:
+        _row_columns(values, names)
+    except WorkflowValidationError:
+        return False
+    return True
+
+
+def apply_menu_form_intent(
+    intent: MenuFormIntent, values: Mapping[str, object],
+) -> tuple[dict[str, object], str]:
+    """Rearrange the submitted rows for one intent and name the control to focus.
+
+    Nothing outside the addressed row group is touched, so every other unsaved field,
+    the submitted row version and the current selection survive unchanged. The columns
+    of one group move together; a search or page intent leaves all values as submitted.
+    """
+    _optional_row_group(values, _ROW_GROUPS['component'])
+    if intent.name in _RECIPE_INTENTS:
+        return dict(values), RECIPE_SEARCH_FOCUS
+    group, action = _ROW_INTENTS[intent.name]
+    names = _ROW_GROUPS[group]
+    columns, count = _row_columns(values, names)
+    index = intent.index
+    if (action in _INDEXED_ACTIONS) != (index is not None):
+        raise WorkflowValidationError('Formularaktion ist unbekannt.', field_name='form_intent')
+    if index is not None and index >= count:
+        raise WorkflowValidationError('Formularzeile ist unbekannt.', field_name='form_intent')
+    if action == 'add':
+        if count >= MENU_MAX_ROWS:
+            raise WorkflowValidationError(
+                f'Höchstens {MENU_MAX_ROWS} Zeilen sind möglich.', field_name=names[0],
+            )
+        for column in columns.values():
+            column.append('')
+        focus = count
+    elif index is None:
+        raise WorkflowValidationError('Formularaktion ist unbekannt.', field_name='form_intent')
+    elif action == 'remove':
+        if count > 1:
+            for column in columns.values():
+                del column[index]
+            focus = min(index, count - 2)
+        else:
+            for column in columns.values():
+                column[0] = ''
+            focus = 0
+    else:
+        other = index - 1 if action == 'up' else index + 1
+        if 0 <= other < count:
+            for column in columns.values():
+                column[index], column[other] = column[other], column[index]
+            focus = other
+        else:
+            focus = index
+    return {**values, **columns}, _ROW_ANCHORS[group].format(index=focus)
 
 
 def _component_metadata(form: Mapping[str, object]) -> dict[str, object]:

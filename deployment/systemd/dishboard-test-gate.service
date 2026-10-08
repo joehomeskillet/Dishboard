@@ -1,0 +1,11 @@
+[Unit]
+Description=Dishboard nightly isolated test gate (two seeds)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/dishboard
+EnvironmentFile=/etc/dishboard/test-gate.env
+ExecStart=/usr/bin/env rtk ${TEST_GATE_PYTHON} tools/test_gate.py --tier 3
+NoNewPrivileges=true

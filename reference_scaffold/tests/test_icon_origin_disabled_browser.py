@@ -5,6 +5,7 @@ from playwright.sync_api import expect
 from cafeteria.workflow_partial_store import persist_menu_item
 from test_admin_workflow_routes import DAY, WEEK, _payload
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
+from test_menu_template_binding_db import stored_state
 from test_ui_menu_editor_browser import editor_page, family, javascript  # noqa: F401
 
 
@@ -21,6 +22,10 @@ def test_automatic_origin_removal_explains_lock_and_tracks_mode(editor_page, fam
     posts = []
     page.on('request', lambda request: posts.append(request.url) if request.method == 'POST' else None)
     assert page.goto(f'/admin/{family}/menu?week={DAY}&day={DAY}&meal=LUNCH&option=MENU_1').status == 200
+    before_state = stored_state(engine)
+    before_url = page.url
+    navigations = []
+    page.on('framenavigated', lambda frame: navigations.append(frame.url) if frame == page.main_frame else None)
     section = page.locator('section[data-mode-section="origin"]')
     expect(section).to_be_visible()
     rows = page.locator('#origins-list > .origin-row')
@@ -29,13 +34,36 @@ def test_automatic_origin_removal_explains_lock_and_tracks_mode(editor_page, fam
     expect(action).to_be_disabled()
     expect(wrapper).to_have_class('ui-sem-disabled')
     expect(wrapper).to_have_accessible_description(reason + ' ' + consequence)
+    description_id = wrapper.get_attribute('aria-describedby')
+    assert description_id
     wrapper.focus()
     expect(wrapper).to_be_focused()
     wrapper.press('Enter')
     wrapper.press('Space')
-    wrapper.click()
+    # Synchronous geometry avoids a No-JS animation-frame stability wait.
+    # Preserve real pointer input and validate its exact target before clicking.
+    point = wrapper.evaluate('''node => {
+        const r = node.getBoundingClientRect(), x = r.x + r.width/2, y = r.y + r.height/2;
+        return {x, y, visible: r.width > 0 && r.height > 0 && r.left >= 0 && r.top >= 0
+            && r.right <= innerWidth && r.bottom <= innerHeight,
+            receivesPointer: node.isConnected && node.contains(document.elementFromPoint(x, y))};
+    }''')
+    assert point['visible']
+    assert point['receivesPointer']
+    if javascript:
+        # Native actionability waits for Space-triggered scrolling to settle.
+        wrapper.click()
+    else:
+        page.mouse.click(point['x'], point['y'])
+    expect(wrapper).to_be_focused()
+    expect(action).to_be_disabled()
+    assert description_id in wrapper.get_attribute('aria-describedby').split()
+    expect(page.locator(f'#{description_id}')).to_have_text(reason + ' ' + consequence)
+    expect(page).to_have_url(before_url)
     expect(rows).to_have_count(1)
     assert not posts
+    assert not navigations
+    assert stored_state(engine) == before_state
     if javascript:
         for _ in range(2):
             page.locator('#origin-mode-manual').check()
@@ -52,3 +80,5 @@ def test_automatic_origin_removal_explains_lock_and_tracks_mode(editor_page, fam
             wrapper.focus()
             expect(wrapper).to_be_focused()
         assert not posts
+        assert not navigations
+        assert stored_state(engine) == before_state

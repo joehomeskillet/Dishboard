@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly Dishboard deterministic and flaky test gate
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=dishboard-test-gate.service
+
+[Install]
+WantedBy=timers.target

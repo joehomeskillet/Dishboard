@@ -17,6 +17,7 @@ from cafeteria.component_catalog_store import create_component, update_component
 from cafeteria.workflow_partial_store import persist_menu_item
 from test_admin_workflow_routes import DAY, ORIGIN_CONFLICT, WEEK, _login, _payload, _scope
 from test_rendered_ui import admin_app, admin_engine, browser  # noqa: F401
+from test_menu_template_binding_db import stored_state
 
 VIEWPORTS = [(1440, 900), (1024, 768), (768, 1024), (390, 844), (1920, 1080), (360, 800)]
 LONG_TITLE = 'Traditioneller geschmorter Rindsbraten mit Wurzelgemüse und Rotweinsauce ' * 2
@@ -187,6 +188,10 @@ def _keyboard(page: Page) -> None:
     page.locator('#f-title').focus()
     page.keyboard.press('Tab')
     expect(page.locator('#accompaniment-none')).to_be_focused()
+    page.keyboard.press('Tab')
+    expect(page.locator('#recipe-search')).to_be_focused()
+    page.keyboard.press('Tab')
+    expect(page.locator('button[name="form_intent"][value="recipe_search"]')).to_be_focused()
     page.keyboard.press('Tab')
     expect(page.locator('#accompaniment-hint')).to_be_visible()
     expect(page.locator('#components-hint')).to_be_visible()
@@ -422,6 +427,7 @@ def test_origin_overflow_native_removal_and_save(editor_page, family, javascript
     expect(rows.first.locator('[name="origin_ingredient"]')).to_have_value('Reis')
     expect(rows.last.locator('[name="origin_ingredient"]')).to_have_value('Rind')
     posts, measurements = [], []
+    posts_per_step = 1 if javascript else 2  # Native helper reads, then deliberate Save.
     page.on('request', lambda r: posts.append(r.url) if r.method == 'POST' else None)
     form_data = '''form => [...new FormData(form)].reduce((data, [key, value]) => {
         (data[key] ||= []).push(value); return data;
@@ -466,7 +472,7 @@ def test_origin_overflow_native_removal_and_save(editor_page, family, javascript
         assert tokens['row_version'] == str(2 + step)
         remove.focus()
         expect(remove).to_have_attribute('data-semantic', 'actions.delete')
-        expect(remove).to_have_attribute('type', 'button')
+        expect(remove).to_have_attribute('type', 'submit')
         expect(remove).to_have_attribute('data-remove-row', 'true')
         expect(remove).to_have_class(re.compile(r'\bbtn-danger\b'))
         expect(remove).to_have_accessible_description('Löschen')
@@ -474,8 +480,10 @@ def test_origin_overflow_native_removal_and_save(editor_page, family, javascript
         description = page.locator('#' + description_id)
         expect(description).to_have_class('visually-hidden')
         assert description.evaluate('el => el.getBoundingClientRect().width <= 1')
-        assert remove.get_attribute('name') is None and remove.get_attribute('value') is None
-        assert form.evaluate(form_data) == original and len(posts) == step
+        expect(remove).to_have_attribute('name', 'form_intent')
+        expect(remove).to_have_attribute('value', 'origin_remove:0')
+        expect(remove).to_have_attribute('formnovalidate', '')
+        assert form.evaluate(form_data) == original and len(posts) == step * posts_per_step
         if javascript:
             expect(remove).to_be_focused()
             expect(page.get_by_role('tooltip', name='Herkunft löschen', exact=True)).to_be_visible()
@@ -483,19 +491,23 @@ def test_origin_overflow_native_removal_and_save(editor_page, family, javascript
             expect(page.get_by_role('tooltip')).to_have_count(1)
         capture(f'focused-{step}')
         remove.focus()
-        remove.press('Enter')
+        before = stored_state(engine)
         if javascript:
-            expect(rows).to_have_count(1)
-            expect(rows.first.locator('[name="origin_ingredient"]')).to_be_focused()
-            expect(rows.first.locator('[data-row-legend]')).to_have_text('Herkunft 1')
-            expect(rows.first.locator('[name="origin_ingredient"]')).to_have_value('Rind' if step == 0 else '')
-            expect(rows.first.locator('[name="origin_country_code"]')).to_have_value('CH' if step == 0 else '')
+            remove.press('Enter')
         else:
-            # The existing type=button has no native delete effect. Persist removal by clearing both fields.
-            assert form.evaluate(form_data) == original
-            rows.first.locator('[name="origin_ingredient"]').fill('')
-            rows.first.locator('[name="origin_country_code"]').select_option('')
-        assert _tokens(page) == tokens and len(posts) == step
+            with page.expect_response(lambda r: r.request.method == 'POST'
+                                      and r.url.endswith('/menu')) as helper:
+                remove.press('Enter')
+            assert helper.value.status == 200
+            page.wait_for_load_state()
+            expect(form).to_have_attribute('data-form-pending', 'true')
+        expect(rows).to_have_count(1)
+        expect(rows.first.locator('[name="origin_ingredient"]')).to_be_focused()
+        expect(rows.first.locator('[data-row-legend]')).to_have_text('Herkunft 1')
+        expect(rows.first.locator('[name="origin_ingredient"]')).to_have_value('Rind' if step == 0 else '')
+        expect(rows.first.locator('[name="origin_country_code"]')).to_have_value('CH' if step == 0 else '')
+        assert stored_state(engine) == before
+        assert _tokens(page) == tokens and len(posts) == step * posts_per_step + int(not javascript)
         expected = form.evaluate(form_data)
         assert {k: v for k, v in expected.items() if not k.startswith('origin_')} == {
             k: v for k, v in original.items() if not k.startswith('origin_')
@@ -506,7 +518,7 @@ def test_origin_overflow_native_removal_and_save(editor_page, family, javascript
         assert parse_qs(saved.value.request.post_data, keep_blank_values=True) == expected
         assert expected['_csrf'] == [tokens['_csrf']] and expected['row_version'] == [tokens['row_version']]
         page.wait_for_load_state()
-        assert len(posts) == step + 1 and urlsplit(page.url).path == f'/admin/{family}/menu'
+        assert len(posts) == (step + 1) * posts_per_step and urlsplit(page.url).path == f'/admin/{family}/menu'
         expect(form.locator('[name="row_version"]')).to_have_value(str(3 + step))
         expect(rows).to_have_count(1)
         expect(rows.first.locator('[name="origin_ingredient"]')).to_have_value('Rind' if step == 0 else '')
@@ -528,7 +540,7 @@ def test_origin_overflow_native_removal_and_save(editor_page, family, javascript
     capture('automatic-disabled')
     wrapper.press('Enter')
     wrapper.press('Space')
-    assert len(posts) == 2
+    assert len(posts) == 2 * posts_per_step
     expect(wrapper).to_be_focused()
     expect(section).to_be_visible()
     expect(rows).to_have_count(1)

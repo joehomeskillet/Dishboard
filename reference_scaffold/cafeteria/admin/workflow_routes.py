@@ -19,7 +19,7 @@ from ..component_assignment_store import (
     resolve_component_effects,
 )
 from ..menu_recipe_choices import (
-    RecipeChoicePage, RecipeChoiceQuery, list_recipe_choices, unreadable_choice)
+    CHOICE_PAGE_LIMIT, RecipeChoicePage, RecipeChoiceQuery, list_recipe_choices, unreadable_choice)
 from ..component_catalog_store import (
     AdminScope, ComponentCatalogConfigurationError, ComponentCatalogValidationError,
     ComponentConflictError, ComponentNotFoundError, StaleComponentError, archive_component,
@@ -41,8 +41,10 @@ from ..workflow import (
 )
 from ..workflow_copy_store import copy_previous_week
 from ..workflow_partial_form import (
+    MENU_FORM_ONLY_FIELDS, MenuFormIntent, apply_menu_form_intent, menu_form_row_group_complete,
     parse_component_archive_form, parse_component_create_form, parse_component_unarchive_form,
-    parse_component_update_form, parse_menu_item_form, parse_service_form, parse_week_header_form)
+    parse_component_update_form, parse_menu_form_intent, parse_menu_item_form, parse_service_form,
+    parse_week_header_form)
 from ..course_store import parse_course_form, persist_service_courses
 from ..workflow_partial_store import (
     PartialWorkflowConflictError, PartialWorkflowNotFoundError, PartialWorkflowValidationError,
@@ -94,6 +96,7 @@ _MENU_VALUE_FIELDS = (
     'internal_chf', 'external_chf',
     'accompaniment',
     'dish_template_public_id', 'dish_template_detach', 'template_context',
+    'recipe_search', 'recipe_offset',
 )
 _MENU_LIST_FIELDS = (
     'component_public_id', 'component_text', 'allergen_code', 'allergen_presence',
@@ -280,15 +283,11 @@ def _catalog_choices(
     return choices
 
 
-def _recipe_choice_page(selected_ids: Sequence[object]) -> RecipeChoicePage:
-    """Read the bounded immutable choice page for the current bindings.
-
-    The editor still renders exactly one page; the query stays at its default until
-    the separate form-intent work package wires search and paging controls. A read
-    failure degrades to an empty page with the retained bindings, which keeps the
-    existing safe error mapping instead of turning a read problem into a 500.
-    """
-    query = RecipeChoiceQuery()
+def _recipe_choice_page(
+    selected_ids: Sequence[object], query: RecipeChoiceQuery | None = None,
+) -> RecipeChoicePage:
+    """Read one bounded recipe page while retaining bindings outside its search."""
+    query = RecipeChoiceQuery() if query is None else query
     try:
         return list_recipe_choices(_db(), selected_ids, query)
     except (RecipeUnavailableError, RecipeValidationError, RecipeNotFoundError):
@@ -384,6 +383,8 @@ def _render_menu_page(
     submitted_row_version: str | None = None,
     template_context: TemplateContext | None = None,
     proposal_option: dict[str, object] | None = None,
+    recipe_query: RecipeChoiceQuery | None = None,
+    focus_target: str | None = None,
 ):
     version, title, item_id = 0, '', None
     accompaniment_code, accompaniment_name = 'none', ''
@@ -411,6 +412,15 @@ def _render_menu_page(
             form_values = {**menu_form_values(profile, option), **(form_values or {})}
 
     assignments = cast(list[dict[str, object]], option.get('assignments') or [])
+    # A search may omit the whole component group. Keep its saved bindings rather
+    # than rendering explicit empty selects that a later Save would detach.
+    row_names = ('component_public_id', 'component_text', 'recipe_revision_public_id',
+                 'target_quantity', 'target_quantity_unit_code')
+    if (form_values is not None and not retained_only and
+            'recipe_revision_public_id' not in form_values and
+            not any(form_values.get(name) for name in row_names)):
+        saved_values = menu_form_values(profile, option)
+        form_values = {**form_values, **{name: saved_values[name] for name in row_names}}
     if retained_only:
         retained_ids = ((form_values or {}).get('component_public_id') or
                         [row.get('component_public_id') for row in assignments])
@@ -428,7 +438,7 @@ def _render_menu_page(
     allergens: list[dict[str, object]]
     labels: list[dict[str, object]]
     if retained_only:
-        recipe_page = RecipeChoicePage(query=RecipeChoiceQuery(), choices=(),
+        recipe_page = RecipeChoicePage(query=recipe_query or RecipeChoiceQuery(), choices=(),
             retained=tuple(unreadable_choice(str(value)) for value in selected_revisions if value),
             has_next=False, next_offset=None, previous_offset=None)
         allergens = [{'code': value, 'name': value} for value in
@@ -436,15 +446,16 @@ def _render_menu_page(
         labels = [{'code': value, 'name': value} for value in
                   cast(Sequence[str], (form_values or {}).get('label_code') or [])]
     else:
-        recipe_page = _recipe_choice_page(selected_revisions)
+        recipe_page = _recipe_choice_page(selected_revisions, recipe_query)
         allergens, labels = _master_choices()
     review_token = None
     effects: dict[str, list[str]] = {'labels': [], 'allergens': [], 'origins': []}
     origin_conflict = ORIGIN_CONFLICT if force_origin_conflict else None
-    if item_id is not None and origin_conflict is None and status == 200:
+    if item_id is not None and origin_conflict is None and not retained_only:
         try:
-            review_token = get_component_review_token(_db(), scope, item_id)
             effects = _display_effects(resolve_component_effects(_db(), scope, item_id))
+            if status == 200:
+                review_token = get_component_review_token(_db(), scope, item_id)
         except AutoOriginConflictError:
             origin_conflict = ORIGIN_CONFLICT
         except _STORE_ERRORS as error:
@@ -481,7 +492,10 @@ def _render_menu_page(
                             else '' if retained_only else _scoped_csrf(profile, 'menu', scope,
                                 template_context=str((form_values or {}).get('template_context') or ''))), review_token,
         catalog_choices, allergens, labels, effects, _flash(),
-        origin_conflict=origin_conflict, recipe_page=recipe_page,
+        origin_conflict=origin_conflict, recipe_page=recipe_page, focus_target=focus_target,
+        # ponytail: Retained POSTs stay pending until Save/fresh GET; compare
+        # canonical saved values here if clean helper reads become necessary.
+        form_pending=request.method == 'POST' and form_values is not None,
     )
     response_status = 409 if origin_conflict is not None and status == 200 else status
     return html if response_status == 200 else make_response(html, response_status)
@@ -496,8 +510,14 @@ def _menu_error_response(
     *,
     keep_request_values: bool,
     origin_conflict: bool = False,
+    recipe_query: RecipeChoiceQuery | None = None,
 ):
     proposal = request.form.get('template_context', '')
+    if recipe_query is None:
+        try:
+            recipe_query = _recipe_query(parse_menu_form_intent(request.form, CHOICE_PAGE_LIMIT))
+        except WorkflowValidationError:
+            pass
     context = read_template_context(proposal, target=True) if proposal else None
     if context is not None:
         # Coordinates and create mode come from the original signed target, even on conflict.
@@ -518,7 +538,41 @@ def _menu_error_response(
         force_origin_conflict=origin_conflict,
         submitted_row_version='0' if context else request.form.get('row_version', ''),
         template_context=context,
+        recipe_query=recipe_query,
     )
+
+
+def _recipe_query(intent: MenuFormIntent) -> RecipeChoiceQuery:
+    return RecipeChoiceQuery(search=intent.search, limit=CHOICE_PAGE_LIMIT, offset=intent.offset)
+
+
+def _menu_intent_response(profile: str, family: str, scope: AdminScope, intent: MenuFormIntent):
+    """Rearrange submitted values without adopting newer versions or writing a draft."""
+    week = _monday(request.form.get('week'))
+    day, meal = request.form.get('day', ''), request.form.get('meal', '')
+    option = request.form.get('option', '')
+    _raster(profile, week, day, meal, option)
+    token = request.form.get('template_context', '')
+    context = read_template_context(token, target=True) if token else None
+    proposal_option = None
+    if context is not None:
+        raw_version = request.form.get('row_version', '')
+        if re.fullmatch(r'\d+', raw_version) is None:
+            raise WorkflowValidationError('Versionsnummer muss eine nichtnegative ganze Zahl sein.',
+                                          field_name='row_version')
+        context.require_target(scope, week, day, meal, option, int(raw_version, 10))
+        proposal_option = _proposal_values(context, scope)
+    request_values = _request_menu_values()
+    try:
+        values, focus_target = apply_menu_form_intent(intent, request_values)
+    except WorkflowValidationError as error:
+        return _menu_error_response(profile, family, scope, error, 400,
+            keep_request_values=menu_form_row_group_complete(request_values, 'component'),
+            recipe_query=_recipe_query(intent))
+    return _render_menu_page(profile, family, scope, week, day, meal, option,
+        form_values=values, submitted_row_version=request.form.get('row_version', ''),
+        template_context=context, proposal_option=proposal_option,
+        recipe_query=_recipe_query(intent), focus_target=focus_target)
 
 def _week_overview(
     profile: str, *, week: date | None = None, scope: AdminScope | None = None,
@@ -660,10 +714,18 @@ def menu_post(family: str):
     ):
         abort(400, description='Rückkehrziel ist ungültig.')
     scope = validate_menu_csrf(profile)
+    query = None
     try:
         if scope != _scope(profile):
             raise WriteConflictError('Berechtigung oder aktiver Standort wurde zwischenzeitlich geändert.')
-        parsed = parse_menu_item_form(profile, request.form)
+        intent = parse_menu_form_intent(request.form, CHOICE_PAGE_LIMIT)
+        query = _recipe_query(intent)
+        if intent.name:
+            return _menu_intent_response(profile, family, scope, intent)
+        save_form = request.form.copy()
+        for control in MENU_FORM_ONLY_FIELDS:
+            save_form.poplist(control)
+        parsed = parse_menu_item_form(profile, save_form)
         context = read_template_context(parsed.template_context, target=True) if parsed.template_context else None
         proposal_title = None
         if context:
@@ -686,15 +748,18 @@ def menu_post(family: str):
             raise
         return _menu_error_response(profile, family, scope,
             WriteConflictError('Die Gerichtvorlage passt nicht mehr zum Standort.'),
-            409, keep_request_values=True)
+            409, keep_request_values=True, recipe_query=query)
     except AutoOriginConflictError as error:
         return _menu_error_response(
             profile, family, scope, error, 409,
-            keep_request_values=True, origin_conflict=True,
+            keep_request_values=True, origin_conflict=True, recipe_query=query,
         )
     except _MENU_VALIDATION_ERRORS as error:
         return _menu_error_response(
-            profile, family, scope, error, 400, keep_request_values=True,
+            profile, family, scope, error, 400,
+            keep_request_values=('form_intent' not in request.form or
+                menu_form_row_group_complete(_request_menu_values(), 'component')),
+            recipe_query=query,
         )
     except ComponentNotFoundError as error:
         if str(error) != 'Rezeptrevision nicht gefunden.':
@@ -702,11 +767,11 @@ def menu_post(family: str):
         return _menu_error_response(
             profile, family, scope,
             WorkflowValidationError(str(error), field_name='recipe_revision_public_id'),
-            400, keep_request_values=True,
+            400, keep_request_values=True, recipe_query=query,
         )
     except _MENU_CONFLICT_ERRORS as error:
         return _menu_error_response(
-            profile, family, scope, error, 409, keep_request_values=True,
+            profile, family, scope, error, 409, keep_request_values=True, recipe_query=query,
         )
     except _STORE_ERRORS as error:
         _abort_store(error)

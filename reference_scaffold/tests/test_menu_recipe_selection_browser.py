@@ -184,8 +184,8 @@ def test_http_option_labels_never_follow_a_renamed_recipe_head(http_client) -> N
     assert 'Ursprüngliche Suppe' in old_label and 'Revision 1' in old_label and '4 PORTION' in old_label
     assert 'Umbenannte Suppe' not in old_label and '9 PORTION' not in old_label
     assert 'Umbenannte Suppe' in new_label and 'Revision 2' in new_label and '9 PORTION' in new_label
-    # The page filter must not claim a full-set search before the form intents wire one.
-    assert 'Angezeigte Revisionen filtern' in body and 'Rezept suchen' not in body
+    assert 'Rezeptauswahl durchsuchen' in body and 'name="recipe_search"' in body
+    assert 'Angezeigte Revisionen filtern' not in body
 
 
 def test_http_invalid_keeps_signed_values_and_role_denial(http_client, admin_app, admin_engine) -> None:  # noqa: F811
@@ -398,7 +398,9 @@ def test_recipe_selector_viewports_keyboard_zoom_and_fonts(
     box = select.bounding_box()
     minimum = page.evaluate("matchMedia('(pointer: coarse), (any-pointer: coarse)').matches ? 44 : 36")
     assert box is not None and box['height'] >= minimum
-    page.get_by_label('Angezeigte Revisionen filtern', exact=True).fill('Sicht')
+    page.get_by_role('searchbox', name='Rezeptauswahl durchsuchen', exact=True).fill('Sicht')
+    page.locator('button[name="form_intent"][value="recipe_search"]').click()
+    page.wait_for_load_state()
     expect(_option(page, revision['public_id'])).to_be_attached()
     select.select_option(revision['public_id'])
     select.focus()
